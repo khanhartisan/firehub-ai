@@ -99,6 +99,7 @@ class Entity extends Model
         return [
             $this->source,
             ...$this->verticals,
+            ...$this->tags,
         ];
     }
 }

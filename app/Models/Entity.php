@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Model\EntityCountable;
 use App\Enums\ContentType;
 use App\Enums\EntityType;
 use App\Enums\PageType;
@@ -94,6 +95,9 @@ class Entity extends Model
             ->as('entity_tag');
     }
 
+    /**
+     * @return EntityCountable[]
+     */
     public function getEntityCountableResources(): array
     {
         return [

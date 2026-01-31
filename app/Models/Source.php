@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Contracts\Model\EntityCountable as EntityCountableContract;
 use App\Models\Concerns\EntityCountable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Source extends Model
+class Source extends Model implements EntityCountableContract
 {
     use EntityCountable;
 

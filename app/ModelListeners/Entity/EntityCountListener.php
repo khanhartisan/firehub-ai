@@ -2,6 +2,7 @@
 
 namespace App\ModelListeners\Entity;
 
+use App\Contracts\Model\EntityCountable;
 use App\Enums\EntityType;
 use App\Enums\ScrapingStatus;
 use App\Models\Entity;
@@ -97,6 +98,9 @@ class EntityCountListener extends ModelListener implements ModelListenerInterfac
         int $delta
     ): void {
         foreach ($entity->getEntityCountableResources() as $resource) {
+            if (!$resource instanceof EntityCountable) {
+                continue;
+            }
             $resource->adjustEntityCount($entityType, $scrapingStatus, $delta);
         }
     }

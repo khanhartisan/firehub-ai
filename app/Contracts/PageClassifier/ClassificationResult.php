@@ -9,10 +9,9 @@ use App\Enums\ContentType;
 use App\Enums\PageType;
 use App\Enums\Temporal;
 
-final class ClassificationResult implements Describable, Serializable
+final class ClassificationResult implements Serializable
 {
     use SerializableTrait;
-    use \App\Concerns\Describable;
 
     protected ContentType $contentType;
 
@@ -137,7 +136,6 @@ final class ClassificationResult implements Describable, Serializable
             'page_type' => $this->pageType?->value ?? null,
             'temporal' => $this->temporal?->value ?? null,
             'tags' => $this->tags ?? [],
-            'description' => $this->getDescription(),
         ];
     }
 
@@ -174,10 +172,6 @@ final class ClassificationResult implements Describable, Serializable
 
         if (isset($data['tags']) && is_array($data['tags'])) {
             $result->setTags($data['tags']);
-        }
-
-        if (isset($data['description'])) {
-            $result->setDescription($data['description']);
         }
 
         return $result;

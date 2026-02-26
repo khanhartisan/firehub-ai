@@ -6,22 +6,35 @@ use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 use Carbon\Carbon;
 
+/**
+ * Result of ScrapePolicyEngine::evaluate(): when to scrape next and policy metrics.
+ *
+ * next_scrape_at is stored on the entity; boosts/penalties/priority/urgency/cost_factor
+ * are stored in entity.policy_result for analytics or future policy logic.
+ */
 final class PolicyResult implements Serializable
 {
     use SerializableTrait;
 
+    /** When the entity should be scraped next (used by scheduler). */
     private ?Carbon $nextScrapeAt = null;
 
+    /** 0–1: boost from content change rate. */
     private float $changeBoost = 0.0;
 
+    /** 0–1: boost from content value. */
     private float $valueBoost = 0.0;
 
+    /** 0–1: penalty from recent errors. */
     private float $errorPenalty = 0.0;
 
+    /** 0–1: source/entity priority. */
     private float $priority = 0.0;
 
+    /** 0–1: how urgent a re-scrape is. */
     private float $urgency = 0.0;
 
+    /** 0–1: cost factor for budgeting. */
     private float $costFactor = 0.0;
 
     public function getNextScrapeAt(): ?Carbon

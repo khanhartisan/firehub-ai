@@ -9,19 +9,26 @@ use App\Enums\ContentType;
 use App\Enums\PageType;
 use App\Enums\Temporal;
 
+/**
+ * Result of classifying a scraped HTML page (e.g. via PageClassifier).
+ *
+ * Holds page type, content type, temporal classification, and tags used to
+ * categorize entities and drive downstream logic (policy, filtering).
+ */
 final class ClassificationResult implements Serializable
 {
     use SerializableTrait;
 
+    /** Classification: article, product, etc. */
     protected ContentType $contentType;
 
+    /** Page role: listing, detail, home, etc. */
     protected PageType $pageType;
 
+    /** Time relevance: evergreen, time-sensitive, etc. */
     protected Temporal $temporal;
 
-    /**
-     * @var array<int, string>
-     */
+    /** Normalized tag names (lowercase, trimmed) for the page. @var array<int, string> */
     protected array $tags = [];
 
     /**

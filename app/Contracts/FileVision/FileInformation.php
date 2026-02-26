@@ -6,6 +6,12 @@ use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Describable;
 use App\Contracts\Serializable;
 
+/**
+ * Result of FileVision::describe(): file metadata and optional description.
+ *
+ * Holds path, extension, MIME type, confidence score, and Describable description
+ * for use after analyzing a stored file.
+ */
 final class FileInformation implements Describable, Serializable
 {
     use SerializableTrait;
@@ -17,6 +23,7 @@ final class FileInformation implements Describable, Serializable
 
     protected string $mimeType;
 
+    /** Confidence score for the detection (0–1). */
     protected float $confidence;
 
     public function getFilePath(): ?string

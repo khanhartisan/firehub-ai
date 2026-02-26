@@ -5,16 +5,22 @@ namespace App\Contracts\OpenAI;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 
+/**
+ * Options for an OpenAI Responses API request (model, tools, temperature, etc.).
+ *
+ * Built via fluent setters or fromArray(); toArray() produces the payload for the API.
+ * Used when calling OpenAIClient::createResponse().
+ */
 final class ResponseOptions implements Serializable
 {
     use SerializableTrait;
+
     protected ?string $model = null;
 
+    /** For multi-turn: ID of the previous response to continue from. */
     protected ?string $previousResponseId = null;
 
-    /**
-     * @var array<int, array<string, mixed>>|null
-     */
+    /** @var array<int, array<string, mixed>>|null Tool definitions for the model */
     protected ?array $tools = null;
 
     protected string|array|null $toolChoice = null;

@@ -5,6 +5,12 @@ namespace App\Contracts\ScrapePolicyEngine;
 use App\Models\Entity;
 use Carbon\Carbon;
 
+/**
+ * Evaluates when an entity should be scraped next and policy metrics.
+ *
+ * Implementations (e.g. Dummy, OpenAI) use entity and snapshot data to compute
+ * next_scrape_at and optional boosts/penalties stored in policy_result on the entity.
+ */
 interface ScrapePolicyEngine
 {
     /**

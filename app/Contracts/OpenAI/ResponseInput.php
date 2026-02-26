@@ -5,17 +5,20 @@ namespace App\Contracts\OpenAI;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 
+/**
+ * Input for an OpenAI Responses API request: messages with text and/or images.
+ *
+ * Build via ResponseInput::text(), ResponseInput::withImage(), or addText()/addImage()
+ * and newMessage() for multi-turn. toArray() returns the messages array for the API.
+ */
 final class ResponseInput implements Serializable
 {
     use SerializableTrait;
-    /**
-     * @var array<int, array<string, mixed>>
-     */
+
+    /** @var array<int, array<string, mixed>> Completed messages (role + content) */
     protected array $messages = [];
 
-    /**
-     * @var array<int, array<string, mixed>>
-     */
+    /** @var array<int, array<string, mixed>> Content for the message being built */
     protected array $currentContent = [];
 
     /**

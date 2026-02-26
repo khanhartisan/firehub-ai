@@ -6,15 +6,23 @@ use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 use Carbon\Carbon;
 
+/**
+ * Parsed page data returned by the PageParser (e.g. from scraped HTML).
+ *
+ * Contains extracted title, excerpt, markdown, dates, canonical info, and
+ * linked page URLs used for discovery of new entities to scrape.
+ */
 final class PageData implements Serializable
 {
     use SerializableTrait;
+
     protected string $title = '';
 
     protected string $excerpt = '';
 
     protected string $thumbnailUrl = '';
 
+    /** Main content as markdown (used for storage and link/media counts). */
     protected string $markdownContent = '';
 
     protected ?Carbon $publishedAt = null;
@@ -25,11 +33,10 @@ final class PageData implements Serializable
 
     protected string $canonicalUrl = '';
 
+    /** Ordinal in a series (e.g. part 1, 2, 3). */
     protected ?int $canonicalNumber = null;
 
-    /**
-     * @var array<int, string>
-     */
+    /** Absolute URLs to other pages (same host used for entity discovery). @var array<int, string> */
     protected array $linkedPageUrls = [];
 
     public function getTitle(): string

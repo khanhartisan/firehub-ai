@@ -6,9 +6,16 @@ use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 use App\Enums\OpenAI\ResponseStatus;
 
+/**
+ * Wrapper for a single Responses API response (id, status, output, usage).
+ *
+ * Built from API JSON; use getOutputText() or getFirstOutputText() to get
+ * extracted text from message/output_text content for parsing.
+ */
 final class Response implements Serializable
 {
     use SerializableTrait;
+
     protected string $id;
 
     protected int $createdAt;
@@ -17,15 +24,15 @@ final class Response implements Serializable
 
     protected ?int $completedAt = null;
 
+    /** @var array<string, mixed>|null Error details when status is FAILED */
     protected ?array $error = null;
 
     protected string $model;
 
-    /**
-     * @var array<int, array<string, mixed>>
-     */
+    /** @var array<int, array<string, mixed>> API output items (e.g. message with content) */
     protected array $output = [];
 
+    /** @var array<string, mixed>|null Token usage (input_tokens, output_tokens, etc.) */
     protected ?array $usage = null;
 
     /**

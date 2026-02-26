@@ -2,6 +2,12 @@
 
 namespace App\Contracts;
 
+/**
+ * Objects that can be serialized to/from array and JSON.
+ *
+ * Used by DTOs (e.g. ClassificationResult, PageData, PolicyResult) for storage,
+ * logging, and API payloads. toArray()/fromArray() and toJson()/fromJson() must be symmetric.
+ */
 interface Serializable
 {
     /**

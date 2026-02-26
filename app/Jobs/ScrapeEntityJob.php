@@ -191,7 +191,7 @@ class ScrapeEntityJob implements ShouldQueue
             $entity->page_type = $classification->getPageType();
             $entity->content_type = $classification->getContentType();
             $entity->temporal = $classification->getTemporal();
-            $entity->description = $classification->getDescription() ?? $pageData->getExcerpt();
+            $entity->description = $pageData->getExcerpt();
             if (strlen((string) $entity->description) > 1024) {
                 $entity->description = substr((string) $entity->description, 0, 1021) . '...';
             }

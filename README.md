@@ -1,68 +1,252 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Scraping Hub
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+An application that schedules and runs web scraping for configured **sources**, discovers linked pages, classifies and parses content with AI, stores **snapshots**, and re-scrapes based on a **policy engine**. It exposes an admin panel (Filament) for managing Verticals, Sources, Entities, Snapshots, Clients, and Users.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Table of contents
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- [Overview](#overview)
+- [Concepts and data model](#concepts-and-data-model)
+- [How scraping works](#how-scraping-works)
+- [Entrypoints and scheduling](#entrypoints-and-scheduling)
+- [Project structure](#project-structure)
+- [Configuration and environment](#configuration-and-environment)
+- [Setup and development](#setup-and-development)
+- [Deployment](#deployment)
+- [Usage and operations](#usage-and-operations)
+- [Testing](#testing)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Admin Panel
+## Overview
 
-The application includes a [Filament](https://filamentphp.com) 4 admin panel at `/admin`. After setting up the application:
+- **Stack:** PHP 8.4+
+- **Admin UI:** [Filament](https://filamentphp.com) 5 at `/admin`
+- **Queue:** Queues (default: database); scheduler and scraping run as queued jobs
+- **Storage:** Snapshots (raw HTML) stored on the default disk (local or S3 via `FILESYSTEM_DISK`)
+- **AI/APIs:** Optional OpenAI-compatible and Grok drivers for PageClassifier, PageParser, ScrapePolicyEngine, and FileVision
 
-1. Create an admin user: `php artisan make:filament-user`
-2. Visit `/admin` in your browser and sign in.
+The app does not expose public HTTP APIs for scraping; all scraping is driven by the **scheduler** and the **admin** (e.g. creating sources/entities). The web route is a simple welcome view; the main behaviour lives in **console/scheduler** and **queue workers**.
 
-The panel provides CRUD for Verticals, Sources, Entities, Snapshots, Clients, and Users.
+---
 
-## Learning Laravel
+## Concepts and data model
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Core entities
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Concept | Description |
+|--------|-------------|
+| **Vertical** | A category (e.g. "News", "Docs"). Has many Sources and Entities (via pivot). Used for grouping and entity counts. |
+| **Source** | A website root: `base_url` (e.g. `https://example.com`). Has many **Entities**. Sources are attached to Verticals. |
+| **Entity** | A single URL belonging to a Source. Has `url`, `url_hash` (sha1), `scraping_status`, `next_scrape_at`, optional classification fields (`type`, `page_type`, `content_type`, `temporal`), and relations to Snapshots, Tags, Verticals. |
+| **Snapshot** | One captured version of an Entity: raw HTML path (`file_path` on default disk), version number, status, metrics (content_length, link_count, fetch_duration_ms, etc.), and optional `error_logs`. |
+| **Tag** | Labels from the PageClassifier; many-to-many with Entity. |
+| **Client / User** | Filament auth and optional client model for access control. |
 
-## Laravel Sponsors
+### Scraping status (Entity)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- **PENDING** – Not yet queued; will be picked when `next_scrape_at <= now()` (or null).
+- **QUEUED** – Job dispatched to the `scraping` queue.
+- **FETCHING** – Job is running (HTTP fetch in progress).
+- **SUCCESS** – Last run succeeded; `next_scrape_at` set by policy.
+- **FAILED** – Non-recoverable or generic failure; retries with backoff.
+- **TIMEOUT** – Connect/timeout failure.
+- **BLOCKED** – e.g. HTTP 403/429; retries with backoff.
 
-### Premium Partners
+### Queues
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- **`scheduler`** – `ScheduleScrapeDueJob`, `ScrapeSourcesJob`. Run **one** worker so only one scheduler loop runs at a time.
+- **`scraping`** – `ScrapeEntityJob`. Scale workers as needed; queue size is capped via config to avoid unbounded growth.
+- **`default`** – General application jobs.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## How scraping works
 
-## Code of Conduct
+1. **Scheduler (every minute)**  
+   - **ScheduleScrapeDueJob**  
+     - Finds entities that are due (by status and `next_scrape_at`) and have attempts under the max.  
+     - Dispatches up to a limit of `ScrapeEntityJob` to the `scraping` queue (respecting queue size cap), marks them QUEUED, then re-dispatches itself with a short delay.  
+     - Uses a cache lock so only one execution runs at a time even with multiple workers.  
+   - **ScrapeSourcesJob**  
+     - For sources that have **no** entity currently due for scraping, ensures an entity exists for the source’s `base_url` and dispatches one `ScrapeEntityJob` (home-page scrape). Runs in chunks with a time limit.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+2. **ScrapeEntityJob (per entity)**  
+   - Marks entity as FETCHING, fetches URL via **Scraper** (Guzzle).  
+   - On success:  
+     - Cleans HTML (**HtmlCleaner**), runs **PageClassifier** and **PageParser** (AI).  
+     - Stores raw HTML under default disk (`snapshots/{entity_id}/{ulid}.html`).  
+     - Creates a **Snapshot** and updates the Entity (type, description, dates, tags, etc.).  
+     - Runs **ScrapePolicyEngine** to get `next_scrape_at` and stores `policy_result`.  
+     - Sets entity to SUCCESS and resets attempts.  
+     - Discovers same-host links from the parser; creates new Entities for URLs not yet in DB and leaves them PENDING (scheduler will pick them up when due).  
+   - On failure: creates a failure Snapshot, increments attempts, sets backoff or stops if max attempts reached.
 
-## Security Vulnerabilities
+3. **Persistence**  
+   - Snapshots are stored on the configured default filesystem (`storage/app/private` for local disk).  
+   - Entity counts per Vertical/Source/Tag (by type and status) are maintained via **EntityCount** and the **EntityCountListener** (from `khanhartisan/laravel-backbone`).
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Entrypoints and scheduling
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- **Web:** `routes/web.php` – welcome page; no scraping endpoints.
+- **Console / scheduler:** `routes/console.php`  
+  - Registers two scheduled jobs (both every minute):  
+    - `Schedule::job(new ScheduleScrapeDueJob(limit: 50))->everyMinute();`  
+    - `Schedule::job(new ScrapeSourcesJob)->everyMinute();`  
+  - For the scheduler to run, use:  
+    - **Development:** `php artisan schedule:work` (or run the schedule from cron in production).  
+  - Queue workers must be running for the jobs to execute:  
+    - At least one worker on the **scheduler** queue (single worker recommended).  
+    - One or more workers on the **scraping** queue.
+
+So the “entrypoint” for the scraping pipeline is the **scheduler** defined in `routes/console.php`, which enqueues jobs; the actual work is done by queue workers.
+
+---
+
+## Project structure
+
+```
+app/
+├── Console/Commands/          # Artisan commands (e.g. TestPageEntity)
+├── Contracts/                 # Interfaces (Scraper, Classifier, Parser, ScrapePolicyEngine, FileVision, OpenAI)
+├── Enums/                     # Queue, ScrapingStatus, EntityType, PageType, ContentType, Temporal
+├── Facades/                   # Scraper, PageClassifier, PageParser, ScrapePolicyEngine, FileVision, OpenAI
+├── Filament/                  # Admin panel: Resources (Verticals, Sources, Entities, Snapshots, Clients, Users), Widgets
+├── Jobs/
+│   ├── ScheduleScrapeDueJob.php   # Scheduler: enqueue due entities, re-dispatch self
+│   ├── ScrapeSourcesJob.php       # Scheduler: ensure home-page entity per source, dispatch ScrapeEntityJob
+│   └── ScrapeEntityJob.php        # Fetch URL, classify/parse, store snapshot, policy, discover links
+├── ModelListeners/            # Entity: SetUrlHashListener, EntityCountListener (backbone package)
+├── Models/                    # Entity, Source, Vertical, Snapshot, Tag, Client, User, pivots
+├── Services/                  # Manager + driver implementations
+│   ├── Scraper/               # Guzzle driver
+│   ├── PageClassifier/        # OpenAI driver
+│   ├── PageParser/            # OpenAI driver
+│   ├── ScrapePolicyEngine/    # Dummy + OpenAI drivers
+│   ├── FileVision/            # (optional) OpenAI driver
+│   └── OpenAI/                # API client used by AI drivers
+└── Utils/                     # HtmlCleaner
+
+config/
+├── queue.php                  # Queue connection, size limits, scrape attempts, ScrapeSourcesJob chunk/timeout
+├── scraper.php                # Guzzle timeout, redirects, headers
+├── openai.php                 # OpenAI/Grok drivers
+├── pageclassifier.php, pageparser.php, scrapepolicyengine.php, filevision.php
+└── filesystems.php            # local / s3 for snapshots
+
+database/migrations/           # entities, sources, snapshots, verticals, tags, entity_vertical, source_vertical, jobs, cache, etc.
+
+routes/
+├── web.php                    # Welcome route
+└── console.php                # Schedule: ScheduleScrapeDueJob, ScrapeSourcesJob every minute
+```
+
+---
+
+## Configuration and environment
+
+Copy `.env.example` to `.env` and set at least:
+
+- **App:** `APP_KEY`, `APP_URL`, `APP_SERVICE=scraping.hub`
+- **Database:** `DB_*` (e.g. PostgreSQL)
+- **Queue:** `QUEUE_CONNECTION=database` (or redis/sqs). Optional: `QUEUE_SCRAPING_MAX_SIZE`, `QUEUE_SCHEDULER_MAX_SIZE`, `SCRAPE_MAX_ATTEMPTS`, `SCRAPE_SOURCES_CHUNK_SIZE`, `SCRAPE_SOURCES_MAX_SECONDS`
+- **Cache / session:** Typically `CACHE_STORE`, `SESSION_DRIVER` (e.g. database)
+- **Filesystem:** `FILESYSTEM_DISK=local` (or `s3`). Snapshots go to the default disk (local root: `storage/app/private`).
+- **Scraper:** Optional: `SCRAPER_TIMEOUT`, `SCRAPER_USER_AGENT`, etc. in `config/scraper.php`
+- **OpenAI/Grok:** For AI features set `OPENAI_DRIVER`, `OPENAI_API_KEY`, `OPENAI_DEFAULT_MODEL`, etc.; optionally `GROK_*` in `config/openai.php`
+- **ScrapePolicyEngine:** `SCRAPE_POLICY_ENGINE_DRIVER=dummy` (default) or `openai`; dummy uses `SCRAPE_POLICY_ENGINE_DUMMY_INTERVAL_HOURS`
+
+Relevant config keys:
+
+- **config/queue.php:** `max_scrape_attempts`, `max_scraping_queue_size`, `max_scheduler_queue_size`, `scrape_sources_chunk_size`, `scrape_sources_max_seconds`
+- **config/scraper.php:** default driver `guzzle`, timeouts and headers
+- **config/openai.php:** drivers `openai`, `grok`
+- **config/scrapepolicyengine.php:** drivers `dummy`, `openai`
+
+---
+
+## Setup and development
+
+**Requirements:** PHP 8.4+, Composer, Node/npm (for Filament/Vite), PostgreSQL (or DB of choice).
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+# Set DB_* and other env vars
+php artisan migrate
+npm install && npm run build
+```
+
+**Create Filament admin user:**
+
+```bash
+php artisan make:filament-user
+```
+
+**Run the app (dev):**
+
+- Web: `php artisan serve`
+- Scheduler: `php artisan schedule:work`
+- Queues: run at least one worker for `scheduler` and one or more for `scraping`:
+
+```bash
+php artisan queue:work database --queue=scheduler
+php artisan queue:work database --queue=scraping
+```
+
+Or use the composer script (if defined):
+
+```bash
+composer dev
+```
+
+**Useful commands:**
+
+- `php artisan app:render-page-entity` – Interactive: pick an entity and run PageClassifier, PageParser, or HtmlCleaner for debugging.
+
+---
+
+## Deployment
+
+1. **Code and dependencies**  
+   - Deploy app (e.g. git pull), run `composer install --no-dev`, `php artisan migrate --force`, `npm ci && npm run build` (or use built assets).
+
+2. **Environment**  
+   - Configure `.env` for production (DB, `QUEUE_CONNECTION`, `FILESYSTEM_DISK`, `OPENAI_*` / `SCRAPE_POLICY_ENGINE_DRIVER`, etc.).  
+   - Ensure `APP_ENV=production`, `APP_DEBUG=false`, and a strong `APP_KEY`.
+
+3. **Scheduler**  
+   - Add cron: `* * * * * cd /path-to-app && php artisan schedule:run >> /dev/null 2>&1` (or use a process manager that runs `schedule:work`).
+
+4. **Queue workers**  
+   - Run at least **one** worker for the **scheduler** queue only (e.g. `php artisan queue:work database --queue=scheduler --tries=1`).  
+   - Run one or more workers for the **scraping** queue (e.g. `php artisan queue:work database --queue=scraping --tries=2`).  
+   - Use a process manager (Supervisor, systemd) and restart workers after deploy (e.g. `php artisan queue:restart`).
+
+5. **Storage**  
+   - If using S3 for snapshots, set `FILESYSTEM_DISK=s3` and AWS_* in `.env`.  
+   - Run `php artisan storage:link` if you serve public storage assets.
+
+6. **Filament**  
+   - Create an admin user with `php artisan make:filament-user` and access `/admin` over HTTPS.
+
+---
+
+## Usage and operations
+
+- **Admin panel:** Log in at `/admin`. Manage Verticals, Sources, Entities, Snapshots, Clients, Users. Dashboard widgets show entity stats (e.g. by status, type, over time).
+- **Adding work:** Create a **Source** (base URL) and attach it to a Vertical. The scheduler will create the home-page entity if missing and enqueue it; from there, `ScrapeEntityJob` will discover same-host links and create new entities. You can also create or edit entities manually in Filament.
+- **Monitoring:** Check queue sizes (`QUEUE_SCRAPING_MAX_SIZE`, `QUEUE_SCHEDULER_MAX_SIZE`), failed jobs (`php artisan queue:failed`), and logs. Snapshots are stored on the default disk; inspect entity/snapshot records in the admin or DB.
+- **Policy:** With `SCRAPE_POLICY_ENGINE_DRIVER=dummy`, next scrape is after a fixed interval (e.g. 24h). With `openai`, the engine uses the entity/snapshot data to compute `next_scrape_at`.
+
+---
+
+## Testing
+
+- **PHPUnit:** `composer test` or `php artisan test`.
+- **Relevant tests:** e.g. `tests/Feature/Jobs/ScrapeEntityJobTest`, `tests/Unit/Services/...` (OpenAI, ScrapePolicyEngine, PageParser, PageClassifier, FileVision), `tests/Unit/Utils/HtmlCleanerTest`.
+

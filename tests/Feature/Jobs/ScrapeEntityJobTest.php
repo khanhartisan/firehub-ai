@@ -230,7 +230,7 @@ class ScrapeEntityJobTest extends TestCase
         $snapshot = Snapshot::where('entity_id', $entity->id)->first();
         $this->assertNotNull($snapshot);
         $this->assertSame($entity->id, $snapshot->entity_id);
-        $this->assertSame(ScrapingStatus::SUCCESS->value, $snapshot->scraping_status->value);
+        $this->assertSame(ScrapingStatus::SUCCESS, $snapshot->scraping_status);
         $this->assertSame(1, $snapshot->version);
         $this->assertNotNull($snapshot->content_length);
         $this->assertSame(1, $snapshot->link_count);

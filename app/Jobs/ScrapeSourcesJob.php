@@ -11,7 +11,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Queue;
 
 class ScrapeSourcesJob implements ShouldQueue
 {
@@ -85,9 +84,7 @@ class ScrapeSourcesJob implements ShouldQueue
             ]);
         }
 
-        $currentSize = Queue::size(QueueEnum::SCRAPING->value);
-        $maxQueueSize = config('queue.max_scraping_queue_size');
-        if ($currentSize >= $maxQueueSize) {
+        if (! QueueEnum::SCRAPING->canDispatch()) {
             return;
         }
 

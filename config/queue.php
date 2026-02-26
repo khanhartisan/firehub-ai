@@ -17,16 +17,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Scraping Queue Size Limit
+    | Queue Size Limits (per queue)
     |--------------------------------------------------------------------------
     |
-    | Maximum number of jobs allowed on the scraping queue. When reached,
-    | no new scrape jobs are dispatched until the queue drains. Set via
-    | QUEUE_SCRAPING_MAX_SIZE (default: 1000).
+    | Maximum number of jobs allowed per queue. When a queue reaches its limit,
+    | no new jobs are dispatched until it drains. Default when not set: 10000.
+    |
+    | - max_default_queue_size: default queue (default: 10000)
+    | - max_scraping_queue_size: scraping queue (default: 1000)
+    | - max_scheduler_queue_size: scheduler queue (default: 100)
     |
     */
 
+    'max_default_queue_size' => env('QUEUE_DEFAULT_MAX_SIZE') !== null ? (int) env('QUEUE_DEFAULT_MAX_SIZE') : 10000,
     'max_scraping_queue_size' => (int) env('QUEUE_SCRAPING_MAX_SIZE', 1000),
+    'max_scheduler_queue_size' => (int) env('QUEUE_SCHEDULER_MAX_SIZE', 100),
 
     /*
     |--------------------------------------------------------------------------

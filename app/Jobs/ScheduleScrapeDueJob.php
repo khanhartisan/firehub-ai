@@ -100,12 +100,10 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
      */
     private function dispatchScrapeEntityJobs(Builder $entityQuery): int
     {
-        $queueName = QueueEnum::SCRAPING->value;
-        $maxQueueSize = config('queue.max_scraping_queue_size');
+        $queue = QueueEnum::SCRAPING;
+        $queueName = $queue->value;
 
-        $currentSize = Queue::size($queueName);
-        $slotsAvailable = max(0, $maxQueueSize - $currentSize);
-
+        $slotsAvailable = $queue->slotsAvailable();
         if ($slotsAvailable <= 0) {
             return 0;
         }
@@ -127,6 +125,8 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             ScrapeEntityJob::dispatch($entity)->onQueue($queueName);
         }
 
+        $maxQueueSize = $queue->maxSize();
+        $currentSize = Queue::size($queueName);
         Log::debug('ScheduleScrapeDueJob: Queued '.$entities->count().' entities for scraping.', [
             'queue' => $currentSize.' → '.($currentSize + $entities->count()).'/'.$maxQueueSize,
         ]);

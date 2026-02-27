@@ -157,13 +157,20 @@ class ScrapeEntityJob implements ShouldQueue
         $classification = PageClassifier::classify($cleanedHtml);
         $pageData = PageParser::parse($cleanedHtml);
 
-        // Resolve and propose verticals based on content and existing Vertical models.
+        // Resolve and propose verticals based on content and existing / proposed Vertical models.
         $verticalMatches = [];
-        $verticalProposals = [];
-        $allVerticalModels = VerticalModel::all();
+        $proposalVerticalIds = [];
 
-        if ($allVerticalModels->isNotEmpty()) {
-            $contractVerticals = $allVerticalModels
+        $verticalContent = $pageData->getMarkdownContent() !== ''
+            ? $pageData->getMarkdownContent()
+            : $cleanedHtml;
+
+        // 1) Always call propose() first (even when there are no verticals yet),
+        // create any proposed Vertical models, and associate them to the source.
+        try {
+            $initialVerticalModels = VerticalModel::all();
+
+            $initialContractVerticals = $initialVerticalModels
                 ->map(function (VerticalModel $model): ContractVertical {
                     $vertical = new ContractVertical($model->name, $model->description);
                     $vertical->setIdentifier((string) $model->id);
@@ -172,12 +179,52 @@ class ScrapeEntityJob implements ShouldQueue
                 })
                 ->all();
 
-            $verticalContent = $pageData->getMarkdownContent() !== ''
-                ? $pageData->getMarkdownContent()
-                : $cleanedHtml;
+            $verticalProposals = VerticalResolverFacade::propose($verticalContent, $initialContractVerticals);
 
-            $verticalMatches = VerticalResolverFacade::resolve($verticalContent, $contractVerticals);
-            $verticalProposals = VerticalResolverFacade::propose($verticalContent, $contractVerticals);
+            if (! empty($verticalProposals)) {
+                foreach ($verticalProposals as $proposal) {
+                    $model = VerticalModel::query()->firstOrCreate(
+                        ['name' => $proposal->getName()],
+                        ['description' => $proposal->getDescription()]
+                    );
+
+                    $proposalVerticalIds[] = $model->id;
+
+                    if ($entity->source_id) {
+                        $model->sources()->syncWithoutDetaching([$entity->source_id]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('ScrapeEntityJob: Failed to propose verticals for entity', [
+                'entity_id' => $entity->id,
+                'exception' => $e,
+            ]);
+        }
+
+        // 2) Re-load all verticals (including newly proposed ones) and call resolve()
+        // to get matches that will be attached to the entity. If there are no verticals
+        // at all, there is nothing to match, so resolve() is skipped.
+        $allVerticalModels = VerticalModel::all();
+
+        if ($allVerticalModels->isNotEmpty()) {
+            try {
+                $contractVerticals = $allVerticalModels
+                    ->map(function (VerticalModel $model): ContractVertical {
+                        $vertical = new ContractVertical($model->name, $model->description);
+                        $vertical->setIdentifier((string) $model->id);
+
+                        return $vertical;
+                    })
+                    ->all();
+
+                $verticalMatches = VerticalResolverFacade::resolve($verticalContent, $contractVerticals);
+            } catch (\Throwable $e) {
+                Log::warning('ScrapeEntityJob: Failed to resolve verticals for entity', [
+                    'entity_id' => $entity->id,
+                    'exception' => $e,
+                ]);
+            }
         }
 
         $linkedUrls = $pageData->getLinkedPageUrls();
@@ -194,7 +241,7 @@ class ScrapeEntityJob implements ShouldQueue
         Storage::put($filePath, $html);
         $fileSize = strlen($html);
 
-        DB::transaction(function () use ($snapshotId, $entity, $classification, $pageData, $contentLength, $linkCount, $mediaCount, $fetchDurationMs, $version, $filePath, $fileSize, $verticalMatches, $verticalProposals, $allVerticalModels) {
+        DB::transaction(function () use ($snapshotId, $entity, $classification, $pageData, $contentLength, $linkCount, $mediaCount, $fetchDurationMs, $version, $filePath, $fileSize, $verticalMatches, $proposalVerticalIds, $allVerticalModels) {
             // Snapshot with SUCCESS status for history/evaluation (failure paths create snapshots in markEntityFailed).
             $snapshot = new Snapshot([
                 'id' => $snapshotId,
@@ -233,8 +280,10 @@ class ScrapeEntityJob implements ShouldQueue
                 ->all();
             $entity->tags()->sync($tagIds);
 
-            // Map resolved/proposed verticals to database Vertical models and attach to the entity.
-            // Vertical resolution is best-effort and should not cause the scrape to fail.
+            // Map resolved verticals to database Vertical models and attach to the entity.
+            // Proposed verticals are created and attached to the source above; whether they
+            // are attached to the entity is decided solely by resolve(). This is best-effort
+            // and should not cause the scrape to fail.
             try {
                 $verticalIds = [];
 
@@ -245,21 +294,6 @@ class ScrapeEntityJob implements ShouldQueue
                         $identifier = $match->getVerticalIdentifier();
                         if ($modelsByIdentifier->has($identifier)) {
                             $verticalIds[] = $modelsByIdentifier->get($identifier)->id;
-                        }
-                    }
-                }
-
-                if (! empty($verticalProposals)) {
-                    foreach ($verticalProposals as $proposal) {
-                        $model = VerticalModel::query()->firstOrCreate(
-                            ['name' => $proposal->getName()],
-                            ['description' => $proposal->getDescription()]
-                        );
-
-                        $verticalIds[] = $model->id;
-
-                        if ($entity->source_id) {
-                            $model->sources()->syncWithoutDetaching([$entity->source_id]);
                         }
                     }
                 }

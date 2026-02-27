@@ -388,8 +388,10 @@ class ScrapeEntityJobTest extends TestCase
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        // When there are no verticals, we still call propose() (to allow suggestions),
+        // but resolve() is skipped because there is nothing to match.
+        \App\Facades\VerticalResolver::shouldReceive('propose')->once()->andReturn([]);
         \App\Facades\VerticalResolver::shouldReceive('resolve')->never();
-        \App\Facades\VerticalResolver::shouldReceive('propose')->never();
 
         $job = new class($entity) extends ScrapeEntityJob {
             protected function fetchUrl(string $url): ResponseInterface
@@ -515,8 +517,9 @@ class ScrapeEntityJobTest extends TestCase
         $entity->refresh();
         $entity->load('verticals');
         $this->assertSame(ScrapingStatus::SUCCESS->value, $entity->scraping_status->value);
-        $this->assertCount(1, $entity->verticals);
-        $this->assertSame($techVertical->id, $entity->verticals->first()->id);
+        // Proposed verticals are created and attached to the source, but attaching to the entity
+        // is decided solely by resolve() (which we mocked to return an empty array here).
+        $this->assertCount(0, $entity->verticals);
 
         $techVertical->load('sources');
         $this->assertTrue($techVertical->sources->contains('id', $source->id));

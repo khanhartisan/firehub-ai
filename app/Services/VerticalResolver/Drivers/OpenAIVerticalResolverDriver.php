@@ -9,6 +9,7 @@ use App\Contracts\VerticalResolver\Vertical;
 use App\Contracts\VerticalResolver\VerticalMatch;
 use App\Contracts\VerticalResolver\VerticalResolver;
 use App\Utils\HtmlCleaner;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class OpenAIVerticalResolverDriver implements VerticalResolver
@@ -342,7 +343,7 @@ PROMPT;
             'properties' => [
                 'name' => [
                     'type' => 'string',
-                    'description' => 'Level 3 specialized segment name (lowercase identifier, e.g. "generative_ai")',
+                    'description' => 'Level 3 specialized segment name (lowercase identifier, example: Artificial Intelligence → Generative AI, Banking → Digital Banking, Residential Real Estate → Property Listings...)',
                 ],
                 'description' => [
                     'type' => 'string',
@@ -359,7 +360,7 @@ PROMPT;
             'properties' => [
                 'name' => [
                     'type' => 'string',
-                    'description' => 'Level 2 industry segment name (lowercase identifier, e.g. "artificial_intelligence")',
+                    'description' => 'Level 2 industry segment name (lowercase identifier, example: Technology → Artificial Intelligence, Finance → Banking, Real Estate → Residential Real Estate...)',
                 ],
                 'description' => [
                     'type' => 'string',
@@ -381,7 +382,7 @@ PROMPT;
             'properties' => [
                 'name' => [
                     'type' => 'string',
-                    'description' => 'Level 1 macro domain name (lowercase identifier, e.g. "technology")',
+                    'description' => 'Level 1 macro domain name (lowercase identifier, example: Technology, Finance, Healthcare, Real Estate, Education, Travel...)',
                 ],
                 'description' => [
                     'type' => 'string',
@@ -448,7 +449,7 @@ PROMPT;
         }
 
         $description = isset($node['description']) ? (string) $node['description'] : null;
-        $vertical = new Vertical($name, $description);
+        $vertical = new Vertical(Str::snake($name), $description);
 
         $children = $node['children'] ?? [];
         if (! is_array($children)) {

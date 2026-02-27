@@ -88,7 +88,9 @@ class ScrapeSourcesJob implements ShouldQueue
             return;
         }
 
-        $entity->update(['scraping_status' => ScrapingStatus::QUEUED]);
+        $entity->scraping_status = ScrapingStatus::QUEUED;
+        $entity->save();
+
         ScrapeEntityJob::dispatch($entity)->onQueue(QueueEnum::SCRAPING->value);
     }
 

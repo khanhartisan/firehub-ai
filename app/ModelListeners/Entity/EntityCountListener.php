@@ -38,7 +38,7 @@ class EntityCountListener extends ModelListener implements ModelListenerInterfac
      */
     public function events(): array
     {
-        return ['created', 'deleting', 'updating'];
+        return ['created', 'deleted', 'updated'];
     }
 
     /**
@@ -55,28 +55,20 @@ class EntityCountListener extends ModelListener implements ModelListenerInterfac
             return;
         }
 
-        if ($event === 'deleting') {
+        if ($event === 'deleted') {
             $this->incrementCounts($entity, -1);
             return;
         }
 
-        if ($event === 'updating') {
-            $entityTypeChanged = $entity->isDirty('type');
-            $scrapingStatusChanged = $entity->isDirty('scraping_status');
-
-            if (!$entityTypeChanged && !$scrapingStatusChanged) {
+        if ($event === 'updated') {
+            if (!$entity->isDirty('type')
+                and !$entity->isDirty('scraping_status')
+            ) {
                 return;
             }
 
             $oldType = $entity->getOriginal('type');
             $oldScrapingStatus = $entity->getOriginal('scraping_status');
-
-            $oldType = $oldType instanceof EntityType
-                ? $oldType
-                : (is_int($oldType) ? EntityType::from($oldType) : EntityType::UNCLASSIFIED);
-            $oldScrapingStatus = $oldScrapingStatus instanceof ScrapingStatus
-                ? $oldScrapingStatus
-                : (is_int($oldScrapingStatus) ? ScrapingStatus::from($oldScrapingStatus) : ScrapingStatus::PENDING);
 
             $this->adjustCounts($entity, $oldType, $oldScrapingStatus, -1);
             $this->incrementCounts($entity, 1);
@@ -102,6 +94,9 @@ class EntityCountListener extends ModelListener implements ModelListenerInterfac
                 continue;
             }
             $resource->adjustEntityCount($entityType, $scrapingStatus, $delta);
+            /*dump($delta.' to '
+                .$resource->getMorphClass().'@'.$resource->id
+                .' / entity@'.$entity->id. ' / '.$entityType->name.' / '.$scrapingStatus->name);*/
         }
     }
 }

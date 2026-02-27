@@ -79,7 +79,8 @@ class ScrapeEntityJob implements ShouldQueue
             return;
         }
 
-        $entity->update(['scraping_status' => ScrapingStatus::FETCHING]);
+        $entity->scraping_status = ScrapingStatus::FETCHING;
+        $entity->save();
 
         $fetchStartedAt = microtime(true);
 

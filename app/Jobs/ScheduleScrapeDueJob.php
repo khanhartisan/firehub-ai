@@ -119,7 +119,11 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $ids = $entities->pluck('id')->toArray();
         Entity::query()
             ->whereIn('id', $ids)
-            ->update(['scraping_status' => ScrapingStatus::QUEUED]);
+            ->get()
+            ->each(function (Entity $entity) {
+                $entity->scraping_status  = ScrapingStatus::QUEUED;
+                $entity->save();
+            });
 
         foreach ($entities as $entity) {
             ScrapeEntityJob::dispatch($entity)->onQueue($queueName);

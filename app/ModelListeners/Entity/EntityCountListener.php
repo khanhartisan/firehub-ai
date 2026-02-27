@@ -18,7 +18,7 @@ class EntityCountListener extends ModelListener implements ModelListenerInterfac
      */
     public function priority(): int
     {
-        return 0;
+        return -10;
     }
 
     /**

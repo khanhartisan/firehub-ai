@@ -284,19 +284,25 @@ class OpenAIPageParserDriverTest extends TestCase
                 Mockery::type(\App\Contracts\OpenAI\ResponseInput::class),
                 Mockery::on(function ($options) {
                     $format = $options->getResponseFormat();
-                    return $format !== null
-                        && $format['type'] === 'json_schema'
-                        && $format['name'] === 'page_parsing'
-                        && $format['strict'] === true
-                        && isset($format['schema'])
-                        && isset($format['schema']['properties']['title'])
-                        && isset($format['schema']['properties']['excerpt'])
-                        && isset($format['schema']['properties']['thumbnailUrl'])
-                        && isset($format['schema']['properties']['markdownContent'])
-                        && isset($format['schema']['properties']['publishedAt'])
-                        && isset($format['schema']['properties']['updatedAt'])
-                        && isset($format['schema']['properties']['canonicalUrl'])
-                        && isset($format['schema']['properties']['canonicalNumber']);
+                    if ($format === null || ($format['type'] ?? null) !== 'json_schema') {
+                        return false;
+                    }
+                    $jsonSchema = $format['json_schema'] ?? null;
+                    if ($jsonSchema === null
+                        || ($jsonSchema['name'] ?? null) !== 'page_parsing'
+                        || ($jsonSchema['strict'] ?? null) !== true
+                    ) {
+                        return false;
+                    }
+                    $schema = $jsonSchema['schema'] ?? [];
+                    return isset($schema['properties']['title'])
+                        && isset($schema['properties']['excerpt'])
+                        && isset($schema['properties']['thumbnailUrl'])
+                        && isset($schema['properties']['markdownContent'])
+                        && isset($schema['properties']['publishedAt'])
+                        && isset($schema['properties']['updatedAt'])
+                        && isset($schema['properties']['canonicalUrl'])
+                        && isset($schema['properties']['canonicalNumber']);
                 })
             )
             ->andReturn($mockResponse);

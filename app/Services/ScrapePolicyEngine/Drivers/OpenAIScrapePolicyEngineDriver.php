@@ -43,9 +43,11 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
             ->model($this->defaultModel)
             ->responseFormat([
                 'type' => 'json_schema',
-                'name' => 'scrape_policy_evaluation',
-                'schema' => $jsonSchema,
-                'strict' => true,
+                'json_schema' => [
+                    'name' => 'scrape_policy_evaluation',
+                    'schema' => $jsonSchema,
+                    'strict' => true,
+                ],
             ]);
 
         try {

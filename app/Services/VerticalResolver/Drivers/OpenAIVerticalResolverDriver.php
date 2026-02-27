@@ -233,12 +233,12 @@ PROMPT;
         return <<<PROMPT
 Based on the following content, suggest 0 to 5 new business vertical (category) hierarchies that could be used to classify similar content.
 
-Each proposal is a vertical that may optionally contain child verticals (nested categories). Use this structure:
+Each proposal is a vertical that may optionally reference a parent vertical by name (to indicate nesting). Use this structure:
 - proposals: array of vertical objects
 - each vertical has:
   - name: short, lowercase identifier (e.g. "tech", "tech_news", "product_docs")
   - description: short description (can be empty if not needed)
-  - children: optional array of child verticals with the same structure (name, description, children)
+  - parent_name: optional string, the name of the parent vertical in this list or an existing vertical name; null or empty means this is a root/top-level vertical
 
 Return a "proposals" array of objects with "name" (string) and "description" (string, optional). Use concise, lowercase names (e.g. "tech_news", "product_docs"). Do not suggest verticals that are too generic (e.g. "other", "misc").
 
@@ -252,7 +252,9 @@ PROMPT;
      */
     protected function buildProposeJsonSchema(): array
     {
-        // Recursive vertical proposal item schema (name, description, optional children).
+        // Vertical proposal item schema (name, description, optional parent_name).
+        // We avoid nested object trees in the schema and instead represent hierarchy
+        // via an optional parent_name field for compatibility with the Responses API.
         $verticalItem = [
             'type' => 'object',
             'properties' => [
@@ -264,16 +266,13 @@ PROMPT;
                     'type' => 'string',
                     'description' => 'Vertical description (may be empty)',
                 ],
+                'parent_name' => [
+                    'type' => ['string', 'null'],
+                    'description' => 'Optional parent vertical name; null or empty means root/top-level',
+                ],
             ],
             'required' => ['name', 'description'],
             'additionalProperties' => false,
-        ];
-
-        // Add children property referencing the same item shape (simple recursive tree).
-        $verticalItem['properties']['children'] = [
-            'type' => 'array',
-            'description' => 'Optional child verticals (sub-categories)',
-            'items' => $verticalItem,
         ];
 
         return [
@@ -303,15 +302,38 @@ PROMPT;
             );
         }
 
-        $result = [];
-        foreach ($data['proposals'] ?? [] as $item) {
+        $items = $data['proposals'] ?? [];
+
+        // First pass: create all verticals indexed by name.
+        /** @var array<string, Vertical> $verticalsByName */
+        $verticalsByName = [];
+        $parentNames = [];
+
+        foreach ($items as $item) {
             $name = $item['name'] ?? '';
-            if ($name !== '') {
-                $result[] = new Vertical($name, $item['description'] ?? null);
+            if ($name === '') {
+                continue;
+            }
+
+            $vertical = new Vertical($name, $item['description'] ?? null);
+            $verticalsByName[$name] = $vertical;
+            $parentNames[$name] = $item['parent_name'] ?? null;
+        }
+
+        // Second pass: attach children to parents using parent_name; collect roots.
+        $roots = [];
+        foreach ($verticalsByName as $name => $vertical) {
+            $parentName = $parentNames[$name] ?? null;
+            $parentName = is_string($parentName) ? trim($parentName) : null;
+
+            if ($parentName !== null && $parentName !== '' && isset($verticalsByName[$parentName])) {
+                $verticalsByName[$parentName]->addChild($vertical);
+            } else {
+                $roots[] = $vertical;
             }
         }
 
-        return $result;
+        return $roots;
     }
 
     protected function checkForRefusal($response): void

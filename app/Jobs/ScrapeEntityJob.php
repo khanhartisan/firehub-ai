@@ -2,16 +2,19 @@
 
 namespace App\Jobs;
 
+use App\Contracts\VerticalResolver\Vertical as ContractVertical;
 use App\Enums\EntityType;
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStatus;
 use App\Facades\PageClassifier;
 use App\Facades\PageParser;
 use App\Facades\ScrapePolicyEngine;
+use App\Facades\VerticalResolver as VerticalResolverFacade;
 use App\Facades\Scraper;
 use App\Models\Entity;
 use App\Models\Snapshot;
 use App\Models\Source;
+use App\Models\Vertical as VerticalModel;
 use App\Models\Tag;
 use App\Utils\HtmlCleaner;
 use Carbon\Carbon;
@@ -154,6 +157,29 @@ class ScrapeEntityJob implements ShouldQueue
         $classification = PageClassifier::classify($cleanedHtml);
         $pageData = PageParser::parse($cleanedHtml);
 
+        // Resolve and propose verticals based on content and existing Vertical models.
+        $verticalMatches = [];
+        $verticalProposals = [];
+        $allVerticalModels = VerticalModel::all();
+
+        if ($allVerticalModels->isNotEmpty()) {
+            $contractVerticals = $allVerticalModels
+                ->map(function (VerticalModel $model): ContractVertical {
+                    $vertical = new ContractVertical($model->name, $model->description);
+                    $vertical->setIdentifier((string) $model->id);
+
+                    return $vertical;
+                })
+                ->all();
+
+            $verticalContent = $pageData->getMarkdownContent() !== ''
+                ? $pageData->getMarkdownContent()
+                : $cleanedHtml;
+
+            $verticalMatches = VerticalResolverFacade::resolve($verticalContent, $contractVerticals);
+            $verticalProposals = VerticalResolverFacade::propose($verticalContent, $contractVerticals);
+        }
+
         $linkedUrls = $pageData->getLinkedPageUrls();
 
         $contentLength = strlen($pageData->getMarkdownContent());
@@ -166,9 +192,9 @@ class ScrapeEntityJob implements ShouldQueue
         $version = $entity->snapshots_count + 1;
         $filePath = 'snapshots/'.$entity->id.'/'.($snapshotId = Str::ulid()).'.html';
         Storage::put($filePath, $html);
-        $fileSize = Storage::size($filePath);
+        $fileSize = strlen($html);
 
-        DB::transaction(function () use ($snapshotId, $entity, $classification, $pageData, $contentLength, $linkCount, $mediaCount, $fetchDurationMs, $version, $filePath, $fileSize) {
+        DB::transaction(function () use ($snapshotId, $entity, $classification, $pageData, $contentLength, $linkCount, $mediaCount, $fetchDurationMs, $version, $filePath, $fileSize, $verticalMatches, $verticalProposals, $allVerticalModels) {
             // Snapshot with SUCCESS status for history/evaluation (failure paths create snapshots in markEntityFailed).
             $snapshot = new Snapshot([
                 'id' => $snapshotId,
@@ -206,6 +232,48 @@ class ScrapeEntityJob implements ShouldQueue
                 ->map(fn (string $name): string => Tag::firstOrCreate(['name' => $name])->id)
                 ->all();
             $entity->tags()->sync($tagIds);
+
+            // Map resolved/proposed verticals to database Vertical models and attach to the entity.
+            // Vertical resolution is best-effort and should not cause the scrape to fail.
+            try {
+                $verticalIds = [];
+
+                if (! empty($verticalMatches)) {
+                    $modelsByIdentifier = $allVerticalModels->keyBy(fn (VerticalModel $model): string => (string) $model->id);
+
+                    foreach ($verticalMatches as $match) {
+                        $identifier = $match->getVerticalIdentifier();
+                        if ($modelsByIdentifier->has($identifier)) {
+                            $verticalIds[] = $modelsByIdentifier->get($identifier)->id;
+                        }
+                    }
+                }
+
+                if (! empty($verticalProposals)) {
+                    foreach ($verticalProposals as $proposal) {
+                        $model = VerticalModel::query()->firstOrCreate(
+                            ['name' => $proposal->getName()],
+                            ['description' => $proposal->getDescription()]
+                        );
+
+                        $verticalIds[] = $model->id;
+
+                        if ($entity->source_id) {
+                            $model->sources()->syncWithoutDetaching([$entity->source_id]);
+                        }
+                    }
+                }
+
+                $verticalIds = array_values(array_unique($verticalIds));
+                if (! empty($verticalIds)) {
+                    $entity->verticals()->sync($verticalIds);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('ScrapeEntityJob: Failed to sync verticals for entity', [
+                    'entity_id' => $entity->id,
+                    'exception' => $e,
+                ]);
+            }
         });
 
         // Long-running policy evaluation outside transaction.

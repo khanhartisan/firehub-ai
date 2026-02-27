@@ -231,14 +231,14 @@ PROMPT;
     protected function buildProposePrompt(string $content): string
     {
         return <<<PROMPT
-Based on the following content, suggest 0 to 5 new business vertical (category) hierarchies that could be used to classify similar content.
+Based on the following content, suggest 0 to 15 new business vertical (category) hierarchies that could be used to classify similar content.
 
 Each proposal is a vertical that may optionally reference a parent vertical by name (to indicate nesting). Use this structure:
 - proposals: array of vertical objects
 - each vertical has:
   - name: short, lowercase identifier (e.g. "tech", "tech_news", "product_docs")
   - description: short description (can be empty if not needed)
-  - parent_name: optional string, the name of the parent vertical in this list or an existing vertical name; null or empty means this is a root/top-level vertical
+  - parent_name: optional string, the name of the parent vertical in this list or an existing vertical name; use an empty string \"\" to indicate this is a root/top-level vertical
 
 Return a "proposals" array of objects with "name" (string) and "description" (string, optional). Use concise, lowercase names (e.g. "tech_news", "product_docs"). Do not suggest verticals that are too generic (e.g. "other", "misc").
 
@@ -267,11 +267,11 @@ PROMPT;
                     'description' => 'Vertical description (may be empty)',
                 ],
                 'parent_name' => [
-                    'type' => ['string', 'null'],
-                    'description' => 'Optional parent vertical name; null or empty means root/top-level',
+                    'type' => 'string',
+                    'description' => 'Optional parent vertical name; empty string means root/top-level',
                 ],
             ],
-            'required' => ['name', 'description'],
+            'required' => ['name', 'description', 'parent_name'],
             'additionalProperties' => false,
         ];
 

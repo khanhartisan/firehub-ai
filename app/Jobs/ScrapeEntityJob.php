@@ -159,6 +159,7 @@ class ScrapeEntityJob implements ShouldQueue
 
         // Resolve and propose verticals based on content and existing / proposed Vertical models.
         $verticalMatches = [];
+        $didResolveVerticals = false;
         $proposalVerticalIds = [];
 
         $verticalContent = $pageData->getMarkdownContent() !== ''
@@ -185,7 +186,7 @@ class ScrapeEntityJob implements ShouldQueue
                 foreach ($verticalProposals as $proposal) {
                     $model = VerticalModel::query()->firstOrCreate(
                         ['name' => $proposal->getName()],
-                        ['description' => $proposal->getDescription()]
+                        ['description' => $proposal->getDescription(), 'parent_id' => null]
                     );
 
                     $proposalVerticalIds[] = $model->id;
@@ -219,6 +220,7 @@ class ScrapeEntityJob implements ShouldQueue
                     ->all();
 
                 $verticalMatches = VerticalResolverFacade::resolve($verticalContent, $contractVerticals);
+                $didResolveVerticals = true;
             } catch (\Throwable $e) {
                 Log::warning('ScrapeEntityJob: Failed to resolve verticals for entity', [
                     'entity_id' => $entity->id,
@@ -241,7 +243,7 @@ class ScrapeEntityJob implements ShouldQueue
         Storage::put($filePath, $html);
         $fileSize = strlen($html);
 
-        DB::transaction(function () use ($snapshotId, $entity, $classification, $pageData, $contentLength, $linkCount, $mediaCount, $fetchDurationMs, $version, $filePath, $fileSize, $verticalMatches, $proposalVerticalIds, $allVerticalModels) {
+        DB::transaction(function () use ($snapshotId, $entity, $classification, $pageData, $contentLength, $linkCount, $mediaCount, $fetchDurationMs, $version, $filePath, $fileSize, $verticalMatches, $didResolveVerticals, $proposalVerticalIds, $allVerticalModels) {
             // Snapshot with SUCCESS status for history/evaluation (failure paths create snapshots in markEntityFailed).
             $snapshot = new Snapshot([
                 'id' => $snapshotId,
@@ -285,21 +287,33 @@ class ScrapeEntityJob implements ShouldQueue
             // are attached to the entity is decided solely by resolve(). This is best-effort
             // and should not cause the scrape to fail.
             try {
-                $verticalIds = [];
+                if ($didResolveVerticals) {
+                    $verticalIds = [];
 
-                if (! empty($verticalMatches)) {
                     $modelsByIdentifier = $allVerticalModels->keyBy(fn (VerticalModel $model): string => (string) $model->id);
+                    $parentByIdentifier = $allVerticalModels->mapWithKeys(function (VerticalModel $model): array {
+                        return [(string) $model->id => $model->parent_id ? (string) $model->parent_id : null];
+                    })->all();
 
                     foreach ($verticalMatches as $match) {
                         $identifier = $match->getVerticalIdentifier();
-                        if ($modelsByIdentifier->has($identifier)) {
-                            $verticalIds[] = $modelsByIdentifier->get($identifier)->id;
+                        if (! $modelsByIdentifier->has($identifier)) {
+                            continue;
+                        }
+
+                        // Attach the matched vertical and all ancestors so nesting queries work.
+                        $current = (string) $modelsByIdentifier->get($identifier)->id;
+                        $visited = [];
+                        while ($current !== '' && ! isset($visited[$current])) {
+                            $visited[$current] = true;
+                            $verticalIds[] = $current;
+                            $current = (string) ($parentByIdentifier[$current] ?? '');
                         }
                     }
-                }
 
-                $verticalIds = array_values(array_unique($verticalIds));
-                if (! empty($verticalIds)) {
+                    $verticalIds = array_values(array_unique($verticalIds));
+
+                    // Sync to reflect latest resolution. If no matches, this clears previous verticals.
                     $entity->verticals()->sync($verticalIds);
                 }
             } catch (\Throwable $e) {

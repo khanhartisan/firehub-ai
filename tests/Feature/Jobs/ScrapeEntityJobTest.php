@@ -464,6 +464,60 @@ class ScrapeEntityJobTest extends TestCase
         $this->assertContains($verticalDocs->id, $verticalIds);
     }
 
+    public function test_success_syncs_resolved_verticals_and_their_ancestors_to_entity(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/page',
+            'url_hash' => sha1('https://example.com/page'),
+            'scraping_status' => ScrapingStatus::QUEUED,
+            'snapshots_count' => 0,
+        ]);
+
+        $parent = VerticalModel::create(['name' => 'Tech', 'description' => 'Technology']);
+        $child = VerticalModel::create(['name' => 'AI', 'description' => 'Artificial intelligence', 'parent_id' => $parent->id]);
+
+        $classification = ClassificationResult::fromArray([
+            'page_type' => PageType::DETAIL->value,
+            'content_type' => ContentType::ARTICLE->value,
+            'temporal' => Temporal::BREAKING->value,
+            'description' => 'Desc',
+        ]);
+        $pageData = new PageData;
+        $pageData->setMarkdownContent("AI content");
+        $pageData->setExcerpt('Excerpt');
+        $pageData->setLinkedPageUrls([]);
+        $pageData->setPublishedAt(Carbon::now());
+        $pageData->setUpdatedAt(Carbon::now());
+        $pageData->setCanonicalNumber(0);
+        $policyResult = (new PolicyResult)->setNextScrapeAt(Carbon::now()->addHours(6));
+
+        $matches = [
+            new VerticalMatch((string) $child->id, 0.9),
+        ];
+
+        \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
+        \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\VerticalResolver::shouldReceive('resolve')->once()->andReturn($matches);
+        \App\Facades\VerticalResolver::shouldReceive('propose')->once()->andReturn([]);
+
+        $job = new class($entity) extends ScrapeEntityJob {
+            protected function fetchUrl(string $url): ResponseInterface
+            {
+                return new Response(200, [], '<html><body>AI</body></html>');
+            }
+        };
+        $job->handle();
+
+        $entity->refresh();
+        $entity->load('verticals');
+        $verticalIds = $entity->verticals->pluck('id')->all();
+        $this->assertContains($child->id, $verticalIds);
+        $this->assertContains($parent->id, $verticalIds);
+    }
+
     public function test_success_creates_and_attaches_proposed_verticals(): void
     {
         $source = Source::create(['base_url' => 'https://example.com']);

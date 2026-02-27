@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Verticals;
 use App\Filament\Resources\Verticals\Pages\ManageVerticals;
 use App\Models\Vertical;
 use BackedEnum;
+use Filament\Forms\Components\Select;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -37,6 +38,11 @@ class VerticalResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
+                Select::make('parent_id')
+                    ->label('Parent vertical')
+                    ->relationship('parent', 'name')
+                    ->searchable()
+                    ->nullable(),
                 Textarea::make('description')
                     ->maxLength(65535)
                     ->columnSpanFull(),
@@ -48,6 +54,9 @@ class VerticalResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
+                TextColumn::make('parent.name')
+                    ->label('Parent')
+                    ->sortable(),
                 TextColumn::make('description')->limit(50),
             ])
             ->filters([

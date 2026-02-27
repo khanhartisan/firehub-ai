@@ -231,7 +231,14 @@ PROMPT;
     protected function buildProposePrompt(string $content): string
     {
         return <<<PROMPT
-Based on the following content, suggest 0 to 5 new business vertical (category) names that could be used to classify similar content. Each proposal should have a short name and a description (the description can be empty if not needed).
+Based on the following content, suggest 0 to 5 new business vertical (category) hierarchies that could be used to classify similar content.
+
+Each proposal is a vertical that may optionally contain child verticals (nested categories). Use this structure:
+- proposals: array of vertical objects
+- each vertical has:
+  - name: short, lowercase identifier (e.g. "tech", "tech_news", "product_docs")
+  - description: short description (can be empty if not needed)
+  - children: optional array of child verticals with the same structure (name, description, children)
 
 Return a "proposals" array of objects with "name" (string) and "description" (string, optional). Use concise, lowercase names (e.g. "tech_news", "product_docs"). Do not suggest verticals that are too generic (e.g. "other", "misc").
 
@@ -245,27 +252,37 @@ PROMPT;
      */
     protected function buildProposeJsonSchema(): array
     {
+        // Recursive vertical proposal item schema (name, description, optional children).
+        $verticalItem = [
+            'type' => 'object',
+            'properties' => [
+                'name' => [
+                    'type' => 'string',
+                    'description' => 'Short vertical name (identifier)',
+                ],
+                'description' => [
+                    'type' => 'string',
+                    'description' => 'Vertical description (may be empty)',
+                ],
+            ],
+            'required' => ['name', 'description'],
+            'additionalProperties' => false,
+        ];
+
+        // Add children property referencing the same item shape (simple recursive tree).
+        $verticalItem['properties']['children'] = [
+            'type' => 'array',
+            'description' => 'Optional child verticals (sub-categories)',
+            'items' => $verticalItem,
+        ];
+
         return [
             'type' => 'object',
             'properties' => [
                 'proposals' => [
                     'type' => 'array',
                     'description' => 'Suggested new verticals',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'name' => [
-                                'type' => 'string',
-                                'description' => 'Short vertical name',
-                            ],
-                            'description' => [
-                                'type' => 'string',
-                                'description' => 'Vertical description (may be empty)',
-                            ],
-                        ],
-                        'required' => ['name', 'description'],
-                        'additionalProperties' => false,
-                    ],
+                    'items' => $verticalItem,
                 ],
             ],
             'required' => ['proposals'],

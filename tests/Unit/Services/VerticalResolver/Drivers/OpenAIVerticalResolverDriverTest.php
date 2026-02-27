@@ -125,14 +125,10 @@ class OpenAIVerticalResolverDriverTest extends TestCase
                 Mockery::type(\App\Contracts\OpenAI\ResponseInput::class),
                 Mockery::on(function ($options) {
                     $format = $options->getResponseFormat();
-                    if ($format === null || ($format['type'] ?? null) !== 'json_schema') {
+                    if ($format === null || ($format['type'] ?? null) !== 'json_schema' || ($format['name'] ?? null) !== 'vertical_resolution') {
                         return false;
                     }
-                    $jsonSchema = $format['json_schema'] ?? null;
-                    if ($jsonSchema === null || ($jsonSchema['name'] ?? null) !== 'vertical_resolution') {
-                        return false;
-                    }
-                    $schema = $jsonSchema['schema'] ?? [];
+                    $schema = $format['schema'] ?? [];
                     $matchesSchema = $schema['properties']['matches'] ?? [];
                     $itemSchema = $matchesSchema['items'] ?? [];
                     $enum = $itemSchema['properties']['vertical_identifier']['enum'] ?? [];

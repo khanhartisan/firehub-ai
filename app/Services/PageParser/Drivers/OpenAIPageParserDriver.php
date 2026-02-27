@@ -38,11 +38,9 @@ class OpenAIPageParserDriver extends PageParserService
             ->model($this->defaultModel)
             ->responseFormat([
                 'type' => 'json_schema',
-                'json_schema' => [
-                    'name' => 'page_parsing',
-                    'schema' => $jsonSchema,
-                    'strict' => true,
-                ],
+                'name' => 'page_parsing',
+                'schema' => $jsonSchema,
+                'strict' => true,
             ]);
 
         try {

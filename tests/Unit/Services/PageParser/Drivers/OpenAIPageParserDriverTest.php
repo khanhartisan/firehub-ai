@@ -284,17 +284,10 @@ class OpenAIPageParserDriverTest extends TestCase
                 Mockery::type(\App\Contracts\OpenAI\ResponseInput::class),
                 Mockery::on(function ($options) {
                     $format = $options->getResponseFormat();
-                    if ($format === null || ($format['type'] ?? null) !== 'json_schema') {
+                    if ($format === null || ($format['type'] ?? null) !== 'json_schema' || ($format['name'] ?? null) !== 'page_parsing' || ($format['strict'] ?? null) !== true) {
                         return false;
                     }
-                    $jsonSchema = $format['json_schema'] ?? null;
-                    if ($jsonSchema === null
-                        || ($jsonSchema['name'] ?? null) !== 'page_parsing'
-                        || ($jsonSchema['strict'] ?? null) !== true
-                    ) {
-                        return false;
-                    }
-                    $schema = $jsonSchema['schema'] ?? [];
+                    $schema = $format['schema'] ?? [];
                     return isset($schema['properties']['title'])
                         && isset($schema['properties']['excerpt'])
                         && isset($schema['properties']['thumbnailUrl'])

@@ -52,11 +52,9 @@ class OpenAIVerticalResolverDriver implements VerticalResolver
             ->model($this->config['model'] ?? 'gpt-4o-mini')
             ->responseFormat([
                 'type' => 'json_schema',
-                'json_schema' => [
-                    'name' => 'vertical_resolution',
-                    'schema' => $jsonSchema,
-                    'strict' => true,
-                ],
+                'name' => 'vertical_resolution',
+                'schema' => $jsonSchema,
+                'strict' => true,
             ]);
 
         try {
@@ -98,11 +96,9 @@ class OpenAIVerticalResolverDriver implements VerticalResolver
             ->model($this->config['model'] ?? 'gpt-4o-mini')
             ->responseFormat([
                 'type' => 'json_schema',
-                'json_schema' => [
-                    'name' => 'vertical_proposals',
-                    'schema' => $jsonSchema,
-                    'strict' => true,
-                ],
+                'name' => 'vertical_proposals',
+                'schema' => $jsonSchema,
+                'strict' => true,
             ]);
 
         try {

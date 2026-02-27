@@ -70,7 +70,7 @@ class ResponseOptionsTest extends TestCase
 
     public function test_it_sets_response_format(): void
     {
-        $format = ['type' => 'json_schema', 'json_schema' => ['name' => 'test']];
+        $format = ['type' => 'json_schema', 'name' => 'test', 'schema' => ['type' => 'object'], 'strict' => true];
 
         $options = ResponseOptions::create()
             ->responseFormat($format);

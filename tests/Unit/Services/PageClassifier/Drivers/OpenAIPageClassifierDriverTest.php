@@ -360,14 +360,11 @@ class OpenAIPageClassifierDriverTest extends TestCase
                 Mockery::type(\App\Contracts\OpenAI\ResponseInput::class),
                 Mockery::on(function ($options) {
                     $format = $options->getResponseFormat();
-                    if ($format === null || ($format['type'] ?? null) !== 'json_schema') {
-                        return false;
-                    }
-                    $jsonSchema = $format['json_schema'] ?? null;
-                    return $jsonSchema !== null
-                        && ($jsonSchema['name'] ?? null) === 'page_classification'
-                        && ($jsonSchema['strict'] ?? null) === true
-                        && isset($jsonSchema['schema']);
+                    return $format !== null
+                        && ($format['type'] ?? null) === 'json_schema'
+                        && ($format['name'] ?? null) === 'page_classification'
+                        && ($format['strict'] ?? null) === true
+                        && isset($format['schema']);
                 })
             )
             ->andReturn($mockResponse);

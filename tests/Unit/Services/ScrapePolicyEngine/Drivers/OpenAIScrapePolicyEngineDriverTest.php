@@ -415,14 +415,11 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
                 Mockery::type(\App\Contracts\OpenAI\ResponseInput::class),
                 Mockery::on(function ($options) {
                     $format = $options->getResponseFormat();
-                    if ($format === null || ($format['type'] ?? null) !== 'json_schema') {
-                        return false;
-                    }
-                    $jsonSchema = $format['json_schema'] ?? null;
-                    return $jsonSchema !== null
-                        && ($jsonSchema['name'] ?? null) === 'scrape_policy_evaluation'
-                        && ($jsonSchema['strict'] ?? null) === true
-                        && isset($jsonSchema['schema']);
+                    return $format !== null
+                        && ($format['type'] ?? null) === 'json_schema'
+                        && ($format['name'] ?? null) === 'scrape_policy_evaluation'
+                        && ($format['strict'] ?? null) === true
+                        && isset($format['schema']);
                 })
             )
             ->andReturn($mockResponse);

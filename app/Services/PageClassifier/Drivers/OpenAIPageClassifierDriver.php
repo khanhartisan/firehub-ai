@@ -39,11 +39,9 @@ class OpenAIPageClassifierDriver extends PageClassifierService
             ->model($this->defaultModel)
             ->responseFormat([
                 'type' => 'json_schema',
-                'json_schema' => [
-                    'name' => 'page_classification',
-                    'schema' => $jsonSchema,
-                    'strict' => true,
-                ],
+                'name' => 'page_classification',
+                'schema' => $jsonSchema,
+                'strict' => true,
             ]);
 
         try {

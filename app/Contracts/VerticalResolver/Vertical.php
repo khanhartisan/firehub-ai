@@ -9,17 +9,28 @@ use App\Contracts\Describable;
 use App\Contracts\Identifiable;
 use App\Contracts\Serializable;
 
+/**
+ * A business vertical (category) used by the VerticalResolver.
+ *
+ * Can form a tree via children. Identifiers must be unique within the tree.
+ * Serializable for storage and API payloads.
+ */
 final class Vertical implements Describable, Identifiable, Serializable
 {
     use DescribableConcern;
     use IdentifiableConcern;
     use SerializableConcern;
 
+    /** Display name of the vertical. */
     private string $name;
 
-    /** @var Vertical[] */
+    /** @var Vertical[] Child verticals (sub-categories). */
     private array $children = [];
 
+    /**
+     * @param  string  $name  Display name of the vertical.
+     * @param  string|null  $description  Optional description.
+     */
     public function __construct(string $name, ?string $description = null)
     {
         $this->setName($name);
@@ -31,12 +42,20 @@ final class Vertical implements Describable, Identifiable, Serializable
         return $this->name;
     }
 
+    /** @return static */
     public function setName(string $name): static
     {
         $this->name = $name;
         return $this;
     }
 
+    /**
+     * Replace all children with the given list.
+     * Duplicate identifiers in the tree will cause an exception.
+     *
+     * @param  Vertical[]  $children
+     * @return static
+     */
     public function setChildren(array $children): static
     {
         $this->children = [];
@@ -48,6 +67,14 @@ final class Vertical implements Describable, Identifiable, Serializable
         return $this;
     }
 
+    /**
+     * Add a child vertical. Throws if the child (or any of its descendants)
+     * has an identifier that already exists in this tree.
+     *
+     * @param  Vertical  $vertical  Child to add.
+     * @return static
+     * @throws \InvalidArgumentException  When a duplicate identifier is found in the tree.
+     */
     public function addChild(Vertical $vertical): static
     {
         $existingIdentifiers = $this->collectIdentifiersRecursive();
@@ -66,7 +93,8 @@ final class Vertical implements Describable, Identifiable, Serializable
     }
 
     /**
-     * Collect all identifiers in this vertical and its descendants (identifier or name as fallback).
+     * Collect all identifiers in this vertical and its descendants.
+     * Uses getIdentifier() when set, otherwise getName().
      *
      * @return array<int, string>
      */
@@ -82,11 +110,19 @@ final class Vertical implements Describable, Identifiable, Serializable
         return $ids;
     }
 
+    /**
+     * @return Vertical[]
+     */
     public function getChildren(): array
     {
         return $this->children;
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @return array{identifier: string|null, name: string, description: string|null, children: array<int, array<string, mixed>>}
+     */
     public function toArray(): array
     {
         return [
@@ -97,6 +133,13 @@ final class Vertical implements Describable, Identifiable, Serializable
         ];
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @param  array{name: string, description?: string|null, identifier?: string|null, children?: array<int, array<string, mixed>>}  $data
+     * @return static
+     * @throws \InvalidArgumentException  When "name" is missing.
+     */
     public static function fromArray(array $data): static
     {
         $name = $data['name'] ?? throw new \InvalidArgumentException('Vertical data must contain "name"');

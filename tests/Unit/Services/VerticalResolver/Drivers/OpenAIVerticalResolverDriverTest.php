@@ -357,8 +357,34 @@ class OpenAIVerticalResolverDriverTest extends TestCase
                             'type' => 'output_text',
                             'text' => json_encode([
                                 'proposals' => [
-                                    ['name' => 'tech_news', 'description' => 'Technology news and updates'],
-                                    ['name' => 'product_docs', 'description' => 'Product documentation'],
+                                    [
+                                        'name' => 'technology',
+                                        'description' => 'Technology',
+                                        'children' => [
+                                            [
+                                                'name' => 'news_media',
+                                                'description' => 'News media',
+                                                'children' => [
+                                                    [
+                                                        'name' => 'tech_news',
+                                                        'description' => 'Technology news and updates',
+                                                        'children' => [],
+                                                    ],
+                                                ],
+                                            ],
+                                            [
+                                                'name' => 'product_information',
+                                                'description' => 'Product information',
+                                                'children' => [
+                                                    [
+                                                        'name' => 'product_docs',
+                                                        'description' => 'Product documentation',
+                                                        'children' => [],
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
                                 ],
                             ]),
                         ],
@@ -378,12 +404,17 @@ class OpenAIVerticalResolverDriverTest extends TestCase
         $result = $driver->propose('Technology news and product documentation.', $verticals);
 
         $this->assertIsArray($result);
-        $this->assertCount(2, $result);
+        $this->assertCount(1, $result); // one macro domain root
         $this->assertContainsOnlyInstancesOf(Vertical::class, $result);
-        $this->assertSame('tech_news', $result[0]->getName());
-        $this->assertSame('Technology news and updates', $result[0]->getDescription());
-        $this->assertSame('product_docs', $result[1]->getName());
-        $this->assertSame('Product documentation', $result[1]->getDescription());
+        $root = $result[0];
+        $this->assertSame('technology', $root->getName());
+        $this->assertSame('Technology', $root->getDescription());
+        $children = $root->getChildren();
+        $this->assertCount(2, $children);
+        $this->assertSame('news_media', $children[0]->getName());
+        $this->assertSame('product_information', $children[1]->getName());
+        $this->assertSame('tech_news', $children[0]->getChildren()[0]->getName());
+        $this->assertSame('product_docs', $children[1]->getChildren()[0]->getName());
     }
 
     public function test_propose_returns_empty_when_no_suggestions(): void

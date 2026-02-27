@@ -184,16 +184,7 @@ class ScrapeEntityJob implements ShouldQueue
 
             if (! empty($verticalProposals)) {
                 foreach ($verticalProposals as $proposal) {
-                    $model = VerticalModel::query()->firstOrCreate(
-                        ['name' => $proposal->getName()],
-                        ['description' => $proposal->getDescription(), 'parent_id' => null]
-                    );
-
-                    $proposalVerticalIds[] = $model->id;
-
-                    if ($entity->source_id) {
-                        $model->sources()->syncWithoutDetaching([$entity->source_id]);
-                    }
+                    $this->persistProposedVerticalTree($proposal, null, $entity->source_id, $proposalVerticalIds);
                 }
             }
         } catch (\Throwable $e) {
@@ -519,5 +510,37 @@ class ScrapeEntityJob implements ShouldQueue
 
         return str_starts_with($contentType, 'text/')
             || in_array($contentType, $readableApplicationTypes, true);
+    }
+
+    /**
+     * Persist a proposed vertical tree (name, description, children) into VerticalModel with correct parent_id.
+     *
+     * @param  array<string, string>  $proposalVerticalIds  IDs of all created/updated verticals (passed by reference)
+     */
+    protected function persistProposedVerticalTree(ContractVertical $node, ?VerticalModel $parentModel, ?string $sourceId, array &$proposalVerticalIds): void
+    {
+        $parentId = $parentModel?->id;
+
+        $model = VerticalModel::query()->firstOrCreate(
+            ['name' => $node->getName()],
+            [
+                'description' => $node->getDescription(),
+                'parent_id' => $parentId,
+            ]
+        );
+
+        if ($model->parent_id !== $parentId) {
+            $model->update(['parent_id' => $parentId, 'description' => $node->getDescription()]);
+        }
+
+        $proposalVerticalIds[] = $model->id;
+
+        if ($sourceId !== null) {
+            $model->sources()->syncWithoutDetaching([$sourceId]);
+        }
+
+        foreach ($node->getChildren() as $child) {
+            $this->persistProposedVerticalTree($child, $model, $sourceId, $proposalVerticalIds);
+        }
     }
 }

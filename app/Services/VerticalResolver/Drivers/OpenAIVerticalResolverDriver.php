@@ -88,7 +88,7 @@ class OpenAIVerticalResolverDriver implements VerticalResolver
     {
         $content = $this->prepareContent($content);
 
-        $prompt = $this->buildProposePrompt($content);
+        $prompt = $this->buildProposePrompt($content, $verticals);
         $jsonSchema = $this->buildProposeJsonSchema();
 
         $input = ResponseInput::text($prompt);
@@ -228,19 +228,60 @@ PROMPT;
         return $matches;
     }
 
-    protected function buildProposePrompt(string $content): string
+    /**
+     * @param  Vertical[]  $existingVerticals  Current vertical roots (with optional children) so the model can avoid duplicates and extend the tree
+     */
+    protected function buildProposePrompt(string $content, array $existingVerticals): string
     {
+        $existingSection = $this->formatExistingVerticalsForPrompt($existingVerticals);
+
         return <<<PROMPT
-Based on the following content, suggest 0 to 15 new business vertical (category) hierarchies that could be used to classify similar content.
+You are designing a 3-level hierarchy of business verticals (domains) based on the content below.
 
-Each proposal is a vertical that may optionally reference a parent vertical by name (to indicate nesting). Use this structure:
-- proposals: array of vertical objects
-- each vertical has:
-  - name: short, lowercase identifier (e.g. "tech", "tech_news", "product_docs")
-  - description: short description (can be empty if not needed)
-  - parent_name: optional string, the name of the parent vertical in this list or an existing vertical name; use an empty string \"\" to indicate this is a root/top-level vertical
+EXISTING VERTICALS (already in the system — do not duplicate these names or suggest synonyms; you may suggest NEW children under existing macro/industry nodes when the content fits):
 
-Return a "proposals" array of objects with "name" (string) and "description" (string, optional). Use concise, lowercase names (e.g. "tech_news", "product_docs"). Do not suggest verticals that are too generic (e.g. "other", "misc").
+{$existingSection}
+
+LEVEL DEFINITIONS
+
+Level 1 — Macro Domain
+- Broad, stable industry domains.
+- Must be long-lived and widely recognized sectors.
+- Examples: Technology, Finance, Healthcare, Real Estate, Education, Travel.
+
+Level 2 — Industry Segment
+- A major subdivision within a macro domain.
+- Represents a distinct industry area with its own ecosystem.
+- Must still be broadly recognizable.
+- Examples:
+  Technology → Artificial Intelligence
+  Finance → Banking
+  Real Estate → Residential Real Estate
+
+Level 3 — Specialized Segment
+- A focused but still industry-level specialization.
+- Must describe a domain of activity, NOT a product type.
+- Should still aggregate many sources and websites.
+- Examples:
+  Artificial Intelligence → Generative AI
+  Banking → Digital Banking
+  Residential Real Estate → Property Listings
+
+STRICT RULES
+
+- Do NOT create product categories (e.g., "Shoes", "Laptops").
+- Do NOT create overly niche topics.
+- Do NOT exceed 3 levels.
+- Each level must become MORE specific but remain an industry domain.
+- Level 3 must still represent a scalable data ecosystem.
+- Avoid duplicates or synonyms of existing domains. Only suggest NEW verticals that are not already in the list above.
+
+OUTPUT FORMAT
+
+Return a JSON object with a single key "proposals": an array of vertical trees. Each tree node has:
+- name: string (lowercase identifier, e.g. "technology", "artificial_intelligence", "generative_ai")
+- description: string (short description; may be empty "")
+- children: array of child nodes (same structure). Level 1 has Level 2 children; Level 2 has Level 3 children; Level 3 has an empty children array; you may return children as an empty array at any level if not needed.
 
 Content:
 {$content}
@@ -248,30 +289,111 @@ PROMPT;
     }
 
     /**
+     * Format existing verticals (roots with children) for the prompt so the model can avoid duplicates.
+     *
+     * @param  Vertical[]  $verticals
+     */
+    protected function formatExistingVerticalsForPrompt(array $verticals): string
+    {
+        if ($verticals === []) {
+            return '(none)';
+        }
+
+        $lines = [];
+        foreach ($verticals as $v) {
+            $this->appendVerticalTreeToLines($v, 0, $lines);
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param  string[]  $lines
+     */
+    private function appendVerticalTreeToLines(Vertical $v, int $depth, array &$lines): void
+    {
+        $indent = str_repeat('  ', $depth);
+        $name = $v->getName();
+        $desc = $v->getDescription() ?? '';
+        $id = $v->getIdentifier();
+        $line = $indent . '- ' . $name;
+        if ($desc !== '') {
+            $line .= ': ' . $desc;
+        }
+        if ($id !== null && $id !== '') {
+            $line .= ' [id: ' . $id . ']';
+        }
+        $lines[] = $line;
+
+        foreach ($v->getChildren() as $child) {
+            $this->appendVerticalTreeToLines($child, $depth + 1, $lines);
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function buildProposeJsonSchema(): array
     {
-        // Vertical proposal item schema (name, description, optional parent_name).
-        // We avoid nested object trees in the schema and instead represent hierarchy
-        // via an optional parent_name field for compatibility with the Responses API.
-        $verticalItem = [
+        // Nested 3-level schema using "children" arrays. No recursion: each level references the next.
+        // Level 3 (leaf): name, description, children (empty array).
+        $level3Node = [
             'type' => 'object',
             'properties' => [
                 'name' => [
                     'type' => 'string',
-                    'description' => 'Short vertical name (identifier)',
+                    'description' => 'Level 3 specialized segment name (lowercase identifier, e.g. "generative_ai")',
                 ],
                 'description' => [
                     'type' => 'string',
-                    'description' => 'Vertical description (may be empty)',
-                ],
-                'parent_name' => [
+                    'description' => 'Level 3 description (may be empty)',
+                ]
+            ],
+            'required' => ['name', 'description'],
+            'additionalProperties' => false,
+        ];
+
+        // Level 2: name, description, children (array of Level 3 nodes).
+        $level2Node = [
+            'type' => 'object',
+            'properties' => [
+                'name' => [
                     'type' => 'string',
-                    'description' => 'Optional parent vertical name; empty string means root/top-level',
+                    'description' => 'Level 2 industry segment name (lowercase identifier, e.g. "artificial_intelligence")',
+                ],
+                'description' => [
+                    'type' => 'string',
+                    'description' => 'Level 2 description (may be empty)',
+                ],
+                'children' => [
+                    'type' => 'array',
+                    'description' => 'Level 3 specialized segments',
+                    'items' => $level3Node,
                 ],
             ],
-            'required' => ['name', 'description', 'parent_name'],
+            'required' => ['name', 'description', 'children'],
+            'additionalProperties' => false,
+        ];
+
+        // Level 1 (root): name, description, children (array of Level 2 nodes).
+        $level1Node = [
+            'type' => 'object',
+            'properties' => [
+                'name' => [
+                    'type' => 'string',
+                    'description' => 'Level 1 macro domain name (lowercase identifier, e.g. "technology")',
+                ],
+                'description' => [
+                    'type' => 'string',
+                    'description' => 'Level 1 macro domain description (may be empty)',
+                ],
+                'children' => [
+                    'type' => 'array',
+                    'description' => 'Level 2 industry segments',
+                    'items' => $level2Node,
+                ],
+            ],
+            'required' => ['name', 'description', 'children'],
             'additionalProperties' => false,
         ];
 
@@ -280,8 +402,8 @@ PROMPT;
             'properties' => [
                 'proposals' => [
                     'type' => 'array',
-                    'description' => 'Suggested new verticals',
-                    'items' => $verticalItem,
+                    'description' => 'Suggested vertical trees (macro domain with children → industry segment with children → specialized segment)',
+                    'items' => $level1Node,
                 ],
             ],
             'required' => ['proposals'],
@@ -304,36 +426,46 @@ PROMPT;
 
         $items = $data['proposals'] ?? [];
 
-        // First pass: create all verticals indexed by name.
-        /** @var array<string, Vertical> $verticalsByName */
-        $verticalsByName = [];
-        $parentNames = [];
-
-        foreach ($items as $item) {
-            $name = $item['name'] ?? '';
-            if ($name === '') {
-                continue;
-            }
-
-            $vertical = new Vertical($name, $item['description'] ?? null);
-            $verticalsByName[$name] = $vertical;
-            $parentNames[$name] = $item['parent_name'] ?? null;
-        }
-
-        // Second pass: attach children to parents using parent_name; collect roots.
         $roots = [];
-        foreach ($verticalsByName as $name => $vertical) {
-            $parentName = $parentNames[$name] ?? null;
-            $parentName = is_string($parentName) ? trim($parentName) : null;
-
-            if ($parentName !== null && $parentName !== '' && isset($verticalsByName[$parentName])) {
-                $verticalsByName[$parentName]->addChild($vertical);
-            } else {
+        foreach ($items as $node) {
+            $vertical = $this->parseProposeNode($node);
+            if ($vertical !== null) {
                 $roots[] = $vertical;
             }
         }
 
         return $roots;
+    }
+
+    /**
+     * Recursively parse a single node (name, description, children) into a Vertical tree (max 3 levels).
+     */
+    private function parseProposeNode(array $node): ?Vertical
+    {
+        $name = $node['name'] ?? '';
+        if ($name === '') {
+            return null;
+        }
+
+        $description = isset($node['description']) ? (string) $node['description'] : null;
+        $vertical = new Vertical($name, $description);
+
+        $children = $node['children'] ?? [];
+        if (! is_array($children)) {
+            return $vertical;
+        }
+
+        foreach ($children as $childNode) {
+            if (! is_array($childNode)) {
+                continue;
+            }
+            $childVertical = $this->parseProposeNode($childNode);
+            if ($childVertical !== null) {
+                $vertical->addChild($childVertical);
+            }
+        }
+
+        return $vertical;
     }
 
     protected function checkForRefusal($response): void

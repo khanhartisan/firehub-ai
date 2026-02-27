@@ -74,6 +74,7 @@ class OpenAIService implements OpenAIClient
             Log::error('OpenAI API error', [
                 'error' => $e->getMessage(),
                 'payload' => $payload,
+                'response' => (string) $e->getResponse()?->getBody(),
             ]);
 
             throw new \RuntimeException('Failed to create OpenAI response: '.$e->getMessage(), 0, $e);

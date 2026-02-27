@@ -5,6 +5,8 @@ namespace Tests\Feature\Jobs;
 use App\Contracts\PageClassifier\ClassificationResult;
 use App\Contracts\PageParser\PageData;
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
+use App\Contracts\VerticalResolver\Vertical as ContractVertical;
+use App\Contracts\VerticalResolver\VerticalMatch;
 use App\Enums\ContentType;
 use App\Enums\PageType;
 use App\Enums\ScrapingStatus;
@@ -13,6 +15,7 @@ use App\Jobs\ScrapeEntityJob;
 use App\Models\Entity;
 use App\Models\Snapshot;
 use App\Models\Source;
+use App\Models\Vertical as VerticalModel;
 use Carbon\Carbon;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Psr7\Response;
@@ -354,5 +357,225 @@ class ScrapeEntityJobTest extends TestCase
         $newOne = Entity::where('source_id', $source->id)->where('url', 'https://example.com/new-one')->first();
         $this->assertNotNull($newOne);
         $this->assertSame(sha1('https://example.com/new-one'), $newOne->url_hash);
+    }
+
+    public function test_success_when_no_verticals_in_database_does_not_call_vertical_resolver(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/page',
+            'url_hash' => sha1('https://example.com/page'),
+            'scraping_status' => ScrapingStatus::QUEUED,
+            'snapshots_count' => 0,
+        ]);
+
+        $classification = ClassificationResult::fromArray([
+            'page_type' => PageType::DETAIL->value,
+            'content_type' => ContentType::ARTICLE->value,
+            'temporal' => Temporal::BREAKING->value,
+            'description' => 'Desc',
+        ]);
+        $pageData = new PageData;
+        $pageData->setMarkdownContent("# Hello\nContent");
+        $pageData->setExcerpt('Excerpt');
+        $pageData->setLinkedPageUrls([]);
+        $pageData->setPublishedAt(Carbon::now());
+        $pageData->setUpdatedAt(Carbon::now());
+        $pageData->setCanonicalNumber(0);
+        $policyResult = (new PolicyResult)->setNextScrapeAt(Carbon::now()->addHours(6));
+
+        \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
+        \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\VerticalResolver::shouldReceive('resolve')->never();
+        \App\Facades\VerticalResolver::shouldReceive('propose')->never();
+
+        $job = new class($entity) extends ScrapeEntityJob {
+            protected function fetchUrl(string $url): ResponseInterface
+            {
+                return new Response(200, [], '<html><body>Hello</body></html>');
+            }
+        };
+        $job->handle();
+
+        $this->assertDatabaseCount('verticals', 0);
+        $entity->refresh();
+        $this->assertSame(ScrapingStatus::SUCCESS->value, $entity->scraping_status->value);
+        $this->assertCount(0, $entity->verticals);
+    }
+
+    public function test_success_syncs_resolved_verticals_to_entity(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/page',
+            'url_hash' => sha1('https://example.com/page'),
+            'scraping_status' => ScrapingStatus::QUEUED,
+            'snapshots_count' => 0,
+        ]);
+
+        $verticalNews = VerticalModel::create(['name' => 'News', 'description' => 'News articles']);
+        $verticalDocs = VerticalModel::create(['name' => 'Docs', 'description' => 'Documentation']);
+
+        $classification = ClassificationResult::fromArray([
+            'page_type' => PageType::DETAIL->value,
+            'content_type' => ContentType::ARTICLE->value,
+            'temporal' => Temporal::BREAKING->value,
+            'description' => 'Desc',
+        ]);
+        $pageData = new PageData;
+        $pageData->setMarkdownContent("# News\nArticle content");
+        $pageData->setExcerpt('Excerpt');
+        $pageData->setLinkedPageUrls([]);
+        $pageData->setPublishedAt(Carbon::now());
+        $pageData->setUpdatedAt(Carbon::now());
+        $pageData->setCanonicalNumber(0);
+        $policyResult = (new PolicyResult)->setNextScrapeAt(Carbon::now()->addHours(6));
+
+        $matches = [
+            new VerticalMatch((string) $verticalNews->id, 0.9),
+            new VerticalMatch((string) $verticalDocs->id, 0.5),
+        ];
+
+        \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
+        \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\VerticalResolver::shouldReceive('resolve')->once()->andReturn($matches);
+        \App\Facades\VerticalResolver::shouldReceive('propose')->once()->andReturn([]);
+
+        $job = new class($entity) extends ScrapeEntityJob {
+            protected function fetchUrl(string $url): ResponseInterface
+            {
+                return new Response(200, [], '<html><body>News</body></html>');
+            }
+        };
+        $job->handle();
+
+        $entity->refresh();
+        $this->assertSame(ScrapingStatus::SUCCESS->value, $entity->scraping_status->value);
+        $entity->load('verticals');
+        $this->assertCount(2, $entity->verticals);
+        $verticalIds = $entity->verticals->pluck('id')->all();
+        $this->assertContains($verticalNews->id, $verticalIds);
+        $this->assertContains($verticalDocs->id, $verticalIds);
+    }
+
+    public function test_success_creates_and_attaches_proposed_verticals(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/page',
+            'url_hash' => sha1('https://example.com/page'),
+            'scraping_status' => ScrapingStatus::QUEUED,
+            'snapshots_count' => 0,
+        ]);
+
+        $existingVertical = VerticalModel::create(['name' => 'News', 'description' => 'News']);
+
+        $classification = ClassificationResult::fromArray([
+            'page_type' => PageType::DETAIL->value,
+            'content_type' => ContentType::ARTICLE->value,
+            'temporal' => Temporal::EVERGREEN->value,
+            'description' => 'Desc',
+        ]);
+        $pageData = new PageData;
+        $pageData->setMarkdownContent("Tech and product docs.");
+        $pageData->setExcerpt('Excerpt');
+        $pageData->setLinkedPageUrls([]);
+        $pageData->setPublishedAt(Carbon::now());
+        $pageData->setUpdatedAt(Carbon::now());
+        $pageData->setCanonicalNumber(0);
+        $policyResult = (new PolicyResult)->setNextScrapeAt(Carbon::now()->addHours(6));
+
+        $proposals = [
+            new ContractVertical('Tech', 'Technology and product content'),
+        ];
+
+        \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
+        \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\VerticalResolver::shouldReceive('resolve')->once()->andReturn([]);
+        \App\Facades\VerticalResolver::shouldReceive('propose')->once()->andReturn($proposals);
+
+        $job = new class($entity) extends ScrapeEntityJob {
+            protected function fetchUrl(string $url): ResponseInterface
+            {
+                return new Response(200, [], '<html><body>Tech</body></html>');
+            }
+        };
+        $job->handle();
+
+        $this->assertDatabaseHas('verticals', ['name' => 'Tech', 'description' => 'Technology and product content']);
+        $techVertical = VerticalModel::where('name', 'Tech')->first();
+        $this->assertNotNull($techVertical);
+
+        $entity->refresh();
+        $entity->load('verticals');
+        $this->assertSame(ScrapingStatus::SUCCESS->value, $entity->scraping_status->value);
+        $this->assertCount(1, $entity->verticals);
+        $this->assertSame($techVertical->id, $entity->verticals->first()->id);
+
+        $techVertical->load('sources');
+        $this->assertTrue($techVertical->sources->contains('id', $source->id));
+    }
+
+    public function test_vertical_resolver_receives_markdown_content(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/page',
+            'url_hash' => sha1('https://example.com/page'),
+            'scraping_status' => ScrapingStatus::QUEUED,
+            'snapshots_count' => 0,
+        ]);
+
+        VerticalModel::create(['name' => 'News', 'description' => 'News']);
+
+        $markdownContent = "# Headline\n\nParagraph with **bold** and [link](https://example.com).";
+        $classification = ClassificationResult::fromArray([
+            'page_type' => PageType::DETAIL->value,
+            'content_type' => ContentType::ARTICLE->value,
+            'temporal' => Temporal::BREAKING->value,
+            'description' => 'Desc',
+        ]);
+        $pageData = new PageData;
+        $pageData->setMarkdownContent($markdownContent);
+        $pageData->setExcerpt('Excerpt');
+        $pageData->setLinkedPageUrls([]);
+        $pageData->setPublishedAt(Carbon::now());
+        $pageData->setUpdatedAt(Carbon::now());
+        $pageData->setCanonicalNumber(0);
+        $policyResult = (new PolicyResult)->setNextScrapeAt(Carbon::now()->addHours(6));
+
+        \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
+        \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\VerticalResolver::shouldReceive('resolve')
+            ->once()
+            ->with(Mockery::on(function ($content) use ($markdownContent) {
+                return $content === $markdownContent;
+            }), Mockery::type('array'))
+            ->andReturn([]);
+        \App\Facades\VerticalResolver::shouldReceive('propose')
+            ->once()
+            ->with(Mockery::on(function ($content) use ($markdownContent) {
+                return $content === $markdownContent;
+            }), Mockery::type('array'))
+            ->andReturn([]);
+
+        $job = new class($entity) extends ScrapeEntityJob {
+            protected function fetchUrl(string $url): ResponseInterface
+            {
+                return new Response(200, [], '<html><body>Different raw HTML</body></html>');
+            }
+        };
+        $job->handle();
+
+        $entity->refresh();
+        $this->assertSame(ScrapingStatus::SUCCESS->value, $entity->scraping_status->value);
     }
 }

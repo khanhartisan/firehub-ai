@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 
@@ -117,13 +118,16 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         }
 
         $ids = $entities->pluck('id')->toArray();
-        Entity::query()
-            ->whereIn('id', $ids)
-            ->get()
-            ->each(function (Entity $entity) {
-                $entity->scraping_status  = ScrapingStatus::QUEUED;
-                $entity->save();
-            });
+        DB::transaction(function () use ($ids) {
+            Entity::query()
+                ->whereIn('id', $ids)
+                ->lockForUpdate()
+                ->get()
+                ->each(function (Entity $entity) {
+                    $entity->scraping_status  = ScrapingStatus::QUEUED;
+                    $entity->save();
+                });
+        });
 
         foreach ($entities as $entity) {
             ScrapeEntityJob::dispatch($entity)->onQueue($queueName);

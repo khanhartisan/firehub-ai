@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
 class ScrapeSourcesJob implements ShouldQueue
 {
@@ -78,7 +79,7 @@ class ScrapeSourcesJob implements ShouldQueue
             ->first();
 
         if ($entity === null) {
-            $entity = Entity::create([
+            $entity = Entity::query()->create([
                 'source_id' => $source->id,
                 'url' => $baseUrl,
             ]);
@@ -89,7 +90,7 @@ class ScrapeSourcesJob implements ShouldQueue
         }
 
         $entity->scraping_status = ScrapingStatus::QUEUED;
-        $entity->save();
+        DB::transaction(fn () => $entity->save());
 
         ScrapeEntityJob::dispatch($entity)->onQueue(QueueEnum::SCRAPING->value);
     }

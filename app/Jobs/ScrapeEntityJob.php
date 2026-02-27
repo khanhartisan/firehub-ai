@@ -80,7 +80,7 @@ class ScrapeEntityJob implements ShouldQueue
         }
 
         $entity->scraping_status = ScrapingStatus::FETCHING;
-        $entity->save();
+        DB::transaction(fn () => $entity->save());
 
         $fetchStartedAt = microtime(true);
 

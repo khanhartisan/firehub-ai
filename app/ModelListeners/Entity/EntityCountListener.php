@@ -97,6 +97,8 @@ class EntityCountListener extends ModelListener implements ModelListenerInterfac
             /*dump($delta.' to '
                 .$resource->getMorphClass().'@'.$resource->id
                 .' / entity@'.$entity->id. ' / '.$entityType->name.' / '.$scrapingStatus->name);*/
+            // TODO: Somehow we still have negative entity count for status FETCHING
+            // Need investigation
         }
     }
 }

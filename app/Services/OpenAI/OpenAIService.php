@@ -56,6 +56,7 @@ class OpenAIService implements OpenAIClient
         try {
             $response = $this->client->post('responses', [
                 'json' => $payload,
+                'timeout' => 300,
             ]);
 
             $data = json_decode($response->getBody()->getContents(), true);

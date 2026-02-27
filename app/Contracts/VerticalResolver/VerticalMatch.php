@@ -9,18 +9,24 @@ final class VerticalMatch implements Serializable
 {
     use SerializableConcern;
 
-    public function __construct(protected string $vertical, protected float $confidence)
+    protected string $verticalIdentifier;
+
+    protected float $confidence;
+
+    public function __construct(string $verticalIdentifier, float $confidence)
     {
+        $this->setVerticalIdentifier($verticalIdentifier);
+        $this->setConfidence($confidence);
     }
 
-    public function getVertical(): string
+    public function getVerticalIdentifier(): string
     {
-        return $this->vertical;
+        return $this->verticalIdentifier;
     }
 
-    public function setVertical(string $vertical): static
+    public function setVerticalIdentifier(string $verticalIdentifier): static
     {
-        $this->vertical = $vertical;
+        $this->verticalIdentifier = $verticalIdentifier;
         return $this;
     }
 
@@ -38,7 +44,7 @@ final class VerticalMatch implements Serializable
     public function toArray(): array
     {
         return [
-            'vertical' => $this->getVertical(),
+            'vertical_identifier' => $this->getVerticalIdentifier(),
             'confidence' => $this->getConfidence(),
         ];
     }
@@ -46,7 +52,7 @@ final class VerticalMatch implements Serializable
     public static function fromArray(array $data): static
     {
         return new static(
-            $data['vertical'] ?? throw new \InvalidArgumentException('Invalid vertical data'),
+            $data['vertical_identifier'] ?? throw new \InvalidArgumentException('Invalid vertical data'),
             floatval($data['confidence'] ?? 0.0)
         );
     }

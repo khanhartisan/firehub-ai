@@ -15,7 +15,10 @@ final class VerticalResolution implements Serializable
     private array $matches = [];
 
     /**
-     * @var VerticalMatch[]
+     * Propose to create new verticals.
+     * An array of new verticals that matched.
+     *
+     * @var Vertical[]
      */
     private array $proposals = [];
 

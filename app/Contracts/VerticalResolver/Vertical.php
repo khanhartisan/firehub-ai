@@ -18,7 +18,7 @@ final class Vertical implements Describable, Identifiable, Serializable
     private string $name;
 
     /** @var Vertical[] */
-    private array $children;
+    private array $children = [];
 
     public function __construct(string $name, ?string $description = null)
     {
@@ -50,9 +50,36 @@ final class Vertical implements Describable, Identifiable, Serializable
 
     public function addChild(Vertical $vertical): static
     {
-        // TODO: Recursively loop inside the current $this->>children
-        // to confirm that there is no vertical with the same identifier found
-        // otherwise throw an exception
+        $existingIdentifiers = $this->collectIdentifiersRecursive();
+        $newIdentifiers = $vertical->collectIdentifiersRecursive();
+
+        $duplicate = array_intersect($existingIdentifiers, $newIdentifiers);
+        if ($duplicate !== []) {
+            throw new \InvalidArgumentException(
+                'Cannot add child: duplicate vertical identifier(s) in tree: ' . implode(', ', $duplicate)
+            );
+        }
+
+        $this->children[] = $vertical;
+
+        return $this;
+    }
+
+    /**
+     * Collect all identifiers in this vertical and its descendants (identifier or name as fallback).
+     *
+     * @return array<int, string>
+     */
+    private function collectIdentifiersRecursive(): array
+    {
+        $id = $this->getIdentifier() ?? $this->getName();
+        $ids = [$id];
+
+        foreach ($this->children as $child) {
+            $ids = array_merge($ids, $child->collectIdentifiersRecursive());
+        }
+
+        return $ids;
     }
 
     public function getChildren(): array
@@ -62,11 +89,32 @@ final class Vertical implements Describable, Identifiable, Serializable
 
     public function toArray(): array
     {
-        // TODO: Implement toArray() method.
+        return [
+            'identifier' => $this->getIdentifier(),
+            'name' => $this->getName(),
+            'description' => $this->getDescription(),
+            'children' => array_map(fn (Vertical $child) => $child->toArray(), $this->getChildren()),
+        ];
     }
 
     public static function fromArray(array $data): static
     {
-        // TODO: Implement fromArray() method.
+        $name = $data['name'] ?? throw new \InvalidArgumentException('Vertical data must contain "name"');
+        $instance = new static($name, $data['description'] ?? null);
+
+        if (isset($data['identifier'])) {
+            $instance->setIdentifier($data['identifier']);
+        }
+
+        $children = $data['children'] ?? [];
+        if ($children !== []) {
+            $childVerticals = array_map(
+                fn (array $childData) => static::fromArray($childData),
+                $children
+            );
+            $instance->setChildren($childVerticals);
+        }
+
+        return $instance;
     }
 }

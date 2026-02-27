@@ -231,7 +231,7 @@ PROMPT;
     protected function buildProposePrompt(string $content): string
     {
         return <<<PROMPT
-Based on the following content, suggest 0 to 5 new business vertical (category) names that could be used to classify similar content. Each proposal should have a short name and an optional description.
+Based on the following content, suggest 0 to 5 new business vertical (category) names that could be used to classify similar content. Each proposal should have a short name and a description (the description can be empty if not needed).
 
 Return a "proposals" array of objects with "name" (string) and "description" (string, optional). Use concise, lowercase names (e.g. "tech_news", "product_docs"). Do not suggest verticals that are too generic (e.g. "other", "misc").
 
@@ -260,10 +260,10 @@ PROMPT;
                             ],
                             'description' => [
                                 'type' => 'string',
-                                'description' => 'Optional description',
+                                'description' => 'Vertical description (may be empty)',
                             ],
                         ],
-                        'required' => ['name'],
+                        'required' => ['name', 'description'],
                         'additionalProperties' => false,
                     ],
                 ],

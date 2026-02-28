@@ -5,6 +5,8 @@ use App\Jobs\ScrapeSourcesJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use KhanhArtisan\LaravelBackbone\RelationCascade\Jobs\CascadeDelete;
+use KhanhArtisan\LaravelBackbone\RelationCascade\Jobs\CascadeRestore;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -30,3 +32,7 @@ Schedule::job(new ScheduleScrapeDueJob(limit: 50))->everyMinute();
 | ensure an entity exists for its base_url and dispatch ScrapeEntityJob (home page).
 */
 Schedule::job(new ScrapeSourcesJob)->everyMinute();
+
+// Cascading jobs
+Schedule::job(new CascadeDelete())->everyMinute();
+Schedule::job(new CascadeRestore())->everyMinute();

@@ -15,9 +15,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
+use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
+use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Entity extends Model
+class Entity extends Model implements ShouldCascade
 {
+    use Cascades;
+
     protected $fillable = [
         'source_id',
         'url',
@@ -40,6 +45,20 @@ class Entity extends Model
         'next_scrape_at' => 'datetime',
         'policy_result' => 'array',
     ];
+
+    public function getCascadeDetails(): CascadeDetails|array
+    {
+        return [
+            new CascadeDetails($this->snapshots()),
+            new CascadeDetails($this->hasMany(EntityVertical::class)),
+            new CascadeDetails($this->hasMany(EntityTag::class))
+        ];
+    }
+
+    public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
+    {
+        return true;
+    }
 
     protected function newBelongsToMany(
         Builder $query,

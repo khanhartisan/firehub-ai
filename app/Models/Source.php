@@ -6,10 +6,14 @@ use App\Contracts\Model\EntityCountable as EntityCountableContract;
 use App\Models\Concerns\EntityCountable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
+use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
+use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Source extends Model implements EntityCountableContract
+class Source extends Model implements EntityCountableContract, ShouldCascade
 {
     use EntityCountable;
+    use Cascades;
 
     protected $fillable = [
         'base_url',
@@ -20,6 +24,19 @@ class Source extends Model implements EntityCountableContract
     protected $casts = [
         'authority_score' => 'integer',
     ];
+
+    public function getCascadeDetails(): CascadeDetails|array
+    {
+        return [
+            new CascadeDetails($this->entities()),
+            new CascadeDetails($this->hasMany(SourceVertical::class)),
+        ];
+    }
+
+    public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
+    {
+        return true;
+    }
 
     public function entities(): HasMany
     {

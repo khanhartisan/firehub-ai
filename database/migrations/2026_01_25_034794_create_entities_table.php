@@ -37,8 +37,14 @@ return new class extends Migration
             $table->dateTime('source_published_at')->nullable();
             $table->dateTime('source_updated_at')->nullable();
             $table->dateTime('fetched_at')->nullable();
-            $table->dateTime('next_scrape_at')->nullable();
             $table->unsignedSmallInteger('attempts')->default(0);
+
+            $table->json('policy_result')->nullable();
+            $table->dateTime('next_scrape_at')->nullable();
+
+            $table->softDeletes();
+            $table->cascades();
+            $table->index(['cascade_status', 'deleted_at']);
 
             // Indexes
             $table->index(['scraping_status', 'next_scrape_at']);

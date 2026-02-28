@@ -17,6 +17,10 @@ return new class extends Migration
             $table->unsignedTinyInteger('authority_score')->default(0);
             $table->decimal('priority', 3, 2)->default(0.5);
             $table->timestamps();
+
+            $table->softDeletes();
+            $table->cascades();
+            $table->index(['cascade_status', 'deleted_at']);
         });
     }
 

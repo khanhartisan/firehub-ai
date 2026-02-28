@@ -18,6 +18,10 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->timestamps();
 
+            $table->softDeletes();
+            $table->cascades();
+            $table->index(['cascade_status', 'deleted_at']);
+
             // Intentionally no FK constraint for scale/performance; keep an index for tree queries.
             $table->index('parent_id');
         });

@@ -36,7 +36,10 @@ trait EntityCountable
         ], [
             'countable_type', 'countable_id', 'entity_type', 'scraping_status',
         ], [
-            'count' => DB::raw('count '.($delta > 0 ? '+' : '-').abs($delta))
+            'count' => DB::raw('entity_counts.count '
+                .($delta > 0 ? '+' : '-').' '
+                .abs($delta)
+            )
         ]);
     }
 }

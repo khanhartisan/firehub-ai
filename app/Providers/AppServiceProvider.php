@@ -8,6 +8,7 @@ use App\Contracts\PageClassifier\Classifier;
 use App\Contracts\PageParser\Parser;
 use App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine;
 use App\Contracts\Scraper\Scraper;
+use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VerticalResolver\VerticalResolver;
 use App\Models\Client;
 use App\Models\Entity;
@@ -27,6 +28,7 @@ use App\Services\PageClassifier\PageClassifierManager;
 use App\Services\PageParser\PageParserManager;
 use App\Services\ScrapePolicyEngine\ScrapePolicyEngineManager;
 use App\Services\Scraper\ScraperManager;
+use App\Services\VectorDB\VectorDBManager;
 use App\Services\VerticalResolver\VerticalResolverManager;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
@@ -47,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('page_parser.manager', PageParserManager::class);
         $this->app->singleton('scrape_policy_engine.manager', ScrapePolicyEngineManager::class);
         $this->app->singleton('vertical_resolver.manager', VerticalResolverManager::class);
+        $this->app->singleton('vectordb.manager', VectorDBManager::class);
 
         // Bind interfaces to the default driver (type-safe for dependency injection)
         $this->app->singleton(OpenAIClient::class, fn ($app) => $app['openai.manager']->driver());
@@ -56,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(Parser::class, fn ($app) => $app['page_parser.manager']->driver());
         $this->app->singleton(ScrapePolicyEngine::class, fn ($app) => $app['scrape_policy_engine.manager']->driver());
         $this->app->singleton(VerticalResolver::class, fn ($app) => $app['vertical_resolver.manager']->driver());
+        $this->app->singleton(VectorDB::class, fn ($app) => $app['vectordb.manager']->driver());
     }
 
     /**

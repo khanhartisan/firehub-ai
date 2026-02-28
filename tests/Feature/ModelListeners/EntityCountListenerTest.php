@@ -78,8 +78,8 @@ class EntityCountListenerTest extends TestCase
         $vertical2->refresh();
 
         $this->assertSame(1, $this->entityCountFor($source, EntityType::PAGE, ScrapingStatus::QUEUED));
-        $this->assertSame(0, $this->entityCountFor($vertical1, EntityType::PAGE, ScrapingStatus::QUEUED));
-        $this->assertSame(0, $this->entityCountFor($vertical2, EntityType::PAGE, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->entityCountFor($vertical1, EntityType::PAGE, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->entityCountFor($vertical2, EntityType::PAGE, ScrapingStatus::QUEUED));
     }
 
     public function test_entity_created_without_verticals_only_updates_source_count(): void
@@ -105,7 +105,6 @@ class EntityCountListenerTest extends TestCase
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
         $entity->verticals()->attach($vertical->id);
-        $vertical->adjustEntityCount(EntityType::PAGE, ScrapingStatus::PENDING, 1);
 
         $this->assertSame(1, $this->entityCountFor($source, EntityType::PAGE, ScrapingStatus::PENDING));
         $this->assertSame(1, $this->entityCountFor($vertical, EntityType::PAGE, ScrapingStatus::PENDING));
@@ -128,7 +127,6 @@ class EntityCountListenerTest extends TestCase
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
         $entity->verticals()->attach($vertical->id);
-        $vertical->adjustEntityCount(EntityType::UNCLASSIFIED, ScrapingStatus::PENDING, 1);
 
         $this->assertSame(1, $this->entityCountFor($source, EntityType::UNCLASSIFIED, ScrapingStatus::PENDING));
         $this->assertSame(1, $this->entityCountFor($vertical, EntityType::UNCLASSIFIED, ScrapingStatus::PENDING));
@@ -153,7 +151,6 @@ class EntityCountListenerTest extends TestCase
             'scraping_status' => ScrapingStatus::QUEUED,
         ]);
         $entity->verticals()->attach($vertical->id);
-        $vertical->adjustEntityCount(EntityType::PAGE, ScrapingStatus::QUEUED, 1);
 
         $this->assertSame(1, $this->entityCountFor($source, EntityType::PAGE, ScrapingStatus::QUEUED));
         $this->assertSame(1, $this->entityCountFor($vertical, EntityType::PAGE, ScrapingStatus::QUEUED));

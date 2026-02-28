@@ -8,6 +8,9 @@ use App\Enums\EntityType;
 use App\Enums\PageType;
 use App\Enums\ScrapingStatus;
 use App\Enums\Temporal;
+use App\Database\Eloquent\Relations\EntityCountBelongsToMany;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -37,6 +40,34 @@ class Entity extends Model
         'next_scrape_at' => 'datetime',
         'policy_result' => 'array',
     ];
+
+    protected function newBelongsToMany(
+        Builder $query,
+        EloquentModel $parent,
+        $table,
+        $foreignPivotKey,
+        $relatedPivotKey,
+        $parentKey,
+        $relatedKey,
+        $relationName = null,
+    ): BelongsToMany {
+        $relation = new EntityCountBelongsToMany(
+            $query,
+            $parent,
+            $table,
+            $foreignPivotKey,
+            $relatedPivotKey,
+            $parentKey,
+            $relatedKey,
+            $relationName
+        );
+
+        if ($query->getModel() instanceof EntityCountable) {
+            $relation->syncEntityCounts();
+        }
+
+        return $relation;
+    }
 
     public function canonicalEntity(): BelongsTo
     {

@@ -26,7 +26,7 @@ services:
             - scraping.hub.redis
             - scraping.hub.minio
     scraping.hub.pgsql:
-        image: 'postgres:18-alpine'
+        image: 'pgvector/pgvector:pg18-trixie'
         ports:
             - '${FORWARD_DB_PORT:-5432}:5432'
         environment:
@@ -37,6 +37,7 @@ services:
         volumes:
             - 'scraping-pgsql:/var/lib/postgresql'
             - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
+            - './docker/pgsql/enable-pgvector.sql:/docker-entrypoint-initdb.d/11-enable-pgvector.sql'
         networks:
             - scraping-network
         healthcheck:

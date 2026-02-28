@@ -13,9 +13,9 @@ use Pgvector\Vector as PgVector;
 class PgVectorDriver implements VectorDB
 {
     /**
-     * Column name for the partition (contract "index" = collection name).
+     * Column name for the space (contract "index" = collection/space name).
      */
-    protected const INDEX_COLUMN = 'partition';
+    protected const INDEX_COLUMN = 'space';
 
     public function __construct(
         protected array $config = [],
@@ -129,21 +129,8 @@ class PgVectorDriver implements VectorDB
 
     public function ensureIndex(string $index, ?int $dimension = null): void
     {
-        $connection = DB::connection($this->connection());
-        $connection->statement('CREATE EXTENSION IF NOT EXISTS vector');
-
-        $table = $this->tableName();
-        $dimension = $dimension ?? $this->defaultDimension();
-
-        $connection->statement(
-            'CREATE TABLE IF NOT EXISTS '.$table.' (
-                '.self::INDEX_COLUMN.' VARCHAR(255) NOT NULL,
-                id VARCHAR(255) NOT NULL,
-                embedding vector('.$dimension.') NOT NULL,
-                metadata JSONB NOT NULL DEFAULT \'{}\',
-                PRIMARY KEY ('.self::INDEX_COLUMN.', id)
-            )'
-        );
+        // We have this covered in the create_vector_records_table migration file
+        return;
     }
 
     public function dropIndex(string $index): void

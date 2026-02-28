@@ -10,7 +10,7 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Single table for all vector indexes; "partition" column stores the collection name.
+     * Single table for all vector indexes; "space" column stores the collection name.
      */
     public function up(): void
     {
@@ -21,11 +21,11 @@ return new class extends Migration
         DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
 
         Schema::create('vector_records', function (Blueprint $table) {
-            $table->string('partition', 255);
+            $table->string('space', 255);
             $table->string('id', 255);
             $table->vector('embedding', 1536);
             $table->jsonb('metadata')->default('{}');
-            $table->primary(['partition', 'id']);
+            $table->primary(['space', 'id']);
         });
     }
 

@@ -7,6 +7,7 @@ use App\Enums\ScrapingStatus;
 use App\Models\Entity;
 use App\Models\EntityCount;
 use App\Models\Source;
+use App\Models\Tag;
 use App\Models\Vertical;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -15,7 +16,7 @@ class EntityCountListenerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function entityCountFor(Source|Vertical $countable, EntityType $entityType, ScrapingStatus $scrapingStatus): int
+    private function entityCountFor(Source|Vertical|Tag $countable, EntityType $entityType, ScrapingStatus $scrapingStatus): int
     {
         $record = EntityCount::query()
             ->where('countable_type', $countable->getMorphClass())
@@ -35,6 +36,11 @@ class EntityCountListenerTest extends TestCase
     private function createVertical(?string $name = null): Vertical
     {
         return Vertical::create(['name' => $name ?? 'vertical-' . uniqid()]);
+    }
+
+    private function createTag(?string $name = null): Tag
+    {
+        return Tag::create(['name' => $name ?? 'tag-' . uniqid()]);
     }
 
     private function createEntity(Source $source, array $overrides = []): Entity
@@ -80,6 +86,93 @@ class EntityCountListenerTest extends TestCase
         $this->assertSame(1, $this->entityCountFor($source, EntityType::PAGE, ScrapingStatus::QUEUED));
         $this->assertSame(1, $this->entityCountFor($vertical1, EntityType::PAGE, ScrapingStatus::QUEUED));
         $this->assertSame(1, $this->entityCountFor($vertical2, EntityType::PAGE, ScrapingStatus::QUEUED));
+    }
+
+    public function test_entity_tags_synced_increments_tag_counts(): void
+    {
+        $source = $this->createSource();
+        $tag1 = $this->createTag();
+        $tag2 = $this->createTag();
+
+        $entity = $this->createEntity($source, [
+            'type' => EntityType::PAGE,
+            'scraping_status' => ScrapingStatus::PENDING,
+        ]);
+        $entity->tags()->sync([$tag1->id, $tag2->id]);
+
+        $tag1->refresh();
+        $tag2->refresh();
+
+        $this->assertSame(1, $this->entityCountFor($source, EntityType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->entityCountFor($tag1, EntityType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->entityCountFor($tag2, EntityType::PAGE, ScrapingStatus::PENDING));
+    }
+
+    public function test_entity_tags_synced_then_synced_again_updates_counts(): void
+    {
+        $source = $this->createSource();
+        $tag1 = $this->createTag();
+        $tag2 = $this->createTag();
+        $tag3 = $this->createTag();
+
+        $entity = $this->createEntity($source, [
+            'type' => EntityType::IMAGE,
+            'scraping_status' => ScrapingStatus::SUCCESS,
+        ]);
+        $entity->tags()->sync([$tag1->id, $tag2->id]);
+
+        $this->assertSame(1, $this->entityCountFor($tag1, EntityType::IMAGE, ScrapingStatus::SUCCESS));
+        $this->assertSame(1, $this->entityCountFor($tag2, EntityType::IMAGE, ScrapingStatus::SUCCESS));
+        $this->assertSame(0, $this->entityCountFor($tag3, EntityType::IMAGE, ScrapingStatus::SUCCESS));
+
+        $entity->tags()->sync([$tag2->id, $tag3->id]);
+
+        $tag1->refresh();
+        $tag2->refresh();
+        $tag3->refresh();
+        $this->assertSame(0, $this->entityCountFor($tag1, EntityType::IMAGE, ScrapingStatus::SUCCESS));
+        $this->assertSame(1, $this->entityCountFor($tag2, EntityType::IMAGE, ScrapingStatus::SUCCESS));
+        $this->assertSame(1, $this->entityCountFor($tag3, EntityType::IMAGE, ScrapingStatus::SUCCESS));
+    }
+
+    public function test_entity_tags_synced_empty_detaches_all(): void
+    {
+        $source = $this->createSource();
+        $tag = $this->createTag();
+
+        $entity = $this->createEntity($source, [
+            'type' => EntityType::PAGE,
+            'scraping_status' => ScrapingStatus::QUEUED,
+        ]);
+        $entity->tags()->sync([$tag->id]);
+
+        $tag->refresh();
+        $this->assertSame(1, $this->entityCountFor($tag, EntityType::PAGE, ScrapingStatus::QUEUED));
+
+        $entity->tags()->sync([]);
+
+        $tag->refresh();
+        $this->assertSame(0, $this->entityCountFor($tag, EntityType::PAGE, ScrapingStatus::QUEUED));
+    }
+
+    public function test_entity_verticals_synced_increments_vertical_counts(): void
+    {
+        $source = $this->createSource();
+        $vertical1 = $this->createVertical();
+        $vertical2 = $this->createVertical();
+
+        $entity = $this->createEntity($source, [
+            'type' => EntityType::DOCUMENT,
+            'scraping_status' => ScrapingStatus::PENDING,
+        ]);
+        $entity->verticals()->sync([$vertical1->id, $vertical2->id]);
+
+        $vertical1->refresh();
+        $vertical2->refresh();
+
+        $this->assertSame(1, $this->entityCountFor($source, EntityType::DOCUMENT, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->entityCountFor($vertical1, EntityType::DOCUMENT, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->entityCountFor($vertical2, EntityType::DOCUMENT, ScrapingStatus::PENDING));
     }
 
     public function test_entity_created_without_verticals_only_updates_source_count(): void

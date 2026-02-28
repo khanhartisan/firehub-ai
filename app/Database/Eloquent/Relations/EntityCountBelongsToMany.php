@@ -39,16 +39,6 @@ class EntityCountBelongsToMany extends BelongsToMany
         return $result;
     }
 
-    public function sync($ids, $detaching = true): array
-    {
-        $changes = parent::sync($ids, $detaching);
-
-        $this->adjustEntityCountsForRelatedIds($changes['attached'] ?? [], 1);
-        $this->adjustEntityCountsForRelatedIds($changes['detached'] ?? [], -1);
-
-        return $changes;
-    }
-
     private function adjustEntityCountsForRelatedIds(array $relatedIds, int $delta): void
     {
         if (!$this->syncEntityCounts || $delta === 0 || $relatedIds === []) {

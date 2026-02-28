@@ -276,8 +276,7 @@ class ScrapeEntityJob implements ShouldQueue
                         ->id
                 )
                 ->all();
-            $entityTagSync = $entity->tags()->sync($tagIds);
-            // TODO: Update entity count on relation sync
+            $entity->tags()->sync($tagIds);
 
             // Map resolved verticals to database Vertical models and attach to the entity.
             // Proposed verticals are created and attached to the source above; whether they

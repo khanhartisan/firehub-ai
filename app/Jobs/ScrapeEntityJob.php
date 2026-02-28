@@ -231,7 +231,7 @@ class ScrapeEntityJob implements ShouldQueue
         $mediaCount = $this->countMediaInMarkdown($pageData->getMarkdownContent());
 
         $version = $entity->snapshots_count + 1;
-        $filePath = 'snapshots/'.$entity->id.'/'.($snapshotId = Str::ulid()).'.html';
+        $filePath = 'snapshots/'.$entity->id.'/'.($snapshotId = strtolower(Str::ulid())).'.html';
         Storage::put($filePath, $html);
         $fileSize = strlen($html);
 

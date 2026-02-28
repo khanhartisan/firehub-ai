@@ -92,7 +92,7 @@ class PgVectorDriver implements VectorDB
         $limit = max(1, min($options->limit, 1000));
 
         $wheres = [self::INDEX_COLUMN.' = ?'];
-        $params = [$index, $embedding];
+        $params = [$embedding, $index];
 
         if (! empty($options->metadataFilter)) {
             $wheres[] = 'metadata @> ?::jsonb';

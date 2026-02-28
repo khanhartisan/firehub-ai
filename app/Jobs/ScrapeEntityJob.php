@@ -270,9 +270,14 @@ class ScrapeEntityJob implements ShouldQueue
             $entity->save();
 
             $tagIds = collect($classification->getTags())
-                ->map(fn (string $name): string => Tag::firstOrCreate(['name' => $name])->id)
+                ->map(fn (string $name): string
+                    => Tag::query()
+                        ->firstOrCreate(['name' => $name])
+                        ->id
+                )
                 ->all();
-            $entity->tags()->sync($tagIds);
+            $entityTagSync = $entity->tags()->sync($tagIds);
+            // TODO: Update entity count on relation sync
 
             // Map resolved verticals to database Vertical models and attach to the entity.
             // Proposed verticals are created and attached to the source above; whether they

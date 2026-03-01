@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Contracts\Model\Embeddable as EmbeddableContract;
 use App\Contracts\Model\EntityCountable as EntityCountableContract;
 use App\Models\Concerns\EntityCountable;
+use App\Models\Concerns\Embeddable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,16 +13,34 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Vertical extends Model implements EntityCountableContract, ShouldCascade
+class Vertical extends Model implements EmbeddableContract, EntityCountableContract, ShouldCascade
 {
-    use EntityCountable;
     use Cascades;
+    use Embeddable;
+    use EntityCountable;
 
     protected $fillable = [
         'name',
         'description',
         'parent_id',
+        'vector',
+        'is_embedded',
     ];
+
+    protected $casts = [
+        'is_embedded' => 'boolean',
+    ];
+
+    public function isEmbeddable(): bool
+    {
+        return true;
+    }
+
+    public function getTextForEmbedding(): ?string
+    {
+        // TODO: Implement getTextForEmbedding() method.
+        return null;
+    }
 
     public function getCascadeDetails(): CascadeDetails|array
     {

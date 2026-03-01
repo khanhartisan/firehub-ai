@@ -17,6 +17,7 @@ use App\Models\Source;
 use App\Models\Vertical as VerticalModel;
 use App\Models\Tag;
 use App\Utils\HtmlCleaner;
+use App\Utils\Json;
 use Carbon\Carbon;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
@@ -231,18 +232,27 @@ class ScrapeEntityJob implements ShouldQueue
         $mediaCount = $this->countMediaInMarkdown($pageData->getMarkdownContent());
 
         $version = $entity->snapshots_count + 1;
-        $filePath = 'snapshots/'.$entity->id.'/'.($snapshotId = strtolower(Str::ulid())).'.html';
-        Storage::put($filePath, $html);
+
+        // Save data to storage
+        $snapshotId = strtolower(Str::ulid());
+        $filePathPrefix = 'snapshots/'.$entity->id.'/';
+
+        $htmlFilePath = $filePathPrefix.$snapshotId.'.html';
+        Storage::put($htmlFilePath, $html);
+
+        $pageDataPath = $filePathPrefix.$snapshotId.'.json';
+        Storage::put($pageDataPath, Json::encode($pageData->toArray()));
+
         $fileSize = strlen($html);
 
-        DB::transaction(function () use ($snapshotId, $entity, $classification, $pageData, $contentLength, $linkCount, $mediaCount, $fetchDurationMs, $version, $filePath, $fileSize, $verticalMatches, $didResolveVerticals, $proposalVerticalIds, $allVerticalModels) {
+        DB::transaction(function () use ($snapshotId, $entity, $classification, $pageData, $contentLength, $linkCount, $mediaCount, $fetchDurationMs, $version, $htmlFilePath, $fileSize, $verticalMatches, $didResolveVerticals, $proposalVerticalIds, $allVerticalModels) {
             // Snapshot with SUCCESS status for history/evaluation (failure paths create snapshots in markEntityFailed).
             $snapshot = new Snapshot([
                 'id' => $snapshotId,
                 'entity_id' => $entity->id,
                 'scraping_status' => ScrapingStatus::SUCCESS,
                 'version' => $version,
-                'file_path' => $filePath,
+                'file_path' => $htmlFilePath,
                 'file_size' => $fileSize,
                 'file_mime_type' => 'text/html',
                 'file_extension' => 'html',

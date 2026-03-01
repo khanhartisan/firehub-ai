@@ -61,6 +61,9 @@ return new class extends Migration
             $table->index(['canonical_entity_id', 'canonical_number']);
 
             $table->vector('vector', self::VECTOR_DIMENSION)->nullable()->index();
+            $table->boolean('is_embeddable')->default(false);
+            $table->boolean('is_embedded')->default(false);
+            $table->index(['is_embeddable', 'is_embedded', 'updated_at']);
         });
     }
 

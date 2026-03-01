@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\Model\Embeddable as EmbeddableContract;
 use App\Contracts\Model\EntityCountable;
 use App\Enums\ContentType;
 use App\Enums\EntityType;
@@ -19,9 +20,10 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Entity extends Model implements ShouldCascade
+class Entity extends Model implements EmbeddableContract, ShouldCascade
 {
     use Cascades;
+    use Concerns\Embeddable;
 
     protected $fillable = [
         'source_id',
@@ -29,6 +31,8 @@ class Entity extends Model implements ShouldCascade
         'description',
         'type',
         'scraping_status',
+        'vector',
+        'is_embedded',
     ];
 
     protected $casts = [
@@ -44,7 +48,35 @@ class Entity extends Model implements ShouldCascade
         'fetched_at' => 'datetime',
         'next_scrape_at' => 'datetime',
         'policy_result' => 'array',
+        'is_embedded' => 'boolean',
     ];
+
+    public function isEmbeddable(): bool
+    {
+        return $this->type === EntityType::PAGE
+            and $this->page_type === PageType::DETAIL
+            and $this->scraping_status === ScrapingStatus::SUCCESS;
+    }
+
+    public function getTextForEmbedding(): ?string
+    {
+        if (!$this->isEmbeddable()) {
+            return null;
+        }
+
+        $text = '';
+        if ($this->page_type) {
+            $text .= 'Page type: '.$this->page_type->name.' ('.PageType::describe($this->page_type).')'."\n";
+        }
+
+        if ($this->content_type) {
+            $text = 'Content type: '.$this->content_type->name.' ('.ContentType::describe($this->content_type).')'."\n";
+        }
+
+        // TODO: Implement get text for embedding
+
+        return $text;
+    }
 
     public function getCascadeDetails(): CascadeDetails|array
     {

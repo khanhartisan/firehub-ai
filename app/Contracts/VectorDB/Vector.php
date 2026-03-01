@@ -10,10 +10,21 @@ namespace App\Contracts\VectorDB;
  */
 final readonly class Vector
 {
+    public array $values;
+
+    public const int PRECISION = 8;
+
     /** @param  array<float>  $values  Embedding dimensions */
     public function __construct(
-        public array $values,
-    ) {}
+        array $values,
+    ) {
+        $factor = 10 ** self::PRECISION;
+        $this->values = array_map(
+            fn (float $value)
+                => round($value * $factor) / $factor,
+            $values
+        );
+    }
 
     /** Number of dimensions (embedding size). */
     public function dimension(): int

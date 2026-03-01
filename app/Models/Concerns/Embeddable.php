@@ -56,7 +56,7 @@ trait Embeddable
         if (is_object($raw) && method_exists($raw, 'toArray')) {
             $values = $raw->toArray();
         } elseif (is_string($raw)) {
-            $values = json_decode($raw, true, 512, JSON_THROW_ON_ERROR) ?? [];
+            $values = \App\Utils\Json::decode($raw, true) ?? [];
         } else {
             $values = (array) $raw;
         }

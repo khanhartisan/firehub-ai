@@ -29,7 +29,6 @@ return [
 
         'pgvector' => [
             'connection' => env('VECTORDB_PGVECTOR_CONNECTION', 'pgsql'),
-            'table' => env('VECTORDB_PGVECTOR_TABLE', 'vector_records'),
             'default_dimension' => (int) env('VECTORDB_PGVECTOR_DEFAULT_DIMENSION', 1536),
         ],
 

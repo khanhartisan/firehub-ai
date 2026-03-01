@@ -45,7 +45,6 @@ class VectorDBManagerTest extends TestCase
     {
         Config::set('vectordb.drivers.pgvector', [
             'connection' => 'pgsql',
-            'table' => 'vector_records',
             'default_dimension' => 768,
         ]);
 

@@ -8,30 +8,32 @@ use App\Contracts\VectorDB\Vector;
 use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VectorDB\VectorRecord;
 use Illuminate\Support\Facades\DB;
+use JsonException;
 use Pgvector\Vector as PgVector;
 
 class PgVectorDriver implements VectorDB
 {
     /**
-     * Column name for the space (contract "index" = collection/space name).
+     * Column name for the embedding vector (contract uses "vector" per table convention).
      */
-    protected const INDEX_COLUMN = 'space';
+    protected const VECTOR_COLUMN = 'vector';
 
     public function __construct(
         protected array $config = [],
     ) {}
 
+    /**
+     * Update vector for an existing row. Model tables are used as vector tables;
+     * the record is guaranteed to exist. No metadata column – metadata is used only for WHERE clauses.
+     */
     public function upsert(string $index, VectorRecord $record): void
     {
-        $table = $this->tableName();
-        $embedding = $this->toPgVector($record->vector);
-        $metadata = json_encode($record->metadata);
+        $table = $this->tableName($index);
+        $vec = (string) $this->toPgVector($record->vector);
 
-        DB::connection($this->connection())->statement(
-            'INSERT INTO '.$table.' ('.self::INDEX_COLUMN.', id, embedding, metadata) VALUES (?, ?, ?::vector, ?::jsonb)
-             ON CONFLICT ('.self::INDEX_COLUMN.', id) DO UPDATE SET embedding = EXCLUDED.embedding, metadata = EXCLUDED.metadata',
-            [$index, $record->id, (string) $embedding, $metadata]
-        );
+        $this->query($table)->where('id', $record->id)->update([
+            self::VECTOR_COLUMN => $vec,
+        ]);
     }
 
     public function upsertMany(string $index, array $records): void
@@ -43,103 +45,99 @@ class PgVectorDriver implements VectorDB
         }
     }
 
+    /**
+     * No-op: record deletion is assumed to be done by the application.
+     */
     public function delete(string $index, string $id): void
     {
-        $table = $this->tableName();
-
-        DB::connection($this->connection())->statement(
-            'DELETE FROM '.$table.' WHERE '.self::INDEX_COLUMN.' = ? AND id = ?',
-            [$index, $id]
-        );
+        // App is responsible for deleting records.
     }
 
+    /**
+     * No-op: record deletion by filter is assumed to be done by the application.
+     */
     public function deleteByFilter(string $index, array $metadataFilter): void
     {
-        if (empty($metadataFilter)) {
-            return;
-        }
-
-        $table = $this->tableName();
-        $filterJson = json_encode($metadataFilter);
-
-        DB::connection($this->connection())->statement(
-            'DELETE FROM '.$table.' WHERE '.self::INDEX_COLUMN.' = ? AND metadata @> ?::jsonb',
-            [$index, $filterJson]
-        );
+        // App is responsible for deleting records by filter.
     }
 
+    /**
+     * @throws JsonException
+     */
     public function get(string $index, string $id): ?VectorRecord
     {
-        $table = $this->tableName();
-
-        $row = DB::connection($this->connection())
-            ->selectOne(
-                'SELECT id, embedding::text as embedding, metadata FROM '.$table.' WHERE '.self::INDEX_COLUMN.' = ? AND id = ?',
-                [$index, $id]
-            );
-
-        if (! $row) {
+        $row = $this->query($this->tableName($index))->where('id', $id)->first();
+        if ($row === null) {
             return null;
         }
-
         return $this->rowToRecord($row);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function search(string $index, Vector $queryVector, SearchOptions $options): array
     {
-        $table = $this->tableName();
-        $embedding = (string) $this->toPgVector($queryVector);
+        $table = $this->tableName($index);
+        $vecArray = $queryVector->toArray();
         $limit = max(1, min($options->limit, 1000));
+        $minSimilarity = $options->scoreThreshold ?? 0.0;
 
-        $wheres = [self::INDEX_COLUMN.' = ?'];
-        $params = [$embedding, $index];
+        $q = $this->query($table)
+            ->select(['id'])
+            ->selectVectorDistance(self::VECTOR_COLUMN, $vecArray, 'distance');
 
-        if (! empty($options->metadataFilter)) {
-            $wheres[] = 'metadata @> ?::jsonb';
-            $params[] = json_encode($options->metadataFilter);
+        if ($options->includeVector) {
+            $q->addSelect(self::VECTOR_COLUMN.' as embedding');
+        } else {
+            $q->addSelect(DB::raw('NULL::text as embedding'));
         }
 
-        $whereSql = ' WHERE ' . implode(' AND ', $wheres);
-        $params[] = $embedding;
-        $params[] = $limit;
+        foreach ($options->metadataFilter ?? [] as $column => $value) {
+            $safe = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $column);
+            if ($safe !== '') {
+                $q->where($safe, $value);
+            }
+        }
 
-        $embeddingSelect = $options->includeVector ? 'embedding::text as embedding' : 'NULL::text as embedding';
+        $q->whereVectorDistanceLessThan(self::VECTOR_COLUMN, $vecArray, 1 - $minSimilarity)
+            ->orderByVectorDistance(self::VECTOR_COLUMN, $vecArray)
+            ->limit($limit);
 
-        $sql = "SELECT id, {$embeddingSelect}, metadata,
-                       (1 - (embedding <=> ?::vector)) as score
-                FROM {$table}
-                {$whereSql}
-                ORDER BY embedding <=> ?::vector
-                LIMIT ?";
-
-        $rows = DB::connection($this->connection())->select($sql, $params);
+        $rows = $q->get();
 
         $results = [];
         foreach ($rows as $row) {
-            $score = (float) $row->score;
+            $distance = (float) $row->distance;
+            $score = 1.0 - $distance;
             if ($options->scoreThreshold !== null && $score < $options->scoreThreshold) {
                 continue;
             }
             $record = $this->rowToRecord($row);
             $results[] = new SearchResult($record, $score);
         }
-
         return $results;
     }
 
+    /**
+     * No-op: index/table creation is assumed to be done by the application (e.g. migrations).
+     */
     public function ensureIndex(string $index, ?int $dimension = null): void
     {
-        // We have this covered in the create_vector_records_table migration file
-        return;
+        // App is responsible for creating vector tables and indexes.
     }
 
+    /**
+     * No-op: index/table dropping is assumed to be done by the application.
+     */
     public function dropIndex(string $index): void
     {
-        $table = $this->tableName();
-        DB::connection($this->connection())->statement(
-            'DELETE FROM '.$table.' WHERE '.self::INDEX_COLUMN.' = ?',
-            [$index]
-        );
+        // App is responsible for dropping vector tables/indexes.
+    }
+
+    protected function query(string $table): \Illuminate\Database\Query\Builder
+    {
+        return DB::connection($this->connection())->table($table);
     }
 
     protected function connection(): string
@@ -147,9 +145,13 @@ class PgVectorDriver implements VectorDB
         return $this->config['connection'] ?? 'pgsql';
     }
 
-    protected function tableName(): string
+    /**
+     * Resolve table name from contract "index" (table name). Sanitized for SQL safety.
+     */
+    protected function tableName(string $index): string
     {
-        return $this->config['table'] ?? 'vector_records';
+        $safe = preg_replace('/[^a-zA-Z0-9_]/', '_', $index);
+        return $safe !== '' ? $safe : 'vector_default';
     }
 
     protected function defaultDimension(): int
@@ -165,19 +167,36 @@ class PgVectorDriver implements VectorDB
     protected function rowToRecord(object $row): VectorRecord
     {
         $embeddingValues = [];
-        if ($row->embedding !== null) {
-            $embeddingValues = is_string($row->embedding)
-                ? json_decode($row->embedding, true, 512, JSON_THROW_ON_ERROR) ?? []
-                : (array) $row->embedding;
+        $vectorRaw = $row->embedding ?? $row->vector ?? null;
+        if ($vectorRaw !== null) {
+            $embeddingValues = is_string($vectorRaw)
+                ? json_decode($vectorRaw, true, 512, JSON_THROW_ON_ERROR) ?? []
+                : (array) $vectorRaw;
         }
-        $metadata = is_string($row->metadata)
-            ? json_decode($row->metadata, true, 512, JSON_THROW_ON_ERROR) ?? []
-            : (array) $row->metadata;
+        $metadata = $this->rowToMetadata($row);
 
         return new VectorRecord(
             id: $row->id,
             vector: new Vector($embeddingValues),
             metadata: $metadata
         );
+    }
+
+    /**
+     * Extract metadata from row (all columns except id, vector/embedding, score, distance).
+     *
+     * @return array<string, mixed>
+     */
+    protected function rowToMetadata(object $row): array
+    {
+        $metadata = [];
+        $skip = ['id', 'embedding', 'vector', 'score', 'distance'];
+        foreach ((array) $row as $key => $value) {
+            if (in_array($key, $skip, true)) {
+                continue;
+            }
+            $metadata[$key] = $value;
+        }
+        return $metadata;
     }
 }

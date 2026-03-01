@@ -2,15 +2,22 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private const VECTOR_DIMENSION = 1536;
+
     /**
      * Run the migrations.
      */
     public function up(): void
     {
+        if (DB::connection($this->connection)->getDriverName() === 'pgsql') {
+            Schema::connection($this->connection)->ensureVectorExtensionExists();
+        }
+
         Schema::create('entities', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('source_id');
@@ -52,6 +59,8 @@ return new class extends Migration
             $table->index(['source_id', 'next_scrape_at']);
             $table->index(['url_hash', 'source_id']);
             $table->index(['canonical_entity_id', 'canonical_number']);
+
+            $table->vector('vector', self::VECTOR_DIMENSION)->nullable()->index();
         });
     }
 

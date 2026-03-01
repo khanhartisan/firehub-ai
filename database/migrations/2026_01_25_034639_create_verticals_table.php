@@ -2,15 +2,22 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private const VECTOR_DIMENSION = 1536;
+
     /**
      * Run the migrations.
      */
     public function up(): void
     {
+        if (DB::connection($this->connection)->getDriverName() === 'pgsql') {
+            Schema::connection($this->connection)->ensureVectorExtensionExists();
+        }
+
         Schema::create('verticals', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('parent_id')->nullable();
@@ -24,6 +31,8 @@ return new class extends Migration
 
             // Intentionally no FK constraint for scale/performance; keep an index for tree queries.
             $table->index('parent_id');
+
+            $table->vector('vector', self::VECTOR_DIMENSION)->nullable()->index();
         });
     }
 

@@ -165,8 +165,8 @@ class ScrapeEntityJobTest extends TestCase
             'url_hash' => sha1('https://example.com/page'),
             'scraping_status' => ScrapingStatus::QUEUED,
             'attempts' => 1,
-            'snapshots_count' => 1,
         ]);
+        $this->assertSame(1, $entity->attempts);
 
         $job = new class($entity) extends ScrapeEntityJob {
             protected function fetchUrl(string $url): ResponseInterface
@@ -177,15 +177,16 @@ class ScrapeEntityJobTest extends TestCase
         $job->handle();
 
         $entity->refresh();
+        $this->assertSame(ScrapingStatus::FAILED, $entity->scraping_status);
         $this->assertSame(2, $entity->attempts);
         $this->assertNull($entity->next_scrape_at);
-        $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
-        $this->assertSame(2, $entity->snapshots_count);
+        $this->assertSame($entity->snapshots()->count(), $entity->snapshots_count);
+        $this->assertSame(1, $entity->snapshots_count);
         $this->assertDatabaseCount('snapshots', 1);
         $latestSnapshot = Snapshot::where('entity_id', $entity->id)->orderByDesc('version')->first();
         $this->assertNotNull($latestSnapshot);
-        $this->assertSame(2, $latestSnapshot->version);
-        $this->assertSame(ScrapingStatus::FAILED->value, $latestSnapshot->scraping_status->value);
+        $this->assertSame(1, $latestSnapshot->version);
+        $this->assertSame(ScrapingStatus::FAILED, $latestSnapshot->scraping_status);
     }
 
     public function test_success_creates_snapshot_with_correct_data_and_updates_entity(): void
@@ -236,7 +237,7 @@ class ScrapeEntityJobTest extends TestCase
         $this->assertSame(ScrapingStatus::SUCCESS, $snapshot->scraping_status);
         $this->assertSame(1, $snapshot->version);
         $this->assertNotNull($snapshot->content_length);
-        $this->assertSame(1, $snapshot->link_count);
+        $this->assertSame(1, $snapshot->links_count);
         $this->assertSame(0, $snapshot->media_count);
         $this->assertSame(0, $snapshot->structured_data_count);
         $this->assertNotNull($snapshot->fetch_duration_ms);

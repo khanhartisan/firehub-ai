@@ -33,6 +33,8 @@ return new class extends Migration
 
             $table->string('description', 1024)->nullable();
 
+            $table->unsignedInteger('version_index')->default(0);
+
             // For entity type = page
             $table->string('page_type')->nullable();
             $table->string('content_type')->nullable();

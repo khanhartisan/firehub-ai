@@ -131,7 +131,7 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
                 'Content Length' => $currentSnapshot->content_length ?? 'unknown',
                 'Structured Data Count' => $currentSnapshot->structured_data_count ?? 0,
                 'Media Count' => $currentSnapshot->media_count ?? 0,
-                'Link Count' => $currentSnapshot->link_count ?? 0,
+                'Links Count' => $currentSnapshot->links_count ?? 0,
                 'Cost' => $currentSnapshot->cost ?? 0.0,
             ];
         }

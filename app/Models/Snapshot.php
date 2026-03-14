@@ -22,6 +22,8 @@ class Snapshot extends Model
         'scraping_status' => ScrapingStatus::class,
         'content_change_percentage' => 'float',
         'cost' => 'float',
+        'media_count' => 'integer',
+        'links_count' => 'integer',
     ];
 
     public function entity(): BelongsTo

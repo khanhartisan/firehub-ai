@@ -33,6 +33,7 @@ class Entity extends Model implements EmbeddableContract, ShouldCascade
         'scraping_status',
         'vector',
         'is_embedded',
+        'version_index',
     ];
 
     protected $casts = [
@@ -49,6 +50,7 @@ class Entity extends Model implements EmbeddableContract, ShouldCascade
         'next_scrape_at' => 'datetime',
         'policy_result' => 'array',
         'is_embedded' => 'boolean',
+        'version_index' => 'integer',
     ];
 
     public function isEmbeddable(): bool

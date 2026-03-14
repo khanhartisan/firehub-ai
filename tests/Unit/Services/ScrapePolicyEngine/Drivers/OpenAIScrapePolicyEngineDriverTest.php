@@ -683,7 +683,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
             'content_length' => 10000,
             'structured_data_count' => 5,
             'media_count' => 3,
-            'link_count' => 10,
+            'links_count' => 10,
             'cost' => 1.5,
         ]);
 

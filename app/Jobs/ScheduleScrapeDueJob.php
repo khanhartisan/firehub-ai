@@ -71,7 +71,7 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         try {
             $this->runScheduler();
-            static::dispatch($this->limit)->delay(now()->addSecond());
+            static::dispatch($this->limit)->delay(now()->addSeconds(3));
         } finally {
             $lock->release();
         }
@@ -79,8 +79,6 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     private function runScheduler(): void
     {
-        $maxAttempts = config('queue.max_scrape_attempts');
-
         // Dispatch jobs
         foreach (ScrapingStatus::cases() as $scrapingStatus) {
             $query = Entity::query()

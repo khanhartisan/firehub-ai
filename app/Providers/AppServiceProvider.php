@@ -15,6 +15,7 @@ use App\Models\Client;
 use App\Models\Entity;
 use App\Models\EntityCount;
 use App\Models\EntityRelation;
+use App\Models\EntityTag;
 use App\Models\EntityVertical;
 use App\Models\Model;
 use App\Models\Snapshot;
@@ -86,6 +87,7 @@ class AppServiceProvider extends ServiceProvider
             Entity::class,
             EntityCount::class,
             EntityRelation::class,
+            EntityTag::class,
             EntityVertical::class,
             Snapshot::class,
             Source::class,

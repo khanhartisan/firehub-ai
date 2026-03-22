@@ -71,7 +71,7 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         try {
             $this->runScheduler();
-            static::dispatch($this->limit)->delay(now()->addSeconds(3));
+            static::dispatch($this->limit)->delay(now()->addSecond());
         } finally {
             $lock->release();
         }

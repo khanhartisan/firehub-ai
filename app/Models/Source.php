@@ -6,6 +6,7 @@ use App\Contracts\Model\Embeddable as EmbeddableContract;
 use App\Contracts\Model\EntityCountable as EntityCountableContract;
 use App\Models\Concerns\EntityCountable;
 use App\Models\Concerns\Embeddable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
@@ -17,6 +18,7 @@ class Source extends Model implements EmbeddableContract, EntityCountableContrac
     use Cascades;
     use Embeddable;
     use EntityCountable;
+    use HasFactory;
 
     protected $fillable = [
         'base_url',

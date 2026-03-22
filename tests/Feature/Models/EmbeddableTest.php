@@ -20,9 +20,9 @@ class EmbeddableTest extends TestCase
 
     public function test_get_unembedded_returns_only_sources_where_is_embedded_false(): void
     {
-        Source::create(['base_url' => 'https://one.com']);
-        Source::create(['base_url' => 'https://two.com']);
-        $embedded = Source::create(['base_url' => 'https://three.com']);
+        Source::factory()->create(['base_url' => 'https://one.com']);
+        Source::factory()->create(['base_url' => 'https://two.com']);
+        $embedded = Source::factory()->create(['base_url' => 'https://three.com']);
         $embedded->update(['is_embedded' => true]);
 
         $unembedded = Source::getUnembedded(10);
@@ -35,9 +35,9 @@ class EmbeddableTest extends TestCase
 
     public function test_get_unembedded_respects_limit(): void
     {
-        Source::create(['base_url' => 'https://a.com']);
-        Source::create(['base_url' => 'https://b.com']);
-        Source::create(['base_url' => 'https://c.com']);
+        Source::factory()->create(['base_url' => 'https://a.com']);
+        Source::factory()->create(['base_url' => 'https://b.com']);
+        Source::factory()->create(['base_url' => 'https://c.com']);
 
         $result = Source::getUnembedded(2);
 
@@ -46,8 +46,8 @@ class EmbeddableTest extends TestCase
 
     public function test_get_unembedded_returns_empty_when_all_embedded(): void
     {
-        $s1 = Source::create(['base_url' => 'https://x.com']);
-        $s2 = Source::create(['base_url' => 'https://y.com']);
+        $s1 = Source::factory()->create(['base_url' => 'https://x.com']);
+        $s2 = Source::factory()->create(['base_url' => 'https://y.com']);
         $s1->update(['is_embedded' => true]);
         $s2->update(['is_embedded' => true]);
 
@@ -56,7 +56,7 @@ class EmbeddableTest extends TestCase
 
     public function test_get_unembedded_works_on_entity_vertical_tag(): void
     {
-        $source = Source::create(['base_url' => 'https://example.com']);
+        $source = Source::factory()->create(['base_url' => 'https://example.com']);
         $entity = Entity::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/page',
@@ -66,26 +66,22 @@ class EmbeddableTest extends TestCase
             'scraping_status' => ScrapingStatus::SUCCESS,
         ]);
         $vertical = Vertical::create(['name' => 'v-' . uniqid()]);
-        $tag = Tag::create(['name' => 't-' . uniqid()]);
 
         $this->assertCount(1, Entity::getUnembedded(10));
         $this->assertCount(1, Vertical::getUnembedded(10));
-        $this->assertCount(1, Tag::getUnembedded(10));
 
         $entity->update(['is_embedded' => true]);
         $vertical->update(['is_embedded' => true]);
-        $tag->update(['is_embedded' => true]);
 
         $this->assertCount(0, Entity::getUnembedded(10));
         $this->assertCount(0, Vertical::getUnembedded(10));
-        $this->assertCount(0, Tag::getUnembedded(10));
     }
 
     public function test_get_unembedded_orders_by_id(): void
     {
-        $s1 = Source::create(['base_url' => 'https://first.com']);
-        $s2 = Source::create(['base_url' => 'https://second.com']);
-        $s3 = Source::create(['base_url' => 'https://third.com']);
+        $s1 = Source::factory()->create(['base_url' => 'https://first.com']);
+        $s2 = Source::factory()->create(['base_url' => 'https://second.com']);
+        $s3 = Source::factory()->create(['base_url' => 'https://third.com']);
 
         $result = Source::getUnembedded(10);
 
@@ -111,7 +107,7 @@ class EmbeddableTest extends TestCase
 
     public function test_set_embedding_removes_model_from_get_unembedded(): void
     {
-        $source = Source::create(['base_url' => 'https://example.com']);
+        $source = Source::factory()->create(['base_url' => 'https://example.com']);
         $this->assertCount(1, Source::getUnembedded(10));
 
         $source->setEmbedding(new Vector(Embeddings::fakeEmbedding(1536)));

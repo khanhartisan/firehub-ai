@@ -38,8 +38,7 @@ class Vertical extends Model implements EmbeddableContract, EntityCountableContr
 
     public function getTextForEmbedding(): ?string
     {
-        // TODO: Implement getTextForEmbedding() method.
-        return null;
+        return $this->name.': '.$this->description;
     }
 
     public function getCascadeDetails(): CascadeDetails|array

@@ -75,7 +75,7 @@ class Entity extends Model implements EmbeddableContract, ShouldCascade
             $text = 'Content type: '.$this->content_type->name.' ('.ContentType::describe($this->content_type).')'."\n";
         }
 
-        // TODO: Implement get text for embedding
+        $text .= 'Description: '.$this->description;
 
         return $text;
     }

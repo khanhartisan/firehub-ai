@@ -33,13 +33,12 @@ class Source extends Model implements EmbeddableContract, EntityCountableContrac
 
     public function isEmbeddable(): bool
     {
-        return true;
+        return !!$this->description;
     }
 
     public function getTextForEmbedding(): ?string
     {
-        // TODO: Implement getTextForEmbedding() method.
-        return null;
+        return $this->description ?: null;
     }
 
     public function getCascadeDetails(): CascadeDetails|array

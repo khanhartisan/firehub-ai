@@ -17,6 +17,8 @@ class ScrapeEntityJobDispatcher implements ShouldQueue
 
     protected Entity $entity;
 
+    public bool $deleteWhenMissingModels = true;
+
     /**
      * Create a new job instance.
      */

@@ -4,6 +4,7 @@ namespace App\Models\Concerns;
 
 use App\Contracts\VectorDB\Vector;
 use App\Contracts\VectorDB\VectorRecord;
+use App\Models\EmbeddableModel;
 use App\Models\Model;
 use Illuminate\Database\Eloquent\Collection;
 use InvalidArgumentException;
@@ -23,14 +24,16 @@ trait Embeddable
     protected static function bootEmbeddable(): void
     {
         // Sync the is_embeddable field value with the isEmbeddable implementation
-        static::saving(function (Model $model) {
+        static::saving(function (EmbeddableModel $model) {
             $model->is_embeddable = $model->isEmbeddable();
         });
-    }
 
-    public function isEmbedded(): bool
-    {
-        return (bool) $this->getAttribute('is_embedded');
+        // Sync the is_embedded field value
+        static::saving(function (EmbeddableModel $model) {
+            if ($model->is_embedded) {
+                $model->is_embedded = $model->isEmbedded();
+            }
+        });
     }
 
     /**

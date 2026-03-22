@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Contracts\Model\Embeddable as EmbeddableContract;
 use App\Contracts\Model\EntityCountable;
 use App\Enums\ContentType;
 use App\Enums\EntityType;
@@ -20,10 +19,9 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Entity extends Model implements EmbeddableContract, ShouldCascade
+class Entity extends EmbeddableModel implements ShouldCascade
 {
     use Cascades;
-    use Concerns\Embeddable;
 
     protected $fillable = [
         'source_id',
@@ -58,6 +56,23 @@ class Entity extends Model implements EmbeddableContract, ShouldCascade
         return $this->type === EntityType::PAGE
             and $this->page_type === PageType::DETAIL
             and $this->scraping_status === ScrapingStatus::SUCCESS;
+    }
+
+    public function isEmbedded(): bool
+    {
+        if (!$this->is_embedded) {
+            return false;
+        }
+
+        if ($this->isDirty('page_type')
+            or $this->isDirty('content_type')
+            or $this->isDirty('description')
+            or !$this->getTextForEmbedding()
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     public function getTextForEmbedding(): ?string

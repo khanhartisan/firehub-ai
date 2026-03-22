@@ -93,7 +93,8 @@ class EmbeddableTest extends TestCase
 
     public function test_set_embedding_persists_vector_and_is_embedded(): void
     {
-        $source = Source::create(['base_url' => 'https://example.com']);
+        /** @var Source $source */
+        $source = Source::factory()->create(['base_url' => 'https://example.com']);
         $vector = new Vector(Embeddings::fakeEmbedding(1536));
 
         $result = $source->setEmbedding($vector);
@@ -107,6 +108,7 @@ class EmbeddableTest extends TestCase
 
     public function test_set_embedding_removes_model_from_get_unembedded(): void
     {
+        /** @var Source $source */
         $source = Source::factory()->create(['base_url' => 'https://example.com']);
         $this->assertCount(1, Source::getUnembedded(10));
 

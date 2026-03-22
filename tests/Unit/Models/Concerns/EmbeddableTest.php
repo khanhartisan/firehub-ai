@@ -15,8 +15,7 @@ class EmbeddableTest extends TestCase
     {
         $source = new Source;
         $source->setRawAttributes([
-            'id' => '01ARZ3NDEKTSV4RRFFQ69G5FAV',
-            'base_url' => 'https://example.com',
+            'base_url' => fake()->url(),
             'is_embedded' => false,
         ]);
 
@@ -27,11 +26,18 @@ class EmbeddableTest extends TestCase
     {
         $source = new Source;
         $source->setRawAttributes([
-            'id' => '01ARZ3NDEKTSV4RRFFQ69G5FAV',
-            'base_url' => 'https://example.com',
+            'base_url' => fake()->url(),
+            'description' => fake()->sentence(),
             'is_embedded' => true,
         ]);
+        $this->assertTrue($source->save());
 
+        // Is embedded is false because base_url was changed
+        $this->assertFalse($source->isEmbedded());
+
+        // Update again and it'll be true
+        $source->is_embedded = true;
+        $this->assertTrue($source->save());
         $this->assertTrue($source->isEmbedded());
     }
 
@@ -163,14 +169,17 @@ class EmbeddableTest extends TestCase
         $source = new class extends Source {
             public function save(array $options = []): bool
             {
+                $this->finishSave($options);
                 return true;
             }
         };
         $source->setRawAttributes([
-            'id' => '01ARZ3NDEKTSV4RRFFQ69G5FAV',
-            'base_url' => 'https://example.com',
+            'base_url' => fake()->url(),
+            'description' => 'Some description',
             'is_embedded' => false,
         ]);
+        $this->assertTrue($source->save());
+        $this->assertFalse($source->isEmbedded());
 
         $result = $source->setEmbedding($vector);
 

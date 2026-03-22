@@ -2,10 +2,8 @@
 
 namespace App\Models;
 
-use App\Contracts\Model\Embeddable as EmbeddableContract;
 use App\Contracts\Model\EntityCountable as EntityCountableContract;
 use App\Models\Concerns\EntityCountable;
-use App\Models\Concerns\Embeddable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,10 +11,9 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Source extends Model implements EmbeddableContract, EntityCountableContract, ShouldCascade
+class Source extends EmbeddableModel implements EntityCountableContract, ShouldCascade
 {
     use Cascades;
-    use Embeddable;
     use EntityCountable;
     use HasFactory;
 
@@ -36,6 +33,21 @@ class Source extends Model implements EmbeddableContract, EntityCountableContrac
     public function isEmbeddable(): bool
     {
         return !!$this->description;
+    }
+
+    public function isEmbedded(): bool
+    {
+        if (!$this->is_embedded) {
+            return false;
+        }
+
+        if ($this->isDirty('description')
+            or !$this->getTextForEmbedding()
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
     public function getTextForEmbedding(): ?string

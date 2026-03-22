@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\ScheduleEmbeddingJob;
 use App\Jobs\ScheduleScrapeDueJob;
 use App\Jobs\ScrapeSourcesJob;
 use Illuminate\Foundation\Inspiring;
@@ -33,6 +34,15 @@ Schedule::job(new ScheduleScrapeDueJob(limit: 50))->everyMinute();
 */
 Schedule::job(new ScrapeSourcesJob)->everyMinute();
 
+/*
+|--------------------------------------------------------------------------
+| Embedding scheduler
+|--------------------------------------------------------------------------
+| Walks the Eloquent morph map for EmbeddableModel subclasses and queues
+| EmbeddingJob for rows that are embeddable but not yet embedded.
+*/
+Schedule::job(new ScheduleEmbeddingJob(perModelLimit: 100))->everyMinute();
+
 // Cascading jobs
-Schedule::job(new CascadeDelete())->everyMinute();
-Schedule::job(new CascadeRestore())->everyMinute();
+Schedule::job(new CascadeDelete)->everyMinute();
+Schedule::job(new CascadeRestore)->everyMinute();

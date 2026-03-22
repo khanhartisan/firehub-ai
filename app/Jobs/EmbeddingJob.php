@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\Queue;
 use App\Facades\TextEmbedding;
 use App\Models\EmbeddableModel;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -21,12 +22,16 @@ class EmbeddingJob implements ShouldQueue, ShouldBeUnique
 
     public int $uniqueFor = 60;
 
+    public const Queue EMBEDDING_QUEUE = Queue::DEFAULT;
+
     /**
      * Create a new job instance.
      */
     public function __construct(EmbeddableModel $embeddable)
     {
         $this->embeddable = $embeddable->withoutRelations();
+
+        $this->onQueue(static::EMBEDDING_QUEUE->value);
     }
 
     public function uniqueId(): string

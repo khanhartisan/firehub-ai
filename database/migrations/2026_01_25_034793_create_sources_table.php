@@ -26,6 +26,11 @@ return new class extends Migration
             $table->decimal('priority', 3, 2)->default(0.5);
             $table->timestamps();
 
+            // Budget
+            $table->unsignedInteger('daily_budget')->default(0);
+            $table->unsignedInteger('weekly_budget')->default(0);
+            $table->unsignedInteger('monthly_budget')->default(0);
+
             $table->softDeletes();
             $table->cascades();
             $table->index(['cascade_status', 'deleted_at']);

@@ -28,6 +28,9 @@ class Source extends EmbeddableModel implements EntityCountableContract, ShouldC
     protected $casts = [
         'authority_score' => 'integer',
         'is_embedded' => 'boolean',
+        'daily_budget' => 'integer',
+        'weekly_budget' => 'integer',
+        'monthly_budget' => 'integer',
     ];
 
     public function isEmbeddable(): bool

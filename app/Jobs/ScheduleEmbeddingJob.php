@@ -98,6 +98,9 @@ class ScheduleEmbeddingJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
             /** @var class-string<EmbeddableModel> $class */
             foreach ($class::getUnembedded($slotsAvailable) as $embeddableModel) {
+
+                // Touch it to ensure it'll be pushed to the end of the queue
+                $embeddableModel->touch();
                 dispatch(new EmbeddingJob($embeddableModel));
             }
         }

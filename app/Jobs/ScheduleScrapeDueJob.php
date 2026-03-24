@@ -83,6 +83,7 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         foreach (ScrapingStatus::cases() as $scrapingStatus) {
             $query = Entity::query()
                 ->where('scraping_status', $scrapingStatus)
+                ->whereNotNull('next_scrape_at')
                 ->orderBy('next_scrape_at');
 
             if ($scrapingStatus !== ScrapingStatus::PENDING) {

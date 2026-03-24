@@ -15,15 +15,7 @@ trait FinishingStage
             dump('Finishing, entity '.$entity->id);
         }
 
-        $entity->scraping_status = ScrapingStatus::SUCCESS;
-        $entity->attempts = 0;
-        $entity->fetched_at = Carbon::now();
-
-        $saved = false;
-        DB::transaction(function () use (&$saved, $entity) {
-            $saved = $entity->save();
-        });
-
-        return $saved;
+        $this->markEntitySuccess($entity);
+        return true;
     }
 }

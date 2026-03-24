@@ -189,6 +189,93 @@ class ScrapeEntityJobTest extends TestCase
         $this->assertSame(ScrapingStatus::FAILED, $latestSnapshot->scraping_status);
     }
 
+    public function test_mark_entity_failed_clears_next_scrape_at_when_attempts_reaches_job_max(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $nextScrape = Carbon::now()->addHours(6);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/page',
+            'url_hash' => sha1('https://example.com/page'),
+            'scraping_status' => ScrapingStatus::PROCESSING,
+            'attempts' => ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS - 1,
+            'next_scrape_at' => $nextScrape,
+        ]);
+
+        $job = new class($entity) extends ScrapeEntityJob {
+            public function exposeMarkEntityFailed(Entity $entity): void
+            {
+                $this->markEntityFailed($entity);
+            }
+        };
+        $job->exposeMarkEntityFailed($entity);
+
+        $entity->refresh();
+        $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
+        $this->assertSame(ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS, $entity->attempts);
+        $this->assertNull($entity->next_scrape_at);
+    }
+
+    public function test_mark_entity_failed_does_not_clear_next_scrape_at_when_below_job_max(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $nextScrape = Carbon::now()->addHours(6);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/page',
+            'url_hash' => sha1('https://example.com/page'),
+            'scraping_status' => ScrapingStatus::PROCESSING,
+            'attempts' => ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS - 2,
+            'next_scrape_at' => $nextScrape,
+        ]);
+
+        $job = new class($entity) extends ScrapeEntityJob {
+            public function exposeMarkEntityFailed(Entity $entity): void
+            {
+                $this->markEntityFailed($entity);
+            }
+        };
+        $job->exposeMarkEntityFailed($entity);
+
+        $entity->refresh();
+        $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
+        $this->assertSame(ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS - 1, $entity->attempts);
+        $this->assertNotNull($entity->next_scrape_at);
+        $this->assertEqualsWithDelta(
+            $nextScrape->getTimestamp(),
+            $entity->next_scrape_at->getTimestamp(),
+            2
+        );
+    }
+
+    public function test_handle_bails_out_when_attempts_already_at_or_above_job_max(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/page',
+            'url_hash' => sha1('https://example.com/page'),
+            'scraping_status' => ScrapingStatus::QUEUED,
+            'attempts' => ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS,
+            'next_scrape_at' => Carbon::now()->addHour(),
+            'snapshots_count' => 0,
+        ]);
+
+        $job = new class($entity) extends ScrapeEntityJob {
+            protected function fetchUrl(string $url): ResponseInterface
+            {
+                return new Response(200, [], '<html><body>noop</body></html>');
+            }
+        };
+        $job->handle();
+
+        $this->assertDatabaseCount('snapshots', 0);
+        $entity->refresh();
+        $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
+        $this->assertSame(ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS + 1, $entity->attempts);
+        $this->assertNull($entity->next_scrape_at);
+    }
+
     public function test_success_creates_snapshot_with_correct_data_and_updates_entity(): void
     {
         $source = Source::create(['base_url' => 'https://example.com']);

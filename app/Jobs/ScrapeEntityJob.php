@@ -65,6 +65,8 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
      */
     public bool $deleteWhenMissingModels = true;
 
+    public const int MAX_SCRAPE_ATTEMPTS = 5;
+
     /**
      * Maximum number of times to attempt the job.
      */
@@ -104,6 +106,13 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     public function handle(): void
     {
         $entity = $this->entity;
+
+        // Reject if 2 many attempts
+        if ($entity->attempts >= static::MAX_SCRAPE_ATTEMPTS) {
+            $this->markEntityFailed($entity);
+            return;
+        }
+
         $stage = $this->stage;
 
         // Manual job unique lock
@@ -130,6 +139,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
                 // Mark scraping status as PROCESSING
                 $entity->scraping_status = ScrapingStatus::PROCESSING;
+                $entity->fetched_at = Carbon::now();
                 DB::transaction(fn () => $entity->save());
 
                 // Continue to prepare the data
@@ -264,6 +274,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     protected function markEntitySuccess(Entity $entity): void
     {
         $entity->scraping_status = ScrapingStatus::SUCCESS;
+        $entity->attempts = 0;
         DB::transaction(fn () => $entity->save());
     }
 
@@ -271,6 +282,12 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     {
         $entity->scraping_status = ScrapingStatus::FAILED;
         $entity->attempts = $entity->attempts + 1;
+
+        // Stop scraping if too many attempts
+        if ($entity->attempts >= static::MAX_SCRAPE_ATTEMPTS) {
+            $entity->next_scrape_at = null;
+        }
+
         DB::transaction(fn () => $entity->save());
     }
 

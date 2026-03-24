@@ -7,13 +7,14 @@ use App\Enums\ScrapingStatus;
 use App\Models\Entity;
 use App\Models\Source;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 
-class ScrapeSourcesJob implements ShouldQueue
+class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable;
     use InteractsWithQueue;
@@ -37,7 +38,7 @@ class ScrapeSourcesJob implements ShouldQueue
     }
 
     /**
-     * Execute the job: process sources in chunks (order by updated_at desc),
+     * Execute the job: process sources in chunks (order by updated_at),
      * with a timeout so we stop after max seconds. For each source with no planned
      * scrape entity, ensure an entity exists for its base_url and dispatch ScrapeEntityJob.
      */
@@ -48,7 +49,7 @@ class ScrapeSourcesJob implements ShouldQueue
         $chunkSize = config('queue.scrape_sources_chunk_size');
 
         Source::query()
-            ->orderByDesc('updated_at')
+            ->orderBy('updated_at')
             ->chunk($chunkSize, function ($sources) use ($startTime, $maxSeconds): bool {
                 if (time() - $startTime >= $maxSeconds) {
                     return false;

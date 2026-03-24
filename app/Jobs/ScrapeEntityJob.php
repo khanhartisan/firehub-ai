@@ -117,7 +117,8 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         // Manual job unique lock
         $manualLockKey = sha1(static::class.'@manual-lock@'.$this->uniqueId());
-        if (Cache::has($manualLockKey)) {
+        $lock = Cache::lock($manualLockKey, $this->uniqueFor);
+        if (!$lock->get()) {
             return;
         }
 
@@ -143,7 +144,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 DB::transaction(fn () => $entity->save());
 
                 // Continue to prepare the data
-                Cache::forget($manualLockKey);
+                $lock->release();
                 ScrapeEntityJobDispatcher::dispatch(
                     $entity,
                     ScrapeEntityJobStage::DATA_PREPARING
@@ -162,7 +163,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
             // Continue to parse data if text
             if (in_array($entity->currentSnapshot?->file_extension, ['html', 'txt'])) {
-                Cache::forget($manualLockKey);
+                $lock->release();
                 ScrapeEntityJobDispatcher::dispatch(
                     $entity,
                     ScrapeEntityJobStage::DATA_PARSING
@@ -171,7 +172,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
 
             // Continue to enrichment
-            Cache::forget($manualLockKey);
+            $lock->release();
             ScrapeEntityJobDispatcher::dispatch(
                 $entity,
                 ScrapeEntityJobStage::ENRICHMENT
@@ -188,7 +189,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
 
             // Continue to enrichment
-            Cache::forget($manualLockKey);
+            $lock->release();
             ScrapeEntityJobDispatcher::dispatch(
                 $entity,
                 ScrapeEntityJobStage::ENRICHMENT
@@ -205,7 +206,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
 
             // Continue to vertical resolution
-            Cache::forget($manualLockKey);
+            $lock->release();
             ScrapeEntityJobDispatcher::dispatch(
                 $entity,
                 ScrapeEntityJobStage::VERTICAL_RESOLUTION
@@ -222,7 +223,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
 
             // Continue to policy evaluation
-            Cache::forget($manualLockKey);
+            $lock->release();
             ScrapeEntityJobDispatcher::dispatch(
                 $entity,
                 ScrapeEntityJobStage::POLICY_EVALUATION
@@ -239,7 +240,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
 
             // Continue to finishing
-            Cache::forget($manualLockKey);
+            $lock->release();
             ScrapeEntityJobDispatcher::dispatch(
                 $entity,
                 ScrapeEntityJobStage::FINISHING
@@ -256,7 +257,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
 
             // Continue to expand
-            Cache::forget($manualLockKey);
+            $lock->release();
             ScrapeEntityJobDispatcher::dispatch(
                 $entity,
                 ScrapeEntityJobStage::EXPANDING
@@ -268,7 +269,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $this->expand($entity);
         }
 
-        Cache::forget($manualLockKey);
+        $lock->release();
     }
 
     protected function markEntitySuccess(Entity $entity): void

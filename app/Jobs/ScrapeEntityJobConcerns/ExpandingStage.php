@@ -6,6 +6,7 @@ use App\Contracts\PageParser\PageData;
 use App\Enums\EntityType;
 use App\Models\Entity;
 use App\Models\Source;
+use App\Utils\EntityUrlNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,13 +19,13 @@ trait ExpandingStage
         }
 
         if ($entity->type !== EntityType::PAGE
-            or !$snapshot = $entity->currentSnapshot
+            or ! $snapshot = $entity->currentSnapshot
         ) {
             return;
         }
 
         $pageDataFilePath = $this->getFilePathForPageData($snapshot);
-        if (!$pageDataJson = Storage::get($pageDataFilePath)) {
+        if (! $pageDataJson = Storage::get($pageDataFilePath)) {
             return;
         }
 
@@ -109,8 +110,8 @@ trait ExpandingStage
 
     protected function normalizeLinkedUrl(string $url): string
     {
-        $url = trim($url);
-        if ($url === '' || ! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {
+        $url = EntityUrlNormalizer::normalize($url);
+        if ($url === '' || ! preg_match('#\Ahttps?://#i', $url)) {
             return '';
         }
 

@@ -47,7 +47,7 @@ class MasterTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const string BASE_URL = 'https://master-flow.example.test';
+    private const string BASE_URL = 'https://master-flow.example.test/';
 
     protected function setUp(): void
     {

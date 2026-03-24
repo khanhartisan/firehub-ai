@@ -12,6 +12,10 @@ trait DataParsingStage
 {
     protected function parseData(Entity $entity): bool
     {
+        if (env('APP_DEBUG')) {
+            dump('Parse data, entity '.$entity->id);
+        }
+
         if (!$snapshot = $entity->currentSnapshot
             or !in_array($snapshot->file_extension, ['html', 'txt'])
         ) {

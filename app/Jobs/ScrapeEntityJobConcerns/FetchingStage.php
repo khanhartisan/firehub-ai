@@ -20,6 +20,10 @@ trait FetchingStage
 {
     protected function handleFetchingStage(Entity $entity): ?Snapshot
     {
+        if (env('APP_DEBUG')) {
+            dump('Fetching, entity '.$entity->id);
+        }
+
         // Check the current scraping status
         if ($entity->scraping_status !== ScrapingStatus::QUEUED) {
             Log::debug("ScrapeEntityJob: Entity [{$entity->id}] status is {$entity->scraping_status->name}, skipping");

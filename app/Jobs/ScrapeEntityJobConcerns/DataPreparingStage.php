@@ -13,6 +13,10 @@ trait DataPreparingStage
 {
     protected function prepareData(Entity $entity): bool
     {
+        if (env('APP_DEBUG')) {
+            dump('Prepare data, entity '.$entity->id);
+        }
+
         if (!$snapshot = $entity->currentSnapshot) {
             return false;
         }

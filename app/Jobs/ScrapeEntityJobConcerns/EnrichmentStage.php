@@ -15,6 +15,10 @@ trait EnrichmentStage
 {
     protected function enrich(Entity $entity): bool
     {
+        if (env('APP_DEBUG')) {
+            dump('Enrichment, entity '.$entity->id);
+        }
+
         if (!$snapshot = $entity->currentSnapshot) {
             return false;
         }

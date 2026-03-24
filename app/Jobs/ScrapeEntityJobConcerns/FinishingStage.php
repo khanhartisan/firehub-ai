@@ -11,6 +11,10 @@ trait FinishingStage
 {
     protected function finish(Entity $entity): bool
     {
+        if (env('APP_DEBUG')) {
+            dump('Finishing, entity '.$entity->id);
+        }
+
         $entity->scraping_status = ScrapingStatus::SUCCESS;
         $entity->attempts = 0;
         $entity->fetched_at = Carbon::now();

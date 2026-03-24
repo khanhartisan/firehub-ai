@@ -13,6 +13,10 @@ trait ExpandingStage
 {
     protected function expand(Entity $entity): void
     {
+        if (env('APP_DEBUG')) {
+            dump('Expanding, entity '.$entity->id);
+        }
+
         if ($entity->type !== EntityType::PAGE
             or !$snapshot = $entity->currentSnapshot
         ) {

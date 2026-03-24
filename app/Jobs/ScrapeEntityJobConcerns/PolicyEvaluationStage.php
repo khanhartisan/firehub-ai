@@ -11,6 +11,10 @@ trait PolicyEvaluationStage
 {
     protected function evaluatePolicy(Entity $entity): bool
     {
+        if (env('APP_DEBUG')) {
+            dump('Evaluate policy, entity '.$entity->id);
+        }
+
         $policyResult = ScrapePolicyEngine::evaluate($entity);
 
         $saved = null;

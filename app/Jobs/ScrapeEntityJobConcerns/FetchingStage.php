@@ -293,6 +293,8 @@ trait FetchingStage
         $entity->increment('attempts');
         $entity->refresh();
 
+        $status = ($entity->attempts >= $maxAttempts) ? ScrapingStatus::FAILED : $status;
+
         DB::transaction(function () use ($entity, $status, $fetchDurationMs, $errorLogs, $maxAttempts) {
             $version = $entity->version_index + 1;
             // Always create a snapshot with the failure status so it can be used as history for evaluating entities.

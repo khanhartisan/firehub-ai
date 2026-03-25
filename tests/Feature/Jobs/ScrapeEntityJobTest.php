@@ -198,7 +198,7 @@ class ScrapeEntityJobTest extends TestCase
             'url' => 'https://example.com/page',
             'url_hash' => sha1('https://example.com/page'),
             'scraping_status' => ScrapingStatus::PROCESSING,
-            'attempts' => ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS - 1,
+            'attempts' => config('queue.max_scrape_attempts') - 1,
             'next_scrape_at' => $nextScrape,
         ]);
 
@@ -212,7 +212,7 @@ class ScrapeEntityJobTest extends TestCase
 
         $entity->refresh();
         $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
-        $this->assertSame(ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS, $entity->attempts);
+        $this->assertSame(config('queue.max_scrape_attempts'), $entity->attempts);
         $this->assertNull($entity->next_scrape_at);
     }
 
@@ -225,7 +225,7 @@ class ScrapeEntityJobTest extends TestCase
             'url' => 'https://example.com/page',
             'url_hash' => sha1('https://example.com/page'),
             'scraping_status' => ScrapingStatus::PROCESSING,
-            'attempts' => ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS - 2,
+            'attempts' => config('queue.max_scrape_attempts') - 2,
             'next_scrape_at' => $nextScrape,
         ]);
 
@@ -239,7 +239,7 @@ class ScrapeEntityJobTest extends TestCase
 
         $entity->refresh();
         $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
-        $this->assertSame(ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS - 1, $entity->attempts);
+        $this->assertSame(config('queue.max_scrape_attempts') - 1, $entity->attempts);
         $this->assertNotNull($entity->next_scrape_at);
         $this->assertEqualsWithDelta(
             $nextScrape->getTimestamp(),
@@ -256,7 +256,7 @@ class ScrapeEntityJobTest extends TestCase
             'url' => 'https://example.com/page',
             'url_hash' => sha1('https://example.com/page'),
             'scraping_status' => ScrapingStatus::QUEUED,
-            'attempts' => ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS,
+            'attempts' => config('queue.max_scrape_attempts'),
             'next_scrape_at' => Carbon::now()->addHour(),
             'snapshots_count' => 0,
         ]);
@@ -272,7 +272,7 @@ class ScrapeEntityJobTest extends TestCase
         $this->assertDatabaseCount('snapshots', 0);
         $entity->refresh();
         $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
-        $this->assertSame(ScrapeEntityJob::MAX_SCRAPE_ATTEMPTS + 1, $entity->attempts);
+        $this->assertSame(config('queue.max_scrape_attempts') + 1, $entity->attempts);
         $this->assertNull($entity->next_scrape_at);
     }
 

@@ -65,8 +65,6 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
      */
     public bool $deleteWhenMissingModels = true;
 
-    public const int MAX_SCRAPE_ATTEMPTS = 5;
-
     /**
      * Maximum number of times to attempt the job.
      */
@@ -108,7 +106,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $entity = $this->entity;
 
         // Reject if 2 many attempts
-        if ($entity->attempts >= static::MAX_SCRAPE_ATTEMPTS) {
+        if ($entity->attempts >= config('queue.max_scrape_attempts')) {
             $this->markEntityFailed($entity);
             return;
         }
@@ -285,7 +283,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $entity->attempts = $entity->attempts + 1;
 
         // Stop scraping if too many attempts
-        if ($entity->attempts >= static::MAX_SCRAPE_ATTEMPTS) {
+        if ($entity->attempts >= config('queue.max_scrape_attempts')) {
             $entity->next_scrape_at = null;
         } else {
             $entity->next_scrape_at = ScrapePolicyEngine::calculateInitialScrapingTime($entity);

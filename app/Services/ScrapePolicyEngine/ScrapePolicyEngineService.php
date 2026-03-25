@@ -4,11 +4,24 @@ namespace App\Services\ScrapePolicyEngine;
 
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
 use App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine as ScrapePolicyEngineContract;
+use App\Enums\ScrapingStatus;
 use App\Models\Entity;
+use App\Models\Snapshot;
+use App\Models\Source;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 
 abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
 {
+    /** @var list<ScrapingStatus> */
+    protected const IN_FLIGHT_STATUSES = [
+        ScrapingStatus::QUEUED,
+        ScrapingStatus::FETCHING,
+        ScrapingStatus::PROCESSING,
+    ];
+
+    private const int MAX_INITIAL_SCHEDULE_ITERATIONS = 10;
+
     protected array $config;
 
     public function __construct(array $config = [])
@@ -16,10 +29,133 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
         $this->config = $config;
     }
 
+    public function calculateInitialScrapingTime(Entity $entity): CarbonInterface
+    {
+        if ($entity->next_scrape_at) {
+            return $entity->next_scrape_at;
+        }
+
+        if (! $source = $entity->source) {
+            return now();
+        }
+
+        if (! $this->sourceHasAnyBudget($source)) {
+            return now();
+        }
+
+        $now = Carbon::now();
+        $excludeEntityId = $entity->exists ? (string) $entity->getKey() : null;
+        $candidate = $now->copy();
+
+        for ($i = 0; $i < self::MAX_INITIAL_SCHEDULE_ITERATIONS; $i++) {
+            $nextStarts = [];
+
+            if ($source->daily_budget > 0) {
+                $windowStart = $candidate->copy()->startOfDay();
+                $windowEnd = $windowStart->copy()->addDay();
+                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludeEntityId) >= $source->daily_budget) {
+                    $nextStarts[] = $windowEnd;
+                }
+            }
+
+            if ($source->weekly_budget > 0) {
+                $windowStart = $candidate->copy()->startOfWeek(Carbon::MONDAY);
+                $windowEnd = $windowStart->copy()->addWeek();
+                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludeEntityId) >= $source->weekly_budget) {
+                    $nextStarts[] = $windowEnd;
+                }
+            }
+
+            if ($source->monthly_budget > 0) {
+                $windowStart = $candidate->copy()->startOfMonth();
+                $windowEnd = $windowStart->copy()->addMonth();
+                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludeEntityId) >= $source->monthly_budget) {
+                    $nextStarts[] = $windowEnd;
+                }
+            }
+
+            if ($nextStarts === []) {
+                return $candidate->lt($now) ? $now : $candidate;
+            }
+
+            $candidate = $nextStarts[0];
+            foreach (array_slice($nextStarts, 1) as $nextStart) {
+                if ($nextStart->gt($candidate)) {
+                    $candidate = $nextStart;
+                }
+            }
+        }
+
+        return $candidate;
+    }
+
+    protected function sourceHasAnyBudget(Source $source): bool
+    {
+        return $source->daily_budget > 0
+            || $source->weekly_budget > 0
+            || $source->monthly_budget > 0;
+    }
+
+    /**
+     * Usage = snapshots created in [start, end) for this source’s entities (processed scrapes)
+     * plus in-flight entities (queued / fetching / processing) when “now” falls in that window.
+     *
+     * @param  CarbonInterface  $windowEndExclusive  end of the half-open window
+     */
+    protected function budgetUsageForSourceInWindow(
+        Source $source,
+        CarbonInterface $windowStart,
+        CarbonInterface $windowEndExclusive,
+        ?string $excludeEntityId,
+    ): int {
+        $snapshots = $this->countSnapshotsForSourceBetween($source, $windowStart, $windowEndExclusive);
+
+        $inFlight = 0;
+        if ($this->momentInHalfOpenRange(Carbon::now(), $windowStart, $windowEndExclusive)) {
+            $inFlight = $this->countInFlightEntitiesForSource($source, $excludeEntityId);
+        }
+
+        return $snapshots + $inFlight;
+    }
+
+    protected function momentInHalfOpenRange(
+        CarbonInterface $moment,
+        CarbonInterface $start,
+        CarbonInterface $endExclusive,
+    ): bool {
+        return $moment->gte($start) && $moment->lt($endExclusive);
+    }
+
+    protected function countSnapshotsForSourceBetween(
+        Source $source,
+        CarbonInterface $start,
+        CarbonInterface $endExclusive,
+    ): int {
+        return Snapshot::query()
+            ->join('entities', 'snapshots.entity_id', '=', 'entities.id')
+            ->where('entities.source_id', $source->id)
+            ->where('snapshots.created_at', '>=', $start)
+            ->where('snapshots.created_at', '<', $endExclusive)
+            ->count();
+    }
+
+    protected function countInFlightEntitiesForSource(Source $source, ?string $excludeEntityId): int
+    {
+        $query = Entity::query()
+            ->where('source_id', $source->id)
+            ->whereIn('scraping_status', self::IN_FLIGHT_STATUSES);
+
+        if ($excludeEntityId !== null) {
+            $query->where('id', '!=', $excludeEntityId);
+        }
+
+        return $query->count();
+    }
+
     /**
      * Evaluate the scraping policy for an entity.
      */
-    public function evaluate(Entity $entity, ?Carbon $baseTime = null): PolicyResult
+    public function evaluate(Entity $entity, ?CarbonInterface $baseTime = null): PolicyResult
     {
         $baseTime = $baseTime ?? Carbon::now();
 

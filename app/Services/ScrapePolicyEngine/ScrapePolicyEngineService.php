@@ -97,59 +97,31 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
     }
 
     /**
-     * Usage = snapshots created in [start, end) for this source’s entities (processed scrapes)
-     * plus in-flight entities (queued / fetching / processing) when “now” falls in that window.
+     * Usage = entities with a processed scrape timestamp in the window plus entities with a
+     * scheduled next scrape in the window (each counted once per query; an entity may contribute
+     * to both if both timestamps fall in range).
      *
-     * @param  CarbonInterface  $windowEndExclusive  end of the half-open window
+     * @param  CarbonInterface  $windowEndExclusive  inclusive upper bound (see callers)
      */
     protected function budgetUsageForSourceInWindow(
         Source $source,
         CarbonInterface $windowStart,
         CarbonInterface $windowEndExclusive,
-        ?string $excludeEntityId,
+        ?string $excludeEntityId = null,
     ): int {
-        $snapshots = $this->countSnapshotsForSourceBetween($source, $windowStart, $windowEndExclusive);
+        $scraped = $source
+            ->entities()
+            ->where('scraped_at', '>=', $windowStart)
+            ->where('scraped_at', '<=', $windowEndExclusive)
+            ->when($excludeEntityId !== null, fn ($q) => $q->where('id', '!=', $excludeEntityId));
 
-        $inFlight = 0;
-        if ($this->momentInHalfOpenRange(Carbon::now(), $windowStart, $windowEndExclusive)) {
-            $inFlight = $this->countInFlightEntitiesForSource($source, $excludeEntityId);
-        }
+        $scheduled = $source
+            ->entities()
+            ->where('next_scrape_at', '>=', $windowStart)
+            ->where('next_scrape_at', '<=', $windowEndExclusive)
+            ->when($excludeEntityId !== null, fn ($q) => $q->where('id', '!=', $excludeEntityId));
 
-        return $snapshots + $inFlight;
-    }
-
-    protected function momentInHalfOpenRange(
-        CarbonInterface $moment,
-        CarbonInterface $start,
-        CarbonInterface $endExclusive,
-    ): bool {
-        return $moment->gte($start) && $moment->lt($endExclusive);
-    }
-
-    protected function countSnapshotsForSourceBetween(
-        Source $source,
-        CarbonInterface $start,
-        CarbonInterface $endExclusive,
-    ): int {
-        return Snapshot::query()
-            ->join('entities', 'snapshots.entity_id', '=', 'entities.id')
-            ->where('entities.source_id', $source->id)
-            ->where('snapshots.created_at', '>=', $start)
-            ->where('snapshots.created_at', '<', $endExclusive)
-            ->count();
-    }
-
-    protected function countInFlightEntitiesForSource(Source $source, ?string $excludeEntityId): int
-    {
-        $query = Entity::query()
-            ->where('source_id', $source->id)
-            ->whereIn('scraping_status', self::IN_FLIGHT_STATUSES);
-
-        if ($excludeEntityId !== null) {
-            $query->where('id', '!=', $excludeEntityId);
-        }
-
-        return $query->count();
+        return $scraped->count() + $scheduled->count();
     }
 
     /**

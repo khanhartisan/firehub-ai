@@ -59,6 +59,7 @@ return new class extends Migration
             $table->index(['scraping_status', 'next_scrape_at']);
             $table->index(['source_id', 'type', 'source_published_at'], 'source_index');
             $table->index(['source_id', 'next_scrape_at']);
+            $table->index(['source_id', 'scraped_at']);
             $table->index(['url_hash', 'source_id']);
             $table->index(['canonical_entity_id', 'canonical_number']);
 

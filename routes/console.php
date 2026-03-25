@@ -43,6 +43,8 @@ Schedule::job(new ScrapeSourcesJob)->everyMinute();
 */
 Schedule::job(new ScheduleEmbeddingJob(perModelLimit: 100))->everyMinute();
 
+Schedule::job(new \App\Jobs\SetInitialScrapingTimeJob())->everyMinute();
+
 // Cascading jobs
 Schedule::job(new CascadeDelete)->everyMinute();
 Schedule::job(new CascadeRestore)->everyMinute();

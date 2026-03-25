@@ -138,7 +138,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
                 // Mark scraping status as PROCESSING
                 $entity->scraping_status = ScrapingStatus::PROCESSING;
-                $entity->fetched_at = Carbon::now();
+                $entity->scraped_at = Carbon::now();
                 DB::transaction(fn () => $entity->save());
 
                 // Continue to prepare the data

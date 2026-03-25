@@ -45,7 +45,7 @@ return new class extends Migration
             $table->timestamps();
             $table->dateTime('source_published_at')->nullable();
             $table->dateTime('source_updated_at')->nullable();
-            $table->dateTime('fetched_at')->nullable();
+            $table->dateTime('scraped_at')->nullable();
             $table->unsignedSmallInteger('attempts')->default(0);
 
             $table->json('policy_result')->nullable();

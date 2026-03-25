@@ -68,7 +68,7 @@ class EntityResource extends Resource
                 TextColumn::make('scraping_status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state?->getLabel() ?? (string) $state),
-                TextColumn::make('fetched_at')->dateTime()->sortable(),
+                TextColumn::make('scraped_at')->dateTime()->sortable(),
             ])
             ->filters([
                 //

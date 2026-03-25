@@ -44,7 +44,7 @@ class Entity extends EmbeddableModel implements ShouldCascade
         'temporal' => Temporal::class,
         'source_published_at' => 'datetime',
         'source_updated_at' => 'datetime',
-        'fetched_at' => 'datetime',
+        'scraped_at' => 'datetime',
         'next_scrape_at' => 'datetime',
         'policy_result' => 'array',
         'is_embedded' => 'boolean',

@@ -106,7 +106,7 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
         $avgChangePercentage = $recentSnapshots->whereNotNull('content_change_percentage')
             ->avg('content_change_percentage') ?? 0.0;
         $avgCost = $recentSnapshots->whereNotNull('cost')->avg('cost') ?? 0.0;
-        $lastScrapeAt = $entity->fetched_at;
+        $lastScrapeAt = $entity->scraped_at;
         $daysSinceLastScrape = $lastScrapeAt ? $baseTime->diffInDays($lastScrapeAt) : null;
 
         // Build entity context

@@ -11,6 +11,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -48,6 +49,24 @@ class SourceResource extends Resource
                     ->maxValue(1)
                     ->step(0.01)
                     ->default(0.5),
+
+                Section::make()->schema([
+                    TextInput::make('daily_budget')
+                        ->numeric()
+                        ->minValue(1)
+                        ->step(1)
+                        ->default(10),
+                    TextInput::make('weekly_budget')
+                        ->numeric()
+                        ->minValue(1)
+                        ->step(1)
+                        ->default(100),
+                    TextInput::make('monthly_budget')
+                        ->numeric()
+                        ->minValue(1)
+                        ->step(1)
+                        ->default(1000),
+                ])->columnSpanFull()->columns(3),
             ]);
     }
 

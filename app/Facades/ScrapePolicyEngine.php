@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Facade;
 /**
  * @method static \App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine driver(string|null $driver = null)
  * @method static \App\Contracts\ScrapePolicyEngine\PolicyResult evaluate(Entity $entity, ?CarbonInterface $baseTime = null)
- * @method CarbonInterface calculateInitialScrapingTime(Entity $entity)
+ * @method static CarbonInterface calculateInitialScrapingTime(Entity $entity)
  *
  * @see \App\Services\ScrapePolicyEngine\ScrapePolicyEngineManager
  */

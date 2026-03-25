@@ -287,6 +287,8 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // Stop scraping if too many attempts
         if ($entity->attempts >= static::MAX_SCRAPE_ATTEMPTS) {
             $entity->next_scrape_at = null;
+        } else {
+            $entity->next_scrape_at = ScrapePolicyEngine::calculateInitialScrapingTime($entity);
         }
 
         DB::transaction(fn () => $entity->save());

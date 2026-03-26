@@ -120,6 +120,16 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
+        // Check budget
+        // If budget is exceeded, push the job to the next window
+        $initialScrapingTime = ScrapePolicyEngine::calculateInitialScrapingTime($entity);
+        if ($initialScrapingTime->gt(now())) {
+            $entity->scraping_status = ScrapingStatus::PENDING;
+            $entity->next_scrape_at = $initialScrapingTime;
+            DB::transaction(fn () => $entity->save());
+            return;
+        }
+
         // Fetching stage
         if ($stage === ScrapeEntityJobStage::FETCHING) {
             if ($snapshot = $this->handleFetchingStage($entity)) {

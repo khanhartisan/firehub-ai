@@ -2,11 +2,41 @@
 
 namespace App\Utils;
 
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriResolver;
+
 /**
  * Canonical HTTP(S) form for entity URLs so url_hash dedupes equivalent addresses.
  */
 final class EntityUrlNormalizer
 {
+    /**
+     * Resolve a relative or absolute reference against a base URL (RFC 3986), then {@see normalize}.
+     *
+     * If the reference is already an http(s) URL, it is normalized directly.
+     */
+    public static function toFullUrl(string $baseUrl, string $relativePath): string
+    {
+        $baseUrl = trim($baseUrl);
+        $relativePath = trim($relativePath);
+
+        if ($relativePath === '') {
+            return $baseUrl !== '' ? self::normalize($baseUrl) : '';
+        }
+
+        if (preg_match('#\Ahttps?://#i', $relativePath)) {
+            return self::normalize($relativePath);
+        }
+
+        if ($baseUrl === '') {
+            return '';
+        }
+
+        $resolved = (string) UriResolver::resolve(new Uri($baseUrl), new Uri($relativePath));
+
+        return self::normalize($resolved);
+    }
+
     public static function normalize(string $url): string
     {
         $url = trim($url);

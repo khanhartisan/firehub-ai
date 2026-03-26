@@ -29,4 +29,25 @@ class EntityUrlNormalizerTest extends TestCase
     {
         $this->assertSame($expected, EntityUrlNormalizer::normalize($input));
     }
+
+    public static function toFullUrlProvider(): array
+    {
+        return [
+            'empty relative' => ['https://example.com/foo', '', 'https://example.com/foo'],
+            'empty base empty relative' => ['', '', ''],
+            'empty base with relative' => ['', '/x', ''],
+            'absolute path' => ['https://example.com/a/b', '/c', 'https://example.com/c'],
+            'relative segment' => ['https://example.com/a/b', 'c', 'https://example.com/a/c'],
+            'parent segments' => ['https://example.com/a/b/c', '../d', 'https://example.com/a/d'],
+            'already absolute' => ['https://example.com/x', 'https://other.test/z', 'https://other.test/z'],
+            'protocol-relative' => ['https://example.com/', '//other.test/x', 'https://other.test/x'],
+            'query-only reference' => ['https://example.com/a?x=1', '?y=2', 'https://example.com/a?y=2'],
+        ];
+    }
+
+    #[DataProvider('toFullUrlProvider')]
+    public function test_to_full_url(string $base, string $relative, string $expected): void
+    {
+        $this->assertSame($expected, EntityUrlNormalizer::toFullUrl($base, $relative));
+    }
 }

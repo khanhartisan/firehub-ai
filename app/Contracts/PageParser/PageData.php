@@ -4,6 +4,7 @@ namespace App\Contracts\PageParser;
 
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
+use App\Utils\EntityUrlNormalizer;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
@@ -125,6 +126,7 @@ final class PageData implements Serializable
     public function setCanonicalUrl(string $canonicalUrl): static
     {
         $this->canonicalUrl = $canonicalUrl;
+        $this->setLinkedPageUrls($this->normalizeUrls($this->getLinkedPageUrls()));
         return $this;
     }
 
@@ -148,12 +150,35 @@ final class PageData implements Serializable
     }
 
     /**
-     * @param array<int, string> $linkedPageUrls
+     * @param  array<int, string>  $linkedPageUrls
      */
     public function setLinkedPageUrls(array $linkedPageUrls): static
     {
-        $this->linkedPageUrls = $linkedPageUrls;
+        $this->linkedPageUrls = $this->normalizeUrls($linkedPageUrls);
         return $this;
+    }
+
+    /**
+     * @param  array<int, string>  $urls
+     * @return array<int, string>
+     */
+    protected function normalizeUrls(array $urls): array
+    {
+        $pageUrl = $this->getCanonicalUrl();
+        if ($pageUrl === '') {
+            return array_values($urls);
+        }
+
+        $out = [];
+        foreach ($urls as $url) {
+            $url = is_string($url) ? trim($url) : '';
+            if ($url === '') {
+                continue;
+            }
+            $out[] = EntityUrlNormalizer::toFullUrl($pageUrl, $url);
+        }
+
+        return array_values(array_unique($out));
     }
 
     /**
@@ -181,11 +206,10 @@ final class PageData implements Serializable
      * Create an instance from an array representation.
      *
      * @param  array<string, mixed>  $data
-     * @return static
      */
     public static function fromArray(array $data): static
     {
-        $pageData = new static();
+        $pageData = new static;
 
         if (isset($data['title'])) {
             $pageData->setTitle($data['title']);

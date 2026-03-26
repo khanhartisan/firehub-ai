@@ -29,7 +29,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('scraping_status')->default(\App\Enums\ScrapingStatus::PENDING->value);
 
             $table->text('url');
-            $table->char('url_hash', 40); // use sha1
+            $table->char('url_hash', 40)->unique(); // use sha1
 
             $table->string('description', 1024)->nullable();
 

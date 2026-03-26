@@ -15,7 +15,7 @@ trait VerticalResolutionStage
     protected function verticalResolve(Entity $entity): bool
     {
         if (env('APP_DEBUG')) {
-            dump('Parse data, entity '.$entity->id);
+            dump('Resolving vertical data, entity '.$entity->id);
         }
 
         if (!$snapshot = $entity->currentSnapshot) {

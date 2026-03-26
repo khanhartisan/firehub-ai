@@ -31,6 +31,7 @@ use Carbon\Carbon;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -84,6 +85,8 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
      */
     public Entity $entity;
 
+    protected Lock $manualLock;
+
     /**
      * Create a new job instance.
      */
@@ -105,28 +108,36 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     {
         $entity = $this->entity;
 
+        $stage = $this->stage;
+
+        // Manual job unique lock
+        if (!$lock = $this->getManualLock() or !$lock->get()) {
+            if (env('APP_DEBUG')) {
+                dump('Could not acquire lock for '.$this->uniqueId());
+            }
+            return;
+        }
+
         // Reject if 2 many attempts
         if ($entity->attempts >= config('queue.max_scrape_attempts')) {
             $this->markEntityFailed($entity);
             return;
         }
 
-        $stage = $this->stage;
-
-        // Manual job unique lock
-        $manualLockKey = sha1(static::class.'@manual-lock@'.$this->uniqueId());
-        $lock = Cache::lock($manualLockKey, $this->uniqueFor);
-        if (!$lock->get()) {
-            return;
-        }
-
         // Check budget
         // If budget is exceeded, push the job to the next window
-        $initialScrapingTime = ScrapePolicyEngine::calculateInitialScrapingTime($entity);
-        if ($initialScrapingTime->gt(now())) {
+        if ($initialScrapingTime = ScrapePolicyEngine::calculateInitialScrapingTime($entity)
+            and $initialScrapingTime->gt(now())
+        ) {
             $entity->scraping_status = ScrapingStatus::PENDING;
             $entity->next_scrape_at = $initialScrapingTime;
             DB::transaction(fn () => $entity->save());
+            $lock->release();
+
+            if (env('APP_DEBUG')) {
+                dump('Budget exceeded. Pushed to '.$initialScrapingTime->diffForHumans());
+            }
+
             return;
         }
 
@@ -247,23 +258,6 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 return;
             }
 
-            // Continue to finishing
-            $lock->release();
-            ScrapeEntityJobDispatcher::dispatch(
-                $entity,
-                ScrapeEntityJobStage::FINISHING
-            );
-        }
-
-        // Finishing
-        elseif ($stage === ScrapeEntityJobStage::FINISHING) {
-
-            // Failed to finish
-            if (!$this->finish($entity)) {
-                $this->markEntityFailed($entity);
-                return;
-            }
-
             // Continue to expand
             $lock->release();
             ScrapeEntityJobDispatcher::dispatch(
@@ -274,7 +268,27 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         // Expanding
         elseif ($stage === ScrapeEntityJobStage::EXPANDING) {
-            $this->expand($entity);
+            try {
+                $this->expand($entity);
+            } finally {
+
+                // Continue to finish
+                $lock->release();
+                ScrapeEntityJobDispatcher::dispatch(
+                    $entity,
+                    ScrapeEntityJobStage::FINISHING
+                );
+            }
+        }
+
+        // Finishing
+        elseif ($stage === ScrapeEntityJobStage::FINISHING) {
+
+            // Failed to finish
+            if (!$this->finish($entity)) {
+                $this->markEntityFailed($entity);
+                return;
+            }
         }
 
         $lock->release();
@@ -285,6 +299,8 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $entity->scraping_status = ScrapingStatus::SUCCESS;
         $entity->attempts = 0;
         DB::transaction(fn () => $entity->save());
+
+        $this->getManualLock()->release();
     }
 
     protected function markEntityFailed(Entity $entity): void
@@ -300,6 +316,12 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         }
 
         DB::transaction(fn () => $entity->save());
+
+        $this->getManualLock()->release();
     }
 
+    protected function getManualLock(): Lock
+    {
+        return $this->manualLock ??= Cache::lock(sha1(static::class.'@manual-lock@'.$this->uniqueId()), $this->uniqueFor);
+    }
 }

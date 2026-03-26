@@ -16,13 +16,9 @@ trait PolicyEvaluationStage
         }
 
         $policyResult = ScrapePolicyEngine::evaluate($entity);
-        $initialScrapingTime = ScrapePolicyEngine::calculateInitialScrapingTime($entity);
 
         $saved = null;
-        DB::transaction(function () use ($entity, $policyResult, $initialScrapingTime, &$saved) {
-            $entity->next_scrape_at = $policyResult->getNextScrapeAt()->gt($initialScrapingTime)
-                ? $policyResult->getNextScrapeAt()
-                : $initialScrapingTime;
+        DB::transaction(function () use ($entity, $policyResult, &$saved) {
             $entity->policy_result = $policyResult->toArray();
             $saved = $entity->save();
         });

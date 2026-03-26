@@ -29,9 +29,9 @@ return [
     |
     */
 
-    'max_default_queue_size' => env('QUEUE_DEFAULT_MAX_SIZE') !== null ? (int) env('QUEUE_DEFAULT_MAX_SIZE') : 10000,
-    'max_scraping_queue_size' => (int) env('QUEUE_SCRAPING_MAX_SIZE', 1000),
-    'max_scheduler_queue_size' => (int) env('QUEUE_SCHEDULER_MAX_SIZE', 100),
+    'max_default_queue_size' => env('QUEUE_DEFAULT_MAX_SIZE') !== null ? (int) env('QUEUE_DEFAULT_MAX_SIZE') : 10,
+    'max_scraping_queue_size' => (int) env('QUEUE_SCRAPING_MAX_SIZE', 10),
+    'max_scheduler_queue_size' => (int) env('QUEUE_SCHEDULER_MAX_SIZE', 10),
 
     /*
     |--------------------------------------------------------------------------

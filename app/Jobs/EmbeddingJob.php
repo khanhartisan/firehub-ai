@@ -45,10 +45,18 @@ class EmbeddingJob implements ShouldQueue, ShouldBeUnique
     public function handle(): void
     {
         $embeddable = $this->embeddable;
+
+        if (env('APP_DEBUG')) {
+            dump('Embedding '.$embeddable->getMorphClass().': '.$embeddable->getKey());
+        }
+
         if (!$embeddable->isEmbeddable()
             or $embeddable->isEmbedded()
             or !$textForEmbedding = $embeddable->getTextForEmbedding()
         ) {
+            if (env('APP_DEBUG')) {
+                dump('--- Skipping. Embeddable: '.($embeddable->isEmbeddable() ? 'true' : 'false').' / Embedded: '.($embeddable->isEmbedded() ? 'true' : 'false').' / Text for embedding: '.($textForEmbedding ?? '(undefined)'));
+            }
             return;
         }
 

@@ -65,12 +65,12 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     {
         $lock = Cache::lock(self::LOCK_KEY, self::LOCK_SECONDS);
 
-        if (! $lock->get()) {
+        if (!$lock->get()) {
             return;
         }
 
         try {
-            if ($this->runScheduler()) {
+            if ($this->runScheduler() and QueueEnum::SCHEDULER->canDispatch()) {
                 static::dispatch($this->limit)->delay(now()->addSecond());
             }
         } finally {

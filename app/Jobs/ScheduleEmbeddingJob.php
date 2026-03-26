@@ -58,9 +58,7 @@ class ScheduleEmbeddingJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
 
         try {
-            $this->runScheduler();
-
-            if (EmbeddingJob::EMBEDDING_QUEUE->canDispatch()) {
+            if ($this->runScheduler() and EmbeddingJob::EMBEDDING_QUEUE->canDispatch()) {
                 static::dispatch($this->perModelLimit)->delay(now()->addSecond());
             }
         } finally {
@@ -68,10 +66,11 @@ class ScheduleEmbeddingJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
     }
 
-    private function runScheduler(): void
+    private function runScheduler(): int
     {
         $morphMap = Relation::morphMap() ?? [];
 
+        $dispatched = 0;
         foreach ($morphMap as $class) {
             if (! is_string($class) || ! class_exists($class)) {
                 continue;
@@ -93,7 +92,7 @@ class ScheduleEmbeddingJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
             // Stop if the queue is full
             if ($slotsAvailable < 1) {
-                return;
+                return $dispatched;
             }
 
             /** @var class-string<EmbeddableModel> $class */
@@ -102,7 +101,11 @@ class ScheduleEmbeddingJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 // Touch it to ensure it'll be pushed to the end of the queue
                 $embeddableModel->touch();
                 dispatch(new EmbeddingJob($embeddableModel));
+
+                $dispatched++;
             }
         }
+
+        return $dispatched;
     }
 }

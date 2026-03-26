@@ -5,6 +5,7 @@ namespace App\Contracts\PageParser;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 
 /**
  * Parsed page data returned by the PageParser (e.g. from scraped HTML).
@@ -25,11 +26,11 @@ final class PageData implements Serializable
     /** Main content as markdown (used for storage and link/media counts). */
     protected string $markdownContent = '';
 
-    protected ?Carbon $publishedAt = null;
+    protected ?CarbonInterface $publishedAt = null;
 
-    protected ?Carbon $updatedAt = null;
+    protected ?CarbonInterface $updatedAt = null;
 
-    protected ?Carbon $fetchedAt = null;
+    protected ?CarbonInterface $fetchedAt = null;
 
     protected string $canonicalUrl = '';
 
@@ -83,34 +84,34 @@ final class PageData implements Serializable
         return $this;
     }
 
-    public function getPublishedAt(): ?Carbon
+    public function getPublishedAt(): ?CarbonInterface
     {
         return $this->publishedAt;
     }
 
-    public function setPublishedAt(?Carbon $publishedAt): static
+    public function setPublishedAt(?CarbonInterface $publishedAt): static
     {
         $this->publishedAt = $publishedAt;
         return $this;
     }
 
-    public function getUpdatedAt(): ?Carbon
+    public function getUpdatedAt(): ?CarbonInterface
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?Carbon $updatedAt): static
+    public function setUpdatedAt(?CarbonInterface $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
         return $this;
     }
 
-    public function getFetchedAt(): ?Carbon
+    public function getFetchedAt(): ?CarbonInterface
     {
         return $this->fetchedAt;
     }
 
-    public function setFetchedAt(?Carbon $fetchedAt): static
+    public function setFetchedAt(?CarbonInterface $fetchedAt): static
     {
         $this->fetchedAt = $fetchedAt;
         return $this;

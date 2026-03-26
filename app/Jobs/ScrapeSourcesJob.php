@@ -87,14 +87,17 @@ class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
             ]);
         }
 
-        if (! QueueEnum::SCRAPING->canDispatch()) {
+        if (($entity->next_scrape_at
+                and $entity->next_scrape_at->gte(now())
+            ) or !QueueEnum::SCRAPING->canDispatch()
+        ) {
             return;
         }
 
         $entity->scraping_status = ScrapingStatus::QUEUED;
         DB::transaction(fn () => $entity->save());
 
-        ScrapeEntityJob::dispatch($entity)->onQueue(QueueEnum::SCRAPING->value);
+        ScrapeEntityJob::dispatch($entity);
     }
 
     /**

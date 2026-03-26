@@ -135,7 +135,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $lock->release();
 
             if (env('APP_DEBUG')) {
-                dump('Budget exceeded. Pushed to '.$initialScrapingTime->diffForHumans());
+                dump('Budget exceeded (Entity '.$entity->id.'). Pushed to '.$initialScrapingTime->diffForHumans());
             }
 
             return;

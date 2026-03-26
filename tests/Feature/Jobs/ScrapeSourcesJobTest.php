@@ -101,7 +101,7 @@ class ScrapeSourcesJobTest extends TestCase
             'url' => 'https://example.com/',
             'url_hash' => sha1('https://example.com/'),
             'scraping_status' => ScrapingStatus::SUCCESS,
-            'next_scrape_at' => now()->addDay(),
+            'next_scrape_at' => now(),
         ]);
 
         $job = new ScrapeSourcesJob;

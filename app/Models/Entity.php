@@ -87,7 +87,11 @@ class Entity extends EmbeddableModel implements ShouldCascade
         }
 
         if ($this->content_type) {
-            $text = 'Content type: '.$this->content_type->name.' ('.ContentType::describe($this->content_type).')'."\n";
+            $text .= 'Content type: '.$this->content_type->name.' ('.ContentType::describe($this->content_type).')'."\n";
+        }
+
+        if ($this->title) {
+            $text .= 'Title: '.$this->title;
         }
 
         $text .= 'Description: '.$this->description;

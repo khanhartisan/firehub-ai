@@ -31,6 +31,7 @@ return new class extends Migration
             $table->text('url');
             $table->char('url_hash', 40)->unique(); // use sha1
 
+            $table->string('title', 1024)->nullable();
             $table->string('description', 1024)->nullable();
 
             $table->unsignedInteger('version_index')->default(0);

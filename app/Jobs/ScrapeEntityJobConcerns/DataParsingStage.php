@@ -46,6 +46,7 @@ trait DataParsingStage
             $linksCount, $mediaCount, $contentLength,
             $pageData, &$saved
         ) {
+            $entity->title = $pageData->getTitle();
             $entity->description = $pageData->getExcerpt();
             $entity->source_published_at = $pageData->getPublishedAt();
             $entity->source_updated_at = $pageData->getUpdatedAt();

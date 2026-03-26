@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class EntityResource extends Resource
 {
@@ -60,8 +61,12 @@ class EntityResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('source.base_url')->limit(40)->sortable(),
-                TextColumn::make('url')->limit(50)->searchable(),
+                TextColumn::make('url')
+                    ->limit(50)
+                    ->description(function (Entity $entity) {
+                        return Str::limit($entity->title ?: $entity->description, 50);
+                    })
+                    ->searchable(),
                 TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state?->getLabel() ?? (string) $state),

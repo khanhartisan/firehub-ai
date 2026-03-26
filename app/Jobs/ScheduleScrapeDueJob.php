@@ -70,15 +70,18 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         }
 
         try {
-            $this->runScheduler();
-            static::dispatch($this->limit)->delay(now()->addSecond());
+            if ($this->runScheduler()) {
+                static::dispatch($this->limit)->delay(now()->addSecond());
+            }
         } finally {
             $lock->release();
         }
     }
 
-    private function runScheduler(): void
+    private function runScheduler(): int
     {
+        $dispatched = 0;
+
         // Dispatch jobs
         foreach (ScrapingStatus::cases() as $scrapingStatus) {
             $query = Entity::query()
@@ -87,8 +90,10 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 ->where('next_scrape_at', '<=', now())
                 ->orderBy('next_scrape_at');
 
-            $this->dispatchScrapeEntityJobs($query);
+            $dispatched += $this->dispatchScrapeEntityJobs($query);
         }
+
+        return $dispatched;
     }
 
     /**

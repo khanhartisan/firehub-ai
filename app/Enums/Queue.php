@@ -22,7 +22,7 @@ enum Queue: string
     /**
      * Default max queue size when not set in config.
      */
-    private const int DEFAULT_MAX_SIZE = 10_000;
+    private const int DEFAULT_MAX_SIZE = 100;
 
     /**
      * Maximum number of jobs allowed on this queue. Defaults to 10,000 when not set in config.

@@ -97,6 +97,8 @@ class MasterTest extends TestCase
         PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
         VerticalResolver::shouldReceive('propose')->once()->andReturn([]);
         VerticalResolver::shouldReceive('resolve')->never();
 

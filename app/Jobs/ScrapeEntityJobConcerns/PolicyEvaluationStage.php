@@ -20,7 +20,7 @@ trait PolicyEvaluationStage
 
         $saved = null;
         DB::transaction(function () use ($entity, $policyResult, $initialScrapingTime, &$saved) {
-            $entity->next_scrape_at = ($policyResult->getNextScrapeAt() > $initialScrapingTime)
+            $entity->next_scrape_at = $policyResult->getNextScrapeAt()->gt($initialScrapingTime)
                 ? $policyResult->getNextScrapeAt()
                 : $initialScrapingTime;
             $entity->policy_result = $policyResult->toArray();

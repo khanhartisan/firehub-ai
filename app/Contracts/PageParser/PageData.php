@@ -175,7 +175,7 @@ final class PageData implements Serializable
             if ($url === '') {
                 continue;
             }
-            $out[] = UrlNormalizer::toFullUrl($pageUrl, $url);
+            $out[] = UrlNormalizer::normalize(UrlNormalizer::toFullUrl($pageUrl, $url));
         }
 
         return array_values(array_unique($out));

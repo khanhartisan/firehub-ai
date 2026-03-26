@@ -21,20 +21,18 @@ final class UrlNormalizer
         $relativePath = trim($relativePath);
 
         if ($relativePath === '') {
-            return $baseUrl !== '' ? self::normalize($baseUrl) : '';
+            return $baseUrl !== '' ? $baseUrl : '';
         }
 
         if (preg_match('#\Ahttps?://#i', $relativePath)) {
-            return self::normalize($relativePath);
+            return $relativePath;
         }
 
         if ($baseUrl === '') {
             return '';
         }
 
-        $resolved = (string) UriResolver::resolve(new Uri($baseUrl), new Uri($relativePath));
-
-        return self::normalize($resolved);
+        return (string) UriResolver::resolve(new Uri($baseUrl), new Uri($relativePath));
     }
 
     public static function normalize(string $url): string

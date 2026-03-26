@@ -38,6 +38,7 @@ class UrlNormalizerTest extends TestCase
             'empty base with relative' => ['', '/x', ''],
             'absolute path' => ['https://example.com/a/b', '/c', 'https://example.com/c'],
             'relative segment' => ['https://example.com/a/b', 'c', 'https://example.com/a/c'],
+            'relative from file' => ['https://example.com/a/b.html', 'c.png', 'https://example.com/a/c.png'],
             'parent segments' => ['https://example.com/a/b/c', '../d', 'https://example.com/a/d'],
             'already absolute' => ['https://example.com/x', 'https://other.test/z', 'https://other.test/z'],
             'protocol-relative' => ['https://example.com/', '//other.test/x', 'https://other.test/x'],

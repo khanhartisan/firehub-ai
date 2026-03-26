@@ -134,7 +134,7 @@ PROMPT;
                 ],
                 'canonicalNumber' => [
                     'type' => ['integer', 'null'],
-                    'description' => 'The page/episode/part number if applicable (e.g., page 2, episode 5, part 3). Null if not applicable.',
+                    'description' => 'Ordinal in a series (e.g. a movie has many episodes, then the number will be: 1, 2, 3 corresponding to eposide 1, 2, 3). Null if not applicable.',
                 ],
             ],
             'required' => array_keys($properties),

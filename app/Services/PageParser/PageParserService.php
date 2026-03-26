@@ -95,6 +95,6 @@ abstract class PageParserService implements Parser
             }
         }
         
-        return $urls;
+        return array_values(array_slice($urls, 0, 1000));
     }
 }

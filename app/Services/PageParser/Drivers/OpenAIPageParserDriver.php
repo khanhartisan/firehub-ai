@@ -116,7 +116,7 @@ PROMPT;
                 ],
                 'markdownContent' => [
                     'type' => 'string',
-                    'description' => 'The main content of the page converted to markdown format',
+                    'description' => 'The main content of the page converted to markdown format. Strip all other media BUT images, do not strip out the image urls from this markdown content.',
                 ],
                 'publishedAt' => [
                     'type' => ['string', 'null'],

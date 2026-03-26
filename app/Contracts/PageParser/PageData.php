@@ -4,7 +4,7 @@ namespace App\Contracts\PageParser;
 
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
-use App\Utils\EntityUrlNormalizer;
+use App\Utils\UrlNormalizer;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
@@ -175,7 +175,7 @@ final class PageData implements Serializable
             if ($url === '') {
                 continue;
             }
-            $out[] = EntityUrlNormalizer::toFullUrl($pageUrl, $url);
+            $out[] = UrlNormalizer::toFullUrl($pageUrl, $url);
         }
 
         return array_values(array_unique($out));

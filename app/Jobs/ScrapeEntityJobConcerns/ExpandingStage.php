@@ -6,7 +6,7 @@ use App\Contracts\PageParser\PageData;
 use App\Enums\EntityType;
 use App\Models\Entity;
 use App\Models\Source;
-use App\Utils\EntityUrlNormalizer;
+use App\Utils\UrlNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -110,7 +110,7 @@ trait ExpandingStage
 
     protected function normalizeLinkedUrl(string $url): string
     {
-        $url = EntityUrlNormalizer::normalize($url);
+        $url = UrlNormalizer::normalize($url);
         if ($url === '' || ! preg_match('#\Ahttps?://#i', $url)) {
             return '';
         }

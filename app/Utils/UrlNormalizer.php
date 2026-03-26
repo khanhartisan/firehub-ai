@@ -8,7 +8,7 @@ use GuzzleHttp\Psr7\UriResolver;
 /**
  * Canonical HTTP(S) form for entity URLs so url_hash dedupes equivalent addresses.
  */
-final class EntityUrlNormalizer
+final class UrlNormalizer
 {
     /**
      * Resolve a relative or absolute reference against a base URL (RFC 3986), then {@see normalize}.

@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Utils;
 
-use App\Utils\EntityUrlNormalizer;
+use App\Utils\UrlNormalizer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-class EntityUrlNormalizerTest extends TestCase
+class UrlNormalizerTest extends TestCase
 {
     public static function canonicalPairsProvider(): array
     {
@@ -27,7 +27,7 @@ class EntityUrlNormalizerTest extends TestCase
     #[DataProvider('canonicalPairsProvider')]
     public function test_normalize(string $input, string $expected): void
     {
-        $this->assertSame($expected, EntityUrlNormalizer::normalize($input));
+        $this->assertSame($expected, UrlNormalizer::normalize($input));
     }
 
     public static function toFullUrlProvider(): array
@@ -48,6 +48,6 @@ class EntityUrlNormalizerTest extends TestCase
     #[DataProvider('toFullUrlProvider')]
     public function test_to_full_url(string $base, string $relative, string $expected): void
     {
-        $this->assertSame($expected, EntityUrlNormalizer::toFullUrl($base, $relative));
+        $this->assertSame($expected, UrlNormalizer::toFullUrl($base, $relative));
     }
 }

@@ -6,7 +6,7 @@ use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStatus;
 use App\Models\Entity;
 use App\Models\Source;
-use App\Utils\EntityUrlNormalizer;
+use App\Utils\UrlNormalizer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -70,7 +70,7 @@ class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $baseUrl = EntityUrlNormalizer::normalize($source->base_url ?? '');
+        $baseUrl = UrlNormalizer::normalize($source->base_url ?? '');
         if ($baseUrl === '' or !str_starts_with($baseUrl, 'http')) {
             return;
         }

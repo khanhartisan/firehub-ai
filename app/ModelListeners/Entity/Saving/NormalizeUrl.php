@@ -3,7 +3,7 @@
 namespace App\ModelListeners\Entity\Saving;
 
 use App\Models\Entity;
-use App\Utils\EntityUrlNormalizer;
+use App\Utils\UrlNormalizer;
 use KhanhArtisan\LaravelBackbone\ModelListener\ModelListener;
 use KhanhArtisan\LaravelBackbone\ModelListener\ModelListenerInterface;
 
@@ -45,7 +45,7 @@ class NormalizeUrl extends ModelListener implements ModelListenerInterface
             return;
         }
 
-        $normalized = EntityUrlNormalizer::normalize((string) $url);
+        $normalized = UrlNormalizer::normalize((string) $url);
         if ($normalized !== $url) {
             $entity->url = $normalized;
         }

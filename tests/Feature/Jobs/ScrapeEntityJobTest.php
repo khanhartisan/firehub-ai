@@ -307,7 +307,11 @@ class ScrapeEntityJobTest extends TestCase
 
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
-        \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')
+            ->once()
+            ->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
 
         $job = new class($entity) extends ScrapeEntityJob {
             protected function fetchUrl(string $url): ResponseInterface
@@ -370,6 +374,8 @@ class ScrapeEntityJobTest extends TestCase
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
 
         $job = new class($entity) extends ScrapeEntityJob {
             protected function fetchUrl(string $url): ResponseInterface
@@ -430,6 +436,8 @@ class ScrapeEntityJobTest extends TestCase
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
 
         $job = new class($entity) extends ScrapeEntityJob {
             protected function fetchUrl(string $url): ResponseInterface
@@ -476,6 +484,9 @@ class ScrapeEntityJobTest extends TestCase
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
+
         // When there are no verticals, we still call propose() (to allow suggestions),
         // but resolve() is skipped because there is nothing to match.
         \App\Facades\VerticalResolver::shouldReceive('propose')->once()->andReturn([]);
@@ -532,6 +543,8 @@ class ScrapeEntityJobTest extends TestCase
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
         \App\Facades\VerticalResolver::shouldReceive('resolve')->once()->andReturn($matches);
         \App\Facades\VerticalResolver::shouldReceive('propose')->once()->andReturn([]);
 
@@ -588,6 +601,8 @@ class ScrapeEntityJobTest extends TestCase
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
         \App\Facades\VerticalResolver::shouldReceive('resolve')->once()->andReturn($matches);
         \App\Facades\VerticalResolver::shouldReceive('propose')->once()->andReturn([]);
 
@@ -641,6 +656,8 @@ class ScrapeEntityJobTest extends TestCase
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
         \App\Facades\VerticalResolver::shouldReceive('resolve')->once()->andReturn([]);
         \App\Facades\VerticalResolver::shouldReceive('propose')->once()->andReturn($proposals);
 
@@ -699,6 +716,8 @@ class ScrapeEntityJobTest extends TestCase
         \App\Facades\PageClassifier::shouldReceive('classify')->once()->andReturn($classification);
         \App\Facades\PageParser::shouldReceive('parse')->once()->andReturn($pageData);
         \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
         \App\Facades\VerticalResolver::shouldReceive('resolve')
             ->once()
             ->with(Mockery::on(function ($content) use ($markdownContent) {

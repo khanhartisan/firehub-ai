@@ -62,39 +62,11 @@ trait EnrichmentStage
             });
         }
 
-        // Use File vision service for images
-        if (in_array($snapshot->file_extension, ['jpeg', 'jpg', 'png', 'webp', 'avif', 'gif', 'bmp', 'tiff'])) {
-
-            if (!$preparedImageFilePath = $this->getFilePathForPreparedImage($snapshot)) {
-                return false;
-            }
-
-            $fileInformation = FileVision::describe($preparedImageFilePath);
-
-            if (!Storage::put(
-                $this->getFilePathForFileInformation($snapshot),
-                $fileInformation->toJson()
-            )) {
-                return false;
-            }
-
-            DB::transaction(function () use ($fileInformation, $entity, &$isSaved) {
-                $entity->type = EntityType::IMAGE;
-                $entity->description = $fileInformation->getDescription();
-                $isSaved = $entity->save();
-            });
-        }
-
         return $isSaved;
     }
 
     protected function getFilePathForPageClassificationResult(Snapshot $snapshot): string
     {
         return 'snapshots/'.$snapshot->entity_id.'/'.$snapshot->id.'/page-classification.json';
-    }
-
-    protected function getFilePathForFileInformation(Snapshot $snapshot): string
-    {
-        return 'snapshots/'.$snapshot->entity_id.'/'.$snapshot->id.'/file-information.json';
     }
 }

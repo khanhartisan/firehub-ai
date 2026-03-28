@@ -59,7 +59,7 @@ class ScrapeEntityJobTest extends TestCase
 
         $this->assertDatabaseCount('snapshots', 0);
         $entity->refresh();
-        $this->assertSame(ScrapingStatus::PENDING->value, $entity->scraping_status->value);
+        $this->assertSame(ScrapingStatus::PENDING, $entity->scraping_status);
     }
 
     public function test_creates_snapshot_with_failed_status_on_http_4xx(): void
@@ -206,12 +206,12 @@ class ScrapeEntityJobTest extends TestCase
         ]);
 
         $job = new class($entity) extends ScrapeEntityJob {
-            public function exposeMarkEntityFailed(Entity $entity): void
+            public function exposeMarkEntityFailed(): void
             {
-                $this->markEntityFailed($entity);
+                $this->markEntityFailed();
             }
         };
-        $job->exposeMarkEntityFailed($entity);
+        $job->exposeMarkEntityFailed();
 
         $entity->refresh();
         $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
@@ -233,12 +233,12 @@ class ScrapeEntityJobTest extends TestCase
         ]);
 
         $job = new class($entity) extends ScrapeEntityJob {
-            public function exposeMarkEntityFailed(Entity $entity): void
+            public function exposeMarkEntityFailed(): void
             {
-                $this->markEntityFailed($entity);
+                $this->markEntityFailed();
             }
         };
-        $job->exposeMarkEntityFailed($entity);
+        $job->exposeMarkEntityFailed();
 
         $entity->refresh();
         $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);

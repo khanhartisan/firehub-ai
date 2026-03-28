@@ -29,7 +29,7 @@ trait FinishingStage
         ) ? $nextScrapeAt
         : $initialScrapeAt;
 
-        $this->markEntitySuccess($entity);
+        DB::transaction(fn () => $entity->save());
         return true;
     }
 }

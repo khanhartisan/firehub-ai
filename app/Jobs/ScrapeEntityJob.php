@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Contracts\VerticalResolver\Vertical as ContractVertical;
 use App\Enums\EntityType;
 use App\Enums\Queue as QueueEnum;
-use App\Enums\ScrapeEntityJobStage;
+use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
 use App\Facades\PageClassifier;
 use App\Facades\PageParser;
@@ -90,9 +90,14 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     /**
      * Create a new job instance.
      */
-    public function __construct(Entity $entity, protected ScrapeEntityJobStage $stage = ScrapeEntityJobStage::FETCHING)
+    public function __construct(Entity $entity, ?ScrapingStage $stage = null)
     {
         $this->entity = $entity->withoutRelations();
+
+        if ($stage) {
+            $this->updateEntityScrapingStage($stage);
+        }
+
         $this->onQueue(QueueEnum::SCRAPING->value);
     }
 
@@ -108,7 +113,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     {
         $entity = $this->entity;
 
-        $stage = $this->stage;
+        $stage = $entity->scraping_stage ?? ScrapingStage::FETCHING;
 
         // Manual job unique lock
         if (!$lock = $this->getManualLock() or !$lock->get()) {
@@ -120,7 +125,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         // Reject if 2 many attempts
         if ($entity->attempts >= config('queue.max_scrape_attempts')) {
-            $this->markEntityFailed($entity);
+            $this->markEntityFailed();
             return;
         }
 
@@ -142,7 +147,7 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         }
 
         // Fetching stage
-        if ($stage === ScrapeEntityJobStage::FETCHING) {
+        if ($stage === ScrapingStage::FETCHING) {
             if ($snapshot = $this->handleFetchingStage($entity)) {
 
                 // Mark as finished if the data size is too large
@@ -153,149 +158,140 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                         'jpeg', 'jpg', 'png', 'webp', 'avif', 'gif', 'bmp', 'tiff',
                     ])
                 ) {
-                    $this->markEntitySuccess($entity);
+                    $this->markEntitySuccess();
                     return;
                 }
 
                 // Mark scraping status as PROCESSING
                 $entity->scraping_status = ScrapingStatus::PROCESSING;
                 $entity->scraped_at = Carbon::now();
+                $this->updateEntityScrapingStage(ScrapingStage::DATA_PREPARING, false);
                 DB::transaction(fn () => $entity->save());
 
                 // Continue to prepare the data
                 $lock->release();
-                ScrapeEntityJobDispatcher::dispatch(
-                    $entity,
-                    ScrapeEntityJobStage::DATA_PREPARING
-                );
+                ScrapeEntityJobDispatcher::dispatch($entity);
             }
         }
 
         // Data preparing
-        elseif ($stage === ScrapeEntityJobStage::DATA_PREPARING) {
+        elseif ($stage === ScrapingStage::DATA_PREPARING) {
 
             // Data preparation was rejected
             if (!$this->prepareData($entity)) {
-                $this->markEntityFailed($entity);
+                $this->markEntityFailed();
                 return;
             }
 
             // Continue to parse data if text
             if (in_array($entity->currentSnapshot?->file_extension, ['html', 'txt'])) {
+
+                $this->updateEntityScrapingStage(ScrapingStage::DATA_PARSING);
                 $lock->release();
-                ScrapeEntityJobDispatcher::dispatch(
-                    $entity,
-                    ScrapeEntityJobStage::DATA_PARSING
-                );
+
+                ScrapeEntityJobDispatcher::dispatch($entity);
                 return;
             }
 
             // Continue to enrichment
+            $this->updateEntityScrapingStage(ScrapingStage::ENRICHMENT);
             $lock->release();
-            ScrapeEntityJobDispatcher::dispatch(
-                $entity,
-                ScrapeEntityJobStage::ENRICHMENT
-            );
+
+            ScrapeEntityJobDispatcher::dispatch($entity);
         }
 
         // Data parsing
-        elseif ($stage === ScrapeEntityJobStage::DATA_PARSING) {
+        elseif ($stage === ScrapingStage::DATA_PARSING) {
 
             // Failed to parse
             if (!$this->parseData($entity)) {
-                $this->markEntityFailed($entity);
+                $this->markEntityFailed();
                 return;
             }
 
             // Continue to enrichment
+            $this->updateEntityScrapingStage(ScrapingStage::ENRICHMENT);
             $lock->release();
-            ScrapeEntityJobDispatcher::dispatch(
-                $entity,
-                ScrapeEntityJobStage::ENRICHMENT
-            );
+            ScrapeEntityJobDispatcher::dispatch($entity);
         }
 
         // Enrichment stage
-        elseif ($stage === ScrapeEntityJobStage::ENRICHMENT) {
+        elseif ($stage === ScrapingStage::ENRICHMENT) {
 
             // Failed to enrich
             if (!$this->enrich($entity)) {
-                $this->markEntityFailed($entity);
+                $this->markEntityFailed();
                 return;
             }
 
             // Continue to vertical resolution
+            $this->updateEntityScrapingStage(ScrapingStage::VERTICAL_RESOLUTION);
             $lock->release();
-            ScrapeEntityJobDispatcher::dispatch(
-                $entity,
-                ScrapeEntityJobStage::VERTICAL_RESOLUTION
-            );
+            ScrapeEntityJobDispatcher::dispatch($entity);
         }
 
         // Vertical resolution stage
-        elseif ($stage === ScrapeEntityJobStage::VERTICAL_RESOLUTION) {
+        elseif ($stage === ScrapingStage::VERTICAL_RESOLUTION) {
 
             // Failed to resolve
             if (!$this->verticalResolve($entity)) {
-                $this->markEntityFailed($entity);
+                $this->markEntityFailed();
                 return;
             }
 
             // Continue to policy evaluation
+            $this->updateEntityScrapingStage(ScrapingStage::POLICY_EVALUATION);
             $lock->release();
-            ScrapeEntityJobDispatcher::dispatch(
-                $entity,
-                ScrapeEntityJobStage::POLICY_EVALUATION
-            );
+            ScrapeEntityJobDispatcher::dispatch($entity);
         }
 
         // Policy evaluation
-        elseif ($stage === ScrapeEntityJobStage::POLICY_EVALUATION) {
+        elseif ($stage === ScrapingStage::POLICY_EVALUATION) {
 
             // Failed to evaluate
             if (!$this->evaluatePolicy($entity)) {
-                $this->markEntityFailed($entity);
+                $this->markEntityFailed();
                 return;
             }
 
             // Continue to expand
+            $this->updateEntityScrapingStage(ScrapingStage::EXPANDING);
             $lock->release();
-            ScrapeEntityJobDispatcher::dispatch(
-                $entity,
-                ScrapeEntityJobStage::EXPANDING
-            );
+            ScrapeEntityJobDispatcher::dispatch($entity);
         }
 
         // Expanding
-        elseif ($stage === ScrapeEntityJobStage::EXPANDING) {
+        elseif ($stage === ScrapingStage::EXPANDING) {
             try {
                 $this->expand($entity);
             } finally {
 
                 // Continue to finish
+                $this->updateEntityScrapingStage(ScrapingStage::FINISHING);
                 $lock->release();
-                ScrapeEntityJobDispatcher::dispatch(
-                    $entity,
-                    ScrapeEntityJobStage::FINISHING
-                );
+                ScrapeEntityJobDispatcher::dispatch($entity);
             }
         }
 
         // Finishing
-        elseif ($stage === ScrapeEntityJobStage::FINISHING) {
+        elseif ($stage === ScrapingStage::FINISHING) {
 
             // Failed to finish
             if (!$this->finish($entity)) {
-                $this->markEntityFailed($entity);
+                $this->markEntityFailed();
                 return;
             }
+
+            $this->markEntitySuccess();
         }
 
         $lock->release();
     }
 
-    protected function markEntitySuccess(Entity $entity): void
+    protected function markEntitySuccess(): void
     {
+        $entity = $this->entity;
+        $this->updateEntityScrapingStage(null, false);
         $entity->scraping_status = ScrapingStatus::SUCCESS;
         $entity->attempts = 0;
         DB::transaction(fn () => $entity->save());
@@ -303,8 +299,10 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $this->getManualLock()->release();
     }
 
-    protected function markEntityFailed(Entity $entity): void
+    protected function markEntityFailed(): void
     {
+        $entity = $this->entity;
+        $this->updateEntityScrapingStage(null, false);
         $entity->scraping_status = ScrapingStatus::FAILED;
         $entity->attempts = $entity->attempts + 1;
 
@@ -318,6 +316,16 @@ class ScrapeEntityJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         DB::transaction(fn () => $entity->save());
 
         $this->getManualLock()->release();
+    }
+
+    protected function updateEntityScrapingStage(?ScrapingStage $stage, bool $save = true): void
+    {
+        $entity = $this->entity;
+        $entity->scraping_stage = $stage;
+
+        if ($save) {
+            $entity->saveQuietly();
+        }
     }
 
     protected function getManualLock(): Lock

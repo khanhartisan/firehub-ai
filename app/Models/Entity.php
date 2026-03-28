@@ -6,6 +6,7 @@ use App\Contracts\Model\EntityCountable;
 use App\Enums\ContentType;
 use App\Enums\EntityType;
 use App\Enums\PageType;
+use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
 use App\Enums\Temporal;
 use App\Database\Eloquent\Relations\EntityCountBelongsToMany;
@@ -39,6 +40,7 @@ class Entity extends EmbeddableModel implements ShouldCascade
         'attempts' => 'integer',
         'type' => EntityType::class,
         'scraping_status' => ScrapingStatus::class,
+        'scraping_stage' => ScrapingStage::class,
         'page_type' => PageType::class,
         'content_type' => ContentType::class,
         'temporal' => Temporal::class,

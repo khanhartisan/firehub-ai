@@ -27,6 +27,7 @@ return new class extends Migration
 
             $table->unsignedTinyInteger('type')->default(\App\Enums\EntityType::UNCLASSIFIED->value);
             $table->unsignedTinyInteger('scraping_status')->default(\App\Enums\ScrapingStatus::PENDING->value);
+            $table->string('scraping_stage')->nullable();
 
             $table->text('url');
             $table->char('url_hash', 40); // use sha1

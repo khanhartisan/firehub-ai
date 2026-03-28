@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum ScrapeEntityJobStage: string
+enum ScrapingStage: string
 {
     case FETCHING = 'fetching';
     case DATA_PREPARING = 'data_preparing';

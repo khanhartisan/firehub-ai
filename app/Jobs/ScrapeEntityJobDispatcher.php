@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Enums\ScrapeEntityJobStage;
+use App\Enums\ScrapingStage;
 use App\Models\Entity;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -22,7 +22,7 @@ class ScrapeEntityJobDispatcher implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(Entity $entity, protected ScrapeEntityJobStage $stage)
+    public function __construct(Entity $entity)
     {
         $this->entity = $entity->withoutRelations();
     }
@@ -32,6 +32,6 @@ class ScrapeEntityJobDispatcher implements ShouldQueue
      */
     public function handle(): void
     {
-        ScrapeEntityJob::dispatch($this->entity, $this->stage);
+        ScrapeEntityJob::dispatch($this->entity);
     }
 }

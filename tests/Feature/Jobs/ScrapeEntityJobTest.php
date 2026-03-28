@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Jobs;
 
+use App\Contracts\FileVision\FileInformation;
 use App\Contracts\PageClassifier\ClassificationResult;
 use App\Contracts\PageParser\PageData;
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
 use App\Contracts\VerticalResolver\Vertical as ContractVertical;
 use App\Contracts\VerticalResolver\VerticalMatch;
 use App\Enums\ContentType;
+use App\Enums\EntityType;
 use App\Enums\PageType;
 use App\Enums\ScrapingStatus;
 use App\Enums\Temporal;
@@ -21,6 +23,7 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use Psr\Http\Message\ResponseInterface;
 use Tests\TestCase;
@@ -741,5 +744,74 @@ class ScrapeEntityJobTest extends TestCase
 
         $entity->refresh();
         $this->assertSame(ScrapingStatus::SUCCESS->value, $entity->scraping_status->value);
+    }
+
+    public function test_success_image_flow_skips_html_parsing_and_enriches_via_file_vision(): void
+    {
+        $source = Source::create(['base_url' => 'https://example.com']);
+        $entity = Entity::create([
+            'source_id' => $source->id,
+            'url' => 'https://example.com/photo.png',
+            'url_hash' => sha1('https://example.com/photo.png'),
+            'scraping_status' => ScrapingStatus::QUEUED,
+            'snapshots_count' => 0,
+        ]);
+
+        // Minimal valid PNG (1×1).
+        $pngBody = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+        );
+        $this->assertIsString($pngBody);
+
+        $visionDescription = 'A test image description from vision.';
+        $fileInformation = FileInformation::fromArray([
+            'description' => $visionDescription,
+            'confidence' => 0.95,
+        ]);
+
+        \App\Facades\FileVision::shouldReceive('describe')
+            ->once()
+            ->with(Mockery::on(fn (string $path): bool => str_ends_with($path, 'prepared-image.jpg')))
+            ->andReturn($fileInformation);
+
+        \App\Facades\PageClassifier::shouldReceive('classify')->never();
+        \App\Facades\PageParser::shouldReceive('parse')->never();
+        \App\Facades\VerticalResolver::shouldReceive('resolve')->never();
+        \App\Facades\VerticalResolver::shouldReceive('propose')->never();
+
+        $policyResult = (new PolicyResult)->setNextScrapeAt(Carbon::now()->addHours(6));
+        \App\Facades\ScrapePolicyEngine::shouldReceive('evaluate')->once()->andReturn($policyResult);
+        \App\Facades\ScrapePolicyEngine::shouldReceive('calculateInitialScrapingTime')
+            ->andReturn(now());
+
+        $job = new class($entity, $pngBody) extends ScrapeEntityJob {
+            public function __construct(Entity $entity, private string $pngBytes)
+            {
+                parent::__construct($entity);
+            }
+
+            protected function fetchUrl(string $url): ResponseInterface
+            {
+                return new Response(200, ['Content-Type' => 'image/png'], $this->pngBytes);
+            }
+        };
+        $job->handle();
+
+        $this->assertDatabaseCount('snapshots', 1);
+        $snapshot = Snapshot::where('entity_id', $entity->id)->first();
+        $this->assertNotNull($snapshot);
+        $this->assertSame('png', $snapshot->file_extension);
+
+        $entity->refresh();
+        $this->assertSame(ScrapingStatus::SUCCESS->value, $entity->scraping_status->value);
+        $this->assertSame(EntityType::IMAGE, $entity->type);
+        $this->assertSame($visionDescription, $entity->description);
+        $this->assertSame(1, $entity->snapshots_count);
+
+        $infoPath = 'snapshots/'.$entity->id.'/'.$snapshot->id.'/file-information.json';
+        $this->assertTrue(Storage::exists($infoPath));
+        $stored = json_decode(Storage::get($infoPath), true);
+        $this->assertIsArray($stored);
+        $this->assertSame($visionDescription, $stored['description'] ?? null);
     }
 }

@@ -29,7 +29,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('scraping_status')->default(\App\Enums\ScrapingStatus::PENDING->value);
 
             $table->text('url');
-            $table->char('url_hash', 40)->unique(); // use sha1
+            $table->char('url_hash', 40); // use sha1
 
             $table->string('title', 1024)->nullable();
             $table->string('description', 1024)->nullable();
@@ -58,6 +58,7 @@ return new class extends Migration
 
             // Indexes
             $table->index(['scraping_status', 'next_scrape_at']);
+            $table->unique(['source_id', 'url_hash']);
             $table->index(['source_id', 'type', 'source_published_at'], 'source_index');
             $table->index(['source_id', 'next_scrape_at']);
             $table->index(['source_id', 'scraped_at']);

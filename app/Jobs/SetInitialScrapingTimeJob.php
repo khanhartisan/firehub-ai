@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\ScrapingStatus;
 use App\Facades\ScrapePolicyEngine;
-use App\Models\Entity;
+use App\Models\Page;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -36,14 +36,14 @@ class SetInitialScrapingTimeJob implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            // Pick an entity
-            while ($entity = Entity::query()
+            // Pick a page
+            while ($page = Page::query()
                 ->where('scraping_status', $status)
                 ->whereNull('next_scrape_at')
                 ->first()
             ) {
-                $entity->update([
-                    'next_scrape_at' => ScrapePolicyEngine::calculateInitialScrapingTime($entity),
+                $page->update([
+                    'next_scrape_at' => ScrapePolicyEngine::calculateInitialScrapingTime($page),
                 ]);
 
                 if (time() - $startTime >= $this->timeout - 5) {

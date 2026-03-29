@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\ModelListeners;
 
-use App\Models\Entity;
-use App\Models\EntityTag;
-use App\Models\EntityVertical;
+use App\Models\Page;
+use App\Models\PageTag;
+use App\Models\PageVertical;
 use App\Models\Snapshot;
 use App\Models\Source;
 use App\Models\SourceVertical;
@@ -33,10 +33,10 @@ class CascadeDeletionTest extends TestCase
         }
     }
 
-    private function createEntity(Source $source, array $overrides = []): Entity
+    private function createPage(Source $source, array $overrides = []): Page
     {
         $url = $overrides['url'] ?? 'https://example.com/page-' . uniqid();
-        return Entity::create(array_merge([
+        return Page::create(array_merge([
             'source_id' => $source->id,
             'url' => $url,
             'url_hash' => sha1($url),
@@ -46,13 +46,13 @@ class CascadeDeletionTest extends TestCase
     public function test_deleting_source_cascades_to_snapshots_and_deletes_snapshot_files(): void
     {
         $source = Source::create(['base_url' => 'https://example.com/' . uniqid()]);
-        $entity = $this->createEntity($source);
+        $entity = $this->createPage($source);
 
         $filePath = 'snapshots/' . $entity->id . '/' . Str::ulid() . '.html';
         Storage::put($filePath, '<html>Snapshot content</html>');
 
         $snapshot = Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'file_path' => $filePath,
             'version' => 1,
         ]);
@@ -85,13 +85,13 @@ class CascadeDeletionTest extends TestCase
     public function test_deleting_entity_cascades_to_snapshots_and_deletes_snapshot_files(): void
     {
         $source = Source::create(['base_url' => 'https://example.com/' . uniqid()]);
-        $entity = $this->createEntity($source);
+        $entity = $this->createPage($source);
 
         $filePath = 'snapshots/' . $entity->id . '/' . Str::ulid() . '.html';
         Storage::put($filePath, '<html>Snapshot content</html>');
 
         $snapshot = Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'file_path' => $filePath,
             'version' => 1,
         ]);
@@ -106,48 +106,48 @@ class CascadeDeletionTest extends TestCase
         $this->assertFalse(Storage::exists($filePath));
     }
 
-    public function test_deleting_entity_cascades_to_entity_vertical_pivot(): void
+    public function test_deleting_entity_cascades_to_page_vertical_pivot(): void
     {
         $source = Source::create(['base_url' => 'https://example.com/' . uniqid()]);
         $vertical = Vertical::create(['name' => 'vertical-' . uniqid()]);
-        $entity = $this->createEntity($source);
+        $entity = $this->createPage($source);
         $entity->verticals()->attach($vertical->id);
 
-        $pivot = EntityVertical::where('entity_id', $entity->id)->where('vertical_id', $vertical->id)->first();
+        $pivot = PageVertical::where('page_id', $entity->id)->where('vertical_id', $vertical->id)->first();
         $this->assertNotNull($pivot);
 
         $entity->delete();
         $this->runCascadeUntilComplete();
 
-        $this->assertDatabaseMissing('entity_vertical', ['id' => $pivot->id]);
+        $this->assertDatabaseMissing('page_vertical', ['id' => $pivot->id]);
     }
 
-    public function test_deleting_entity_cascades_to_entity_tag_pivot(): void
+    public function test_deleting_entity_cascades_to_page_tag_pivot(): void
     {
         $source = Source::create(['base_url' => 'https://example.com/' . uniqid()]);
         $tag = Tag::create(['name' => 'tag-' . uniqid()]);
-        $entity = $this->createEntity($source);
+        $entity = $this->createPage($source);
         $entity->tags()->attach($tag->id);
 
-        $pivot = EntityTag::where('entity_id', $entity->id)->where('tag_id', $tag->id)->first();
+        $pivot = PageTag::where('page_id', $entity->id)->where('tag_id', $tag->id)->first();
         $this->assertNotNull($pivot);
 
         $entity->delete();
         $this->runCascadeUntilComplete();
 
-        $this->assertDatabaseMissing('entity_tag', ['id' => $pivot->id]);
+        $this->assertDatabaseMissing('page_tag', ['id' => $pivot->id]);
     }
 
-    public function test_deleting_vertical_cascades_to_entity_vertical_and_source_vertical_pivots(): void
+    public function test_deleting_vertical_cascades_to_page_vertical_and_source_vertical_pivots(): void
     {
         $source = Source::create(['base_url' => 'https://example.com/' . uniqid()]);
         $vertical = Vertical::create(['name' => 'vertical-' . uniqid()]);
-        $entity = $this->createEntity($source);
+        $entity = $this->createPage($source);
 
         $source->verticals()->attach($vertical->id);
         $entity->verticals()->attach($vertical->id);
 
-        $entityVerticalPivot = EntityVertical::where('vertical_id', $vertical->id)->first();
+        $entityVerticalPivot = PageVertical::where('vertical_id', $vertical->id)->first();
         $sourceVerticalPivot = SourceVertical::where('vertical_id', $vertical->id)->first();
         $this->assertNotNull($entityVerticalPivot);
         $this->assertNotNull($sourceVerticalPivot);
@@ -155,7 +155,7 @@ class CascadeDeletionTest extends TestCase
         $vertical->delete();
         $this->runCascadeUntilComplete();
 
-        $this->assertDatabaseMissing('entity_vertical', ['id' => $entityVerticalPivot->id]);
+        $this->assertDatabaseMissing('page_vertical', ['id' => $entityVerticalPivot->id]);
         $this->assertDatabaseMissing('source_vertical', ['id' => $sourceVerticalPivot->id]);
     }
 
@@ -172,19 +172,19 @@ class CascadeDeletionTest extends TestCase
         $this->assertDatabaseMissing('verticals', ['id' => $childVertical->id]);
     }
 
-    public function test_deleting_tag_cascades_to_entity_tag_pivot(): void
+    public function test_deleting_tag_cascades_to_page_tag_pivot(): void
     {
         $source = Source::create(['base_url' => 'https://example.com/' . uniqid()]);
         $tag = Tag::create(['name' => 'tag-' . uniqid()]);
-        $entity = $this->createEntity($source);
+        $entity = $this->createPage($source);
         $entity->tags()->attach($tag->id);
 
-        $pivot = EntityTag::where('tag_id', $tag->id)->first();
+        $pivot = PageTag::where('tag_id', $tag->id)->first();
         $this->assertNotNull($pivot);
 
         $tag->delete();
         $this->runCascadeUntilComplete();
 
-        $this->assertDatabaseMissing('entity_tag', ['id' => $pivot->id]);
+        $this->assertDatabaseMissing('page_tag', ['id' => $pivot->id]);
     }
 }

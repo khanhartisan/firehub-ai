@@ -32,8 +32,8 @@ class SnapshotResource extends Resource
     {
         return $schema
             ->components([
-                Select::make('entity_id')
-                    ->relationship('entity', 'url', fn ($query) => $query->limit(100))
+                Select::make('page_id')
+                    ->relationship('page', 'url', fn ($query) => $query->limit(100))
                     ->searchable()
                     ->required(),
                 Select::make('scraping_status')
@@ -49,7 +49,7 @@ class SnapshotResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('entity.url')->limit(40)->sortable(),
+                TextColumn::make('page.url')->limit(40)->sortable(),
                 TextColumn::make('version')->sortable(),
                 TextColumn::make('scraping_status')
                     ->badge()

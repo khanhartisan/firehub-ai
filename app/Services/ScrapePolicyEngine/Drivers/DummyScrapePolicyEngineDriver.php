@@ -3,7 +3,7 @@
 namespace App\Services\ScrapePolicyEngine\Drivers;
 
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
-use App\Models\Entity;
+use App\Models\Page;
 use App\Services\ScrapePolicyEngine\ScrapePolicyEngineService;
 use Carbon\Carbon;
 
@@ -12,7 +12,7 @@ class DummyScrapePolicyEngineDriver extends ScrapePolicyEngineService
     /**
      * Perform policy evaluation with simple static results.
      */
-    protected function performEvaluation(Entity $entity, Carbon $baseTime): PolicyResult
+    protected function performEvaluation(Page $page, Carbon $baseTime): PolicyResult
     {
         $result = new PolicyResult();
 

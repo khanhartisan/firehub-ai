@@ -5,7 +5,7 @@ namespace App\Services\ScrapePolicyEngine;
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
 use App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine as ScrapePolicyEngineContract;
 use App\Enums\ScrapingStatus;
-use App\Models\Entity;
+use App\Models\Page;
 use App\Models\Snapshot;
 use App\Models\Source;
 use Carbon\Carbon;
@@ -29,13 +29,13 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
         $this->config = $config;
     }
 
-    public function calculateInitialScrapingTime(Entity $entity): CarbonInterface
+    public function calculateInitialScrapingTime(Page $page): CarbonInterface
     {
-        if ($entity->next_scrape_at) {
-            return $entity->next_scrape_at;
+        if ($page->next_scrape_at) {
+            return $page->next_scrape_at;
         }
 
-        if (! $source = $entity->source) {
+        if (! $source = $page->source) {
             return now();
         }
 
@@ -44,7 +44,7 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
         }
 
         $now = Carbon::now();
-        $excludeEntityId = $entity->exists ? (string) $entity->getKey() : null;
+        $excludePageId = $page->exists ? (string) $page->getKey() : null;
         $candidate = $now->copy();
 
         for ($i = 0; $i < self::MAX_INITIAL_SCHEDULE_ITERATIONS; $i++) {
@@ -53,7 +53,7 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
             if ($source->daily_budget > 0) {
                 $windowStart = $candidate->copy()->startOfDay();
                 $windowEnd = $windowStart->copy()->addDay();
-                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludeEntityId) >= $source->daily_budget) {
+                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludePageId) >= $source->daily_budget) {
                     $nextStarts[] = $windowEnd;
                 }
             }
@@ -61,7 +61,7 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
             if ($source->weekly_budget > 0) {
                 $windowStart = $candidate->copy()->startOfWeek(Carbon::MONDAY);
                 $windowEnd = $windowStart->copy()->addWeek();
-                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludeEntityId) >= $source->weekly_budget) {
+                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludePageId) >= $source->weekly_budget) {
                     $nextStarts[] = $windowEnd;
                 }
             }
@@ -69,7 +69,7 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
             if ($source->monthly_budget > 0) {
                 $windowStart = $candidate->copy()->startOfMonth();
                 $windowEnd = $windowStart->copy()->addMonth();
-                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludeEntityId) >= $source->monthly_budget) {
+                if ($this->budgetUsageForSourceInWindow($source, $windowStart, $windowEnd, $excludePageId) >= $source->monthly_budget) {
                     $nextStarts[] = $windowEnd;
                 }
             }
@@ -97,8 +97,8 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
     }
 
     /**
-     * Usage = entities with a processed scrape timestamp in the window plus entities with a
-     * scheduled next scrape in the window (each counted once per query; an entity may contribute
+     * Usage = pages with a processed scrape timestamp in the window plus pages with a
+     * scheduled next scrape in the window (each counted once per query; a page may contribute
      * to both if both timestamps fall in range).
      *
      * @param  CarbonInterface  $windowEndExclusive  inclusive upper bound (see callers)
@@ -107,48 +107,48 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
         Source $source,
         CarbonInterface $windowStart,
         CarbonInterface $windowEndExclusive,
-        ?string $excludeEntityId = null,
+        ?string $excludePageId = null,
     ): int {
         $scraped = $source
-            ->entities()
+            ->pages()
             ->where('scraped_at', '>=', $windowStart)
             ->where('scraped_at', '<=', $windowEndExclusive)
-            ->when($excludeEntityId !== null, fn ($q) => $q->where('id', '!=', $excludeEntityId));
+            ->when($excludePageId !== null, fn ($q) => $q->where('id', '!=', $excludePageId));
 
         $scheduled = $source
-            ->entities()
+            ->pages()
             ->where('next_scrape_at', '>=', $windowStart)
             ->where('next_scrape_at', '<=', $windowEndExclusive)
-            ->when($excludeEntityId !== null, fn ($q) => $q->where('id', '!=', $excludeEntityId));
+            ->when($excludePageId !== null, fn ($q) => $q->where('id', '!=', $excludePageId));
 
         return $scraped->count() + $scheduled->count();
     }
 
     /**
-     * Evaluate the scraping policy for an entity.
+     * Evaluate the scraping policy for a page.
      */
-    public function evaluate(Entity $entity, ?CarbonInterface $baseTime = null): PolicyResult
+    public function evaluate(Page $page, ?CarbonInterface $baseTime = null): PolicyResult
     {
         $baseTime = $baseTime ?? Carbon::now();
 
-        return $this->performEvaluation($entity, $baseTime);
+        return $this->performEvaluation($page, $baseTime);
     }
 
     /**
      * Perform the actual policy evaluation.
      * This method must be implemented by child classes.
      */
-    abstract protected function performEvaluation(Entity $entity, Carbon $baseTime): PolicyResult;
+    abstract protected function performEvaluation(Page $page, Carbon $baseTime): PolicyResult;
 
     /**
      * Calculate cost factor based on snapshot data.
      * This is calculated from actual historical data, not AI inference.
      * Can be used by any driver that needs to calculate cost factor.
      */
-    protected function calculateCostFactor(Entity $entity): float
+    protected function calculateCostFactor(Page $page): float
     {
         // Query only the recent snapshots we need (last 10) to avoid loading all snapshots
-        $recentSnapshots = $entity->snapshots()
+        $recentSnapshots = $page->snapshots()
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
@@ -191,10 +191,10 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
      * This is calculated from actual historical error rates, not AI inference.
      * Can be used by any driver that needs to calculate error penalty.
      */
-    protected function calculateErrorPenalty(Entity $entity): float
+    protected function calculateErrorPenalty(Page $page): float
     {
         // Query only the recent snapshots we need (last 10) to avoid loading all snapshots
-        $recentSnapshots = $entity->snapshots()
+        $recentSnapshots = $page->snapshots()
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
@@ -229,10 +229,10 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
      * This is calculated from actual historical change percentages, not AI inference.
      * Can be used by any driver that needs to calculate change boost.
      */
-    protected function calculateChangeBoost(Entity $entity): float
+    protected function calculateChangeBoost(Page $page): float
     {
         // Query only the recent snapshots we need (last 10) to avoid loading all snapshots
-        $recentSnapshots = $entity->snapshots()
+        $recentSnapshots = $page->snapshots()
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();

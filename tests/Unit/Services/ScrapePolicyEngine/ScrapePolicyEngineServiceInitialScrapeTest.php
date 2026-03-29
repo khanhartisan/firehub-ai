@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Services\ScrapePolicyEngine;
 
-use App\Models\Entity;
+use App\Models\Page;
 use App\Models\Source;
 use App\Services\ScrapePolicyEngine\Drivers\DummyScrapePolicyEngineDriver;
 use Carbon\Carbon;
@@ -19,11 +19,11 @@ class ScrapePolicyEngineServiceInitialScrapeTest extends TestCase
         parent::tearDown();
     }
 
-    private function createEntity(Source $source, array $overrides = []): Entity
+    private function createPage(Source $source, array $overrides = []): Page
     {
         $url = $overrides['url'] ?? 'https://example.com/page-'.uniqid();
 
-        return Entity::create(array_merge([
+        return Page::create(array_merge([
             'source_id' => $source->id,
             'url' => $url,
             'url_hash' => sha1($url),
@@ -36,7 +36,7 @@ class ScrapePolicyEngineServiceInitialScrapeTest extends TestCase
         /** @var Source $source */
         $source = Source::factory()->create();
         $existing = Carbon::parse('2026-03-25 08:00:00');
-        $entity = $this->createEntity($source, ['next_scrape_at' => $existing]);
+        $entity = $this->createPage($source, ['next_scrape_at' => $existing]);
 
         $driver = new DummyScrapePolicyEngineDriver;
 
@@ -48,7 +48,7 @@ class ScrapePolicyEngineServiceInitialScrapeTest extends TestCase
         Carbon::setTestNow('2026-03-24 12:00:00');
         /** @var Source $source */
         $source = Source::factory()->create();
-        $entity = $this->createEntity($source);
+        $entity = $this->createPage($source);
 
         $driver = new DummyScrapePolicyEngineDriver;
 
@@ -65,10 +65,10 @@ class ScrapePolicyEngineServiceInitialScrapeTest extends TestCase
             'weekly_budget' => 0,
             'monthly_budget' => 0,
         ])->save();
-        $other = $this->createEntity($source);
+        $other = $this->createPage($source);
         $other->forceFill(['scraped_at' => Carbon::parse('2026-03-24 09:00:00')])->save();
 
-        $newEntity = $this->createEntity($source);
+        $newEntity = $this->createPage($source);
 
         $driver = new DummyScrapePolicyEngineDriver;
         $at = $driver->calculateInitialScrapingTime($newEntity);
@@ -86,9 +86,9 @@ class ScrapePolicyEngineServiceInitialScrapeTest extends TestCase
             'weekly_budget' => 0,
             'monthly_budget' => 0,
         ])->save();
-        $scheduled = $this->createEntity($source);
+        $scheduled = $this->createPage($source);
         $scheduled->forceFill(['next_scrape_at' => Carbon::parse('2026-03-24 10:00:00')])->save();
-        $newEntity = $this->createEntity($source);
+        $newEntity = $this->createPage($source);
 
         $driver = new DummyScrapePolicyEngineDriver;
         $at = $driver->calculateInitialScrapingTime($newEntity);
@@ -106,7 +106,7 @@ class ScrapePolicyEngineServiceInitialScrapeTest extends TestCase
             'weekly_budget' => 0,
             'monthly_budget' => 0,
         ])->save();
-        $entity = $this->createEntity($source);
+        $entity = $this->createPage($source);
         $entity->forceFill(['scraped_at' => Carbon::parse('2026-03-24 10:00:00')])->save();
 
         $driver = new DummyScrapePolicyEngineDriver;
@@ -125,10 +125,10 @@ class ScrapePolicyEngineServiceInitialScrapeTest extends TestCase
             'weekly_budget' => 1,
             'monthly_budget' => 0,
         ])->save();
-        $other = $this->createEntity($source);
+        $other = $this->createPage($source);
         $other->forceFill(['scraped_at' => Carbon::parse('2026-03-24 10:00:00')])->save();
 
-        $newEntity = $this->createEntity($source);
+        $newEntity = $this->createPage($source);
 
         $driver = new DummyScrapePolicyEngineDriver;
         $at = $driver->calculateInitialScrapingTime($newEntity);

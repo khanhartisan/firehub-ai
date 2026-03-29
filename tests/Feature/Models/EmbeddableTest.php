@@ -3,10 +3,10 @@
 namespace Tests\Feature\Models;
 
 use App\Contracts\VectorDB\Vector;
-use App\Enums\EntityType;
+use App\Enums\ScrapableType;
 use App\Enums\PageType;
 use App\Enums\ScrapingStatus;
-use App\Models\Entity;
+use App\Models\Page;
 use App\Models\Source;
 use App\Models\Tag;
 use App\Models\Vertical;
@@ -57,23 +57,23 @@ class EmbeddableTest extends TestCase
     public function test_get_unembedded_works_on_entity_vertical_tag(): void
     {
         $source = Source::factory()->create(['base_url' => 'https://example.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/page',
             'url_hash' => sha1('https://example.com/page'),
-            'type' => EntityType::PAGE,
+            'type' => ScrapableType::PAGE,
             'page_type' => PageType::DETAIL,
             'scraping_status' => ScrapingStatus::SUCCESS,
         ]);
         $vertical = Vertical::create(['name' => 'v-' . uniqid()]);
 
-        $this->assertCount(1, Entity::getUnembedded(10));
+        $this->assertCount(1, Page::getUnembedded(10));
         $this->assertCount(1, Vertical::getUnembedded(10));
 
         $entity->update(['is_embedded' => true]);
         $vertical->update(['is_embedded' => true]);
 
-        $this->assertCount(0, Entity::getUnembedded(10));
+        $this->assertCount(0, Page::getUnembedded(10));
         $this->assertCount(0, Vertical::getUnembedded(10));
     }
 

@@ -5,7 +5,7 @@ namespace App\Contracts\PageClassifier;
 /**
  * Classifies scraped HTML into page type, content type, temporal, and tags.
  *
- * Used after fetch in ScrapeEntityJob; result is stored on the entity and used
+ * Used after fetch in ScrapePageJob; result is stored on the page and used
  * by the policy engine. Implementations typically call an AI API (e.g. OpenAI).
  */
 interface Classifier

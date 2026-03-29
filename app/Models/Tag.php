@@ -2,17 +2,17 @@
 
 namespace App\Models;
 
-use App\Contracts\Model\EntityCountable as EntityCountableContract;
-use App\Models\Concerns\EntityCountable;
+use App\Contracts\Model\PageCountable as PageCountableContract;
+use App\Models\Concerns\PageCountable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Tag extends Model implements EntityCountableContract, ShouldCascade
+class Tag extends Model implements PageCountableContract, ShouldCascade
 {
     use Cascades;
-    use EntityCountable;
+    use PageCountable;
 
     protected $fillable = [
         'name',
@@ -20,7 +20,7 @@ class Tag extends Model implements EntityCountableContract, ShouldCascade
 
     public function getCascadeDetails(): CascadeDetails|array
     {
-        return new CascadeDetails($this->hasMany(EntityTag::class));
+        return new CascadeDetails($this->hasMany(PageTag::class));
     }
 
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
@@ -28,10 +28,10 @@ class Tag extends Model implements EntityCountableContract, ShouldCascade
         return true;
     }
 
-    public function entities(): BelongsToMany
+    public function pages(): BelongsToMany
     {
-        return $this->belongsToMany(Entity::class)
-            ->using(EntityTag::class)
-            ->as('entity_tag');
+        return $this->belongsToMany(Page::class)
+            ->using(PageTag::class)
+            ->as('page_tag');
     }
 }

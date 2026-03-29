@@ -4,9 +4,9 @@ namespace Tests\Feature\Jobs;
 
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStatus;
-use App\Jobs\ScrapeEntityJob;
+use App\Jobs\ScrapePageJob;
 use App\Jobs\ScrapeSourcesJob;
-use App\Models\Entity;
+use App\Models\Page;
 use App\Models\Source;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -35,7 +35,7 @@ class ScrapeSourcesJobTest extends TestCase
             'base_url' => 'https://example.com',
         ]);
 
-        $plannedEntity = Entity::create([
+        $plannedEntity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/page',
             'url_hash' => sha1('https://example.com/page'),
@@ -47,16 +47,16 @@ class ScrapeSourcesJobTest extends TestCase
         $job = new ScrapeSourcesJob;
         $job->handle();
 
-        Bus::assertNotDispatched(ScrapeEntityJob::class);
-        $this->assertDatabaseCount('entities', 1);
-        $this->assertDatabaseHas('entities', [
+        Bus::assertNotDispatched(ScrapePageJob::class);
+        $this->assertDatabaseCount('pages', 1);
+        $this->assertDatabaseHas('pages', [
             'id' => $plannedEntity->id,
             'source_id' => $source->id,
             'url' => 'https://example.com/page',
             'url_hash' => sha1('https://example.com/page'),
             'scraping_status' => ScrapingStatus::PENDING->value,
         ]);
-        $this->assertDatabaseMissing('entities', [
+        $this->assertDatabaseMissing('pages', [
             'source_id' => $source->id,
             'url' => 'https://example.com',
         ]);
@@ -73,18 +73,18 @@ class ScrapeSourcesJobTest extends TestCase
         $job = new ScrapeSourcesJob;
         $job->handle();
 
-        $this->assertDatabaseCount('entities', 1);
-        $entity = Entity::where('source_id', $source->id)->where('url', 'https://example.com/')->first();
-        $this->assertNotNull($entity);
-        $this->assertSame($source->id, $entity->source_id);
-        $this->assertSame('https://example.com/', $entity->url);
-        $this->assertSame(sha1('https://example.com/'), $entity->url_hash);
-        $this->assertSame(ScrapingStatus::QUEUED->value, $entity->scraping_status->value);
+        $this->assertDatabaseCount('pages', 1);
+        $page = Page::where('source_id', $source->id)->where('url', 'https://example.com/')->first();
+        $this->assertNotNull($page);
+        $this->assertSame($source->id, $page->source_id);
+        $this->assertSame('https://example.com/', $page->url);
+        $this->assertSame(sha1('https://example.com/'), $page->url_hash);
+        $this->assertSame(ScrapingStatus::QUEUED->value, $page->scraping_status->value);
 
-        Queue::assertPushedOn(QueueEnum::SCRAPING->value, ScrapeEntityJob::class, function (ScrapeEntityJob $job) use ($entity): bool {
-            return $job->entity->id === $entity->id
-                && $job->entity->url === $entity->url
-                && $job->entity->source_id === $entity->source_id;
+        Queue::assertPushedOn(QueueEnum::SCRAPING->value, ScrapePageJob::class, function (ScrapePageJob $job) use ($page): bool {
+            return $job->page->id === $page->id
+                && $job->page->url === $page->url
+                && $job->page->source_id === $page->source_id;
         });
     }
 
@@ -96,7 +96,7 @@ class ScrapeSourcesJobTest extends TestCase
             'base_url' => 'https://example.com/',
         ]);
 
-        $entity = Entity::create([
+        $page = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/',
             'url_hash' => sha1('https://example.com/'),
@@ -107,11 +107,11 @@ class ScrapeSourcesJobTest extends TestCase
         $job = new ScrapeSourcesJob;
         $job->handle();
 
-        $entity->refresh();
-        $this->assertDatabaseCount('entities', 1);
-        $this->assertSame(ScrapingStatus::QUEUED->value, $entity->scraping_status->value);
-        Queue::assertPushedOn(QueueEnum::SCRAPING->value, ScrapeEntityJob::class, function (ScrapeEntityJob $job) use ($entity): bool {
-            return $job->entity->id === $entity->id;
+        $page->refresh();
+        $this->assertDatabaseCount('pages', 1);
+        $this->assertSame(ScrapingStatus::QUEUED->value, $page->scraping_status->value);
+        Queue::assertPushedOn(QueueEnum::SCRAPING->value, ScrapePageJob::class, function (ScrapePageJob $job) use ($page): bool {
+            return $job->page->id === $page->id;
         });
     }
 
@@ -126,8 +126,8 @@ class ScrapeSourcesJobTest extends TestCase
         $job = new ScrapeSourcesJob;
         $job->handle();
 
-        $this->assertDatabaseCount('entities', 0);
-        Queue::assertNotPushed(ScrapeEntityJob::class);
+        $this->assertDatabaseCount('pages', 0);
+        Queue::assertNotPushed(ScrapePageJob::class);
     }
 
     public function test_skips_source_when_base_url_is_invalid(): void
@@ -141,8 +141,8 @@ class ScrapeSourcesJobTest extends TestCase
         $job = new ScrapeSourcesJob;
         $job->handle();
 
-        $this->assertDatabaseCount('entities', 0);
-        Queue::assertNotPushed(ScrapeEntityJob::class);
+        $this->assertDatabaseCount('pages', 0);
+        Queue::assertNotPushed(ScrapePageJob::class);
     }
 
     public function test_does_not_dispatch_when_queue_is_full(): void
@@ -157,15 +157,15 @@ class ScrapeSourcesJobTest extends TestCase
         $job = new ScrapeSourcesJob;
         $job->handle();
 
-        $this->assertDatabaseCount('entities', 1);
-        $entity = Entity::where('source_id', $source->id)->where('url', 'https://example.com/')->first();
+        $this->assertDatabaseCount('pages', 1);
+        $entity = Page::where('source_id', $source->id)->where('url', 'https://example.com/')->first();
         $this->assertNotNull($entity);
         $this->assertSame($source->id, $entity->source_id);
         $this->assertSame('https://example.com/', $entity->url);
         $this->assertSame(sha1('https://example.com/'), $entity->url_hash);
         $this->assertSame(ScrapingStatus::PENDING->value, $entity->scraping_status->value);
         $this->assertDatabaseCount('snapshots', 0);
-        Queue::assertNotPushed(ScrapeEntityJob::class);
+        Queue::assertNotPushed(ScrapePageJob::class);
     }
 
     public function test_processes_sources_in_chunks_ordered_by_updated_at_desc(): void
@@ -179,20 +179,20 @@ class ScrapeSourcesJobTest extends TestCase
         $job = new ScrapeSourcesJob;
         $job->handle();
 
-        $this->assertDatabaseCount('entities', 2);
-        $this->assertDatabaseHas('entities', [
+        $this->assertDatabaseCount('pages', 2);
+        $this->assertDatabaseHas('pages', [
             'source_id' => $source1->id,
             'url' => 'https://first.com/',
             'url_hash' => sha1('https://first.com/'),
             'scraping_status' => ScrapingStatus::QUEUED->value,
         ]);
-        $this->assertDatabaseHas('entities', [
+        $this->assertDatabaseHas('pages', [
             'source_id' => $source2->id,
             'url' => 'https://second.com/',
             'url_hash' => sha1('https://second.com/'),
             'scraping_status' => ScrapingStatus::QUEUED->value,
         ]);
-        Queue::assertPushed(ScrapeEntityJob::class, 2);
+        Queue::assertPushed(ScrapePageJob::class, 2);
     }
 
     public function test_stops_processing_after_timeout(): void
@@ -208,6 +208,6 @@ class ScrapeSourcesJobTest extends TestCase
         $job = new ScrapeSourcesJob;
         $job->handle();
 
-        $this->assertLessThanOrEqual(2, Entity::count());
+        $this->assertLessThanOrEqual(2, Page::count());
     }
 }

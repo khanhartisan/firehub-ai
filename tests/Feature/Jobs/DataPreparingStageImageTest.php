@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Jobs;
 
-use App\Jobs\ScrapeEntityJobConcerns\DataPreparingStage;
-use App\Models\Entity;
+use App\Jobs\ScrapePageJobConcerns\DataPreparingStage;
+use App\Models\Page;
 use App\Models\Snapshot;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -18,7 +18,7 @@ class DataPreparingStageImageTest extends TestCase
         $entityId = (string) Str::ulid();
         $snapshotId = (string) Str::ulid();
 
-        $entity = new Entity([
+        $entity = new Page([
             'id' => $entityId,
             'url' => 'https://example.com/image',
             'url_hash' => sha1('https://example.com/image'),
@@ -30,7 +30,7 @@ class DataPreparingStageImageTest extends TestCase
 
         $snapshot = new Snapshot([
             'id' => $snapshotId,
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'version' => 1,
             'file_extension' => 'jpg',
             'file_path' => 'originals/'.$entity->id.'/sample-big-image.jpg',
@@ -44,9 +44,9 @@ class DataPreparingStageImageTest extends TestCase
         $runner = new class {
             use DataPreparingStage;
 
-            public function run(Entity $entity): bool
+            public function run(Page $page): bool
             {
-                return $this->prepareData($entity);
+                return $this->prepareData($page);
             }
         };
 
@@ -72,7 +72,7 @@ class DataPreparingStageImageTest extends TestCase
         $entityId = (string) Str::ulid();
         $snapshotId = (string) Str::ulid();
 
-        $entity = new Entity([
+        $entity = new Page([
             'id' => $entityId,
             'url' => 'https://example.com/image',
             'url_hash' => sha1('https://example.com/image'),
@@ -84,7 +84,7 @@ class DataPreparingStageImageTest extends TestCase
 
         $snapshot = new Snapshot([
             'id' => $snapshotId,
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'version' => 1,
             'file_extension' => 'jpg',
             'file_path' => 'originals/'.$entity->id.'/sample-big-image.jpg',
@@ -99,9 +99,9 @@ class DataPreparingStageImageTest extends TestCase
         $runner = new class {
             use DataPreparingStage;
 
-            public function run(Entity $entity): bool
+            public function run(Page $page): bool
             {
-                return $this->prepareData($entity);
+                return $this->prepareData($page);
             }
         };
 

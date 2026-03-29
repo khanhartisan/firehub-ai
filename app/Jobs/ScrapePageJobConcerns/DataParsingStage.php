@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Jobs\ScrapePageJobConcerns;
+
+use App\Facades\PageParser;
+use App\Models\Page;
+use App\Models\Snapshot;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+
+trait DataParsingStage
+{
+    protected function parseData(Page $page): bool
+    {
+        if (env('APP_DEBUG')) {
+            dump('Parse data, entity '.$page->id);
+        }
+
+        if (!$snapshot = $page->currentSnapshot
+            or !in_array($snapshot->file_extension, ['html', 'txt'])
+        ) {
+            return false;
+        }
+
+        $cleanHtmlFilePath = $this->getFilePathForCleanHtml($snapshot);
+        if (!$cleanedHtml = Storage::get($cleanHtmlFilePath)) {
+            return false;
+        }
+
+        $pageData = PageParser::parse($cleanedHtml);
+
+        if (!Storage::put($this->getFilePathForPageData($snapshot), $pageData->toJson())) {
+            return false;
+        }
+
+        $linkedUrls = $pageData->getLinkedPageUrls();
+        $contentLength = strlen($pageData->getMarkdownContent());
+        $linksCount = count($linkedUrls);
+        if ($linksCount === 0 && $pageData->getMarkdownContent() !== '') {
+            $linksCount = $this->countLinksInMarkdown($pageData->getMarkdownContent());
+        }
+        $mediaCount = $this->countMediaInMarkdown($pageData->getMarkdownContent());
+
+        $saved = false;
+        DB::transaction(function () use ($page, $snapshot,
+            $linksCount, $mediaCount, $contentLength,
+            $pageData, &$saved
+        ) {
+            $page->title = $pageData->getTitle();
+            $page->description = $pageData->getExcerpt();
+            $page->source_published_at = $pageData->getPublishedAt();
+            $page->source_updated_at = $pageData->getUpdatedAt();
+            $page->canonical_number = $pageData->getCanonicalNumber() ?? 0;
+
+            $snapshot->links_count = $linksCount;
+            $snapshot->media_count = $mediaCount;
+            $snapshot->content_length = $contentLength;
+
+            $saved = $page->save() and $snapshot->save();
+        });
+
+        return $saved;
+    }
+
+    protected function getFilePathForPageData(Snapshot $snapshot): string
+    {
+        return 'snapshots/'.$snapshot->page_id.'/'.$snapshot->id.'/page-data.json';
+    }
+}

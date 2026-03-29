@@ -29,8 +29,8 @@ Schedule::job(new ScheduleScrapeDueJob(limit: 50))->everyMinute();
 |--------------------------------------------------------------------------
 | ScrapeSourcesJob: home-page scrape when source has nothing planned
 |--------------------------------------------------------------------------
-| For each source: if it has any planned (due) scrape entity, skip. Otherwise
-| ensure an entity exists for its base_url and dispatch ScrapeEntityJob (home page).
+| For each source: if it has any planned (due) scrape page, skip. Otherwise
+| ensure a page exists for its base_url and dispatch ScrapePageJob (home page).
 */
 Schedule::job(new ScrapeSourcesJob)->everyMinute();
 

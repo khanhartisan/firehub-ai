@@ -38,7 +38,7 @@ return [
     | Max Scrape Attempts
     |--------------------------------------------------------------------------
     |
-    | After this many failed scrape attempts, the entity is no longer queued.
+    | After this many failed scrape attempts, the page is no longer queued.
     | Set via SCRAPE_MAX_ATTEMPTS (default: 5).
     |
     */

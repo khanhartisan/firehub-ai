@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStatus;
-use App\Models\Entity;
+use App\Models\Page;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -57,7 +57,7 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     }
 
     /**
-     * Execute the job: queue due entities, then re-dispatch self immediately.
+     * Execute the job: queue due pages, then re-dispatch self immediately.
      * ShouldBeUniqueUntilProcessing: only one job in queue at a time (no spam).
      * In-job Cache::lock: only one execution at a time (no race with multiple workers).
      */
@@ -84,23 +84,23 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         // Dispatch jobs
         foreach (ScrapingStatus::cases() as $scrapingStatus) {
-            $query = Entity::query()
+            $query = Page::query()
                 ->where('scraping_status', $scrapingStatus)
                 ->whereNotNull('next_scrape_at')
                 ->where('next_scrape_at', '<=', now())
                 ->orderBy('next_scrape_at');
 
-            $dispatched += $this->dispatchScrapeEntityJobs($query);
+            $dispatched += $this->dispatchScrapePageJobs($query);
         }
 
         return $dispatched;
     }
 
     /**
-     * @param Builder $entityQuery
-     * @return int The number of entities dispatched
+     * @param Builder $pageQuery
+     * @return int The number of pages dispatched
      */
-    private function dispatchScrapeEntityJobs(Builder $entityQuery): int
+    private function dispatchScrapePageJobs(Builder $pageQuery): int
     {
         $queue = QueueEnum::SCRAPING;
         $queueName = $queue->value;
@@ -112,34 +112,34 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         $toDispatch = min($this->limit, $slotsAvailable);
 
-        $entities = $entityQuery->take($toDispatch)->get();
+        $pages = $pageQuery->take($toDispatch)->get();
 
-        if ($entities->isEmpty()) {
+        if ($pages->isEmpty()) {
             return 0;
         }
 
-        $ids = $entities->pluck('id')->toArray();
+        $ids = $pages->pluck('id')->toArray();
         DB::transaction(function () use ($ids) {
-            Entity::query()
+            Page::query()
                 ->whereIn('id', $ids)
                 ->lockForUpdate()
                 ->get()
-                ->each(function (Entity $entity) {
-                    $entity->scraping_status  = ScrapingStatus::QUEUED;
-                    $entity->save();
+                ->each(function (Page $page) {
+                    $page->scraping_status  = ScrapingStatus::QUEUED;
+                    $page->save();
                 });
         });
 
-        foreach ($entities as $entity) {
-            ScrapeEntityJob::dispatch($entity)->onQueue($queueName);
+        foreach ($pages as $page) {
+            ScrapePageJob::dispatch($page)->onQueue($queueName);
         }
 
         $maxQueueSize = $queue->maxSize();
         $currentSize = Queue::size($queueName);
-        Log::debug('ScheduleScrapeDueJob: Queued '.$entities->count().' entities for scraping.', [
-            'queue' => $currentSize.' → '.($currentSize + $entities->count()).'/'.$maxQueueSize,
+        Log::debug('ScheduleScrapeDueJob: Queued '.$pages->count().' pages for scraping.', [
+            'queue' => $currentSize.' → '.($currentSize + $pages->count()).'/'.$maxQueueSize,
         ]);
 
-        return $entities->count();
+        return $pages->count();
     }
 }

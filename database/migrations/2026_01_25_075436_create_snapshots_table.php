@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('snapshots', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->ulid('entity_id');
+            $table->ulid('page_id');
             $table->unsignedTinyInteger('scraping_status')
                 ->default(\App\Enums\ScrapingStatus::PENDING->value);
 
@@ -40,7 +40,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->index(['entity_id', 'created_at']);
+            $table->index(['page_id', 'created_at']);
         });
     }
 

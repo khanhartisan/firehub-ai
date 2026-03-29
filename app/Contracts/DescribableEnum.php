@@ -5,7 +5,7 @@ namespace App\Contracts;
 /**
  * Enums that can be turned into a human-readable description string.
  *
- * Used for labels in admin or logs (e.g. ScrapingStatus, EntityType).
+ * Used for labels in admin or logs (e.g. ScrapingStatus, ScrapableType).
  */
 interface DescribableEnum
 {

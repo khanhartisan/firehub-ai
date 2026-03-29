@@ -7,7 +7,7 @@ use Psr\Http\Message\ResponseInterface;
 /**
  * Fetches a URL and returns a PSR-7 response (e.g. HTML body).
  *
- * Default implementation uses Guzzle. Used by ScrapeEntityJob to fetch page content
+ * Default implementation uses Guzzle. Used by ScrapePageJob to fetch page content
  * before classification, parsing, and snapshot storage.
  */
 interface Scraper

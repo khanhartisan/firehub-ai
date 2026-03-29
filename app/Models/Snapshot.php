@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Snapshot extends Model
 {
     protected $fillable = [
-        'entity_id',
+        'page_id',
         'scraping_status',
         'version',
         'file_path',
@@ -26,8 +26,8 @@ class Snapshot extends Model
         'links_count' => 'integer',
     ];
 
-    public function entity(): BelongsTo
+    public function page(): BelongsTo
     {
-        return $this->belongsTo(Entity::class);
+        return $this->belongsTo(Page::class);
     }
 }

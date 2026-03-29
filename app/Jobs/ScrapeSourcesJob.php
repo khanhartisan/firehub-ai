@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStatus;
-use App\Models\Entity;
+use App\Models\Page;
 use App\Models\Source;
 use App\Utils\UrlNormalizer;
 use Illuminate\Bus\Queueable;
@@ -41,7 +41,7 @@ class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
     /**
      * Execute the job: process sources in chunks (order by updated_at),
      * with a timeout so we stop after max seconds. For each source with no planned
-     * scrape entity, ensure an entity exists for its base_url and dispatch ScrapeEntityJob.
+     * scrape page, ensure a page exists for its base_url and dispatch ScrapePageJob.
      */
     public function handle(): void
     {
@@ -66,7 +66,7 @@ class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
 
     protected function processSource(Source $source): void
     {
-        if ($this->sourceHasPlannedScrapeEntity($source)) {
+        if ($this->sourceHasPlannedScrapePage($source)) {
             return;
         }
 
@@ -75,39 +75,39 @@ class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $entity = Entity::query()
+        $page = Page::query()
             ->where('source_id', $source->id)
             ->where('url_hash', sha1($baseUrl))
             ->first();
 
-        if ($entity === null) {
-            $entity = Entity::query()->create([
+        if ($page === null) {
+            $page = Page::query()->create([
                 'source_id' => $source->id,
                 'url' => $baseUrl,
             ]);
         }
 
-        if (($entity->next_scrape_at
-                and $entity->next_scrape_at->gte(now())
+        if (($page->next_scrape_at
+                and $page->next_scrape_at->gte(now())
             ) or !QueueEnum::SCRAPING->canDispatch()
         ) {
             return;
         }
 
-        $entity->scraping_status = ScrapingStatus::QUEUED;
-        DB::transaction(fn () => $entity->save());
+        $page->scraping_status = ScrapingStatus::QUEUED;
+        DB::transaction(fn () => $page->save());
 
-        ScrapeEntityJob::dispatch($entity);
+        ScrapePageJob::dispatch($page);
     }
 
     /**
-     * Whether the source has at least one entity that is due for scraping (planned).
+     * Whether the source has at least one page that is due for scraping (planned).
      */
-    protected function sourceHasPlannedScrapeEntity(Source $source): bool
+    protected function sourceHasPlannedScrapePage(Source $source): bool
     {
         $maxAttempts = config('queue.max_scrape_attempts');
 
-        return Entity::query()
+        return Page::query()
             ->where('source_id', $source->id)
             ->where('scraping_status', ScrapingStatus::PENDING)
             ->where('attempts', '<', $maxAttempts)

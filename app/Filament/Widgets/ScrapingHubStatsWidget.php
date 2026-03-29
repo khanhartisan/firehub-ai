@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Entity;
+use App\Models\Page;
 use App\Models\Snapshot;
 use App\Models\Source;
 use App\Models\Vertical;
@@ -22,13 +22,13 @@ class ScrapingHubStatsWidget extends BaseWidget
     {
         $verticalsCount = Vertical::query()->count();
         $sourcesCount = Source::query()->count();
-        $entitiesCount = Entity::query()->count();
+        $pagesCount = Page::query()->count();
         $snapshotsCount = Snapshot::query()->count();
 
-        $entitiesPerDay = [];
+        $pagesPerDay = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i)->startOfDay();
-            $entitiesPerDay[] = Entity::query()
+            $pagesPerDay[] = Page::query()
                 ->whereDate('created_at', $date)
                 ->count();
         }
@@ -42,10 +42,10 @@ class ScrapingHubStatsWidget extends BaseWidget
                 ->description('Base URLs to scrape')
                 ->descriptionIcon(Heroicon::OutlinedLink)
                 ->color('success'),
-            Stat::make('Entities', $entitiesCount)
-                ->description('Pages & assets tracked (last 7 days)')
+            Stat::make('Pages', $pagesCount)
+                ->description('Tracked URLs (last 7 days trend)')
                 ->descriptionIcon(Heroicon::OutlinedDocumentText)
-                ->chart($entitiesPerDay)
+                ->chart($pagesPerDay)
                 ->color('info'),
             Stat::make('Snapshots', $snapshotsCount)
                 ->description('Content versions stored')

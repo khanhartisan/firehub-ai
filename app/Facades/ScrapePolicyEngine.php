@@ -2,14 +2,14 @@
 
 namespace App\Facades;
 
-use App\Models\Entity;
+use App\Models\Page;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static \App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine driver(string|null $driver = null)
- * @method static \App\Contracts\ScrapePolicyEngine\PolicyResult evaluate(Entity $entity, ?CarbonInterface $baseTime = null)
- * @method static CarbonInterface calculateInitialScrapingTime(Entity $entity)
+ * @method static \App\Contracts\ScrapePolicyEngine\PolicyResult evaluate(Page $page, ?CarbonInterface $baseTime = null)
+ * @method static CarbonInterface calculateInitialScrapingTime(Page $page)
  *
  * @see \App\Services\ScrapePolicyEngine\ScrapePolicyEngineManager
  */

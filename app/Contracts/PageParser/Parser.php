@@ -5,8 +5,8 @@ namespace App\Contracts\PageParser;
 /**
  * Parses scraped HTML into structured page data (title, excerpt, markdown, links).
  *
- * Used after fetch in ScrapeEntityJob; PageData provides excerpt for the entity,
- * markdown for storage, and linked URLs for discovering new entities to scrape.
+ * Used after fetch in ScrapePageJob; PageData provides excerpt for the page,
+ * markdown for storage, and linked URLs for discovering new pages to scrape.
  * Implementations typically use an AI API (e.g. OpenAI).
  */
 interface Parser

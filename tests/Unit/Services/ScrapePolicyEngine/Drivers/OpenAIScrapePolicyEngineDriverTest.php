@@ -6,11 +6,11 @@ use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response as ResponseObject;
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
 use App\Enums\ContentType;
-use App\Enums\EntityType;
+use App\Enums\ScrapableType;
 use App\Enums\PageType;
 use App\Enums\ScrapingStatus;
 use App\Enums\Temporal;
-use App\Models\Entity;
+use App\Models\Page;
 use App\Models\Snapshot;
 use App\Models\Source;
 use App\Services\ScrapePolicyEngine\Drivers\OpenAIScrapePolicyEngineDriver;
@@ -33,9 +33,9 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_evaluates_an_entity_successfully(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
-            'type' => EntityType::PAGE,
+            'type' => ScrapableType::PAGE,
             'page_type' => PageType::DETAIL,
             'content_type' => ContentType::ARTICLE,
             'temporal' => Temporal::BREAKING,
@@ -85,7 +85,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_calculates_change_boost_from_snapshots(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -93,11 +93,11 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
 
         // Create snapshots with change percentages
         Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'content_change_percentage' => 75.0, // 75% change
         ]);
         Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'content_change_percentage' => 50.0, // 50% change
         ]);
 
@@ -139,7 +139,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_calculates_cost_factor_from_snapshots(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -147,7 +147,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
 
         // Create snapshots with cost data
         Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'cost' => 5.0,
             'content_length' => 500000,
             'media_count' => 10,
@@ -195,7 +195,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_calculates_error_penalty_from_snapshots(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -203,15 +203,15 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
 
         // Create snapshots with error statuses
         Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'scraping_status' => ScrapingStatus::SUCCESS,
         ]);
         Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'scraping_status' => ScrapingStatus::FAILED,
         ]);
         Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'scraping_status' => ScrapingStatus::TIMEOUT,
         ]);
 
@@ -252,7 +252,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_uses_default_change_boost_when_no_snapshots(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -295,7 +295,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_uses_default_cost_factor_when_no_snapshots(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -338,7 +338,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_uses_default_error_penalty_when_no_snapshots(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -381,7 +381,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_uses_json_schema_in_response_format(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -434,7 +434,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_uses_custom_model_from_config(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -482,7 +482,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_throws_exception_when_openai_api_fails(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -505,7 +505,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_throws_exception_when_openai_returns_empty_response(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -533,7 +533,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_throws_exception_when_response_contains_refusal(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -571,7 +571,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_throws_exception_for_invalid_json_response(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -609,7 +609,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_includes_calculated_factors_in_prompt(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
@@ -617,7 +617,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
 
         // Create snapshots to generate calculated factors
         Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'content_change_percentage' => 50.0,
             'cost' => 2.0,
             'scraping_status' => ScrapingStatus::SUCCESS,
@@ -671,14 +671,14 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_handles_entity_with_current_snapshot(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),
         ]);
 
         $currentSnapshot = Snapshot::create([
-            'entity_id' => $entity->id,
+            'page_id' => $entity->id,
             'version' => 1,
             'content_length' => 10000,
             'structured_data_count' => 5,
@@ -723,7 +723,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
     public function test_it_handles_different_next_scrape_at_hours(): void
     {
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
-        $entity = Entity::create([
+        $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/article',
             'url_hash' => sha1('https://example.com/article'),

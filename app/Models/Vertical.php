@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Contracts\Model\EntityCountable as EntityCountableContract;
-use App\Models\Concerns\EntityCountable;
+use App\Contracts\Model\PageCountable as PageCountableContract;
+use App\Models\Concerns\PageCountable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,10 +11,10 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Vertical extends EmbeddableModel implements EntityCountableContract, ShouldCascade
+class Vertical extends EmbeddableModel implements PageCountableContract, ShouldCascade
 {
     use Cascades;
-    use EntityCountable;
+    use PageCountable;
 
     protected $fillable = [
         'name',
@@ -61,7 +61,7 @@ class Vertical extends EmbeddableModel implements EntityCountableContract, Shoul
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            new CascadeDetails($this->entities()),
+            new CascadeDetails($this->pages()),
             new CascadeDetails($this->children()),
             new CascadeDetails($this->hasMany(SourceVertical::class))
         ];
@@ -72,11 +72,11 @@ class Vertical extends EmbeddableModel implements EntityCountableContract, Shoul
         return true;
     }
 
-    public function entities(): BelongsToMany
+    public function pages(): BelongsToMany
     {
-        return $this->belongsToMany(Entity::class)
-            ->using(EntityVertical::class)
-            ->as('entity_vertical');
+        return $this->belongsToMany(Page::class)
+            ->using(PageVertical::class)
+            ->as('page_vertical');
     }
 
     public function sources(): BelongsToMany

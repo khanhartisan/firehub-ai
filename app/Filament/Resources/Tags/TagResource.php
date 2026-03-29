@@ -44,9 +44,9 @@ class TagResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('entities_count')
-                    ->counts('entities')
-                    ->label('Entities')
+                TextColumn::make('pages_count')
+                    ->counts('pages')
+                    ->label('Pages')
                     ->sortable(),
             ])
             ->filters([

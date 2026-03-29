@@ -10,9 +10,9 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use App\Filament\Widgets\EntitiesByStatusChartWidget;
-use App\Filament\Widgets\EntitiesByTypeChartWidget;
-use App\Filament\Widgets\EntitiesOverTimeChartWidget;
+use App\Filament\Widgets\PagesByStatusChartWidget;
+use App\Filament\Widgets\PagesByTypeChartWidget;
+use App\Filament\Widgets\PagesOverTimeChartWidget;
 use App\Filament\Widgets\ScrapingHubStatsWidget;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
@@ -49,9 +49,9 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 ScrapingHubStatsWidget::class,
-                EntitiesByStatusChartWidget::class,
-                EntitiesByTypeChartWidget::class,
-                EntitiesOverTimeChartWidget::class,
+                PagesByStatusChartWidget::class,
+                PagesByTypeChartWidget::class,
+                PagesOverTimeChartWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

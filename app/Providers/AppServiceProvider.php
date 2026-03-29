@@ -12,11 +12,11 @@ use App\Contracts\TextEmbedding\TextEmbedding as TextEmbeddingContract;
 use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VerticalResolver\VerticalResolver;
 use App\Models\Client;
-use App\Models\Entity;
-use App\Models\EntityCount;
-use App\Models\EntityRelation;
-use App\Models\EntityTag;
-use App\Models\EntityVertical;
+use App\Models\Page;
+use App\Models\PageCount;
+use App\Models\PageRelation;
+use App\Models\PageTag;
+use App\Models\PageVertical;
 use App\Models\Model;
 use App\Models\Snapshot;
 use App\Models\Source;
@@ -84,11 +84,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $models = [
             Client::class,
-            Entity::class,
-            EntityCount::class,
-            EntityRelation::class,
-            EntityTag::class,
-            EntityVertical::class,
+            Page::class,
+            PageCount::class,
+            PageRelation::class,
+            PageTag::class,
+            PageVertical::class,
             Snapshot::class,
             Source::class,
             SourceVertical::class,

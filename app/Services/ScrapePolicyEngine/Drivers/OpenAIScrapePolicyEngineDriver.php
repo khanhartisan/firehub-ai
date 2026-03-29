@@ -6,7 +6,7 @@ use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
-use App\Models\Entity;
+use App\Models\Page;
 use App\Services\ScrapePolicyEngine\ScrapePolicyEngineService;
 use Carbon\Carbon;
 use RuntimeException;
@@ -28,14 +28,14 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
     /**
      * Perform policy evaluation using OpenAI with JSON schema structured output.
      */
-    protected function performEvaluation(Entity $entity, Carbon $baseTime): PolicyResult
+    protected function performEvaluation(Page $page, Carbon $baseTime): PolicyResult
     {
         // Calculate factors once and reuse for both the prompt and the result
-        $changeBoost = $this->calculateChangeBoost($entity);
-        $costFactor = $this->calculateCostFactor($entity);
-        $errorPenalty = $this->calculateErrorPenalty($entity);
+        $changeBoost = $this->calculateChangeBoost($page);
+        $costFactor = $this->calculateCostFactor($page);
+        $errorPenalty = $this->calculateErrorPenalty($page);
 
-        $prompt = $this->buildEvaluationPrompt($entity, $baseTime, $changeBoost, $costFactor, $errorPenalty);
+        $prompt = $this->buildEvaluationPrompt($page, $baseTime, $changeBoost, $costFactor, $errorPenalty);
         $jsonSchema = $this->buildJsonSchema();
 
         $input = ResponseInput::text($prompt);
@@ -69,7 +69,7 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
             );
         }
 
-        $result = $this->parseResponse($responseText, $baseTime, $entity);
+        $result = $this->parseResponse($responseText, $baseTime, $page);
 
         // Set calculated factors (already computed above for the prompt)
         $result->setChangeBoost($changeBoost);
@@ -86,48 +86,48 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
      * @param  float  $costFactor  Pre-calculated cost factor (from snapshot data)
      * @param  float  $errorPenalty  Pre-calculated error penalty (from snapshot data)
      */
-    protected function buildEvaluationPrompt(Entity $entity, Carbon $baseTime, float $changeBoost, float $costFactor, float $errorPenalty): string
+    protected function buildEvaluationPrompt(Page $page, Carbon $baseTime, float $changeBoost, float $costFactor, float $errorPenalty): string
     {
         // Load only the relationships we need, avoiding loading all snapshots
-        $entity->loadMissing(['currentSnapshot', 'source']);
+        $page->loadMissing(['currentSnapshot', 'source']);
 
         // Get snapshot count without loading all snapshots
-        $snapshotCount = $entity->snapshots()->count();
+        $snapshotCount = $page->snapshots()->count();
 
         // Query only the recent snapshots we need (last 5) for metrics calculation
-        $recentSnapshots = $entity->snapshots()
+        $recentSnapshots = $page->snapshots()
             ->orderByDesc('created_at')
             ->limit(5)
             ->get();
 
-        $currentSnapshot = $entity->currentSnapshot;
+        $currentSnapshot = $page->currentSnapshot;
 
         // Calculate metrics from recent snapshots
         $avgChangePercentage = $recentSnapshots->whereNotNull('content_change_percentage')
             ->avg('content_change_percentage') ?? 0.0;
         $avgCost = $recentSnapshots->whereNotNull('cost')->avg('cost') ?? 0.0;
-        $lastScrapeAt = $entity->scraped_at;
+        $lastScrapeAt = $page->scraped_at;
         $daysSinceLastScrape = $lastScrapeAt ? $baseTime->diffInDays($lastScrapeAt) : null;
 
-        // Build entity context
-        $entityContext = [
-            'URL' => $entity->url,
-            'Type' => $entity->type?->value ?? 'unclassified',
-            'Page Type' => $entity->page_type?->value ?? 'unknown',
-            'Content Type' => $entity->content_type?->value ?? 'unknown',
-            'Temporal Nature' => $entity->temporal?->value ?? 'unknown',
-            'Scraping Status' => $entity->scraping_status?->value ?? 'pending',
+        // Build page context
+        $pageContext = [
+            'URL' => $page->url,
+            'Type' => $page->type?->value ?? 'unclassified',
+            'Page Type' => $page->page_type?->value ?? 'unknown',
+            'Content Type' => $page->content_type?->value ?? 'unknown',
+            'Temporal Nature' => $page->temporal?->value ?? 'unknown',
+            'Scraping Status' => $page->scraping_status?->value ?? 'pending',
             'Total Snapshots' => $snapshotCount,
             'Last Scraped' => $lastScrapeAt?->toIso8601String() ?? 'never',
             'Days Since Last Scrape' => $daysSinceLastScrape ?? 'N/A',
-            'Source Published At' => $entity->source_published_at?->toIso8601String() ?? 'unknown',
-            'Source Updated At' => $entity->source_updated_at?->toIso8601String() ?? 'unknown',
-            'Source Authority Score' => $entity->source?->authority_score ?? 0,
-            'Source Priority' => round($entity->source?->priority ?? 0.5, 2),
+            'Source Published At' => $page->source_published_at?->toIso8601String() ?? 'unknown',
+            'Source Updated At' => $page->source_updated_at?->toIso8601String() ?? 'unknown',
+            'Source Authority Score' => $page->source?->authority_score ?? 0,
+            'Source Priority' => round($page->source?->priority ?? 0.5, 2),
         ];
 
         if ($currentSnapshot) {
-            $entityContext['Current Snapshot'] = [
+            $pageContext['Current Snapshot'] = [
                 'Content Length' => $currentSnapshot->content_length ?? 'unknown',
                 'Structured Data Count' => $currentSnapshot->structured_data_count ?? 0,
                 'Media Count' => $currentSnapshot->media_count ?? 0,
@@ -136,13 +136,13 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
             ];
         }
 
-        $entityContext['Recent Snapshot Metrics'] = [
+        $pageContext['Recent Snapshot Metrics'] = [
             'Average Change Percentage' => round($avgChangePercentage, 2),
             'Average Cost' => round($avgCost, 2),
         ];
 
         // Add calculated factors with explanations
-        $entityContext['Calculated Factors (from historical snapshot data)'] = [
+        $pageContext['Calculated Factors (from historical snapshot data)'] = [
             'change_boost' => [
                 'value' => round($changeBoost, 2),
                 'explanation' => 'How frequently this content changes based on historical content_change_percentage. Higher values (0.7-1.0) indicate frequently changing content, lower values (0.0-0.4) indicate static content.',
@@ -157,14 +157,14 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
             ],
         ];
 
-        $contextJson = json_encode($entityContext, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        $contextJson = json_encode($pageContext, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
         return <<<PROMPT
 You are a scraping policy engine that evaluates when and how frequently web pages should be scraped.
 
-Analyze the following entity information and determine optimal scraping policy metrics.
+Analyze the following page information and determine optimal scraping policy metrics.
 
-Entity Information:
+Page information:
 {$contextJson}
 
 Guidelines for evaluation:
@@ -186,7 +186,7 @@ Use these calculated factors and the source authority score to inform your decis
    - Low (0.0-0.4): Low-value or archival content
    - Consider: content type, page type, structured data presence, and Source Authority Score (higher authority = typically higher value)
 
-2. **priority** (0.0-1.0): Overall priority for scraping this entity
+2. **priority** (0.0-1.0): Overall priority for scraping this page
    - High (0.7-1.0): Critical, high-value, frequently changing content
    - Medium (0.4-0.7): Standard priority content
    - Low (0.0-0.4): Low-priority, archival, or rarely accessed content
@@ -209,7 +209,7 @@ Use these calculated factors and the source authority score to inform your decis
 
 Base Time: {$baseTime->toIso8601String()}
 
-Evaluate the entity and return the policy metrics according to the schema.
+Evaluate the page and return the policy metrics according to the schema.
 PROMPT;
     }
 
@@ -231,7 +231,7 @@ PROMPT;
                 ],
                 'priority' => [
                     'type' => 'number',
-                    'description' => 'Overall priority for scraping this entity (0.0-1.0)',
+                    'description' => 'Overall priority for scraping this page (0.0-1.0)',
                     'minimum' => 0.0,
                     'maximum' => 1.0,
                 ],
@@ -276,7 +276,7 @@ PROMPT;
      * Parse the policy evaluation response from OpenAI.
      * With structured outputs, the response should already be valid JSON matching our schema.
      */
-    protected function parseResponse(string $responseText, Carbon $baseTime, Entity $entity): PolicyResult
+    protected function parseResponse(string $responseText, Carbon $baseTime, Page $page): PolicyResult
     {
         $data = json_decode($responseText, true);
 

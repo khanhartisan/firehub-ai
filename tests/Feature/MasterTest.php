@@ -19,7 +19,7 @@ use App\Facades\VerticalResolver;
 use App\Jobs\EmbeddingJob;
 use App\Jobs\ScheduleEmbeddingJob;
 use App\Jobs\ScrapeSourcesJob;
-use App\Models\Entity;
+use App\Models\Page;
 use App\Models\Snapshot;
 use App\Models\Source;
 use Carbon\Carbon;
@@ -36,7 +36,7 @@ use Tests\TestCase;
  * End-to-end exercise of the main product pipeline (with external I/O mocked):
  *
  * 1. Scheduler-style source intake: {@see ScrapeSourcesJob} ensures a home-page entity and
- *    dispatches {@see \App\Jobs\ScrapeEntityJob} (runs on the sync queue in tests).
+ *    dispatches {@see \App\Jobs\ScrapePageJob} (runs on the sync queue in tests).
  * 2. Scrape stages: HTTP fetch via {@see Scraper}, HTML stored on the default disk, snapshot +
  *    entity updated using classifier, parser, policy, and vertical resolver facades.
  * 3. Embedding scheduler: {@see ScheduleEmbeddingJob} discovers morph-mapped embeddable models
@@ -109,7 +109,7 @@ class MasterTest extends TestCase
 
         (new ScrapeSourcesJob)->handle();
 
-        $entity = Entity::query()
+        $entity = Page::query()
             ->where('source_id', $source->id)
             ->where('url', self::BASE_URL)
             ->first();
@@ -122,7 +122,7 @@ class MasterTest extends TestCase
         $this->assertFalse($entity->isEmbedded());
 
         $this->assertDatabaseCount('snapshots', 1);
-        $snapshot = Snapshot::where('entity_id', $entity->id)->first();
+        $snapshot = Snapshot::where('page_id', $entity->id)->first();
         $this->assertNotNull($snapshot);
         $this->assertSame(ScrapingStatus::SUCCESS, $snapshot->scraping_status);
         Storage::assertExists($snapshot->file_path);

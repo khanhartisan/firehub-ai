@@ -39,11 +39,11 @@ trait DataParsingStage
         if ($linksCount === 0 && $pageData->getMarkdownContent() !== '') {
             $linksCount = $this->countLinksInMarkdown($pageData->getMarkdownContent());
         }
-        $mediaCount = $this->countMediaInMarkdown($pageData->getMarkdownContent());
+        $filesCount = $this->countMediaInMarkdown($pageData->getMarkdownContent());
 
         $saved = false;
         DB::transaction(function () use ($page, $snapshot,
-            $linksCount, $mediaCount, $contentLength,
+            $linksCount, $filesCount, $contentLength,
             $pageData, &$saved
         ) {
             $page->title = $pageData->getTitle();
@@ -53,7 +53,7 @@ trait DataParsingStage
             $page->canonical_number = $pageData->getCanonicalNumber() ?? 0;
 
             $snapshot->links_count = $linksCount;
-            $snapshot->media_count = $mediaCount;
+            $snapshot->files_count = $filesCount;
             $snapshot->content_length = $contentLength;
 
             $saved = $page->save() and $snapshot->save();

@@ -24,7 +24,7 @@ final class PageData implements Serializable
 
     protected string $thumbnailUrl = '';
 
-    /** Main content as markdown (used for storage and link/media counts). */
+    /** Main content as markdown (used for storage and link/file counts). */
     protected string $markdownContent = '';
 
     protected ?CarbonInterface $publishedAt = null;

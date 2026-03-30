@@ -130,7 +130,7 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
             $pageContext['Current Snapshot'] = [
                 'Content Length' => $currentSnapshot->content_length ?? 'unknown',
                 'Structured Data Count' => $currentSnapshot->structured_data_count ?? 0,
-                'Media Count' => $currentSnapshot->media_count ?? 0,
+                'Files Count' => $currentSnapshot->files_count ?? 0,
                 'Links Count' => $currentSnapshot->links_count ?? 0,
                 'Cost' => $currentSnapshot->cost ?? 0.0,
             ];
@@ -149,7 +149,7 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
             ],
             'cost_factor' => [
                 'value' => round($costFactor, 2),
-                'explanation' => 'Relative cost/effort to scrape based on historical cost, content length, media count, fetch duration, and structured data. Higher values indicate more expensive operations.',
+                'explanation' => 'Relative cost/effort to scrape based on historical cost, content length, files count, fetch duration, and structured data. Higher values indicate more expensive operations.',
             ],
             'error_penalty' => [
                 'value' => round($errorPenalty, 2),
@@ -171,7 +171,7 @@ Guidelines for evaluation:
 
 **Note**: The following factors have already been calculated from historical snapshot data and are provided above:
 - change_boost: Based on historical content change percentages
-- cost_factor: Based on historical cost, content length, media count, fetch duration, and structured data
+- cost_factor: Based on historical cost, content length, files count, fetch duration, and structured data
 - error_penalty: Based on historical error rates (FAILED, TIMEOUT, BLOCKED statuses)
 
 **Source Authority Score** (0-100): Indicates the trustworthiness/importance of the source. Scale is 0 to 100—higher scores mean more authoritative, trusted, or high-value sources. Use this to weight value_boost, priority, and next_scrape_at_hours—authoritative sources may warrant higher priority and more frequent scraping.

@@ -161,7 +161,7 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
         // Calculate normalized metrics
         $avgCost = $recentSnapshots->whereNotNull('cost')->avg('cost') ?? 0.0;
         $avgContentLength = $recentSnapshots->whereNotNull('content_length')->avg('content_length') ?? 0;
-        $avgMediaCount = $recentSnapshots->avg('media_count') ?? 0;
+        $avgFilesCount = $recentSnapshots->avg('files_count') ?? 0;
         $avgFetchDuration = $recentSnapshots->whereNotNull('fetch_duration_ms')->avg('fetch_duration_ms') ?? 0;
         $avgStructuredDataCount = $recentSnapshots->avg('structured_data_count') ?? 0;
 
@@ -169,7 +169,7 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
         // These thresholds are reasonable defaults but could be made configurable
         $costNormalized = min(1.0, $avgCost / 10.0); // Assume max cost is $10.00
         $contentLengthNormalized = min(1.0, $avgContentLength / 1000000.0); // Assume max is 1MB
-        $mediaCountNormalized = min(1.0, $avgMediaCount / 100.0); // Assume max is 100 media items
+        $filesCountNormalized = min(1.0, $avgFilesCount / 100.0); // Assume max is 100 media items
         $fetchDurationNormalized = min(1.0, $avgFetchDuration / 30000.0); // Assume max is 30 seconds
         $structuredDataNormalized = min(1.0, $avgStructuredDataCount / 50.0); // Assume max is 50 structured data items
 
@@ -177,7 +177,7 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
         $costFactor = (
             $costNormalized * 0.4 +
             $contentLengthNormalized * 0.25 +
-            $mediaCountNormalized * 0.15 +
+            $filesCountNormalized * 0.15 +
             $fetchDurationNormalized * 0.1 +
             $structuredDataNormalized * 0.1
         );

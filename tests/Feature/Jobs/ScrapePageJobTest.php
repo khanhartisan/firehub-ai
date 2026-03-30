@@ -332,7 +332,7 @@ class ScrapePageJobTest extends TestCase
         $this->assertSame(1, $snapshot->version);
         $this->assertNotNull($snapshot->content_length);
         $this->assertSame(1, $snapshot->links_count);
-        $this->assertSame(0, $snapshot->media_count);
+        $this->assertSame(0, $snapshot->files_count);
         $this->assertSame(0, $snapshot->structured_data_count);
         $this->assertNotNull($snapshot->fetch_duration_ms);
 

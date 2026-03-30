@@ -150,7 +150,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
             'page_id' => $entity->id,
             'cost' => 5.0,
             'content_length' => 500000,
-            'media_count' => 10,
+            'files_count' => 10,
             'fetch_duration_ms' => 5000,
             'structured_data_count' => 5,
         ]);
@@ -682,7 +682,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
             'version' => 1,
             'content_length' => 10000,
             'structured_data_count' => 5,
-            'media_count' => 3,
+            'files_count' => 3,
             'links_count' => 10,
             'cost' => 1.5,
         ]);

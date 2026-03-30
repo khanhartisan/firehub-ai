@@ -27,7 +27,7 @@ return new class extends Migration
             // Base metrics for policy calculation
             $table->unsignedInteger('content_length')->nullable();
             $table->unsignedInteger('structured_data_count')->default(0);
-            $table->unsignedInteger('media_count')->default(0);
+            $table->unsignedInteger('files_count')->default(0);
             $table->unsignedInteger('links_count')->default(0);
             $table->decimal('content_change_percentage', 5, 2)->nullable();
 

@@ -27,10 +27,12 @@ class Source extends EmbeddableModel implements PageCountableContract, ShouldCas
 
     protected $casts = [
         'authority_score' => 'integer',
-        'is_embedded' => 'boolean',
         'daily_budget' => 'integer',
         'weekly_budget' => 'integer',
         'monthly_budget' => 'integer',
+        'vector' => 'array',
+        'is_embeddable' => 'boolean',
+        'is_embedded' => 'boolean',
     ];
 
     public function isEmbeddable(): bool

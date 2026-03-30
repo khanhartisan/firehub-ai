@@ -25,6 +25,8 @@ class Vertical extends EmbeddableModel implements PageCountableContract, ShouldC
     ];
 
     protected $casts = [
+        'vector' => 'array',
+        'is_embeddable' => 'boolean',
         'is_embedded' => 'boolean',
     ];
 

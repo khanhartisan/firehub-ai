@@ -50,13 +50,15 @@ trait Embeddable
 
     public function getVector(): ?Vector
     {
-        $raw = $this->getAttribute('vector');
+        $raw = $this->attributes['vector'] ?? null;
 
         if ($raw === null) {
             return null;
         }
 
-        if (is_object($raw) && method_exists($raw, 'toArray')) {
+        if (is_array($raw) and $raw) {
+            return Vector::fromArray($raw);
+        } elseif (is_object($raw) && method_exists($raw, 'toArray')) {
             $values = $raw->toArray();
         } elseif (is_string($raw)) {
             $values = \App\Utils\Json::decode($raw, true) ?? [];

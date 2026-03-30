@@ -49,6 +49,8 @@ class Page extends EmbeddableModel implements ShouldCascade
         'scraped_at' => 'datetime',
         'next_scrape_at' => 'datetime',
         'policy_result' => 'array',
+        'vector' => 'array',
+        'is_embeddable' => 'boolean',
         'is_embedded' => 'boolean',
         'version_index' => 'integer',
     ];

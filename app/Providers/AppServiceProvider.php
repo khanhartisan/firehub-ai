@@ -12,6 +12,8 @@ use App\Contracts\TextEmbedding\TextEmbedding as TextEmbeddingContract;
 use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VerticalResolver\VerticalResolver;
 use App\Models\Client;
+use App\Models\File;
+use App\Models\Fileable;
 use App\Models\Page;
 use App\Models\PageCount;
 use App\Models\PageRelation;
@@ -84,6 +86,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $models = [
             Client::class,
+            File::class,
+            Fileable::class,
             Page::class,
             PageCount::class,
             PageRelation::class,

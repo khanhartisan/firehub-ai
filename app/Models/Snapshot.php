@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ScrapingStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Snapshot extends Model
 {
@@ -29,5 +30,15 @@ class Snapshot extends Model
     public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
+    }
+
+    public function files(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            File::class,
+            'fileables',
+            'fileable_id',
+            'file_id'
+        )->where('fileables.fileable_type', $this->getMorphClass());
     }
 }

@@ -36,6 +36,13 @@ return new class extends Migration
             $table->boolean('is_embedded')->default(false);
             $table->index(['is_embeddable', 'is_embedded', 'updated_at']);
 
+            $table->unsignedInteger('fileables_count')->default(0);
+            $table->index(['fileables_count', 'updated_at']);
+
+            $table->softDeletes();
+            $table->cascades();
+            $table->index(['cascade_status', 'deleted_at']);
+
             $table->timestamps();
             $table->dateTime('scraped_at')->nullable()->index();
         });

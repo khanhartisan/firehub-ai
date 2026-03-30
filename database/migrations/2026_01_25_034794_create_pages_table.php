@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    private const VECTOR_DIMENSION = 1536;
-
     /**
      * Run the migrations.
      */
@@ -66,7 +64,7 @@ return new class extends Migration
             $table->index(['url_hash', 'source_id']);
             $table->index(['canonical_page_id', 'canonical_number']);
 
-            $table->vector('vector', self::VECTOR_DIMENSION)->nullable()->index();
+            $table->vector('vector', config('vectordb.drivers.pgvector.default_dimension'))->nullable()->index();
             $table->boolean('is_embeddable')->default(false);
             $table->boolean('is_embedded')->default(false);
             $table->index(['is_embeddable', 'is_embedded', 'updated_at']);

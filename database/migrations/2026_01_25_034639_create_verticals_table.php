@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    private const VECTOR_DIMENSION = 1536;
-
     /**
      * Run the migrations.
      */
@@ -32,7 +30,7 @@ return new class extends Migration
             // Intentionally no FK constraint for scale/performance; keep an index for tree queries.
             $table->index('parent_id');
 
-            $table->vector('vector', self::VECTOR_DIMENSION)->nullable()->index();
+            $table->vector('vector', config('vectordb.drivers.pgvector.default_dimension'))->nullable()->index();
             $table->boolean('is_embeddable')->default(false);
             $table->boolean('is_embedded')->default(false);
             $table->index(['is_embeddable', 'is_embedded', 'updated_at']);

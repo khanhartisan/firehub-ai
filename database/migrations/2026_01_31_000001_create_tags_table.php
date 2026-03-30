@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    private const VECTOR_DIMENSION = 1536;
-
     /**
      * Run the migrations.
      */

@@ -63,27 +63,28 @@ trait EnrichmentStage
         }
 
         // Use File vision service for images
-        if (in_array($snapshot->file_extension, ['jpeg', 'jpg', 'png', 'webp', 'avif', 'gif', 'bmp', 'tiff'])) {
-
-            if (!$preparedImageFilePath = $this->getFilePathForPreparedImage($snapshot)) {
-                return false;
-            }
-
-            $fileInformation = FileVision::describe($preparedImageFilePath);
-
-            if (!Storage::put(
-                $this->getFilePathForFileInformation($snapshot),
-                $fileInformation->toJson()
-            )) {
-                return false;
-            }
-
-            DB::transaction(function () use ($fileInformation, $page, &$isSaved) {
-                $page->type = ScrapableType::IMAGE;
-                $page->description = $fileInformation->getDescription();
-                $isSaved = $page->save();
-            });
-        }
+        // This logic will be moved to a file vision flow
+//        if (in_array($snapshot->file_extension, ['jpeg', 'jpg', 'png', 'webp', 'avif', 'gif', 'bmp', 'tiff'])) {
+//
+//            if (!$preparedImageFilePath = $this->getFilePathForPreparedImage($snapshot)) {
+//                return false;
+//            }
+//
+//            $fileInformation = FileVision::describe($preparedImageFilePath);
+//
+//            if (!Storage::put(
+//                $this->getFilePathForFileInformation($snapshot),
+//                $fileInformation->toJson()
+//            )) {
+//                return false;
+//            }
+//
+//            DB::transaction(function () use ($fileInformation, $page, &$isSaved) {
+//                $page->type = ScrapableType::IMAGE;
+//                $page->description = $fileInformation->getDescription();
+//                $isSaved = $page->save();
+//            });
+//        }
 
         return $isSaved;
     }

@@ -35,7 +35,7 @@ class OpenAIScrapePolicyEngineDriverTest extends TestCase
         $source = Source::create(['base_url' => 'https://example-' . uniqid() . '.com']);
         $entity = Page::create([
             'source_id' => $source->id,
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'page_type' => PageType::DETAIL,
             'content_type' => ContentType::ARTICLE,
             'temporal' => Temporal::BREAKING,

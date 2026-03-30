@@ -35,7 +35,7 @@ class TestPage extends Command
     public function handle()
     {
         $page = Page::query()
-            ->where('type', ScrapableType::PAGE)
+            ->where('type', ScrapableType::TEXT)
             ->findOrFail($this->ask('Page ID'));
 
         $action = $this->choice('Service', [

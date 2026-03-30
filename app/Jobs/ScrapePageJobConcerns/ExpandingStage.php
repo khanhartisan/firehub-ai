@@ -18,7 +18,7 @@ trait ExpandingStage
             dump('Expanding, entity '.$page->id);
         }
 
-        if ($page->type !== ScrapableType::PAGE
+        if ($page->type !== ScrapableType::TEXT
             or ! $snapshot = $page->currentSnapshot
         ) {
             return;

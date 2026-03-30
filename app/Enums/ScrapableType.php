@@ -7,7 +7,7 @@ use Filament\Support\Contracts\HasLabel;
 enum ScrapableType: int implements HasLabel
 {
     case UNCLASSIFIED = 0;
-    case PAGE = 1;
+    case TEXT = 1;
     case IMAGE = 2;
     case VIDEO = 3;
     case DOCUMENT = 4;
@@ -17,7 +17,7 @@ enum ScrapableType: int implements HasLabel
     {
         return match ($this) {
             self::UNCLASSIFIED => 'Unclassified',
-            self::PAGE => 'Page',
+            self::TEXT => 'Text',
             self::IMAGE => 'Image',
             self::VIDEO => 'Video',
             self::DOCUMENT => 'Document',

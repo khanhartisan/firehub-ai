@@ -56,15 +56,15 @@ class PageCountListenerTest extends TestCase
     public function test_entity_created_increments_source_count_for_scrapable_type_and_scraping_status(): void
     {
         $source = $this->createSource();
-        $this->assertSame(0, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(0, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::PENDING));
 
         $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
 
         $source->refresh();
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::PENDING));
     }
 
     public function test_entity_created_then_verticals_attached_only_source_incremented(): void
@@ -74,7 +74,7 @@ class PageCountListenerTest extends TestCase
         $vertical2 = $this->createVertical();
 
         $entity = $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::QUEUED,
         ]);
         $entity->verticals()->attach([$vertical1->id, $vertical2->id]);
@@ -83,9 +83,9 @@ class PageCountListenerTest extends TestCase
         $vertical1->refresh();
         $vertical2->refresh();
 
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::QUEUED));
-        $this->assertSame(1, $this->pageCountFor($vertical1, ScrapableType::PAGE, ScrapingStatus::QUEUED));
-        $this->assertSame(1, $this->pageCountFor($vertical2, ScrapableType::PAGE, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($vertical1, ScrapableType::TEXT, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($vertical2, ScrapableType::TEXT, ScrapingStatus::QUEUED));
     }
 
     public function test_entity_tags_synced_increments_tag_counts(): void
@@ -95,7 +95,7 @@ class PageCountListenerTest extends TestCase
         $tag2 = $this->createTag();
 
         $entity = $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
         $entity->tags()->sync([$tag1->id, $tag2->id]);
@@ -103,9 +103,9 @@ class PageCountListenerTest extends TestCase
         $tag1->refresh();
         $tag2->refresh();
 
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::PENDING));
-        $this->assertSame(1, $this->pageCountFor($tag1, ScrapableType::PAGE, ScrapingStatus::PENDING));
-        $this->assertSame(1, $this->pageCountFor($tag2, ScrapableType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($tag1, ScrapableType::TEXT, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($tag2, ScrapableType::TEXT, ScrapingStatus::PENDING));
     }
 
     public function test_entity_tags_synced_then_synced_again_updates_counts(): void
@@ -141,18 +141,18 @@ class PageCountListenerTest extends TestCase
         $tag = $this->createTag();
 
         $entity = $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::QUEUED,
         ]);
         $entity->tags()->sync([$tag->id]);
 
         $tag->refresh();
-        $this->assertSame(1, $this->pageCountFor($tag, ScrapableType::PAGE, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($tag, ScrapableType::TEXT, ScrapingStatus::QUEUED));
 
         $entity->tags()->sync([]);
 
         $tag->refresh();
-        $this->assertSame(0, $this->pageCountFor($tag, ScrapableType::PAGE, ScrapingStatus::QUEUED));
+        $this->assertSame(0, $this->pageCountFor($tag, ScrapableType::TEXT, ScrapingStatus::QUEUED));
     }
 
     public function test_entity_verticals_synced_increments_vertical_counts(): void
@@ -194,21 +194,21 @@ class PageCountListenerTest extends TestCase
         $source = $this->createSource();
         $vertical = $this->createVertical();
         $entity = $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
         $entity->verticals()->attach($vertical->id);
 
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::PENDING));
-        $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::TEXT, ScrapingStatus::PENDING));
 
         $entity->load('verticals');
         $entity->delete();
 
         $source->refresh();
         $vertical->refresh();
-        $this->assertSame(0, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::PENDING));
-        $this->assertSame(0, $this->pageCountFor($vertical, ScrapableType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(0, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::PENDING));
+        $this->assertSame(0, $this->pageCountFor($vertical, ScrapableType::TEXT, ScrapingStatus::PENDING));
     }
 
     public function test_scrapable_type_updated_decrements_old_and_increments_new_on_source_and_verticals(): void
@@ -225,14 +225,14 @@ class PageCountListenerTest extends TestCase
         $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::UNCLASSIFIED, ScrapingStatus::PENDING));
 
         $entity->load('verticals');
-        $entity->update(['type' => ScrapableType::PAGE]);
+        $entity->update(['type' => ScrapableType::TEXT]);
 
         $source->refresh();
         $vertical->refresh();
         $this->assertSame(0, $this->pageCountFor($source, ScrapableType::UNCLASSIFIED, ScrapingStatus::PENDING));
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::PENDING));
         $this->assertSame(0, $this->pageCountFor($vertical, ScrapableType::UNCLASSIFIED, ScrapingStatus::PENDING));
-        $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::TEXT, ScrapingStatus::PENDING));
     }
 
     public function test_entity_scraping_status_updated_decrements_old_and_increments_new(): void
@@ -240,23 +240,23 @@ class PageCountListenerTest extends TestCase
         $source = $this->createSource();
         $vertical = $this->createVertical();
         $entity = $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::QUEUED,
         ]);
         $entity->verticals()->attach($vertical->id);
 
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::QUEUED));
-        $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::PAGE, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::TEXT, ScrapingStatus::QUEUED));
 
         $entity->load('verticals');
         $entity->update(['scraping_status' => ScrapingStatus::SUCCESS]);
 
         $source->refresh();
         $vertical->refresh();
-        $this->assertSame(0, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::QUEUED));
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::SUCCESS));
-        $this->assertSame(0, $this->pageCountFor($vertical, ScrapableType::PAGE, ScrapingStatus::QUEUED));
-        $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::PAGE, ScrapingStatus::SUCCESS));
+        $this->assertSame(0, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::SUCCESS));
+        $this->assertSame(0, $this->pageCountFor($vertical, ScrapableType::TEXT, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($vertical, ScrapableType::TEXT, ScrapingStatus::SUCCESS));
     }
 
     public function test_scrapable_type_and_scraping_status_both_updated_decrements_old_and_increments_new(): void
@@ -283,13 +283,13 @@ class PageCountListenerTest extends TestCase
     {
         $source = $this->createSource();
         $entity = $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::SUCCESS,
             'url' => 'https://example.com/page',
             'url_hash' => sha1('https://example.com/page'),
         ]);
 
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::SUCCESS));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::SUCCESS));
 
         $entity->update([
             'url' => 'https://example.com/other',
@@ -297,7 +297,7 @@ class PageCountListenerTest extends TestCase
         ]);
 
         $source->refresh();
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::SUCCESS));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::SUCCESS));
     }
 
     public function test_multiple_entities_same_type_and_status_accumulate_source_count(): void
@@ -305,20 +305,20 @@ class PageCountListenerTest extends TestCase
         $source = $this->createSource();
 
         $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
         $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
         $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
 
         $source->refresh();
-        $this->assertSame(3, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::PENDING));
+        $this->assertSame(3, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::PENDING));
     }
 
     public function test_different_scrapable_types_and_statuses_are_counted_separately(): void
@@ -326,11 +326,11 @@ class PageCountListenerTest extends TestCase
         $source = $this->createSource();
 
         $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::PENDING,
         ]);
         $this->createPage($source, [
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'scraping_status' => ScrapingStatus::QUEUED,
         ]);
         $this->createPage($source, [
@@ -339,8 +339,8 @@ class PageCountListenerTest extends TestCase
         ]);
 
         $source->refresh();
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::PENDING));
-        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::PAGE, ScrapingStatus::QUEUED));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::PENDING));
+        $this->assertSame(1, $this->pageCountFor($source, ScrapableType::TEXT, ScrapingStatus::QUEUED));
         $this->assertSame(1, $this->pageCountFor($source, ScrapableType::IMAGE, ScrapingStatus::PENDING));
     }
 }

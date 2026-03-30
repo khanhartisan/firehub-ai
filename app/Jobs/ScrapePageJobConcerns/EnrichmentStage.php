@@ -54,7 +54,7 @@ trait EnrichmentStage
                     ->all();
                 $page->tags()->sync($tagIds);
 
-                $page->type = ScrapableType::PAGE;
+                $page->type = ScrapableType::TEXT;
                 $page->page_type = $classification->getPageType();
                 $page->content_type = $classification->getContentType();
                 $page->temporal = $classification->getTemporal();

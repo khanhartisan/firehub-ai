@@ -61,7 +61,7 @@ class EmbeddableTest extends TestCase
             'source_id' => $source->id,
             'url' => 'https://example.com/page',
             'url_hash' => sha1('https://example.com/page'),
-            'type' => ScrapableType::PAGE,
+            'type' => ScrapableType::TEXT,
             'page_type' => PageType::DETAIL,
             'scraping_status' => ScrapingStatus::SUCCESS,
         ]);

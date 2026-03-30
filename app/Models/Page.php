@@ -55,7 +55,7 @@ class Page extends EmbeddableModel implements ShouldCascade
 
     public function isEmbeddable(): bool
     {
-        return $this->type === ScrapableType::PAGE
+        return $this->type === ScrapableType::TEXT
             and $this->page_type === PageType::DETAIL
             and $this->scraping_status === ScrapingStatus::SUCCESS;
     }

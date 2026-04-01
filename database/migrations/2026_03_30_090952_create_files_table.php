@@ -16,6 +16,8 @@ return new class extends Migration
             $table->unsignedTinyInteger('scraping_status')
                 ->default(\App\Enums\ScrapingStatus::PENDING->value);
 
+            $table->string('scraping_stage')->nullable();
+
             $table->string('description', 4096)->nullable();
 
             $table->string('url', 4096);
@@ -27,6 +29,8 @@ return new class extends Migration
             $table->string('extension')->nullable();
 
             $table->unsignedInteger('fetch_duration_ms')->nullable();
+            $table->dateTime('scraped_at')->nullable()->index();
+            $table->unsignedSmallInteger('attempts')->default(0);
             $table->decimal('cost', 3, 2)->nullable();
 
             $table->text('error_logs')->nullable();
@@ -44,7 +48,6 @@ return new class extends Migration
             $table->index(['cascade_status', 'deleted_at']);
 
             $table->timestamps();
-            $table->dateTime('scraped_at')->nullable()->index();
         });
     }
 

@@ -44,24 +44,6 @@ class ScrapePageJobTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_skips_entity_when_status_is_not_queued(): void
-    {
-        $source = Source::create(['base_url' => 'https://example.com']);
-        $entity = Page::create([
-            'source_id' => $source->id,
-            'url' => 'https://example.com/page',
-            'url_hash' => sha1('https://example.com/page'),
-            'scraping_status' => ScrapingStatus::PENDING,
-        ]);
-
-        $job = new ScrapePageJob($entity);
-        $job->handle();
-
-        $this->assertDatabaseCount('snapshots', 0);
-        $entity->refresh();
-        $this->assertSame(ScrapingStatus::PENDING, $entity->scraping_status);
-    }
-
     public function test_creates_snapshot_with_failed_status_on_http_4xx(): void
     {
         $source = Source::create(['base_url' => 'https://example.com']);

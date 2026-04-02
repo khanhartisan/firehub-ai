@@ -24,12 +24,6 @@ trait FetchingStage
             dump('Fetching, entity '.$page->id);
         }
 
-        // Check the current scraping status
-        if ($page->scraping_status !== ScrapingStatus::QUEUED) {
-            Log::debug("ScrapePageJob: Page [{$page->id}] status is {$page->scraping_status->name}, skipping");
-            return null;
-        }
-
         // Update scraping status
         $page->scraping_status = ScrapingStatus::FETCHING;
         DB::transaction(fn () => $page->save());

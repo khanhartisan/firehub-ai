@@ -130,6 +130,7 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         // Finishing
         elseif ($stage === ScrapingStage::FINISHING) {
             if ($this->handleFileFinishingStage($file)) {
+                $this->updateFileScrapingStage(null);
                 $lock->release();
 
                 return;
@@ -145,8 +146,9 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     protected function markFileFailed(): void
     {
+        $this->file->attempts = intval($this->file->attempts) + 1;
         $this->file->scraping_status = ScrapingStatus::FAILED;
-        $this->updateFileScrapingStage(null, true);
+        $this->updateFileScrapingStage(null);
 
         $this->getManualLock()->release();
     }

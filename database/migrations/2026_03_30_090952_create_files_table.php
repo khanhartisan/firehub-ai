@@ -48,6 +48,8 @@ return new class extends Migration
             $table->index(['cascade_status', 'deleted_at']);
 
             $table->timestamps();
+
+            $table->index(['scraping_status', 'attempts', 'updated_at'], 'scraping_status_index');
         });
     }
 

@@ -2,36 +2,22 @@
 
 namespace App\Jobs;
 
-use App\Contracts\VerticalResolver\Vertical as ContractVertical;
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
-use App\Facades\PageClassifier;
-use App\Facades\PageParser;
 use App\Facades\ScrapePolicyEngine;
-use App\Facades\VerticalResolver as VerticalResolverFacade;
-use App\Facades\Scraper;
-use App\Jobs\ScrapePageJobConcerns\EnrichmentStage;
 use App\Jobs\ScrapePageJobConcerns\DataParsingStage;
 use App\Jobs\ScrapePageJobConcerns\DataPreparingStage;
+use App\Jobs\ScrapePageJobConcerns\EnrichmentStage;
 use App\Jobs\ScrapePageJobConcerns\ExpandingStage;
 use App\Jobs\ScrapePageJobConcerns\FetchingStage;
 use App\Jobs\ScrapePageJobConcerns\FinishingStage;
 use App\Jobs\ScrapePageJobConcerns\PolicyEvaluationStage;
 use App\Jobs\ScrapePageJobConcerns\VerticalResolutionStage;
 use App\Models\Page;
-use App\Models\Snapshot;
-use App\Models\Source;
-use App\Models\Vertical as VerticalModel;
-use App\Models\Tag;
-use App\Utils\HtmlCleaner;
-use App\Utils\Json;
 use Carbon\Carbon;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Cache\Lock;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -39,26 +25,21 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Psr\Http\Message\ResponseInterface;
 
-class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
+class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
+    use DataParsingStage;
+    use DataPreparingStage;
     use Dispatchable;
+    use EnrichmentStage;
+    use ExpandingStage;
+    use FetchingStage;
+    use FinishingStage;
     use InteractsWithQueue;
+    use PolicyEvaluationStage;
     use Queueable;
     use SerializesModels;
-
-    use FetchingStage;
-    use DataPreparingStage;
-    use DataParsingStage;
-    use EnrichmentStage;
     use VerticalResolutionStage;
-    use PolicyEvaluationStage;
-    use FinishingStage;
-    use ExpandingStage;
 
     /**
      * Delete the job if the page no longer exists.
@@ -115,16 +96,18 @@ class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $stage = $page->scraping_stage ?? ScrapingStage::FETCHING;
 
         // Manual job unique lock
-        if (!$lock = $this->getManualLock() or !$lock->get()) {
+        if (! $lock = $this->getManualLock() or ! $lock->get()) {
             if (env('APP_DEBUG')) {
                 dump('Could not acquire lock for '.$this->uniqueId());
             }
+
             return;
         }
 
         // Reject if 2 many attempts
         if ($page->attempts >= config('queue.max_scrape_attempts')) {
             $this->markPageFailed();
+
             return;
         }
 
@@ -152,12 +135,13 @@ class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 // Mark as finished if the data size is too large
                 // Or data type isn't supported
                 if ($snapshot->file_size >= 10 * 1024 * 1024
-                    or !in_array($snapshot->file_extension, [
+                    or ! in_array($snapshot->file_extension, [
                         'html', 'txt',
                         'jpeg', 'jpg', 'png', 'webp', 'avif', 'gif', 'bmp', 'tiff',
                     ])
                 ) {
                     $this->markPageSuccess();
+
                     return;
                 }
 
@@ -169,7 +153,7 @@ class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
                 // Continue to prepare the data
                 $lock->release();
-                ScrapePageJobDispatcher::dispatch($page);
+                ScrapePageJob::dispatch($page);
             }
         }
 
@@ -177,8 +161,9 @@ class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         elseif ($stage === ScrapingStage::DATA_PREPARING) {
 
             // Data preparation was rejected
-            if (!$this->prepareData($page)) {
+            if (! $this->prepareData($page)) {
                 $this->markPageFailed();
+
                 return;
             }
 
@@ -188,7 +173,8 @@ class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 $this->updatePageScrapingStage(ScrapingStage::DATA_PARSING);
                 $lock->release();
 
-                ScrapePageJobDispatcher::dispatch($page);
+                ScrapePageJob::dispatch($page);
+
                 return;
             }
 
@@ -196,67 +182,71 @@ class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $this->updatePageScrapingStage(ScrapingStage::ENRICHMENT);
             $lock->release();
 
-            ScrapePageJobDispatcher::dispatch($page);
+            ScrapePageJob::dispatch($page);
         }
 
         // Data parsing
         elseif ($stage === ScrapingStage::DATA_PARSING) {
 
             // Failed to parse
-            if (!$this->parseData($page)) {
+            if (! $this->parseData($page)) {
                 $this->markPageFailed();
+
                 return;
             }
 
             // Continue to enrichment
             $this->updatePageScrapingStage(ScrapingStage::ENRICHMENT);
             $lock->release();
-            ScrapePageJobDispatcher::dispatch($page);
+            ScrapePageJob::dispatch($page);
         }
 
         // Enrichment stage
         elseif ($stage === ScrapingStage::ENRICHMENT) {
 
             // Failed to enrich
-            if (!$this->enrich($page)) {
+            if (! $this->enrich($page)) {
                 $this->markPageFailed();
+
                 return;
             }
 
             // Continue to vertical resolution
             $this->updatePageScrapingStage(ScrapingStage::VERTICAL_RESOLUTION);
             $lock->release();
-            ScrapePageJobDispatcher::dispatch($page);
+            ScrapePageJob::dispatch($page);
         }
 
         // Vertical resolution stage
         elseif ($stage === ScrapingStage::VERTICAL_RESOLUTION) {
 
             // Failed to resolve
-            if (!$this->verticalResolve($page)) {
+            if (! $this->verticalResolve($page)) {
                 $this->markPageFailed();
+
                 return;
             }
 
             // Continue to policy evaluation
             $this->updatePageScrapingStage(ScrapingStage::POLICY_EVALUATION);
             $lock->release();
-            ScrapePageJobDispatcher::dispatch($page);
+            ScrapePageJob::dispatch($page);
         }
 
         // Policy evaluation
         elseif ($stage === ScrapingStage::POLICY_EVALUATION) {
 
             // Failed to evaluate
-            if (!$this->evaluatePolicy($page)) {
+            if (! $this->evaluatePolicy($page)) {
                 $this->markPageFailed();
+
                 return;
             }
 
             // Continue to expand
             $this->updatePageScrapingStage(ScrapingStage::EXPANDING);
             $lock->release();
-            ScrapePageJobDispatcher::dispatch($page);
+            ScrapePageJob::dispatch($page);
         }
 
         // Expanding
@@ -268,7 +258,7 @@ class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 // Continue to finish
                 $this->updatePageScrapingStage(ScrapingStage::FINISHING);
                 $lock->release();
-                ScrapePageJobDispatcher::dispatch($page);
+                ScrapePageJob::dispatch($page);
             }
         }
 
@@ -276,8 +266,9 @@ class ScrapePageJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         elseif ($stage === ScrapingStage::FINISHING) {
 
             // Failed to finish
-            if (!$this->finish($page)) {
+            if (! $this->finish($page)) {
                 $this->markPageFailed();
+
                 return;
             }
 

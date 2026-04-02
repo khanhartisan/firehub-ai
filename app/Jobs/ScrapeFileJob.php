@@ -13,12 +13,14 @@ use App\Models\File;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
 
 class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use DataPreparingStage;
+    use Dispatchable;
     use EnrichmentStage;
     use FetchingStage;
     use FinishingStage;
@@ -83,7 +85,7 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 $this->updateFileScrapingStage(ScrapingStage::DATA_PREPARING);
 
                 $lock->release();
-                ScrapeFileJobDispatcher::dispatch($file);
+                ScrapeFileJob::dispatch($file);
 
                 return;
             }
@@ -99,7 +101,7 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 $this->updateFileScrapingStage(ScrapingStage::ENRICHMENT);
 
                 $lock->release();
-                ScrapeFileJobDispatcher::dispatch($file);
+                ScrapeFileJob::dispatch($file);
 
                 return;
             }
@@ -115,7 +117,7 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 $this->updateFileScrapingStage(ScrapingStage::FINISHING);
 
                 $lock->release();
-                ScrapeFileJobDispatcher::dispatch($file);
+                ScrapeFileJob::dispatch($file);
 
                 return;
             }

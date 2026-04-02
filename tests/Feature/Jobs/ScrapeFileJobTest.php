@@ -10,7 +10,6 @@ use App\Facades\FileVision;
 use App\Facades\Scraper;
 use App\Facades\TextEmbedding;
 use App\Jobs\ScrapeFileJob;
-use App\Jobs\ScrapeFileJobDispatcher;
 use App\Models\File;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -110,7 +109,7 @@ class ScrapeFileJobTest extends TestCase
         $this->assertSame(ScrapingStage::DATA_PREPARING, $file->scraping_stage);
         $this->assertSame('jpg', $file->extension);
         Storage::assertExists('files/'.$file->id.'/data.bin');
-        Queue::assertPushed(ScrapeFileJobDispatcher::class, 1);
+        Queue::assertPushed(ScrapeFileJob::class, 1);
     }
 
     public function test_data_prepare_marks_failed_for_non_image_extension(): void
@@ -158,7 +157,7 @@ class ScrapeFileJobTest extends TestCase
         $file->refresh();
         $this->assertSame(ScrapingStage::ENRICHMENT, $file->scraping_stage);
         Storage::assertExists($file->preparedImageStoragePath());
-        Queue::assertPushed(ScrapeFileJobDispatcher::class, 1);
+        Queue::assertPushed(ScrapeFileJob::class, 1);
     }
 
     public function test_enrichment_sets_description_from_file_vision(): void
@@ -198,7 +197,7 @@ class ScrapeFileJobTest extends TestCase
         $file->refresh();
         $this->assertSame('A scenic landscape.', $file->description);
         $this->assertSame(ScrapingStage::FINISHING, $file->scraping_stage);
-        Queue::assertPushed(ScrapeFileJobDispatcher::class, 1);
+        Queue::assertPushed(ScrapeFileJob::class, 1);
     }
 
     public function test_finishing_sets_success_and_runs_embedding(): void

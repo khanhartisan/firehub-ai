@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 trait FinishingStage
 {
-    protected function finish(Page $page): bool
+    protected function handleFinishingStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
             dump('Finishing, entity '.$page->id);

@@ -46,7 +46,7 @@ class DataPreparingStageImageTest extends TestCase
 
             public function run(Page $page): bool
             {
-                return $this->prepareData($page);
+                return $this->handleDataPreparingStage($page);
             }
         };
 
@@ -101,7 +101,7 @@ class DataPreparingStageImageTest extends TestCase
 
             public function run(Page $page): bool
             {
-                return $this->prepareData($page);
+                return $this->handleDataPreparingStage($page);
             }
         };
 

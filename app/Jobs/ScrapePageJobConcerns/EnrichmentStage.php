@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 
 trait EnrichmentStage
 {
-    protected function enrich(Page $page): bool
+    protected function handleEnrichmentStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
             dump('Enrichment, entity '.$page->id);
@@ -25,66 +25,44 @@ trait EnrichmentStage
 
         $isSaved = false;
 
-        // Classifying text
-        if (in_array($snapshot->file_extension, ['html', 'txt'])) {
-            if (!$cleanedHtmlFilePath = $this->getFilePathForCleanHtml($snapshot)
-                or !$cleanedHtml = Storage::get($cleanedHtmlFilePath)
-            ) {
-                return false;
-            }
-
-            $classification = PageClassifier::classify($cleanedHtml);
-
-            if (!Storage::put(
-                $this->getFilePathForPageClassificationResult($snapshot),
-                $classification->toJson()
-            )) {
-                return false;
-            }
-
-            DB::transaction(function () use ($classification, $page, &$isSaved) {
-
-                // Sync tags
-                $tagIds = collect($classification->getTags())
-                    ->map(fn (string $name): string
-                    => Tag::query()
-                        ->firstOrCreate(['name' => $name])
-                        ->id
-                    )
-                    ->all();
-                $page->tags()->sync($tagIds);
-
-                $page->type = ScrapableType::TEXT;
-                $page->page_type = $classification->getPageType();
-                $page->content_type = $classification->getContentType();
-                $page->temporal = $classification->getTemporal();
-                $isSaved = $page->save();
-            });
+        // Classifying text only
+        if (!in_array($snapshot->file_extension, ['html', 'txt'])) {
+            return false;
         }
 
-        // Use File vision service for images
-        // This logic will be moved to a file vision flow
-//        if (in_array($snapshot->file_extension, ['jpeg', 'jpg', 'png', 'webp', 'avif', 'gif', 'bmp', 'tiff'])) {
-//
-//            if (!$preparedImageFilePath = $this->getFilePathForPreparedImage($snapshot)) {
-//                return false;
-//            }
-//
-//            $fileInformation = FileVision::describe($preparedImageFilePath);
-//
-//            if (!Storage::put(
-//                $this->getFilePathForFileInformation($snapshot),
-//                $fileInformation->toJson()
-//            )) {
-//                return false;
-//            }
-//
-//            DB::transaction(function () use ($fileInformation, $page, &$isSaved) {
-//                $page->type = ScrapableType::IMAGE;
-//                $page->description = $fileInformation->getDescription();
-//                $isSaved = $page->save();
-//            });
-//        }
+        if (!$cleanedHtmlFilePath = $this->getFilePathForCleanHtml($snapshot)
+            or !$cleanedHtml = Storage::get($cleanedHtmlFilePath)
+        ) {
+            return false;
+        }
+
+        $classification = PageClassifier::classify($cleanedHtml);
+
+        if (!Storage::put(
+            $this->getFilePathForPageClassificationResult($snapshot),
+            $classification->toJson()
+        )) {
+            return false;
+        }
+
+        DB::transaction(function () use ($classification, $page, &$isSaved) {
+
+            // Sync tags
+            $tagIds = collect($classification->getTags())
+                ->map(fn (string $name): string
+                => Tag::query()
+                    ->firstOrCreate(['name' => $name])
+                    ->id
+                )
+                ->all();
+            $page->tags()->sync($tagIds);
+
+            $page->type = ScrapableType::TEXT;
+            $page->page_type = $classification->getPageType();
+            $page->content_type = $classification->getContentType();
+            $page->temporal = $classification->getTemporal();
+            $isSaved = $page->save();
+        });
 
         return $isSaved;
     }

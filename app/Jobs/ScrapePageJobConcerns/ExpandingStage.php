@@ -12,24 +12,19 @@ use Illuminate\Support\Facades\Storage;
 
 trait ExpandingStage
 {
-    protected function expand(Page $page): void
+    protected function handleExpandingStage(Page $page): void
     {
         if (env('APP_DEBUG')) {
-            dump('Expanding, entity '.$page->id);
+            dump('Expanding, page '.$page->id);
         }
 
         if ($page->type !== ScrapableType::TEXT
-            or ! $snapshot = $page->currentSnapshot
+            or !$snapshot = $page->currentSnapshot
         ) {
             return;
         }
 
-        $pageDataFilePath = $this->getFilePathForPageData($snapshot);
-        if (! $pageDataJson = Storage::get($pageDataFilePath)) {
-            return;
-        }
-
-        $pageData = PageData::fromJson($pageDataJson);
+        $pageData = $this->getPageDataForSnapshot($snapshot);
         $linkedUrls = $pageData->getLinkedPageUrls();
 
         $this->createLinkedPagesAndQueueScrapes($page, $linkedUrls);

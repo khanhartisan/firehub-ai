@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 trait DataParsingStage
 {
-    protected function parseData(Page $page): bool
+    protected function handleDataParsingStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
             dump('Parse data, entity '.$page->id);

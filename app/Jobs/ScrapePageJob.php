@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Contracts\PageParser\PageData;
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
@@ -11,10 +12,12 @@ use App\Jobs\ScrapePageJobConcerns\DataPreparingStage;
 use App\Jobs\ScrapePageJobConcerns\EnrichmentStage;
 use App\Jobs\ScrapePageJobConcerns\ExpandingStage;
 use App\Jobs\ScrapePageJobConcerns\FetchingStage;
+use App\Jobs\ScrapePageJobConcerns\FileEnrichmentStage;
 use App\Jobs\ScrapePageJobConcerns\FinishingStage;
 use App\Jobs\ScrapePageJobConcerns\PolicyEvaluationStage;
 use App\Jobs\ScrapePageJobConcerns\VerticalResolutionStage;
 use App\Models\Page;
+use App\Models\Snapshot;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Cache\Lock;
@@ -25,6 +28,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
@@ -32,6 +36,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
     use DataPreparingStage;
     use Dispatchable;
     use EnrichmentStage;
+    use FileEnrichmentStage;
     use ExpandingStage;
     use FetchingStage;
     use FinishingStage;
@@ -107,7 +112,6 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         // Reject if 2 many attempts
         if ($page->attempts >= config('queue.max_scrape_attempts')) {
             $this->markPageFailed();
-
             return;
         }
 
@@ -141,7 +145,6 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
                     ])
                 ) {
                     $this->markPageSuccess();
-
                     return;
                 }
 
@@ -161,9 +164,8 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         elseif ($stage === ScrapingStage::DATA_PREPARING) {
 
             // Data preparation was rejected
-            if (! $this->prepareData($page)) {
+            if (! $this->handleDataPreparingStage($page)) {
                 $this->markPageFailed();
-
                 return;
             }
 
@@ -189,9 +191,8 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         elseif ($stage === ScrapingStage::DATA_PARSING) {
 
             // Failed to parse
-            if (! $this->parseData($page)) {
+            if (! $this->handleDataParsingStage($page)) {
                 $this->markPageFailed();
-
                 return;
             }
 
@@ -205,9 +206,22 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         elseif ($stage === ScrapingStage::ENRICHMENT) {
 
             // Failed to enrich
-            if (! $this->enrich($page)) {
+            if (! $this->handleEnrichmentStage($page)) {
                 $this->markPageFailed();
+                return;
+            }
 
+            // Continue to file enrichment
+            $this->updatePageScrapingStage(ScrapingStage::FILE_ENRICHMENT);
+            $lock->release();
+            ScrapePageJob::dispatch($page);
+        }
+
+        // File enrichment stage
+        elseif ($stage === ScrapingStage::FILE_ENRICHMENT) {
+
+            if (!$this->handleFileEnrichmentStage($page)) {
+                $this->markPageFailed();
                 return;
             }
 
@@ -221,9 +235,8 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         elseif ($stage === ScrapingStage::VERTICAL_RESOLUTION) {
 
             // Failed to resolve
-            if (! $this->verticalResolve($page)) {
+            if (! $this->handleVerticalResolutionStage($page)) {
                 $this->markPageFailed();
-
                 return;
             }
 
@@ -237,9 +250,8 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         elseif ($stage === ScrapingStage::POLICY_EVALUATION) {
 
             // Failed to evaluate
-            if (! $this->evaluatePolicy($page)) {
+            if (! $this->handlePolicyEvaluationStage($page)) {
                 $this->markPageFailed();
-
                 return;
             }
 
@@ -252,7 +264,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         // Expanding
         elseif ($stage === ScrapingStage::EXPANDING) {
             try {
-                $this->expand($page);
+                $this->handleExpandingStage($page);
             } finally {
 
                 // Continue to finish
@@ -266,7 +278,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         elseif ($stage === ScrapingStage::FINISHING) {
 
             // Failed to finish
-            if (! $this->finish($page)) {
+            if (! $this->handleFinishingStage($page)) {
                 $this->markPageFailed();
 
                 return;
@@ -316,6 +328,16 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         if ($save) {
             $page->saveQuietly();
         }
+    }
+
+    protected function getPageDataForSnapshot(Snapshot $snapshot): ?PageData
+    {
+        $pageDataFilePath = $this->getFilePathForPageData($snapshot);
+        if (!$pageDataJson = Storage::get($pageDataFilePath)) {
+            return null;
+        }
+
+        return PageData::fromJson($pageDataJson);
     }
 
     protected function getManualLock(): Lock

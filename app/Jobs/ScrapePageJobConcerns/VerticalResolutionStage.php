@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 trait VerticalResolutionStage
 {
-    protected function verticalResolve(Page $page): bool
+    protected function handleVerticalResolutionStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
             dump('Resolving vertical data, entity '.$page->id);

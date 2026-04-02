@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 trait PolicyEvaluationStage
 {
-    protected function evaluatePolicy(Page $page): bool
+    protected function handlePolicyEvaluationStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
             dump('Evaluate policy, entity '.$page->id);

@@ -11,7 +11,7 @@ use ImagickException;
 
 trait DataPreparingStage
 {
-    protected function prepareData(Page $page): bool
+    protected function handleDataPreparingStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
             dump('Prepare data, entity '.$page->id);

@@ -46,7 +46,7 @@ trait DataPreparingStage
             return false;
         }
 
-        $preparedPath = $file->preparedImageStoragePath();
+        $preparedPath = static::preparedImageStoragePath($file);
 
         if (! $this->writePreparedImageForScrape($contents, $preparedPath)) {
             return false;

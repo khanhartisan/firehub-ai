@@ -20,7 +20,7 @@ trait EnrichmentStage
             dump('Enrichment, file '.$file->id);
         }
 
-        $preparedPath = $file->preparedImageStoragePath();
+        $preparedPath = static::preparedImageStoragePath($file);
 
         if (! Storage::exists($preparedPath)) {
             Log::warning("ScrapeFileJob: prepared image missing for file [{$file->id}]");
@@ -39,5 +39,10 @@ trait EnrichmentStage
         $file->description = $information->getDescription() ?? '';
 
         return true;
+    }
+
+    public static function preparedImageStoragePath(File $file): string
+    {
+        return 'files/'.$file->id.'/prepared-image.jpg';
     }
 }

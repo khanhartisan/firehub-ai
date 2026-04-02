@@ -156,7 +156,7 @@ class ScrapeFileJobTest extends TestCase
 
         $file->refresh();
         $this->assertSame(ScrapingStage::ENRICHMENT, $file->scraping_stage);
-        Storage::assertExists($file->preparedImageStoragePath());
+        Storage::assertExists(ScrapeFileJob::preparedImageStoragePath($file));
         Queue::assertPushed(ScrapeFileJob::class, 1);
     }
 
@@ -175,7 +175,7 @@ class ScrapeFileJobTest extends TestCase
         $file->save();
 
         Storage::put($path, $bytes);
-        $preparedPath = $file->preparedImageStoragePath();
+        $preparedPath = ScrapeFileJob::preparedImageStoragePath($file);
         Storage::put($preparedPath, $bytes);
 
         $info = (new FileInformation)
@@ -217,7 +217,7 @@ class ScrapeFileJobTest extends TestCase
         $file->save();
 
         Storage::put($path, $bytes);
-        Storage::put($file->preparedImageStoragePath(), $bytes);
+        Storage::put(ScrapeFileJob::preparedImageStoragePath($file), $bytes);
 
         TextEmbedding::shouldReceive('embed')
             ->once()
@@ -271,7 +271,7 @@ class ScrapeFileJobTest extends TestCase
         $this->assertSame('Pipeline description.', $file->description);
         $this->assertTrue($file->isEmbedded());
         Storage::assertExists('files/'.$file->id.'/data.bin');
-        Storage::assertExists($file->preparedImageStoragePath());
+        Storage::assertExists(ScrapeFileJob::preparedImageStoragePath($file));
     }
 
     public function test_max_attempts_marks_failed_without_running_stages(): void

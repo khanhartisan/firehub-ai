@@ -42,15 +42,6 @@ class File extends EmbeddableModel implements ShouldCascade
         return $this->hasMany(Fileable::class);
     }
 
-    /**
-     * Relative path on the default disk for the prepared (resized) JPEG after data preparing.
-     * Convention: `files/{id}/prepared-image.jpg`
-     */
-    public function preparedImageStoragePath(): string
-    {
-        return 'files/'.$this->id.'/prepared-image.jpg';
-    }
-
     public function isEmbeddable(): bool
     {
         return $this->scraping_status === ScrapingStatus::SUCCESS

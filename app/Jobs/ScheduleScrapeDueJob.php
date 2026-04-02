@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStatus;
+use App\Models\File;
 use App\Models\Page;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -82,7 +83,23 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     {
         $dispatched = 0;
 
-        // Dispatch jobs
+        // Dispatch scrape file jobs
+        foreach (ScrapingStatus::cases() as $scrapingStatus) {
+            for ($attempts = 0;
+                 $attempts < config('queue.max_scrape_attempts');
+                 $attempts++
+            ) {
+                $query = File::query()
+                    ->where('scraping_status', $scrapingStatus)
+                    ->where('attempts', $attempts)
+                    ->where('updated_at', '<', now()->subMinutes(5))
+                    ->orderBy('updated_at');
+
+                $dispatched += $this->dispatchScrapingJobs($query, ScrapeFileJob::class);
+            }
+        }
+
+        // Dispatch scrape page jobs
         foreach (ScrapingStatus::cases() as $scrapingStatus) {
             $query = Page::query()
                 ->where('scraping_status', $scrapingStatus)
@@ -90,19 +107,20 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 ->where('next_scrape_at', '<=', now())
                 ->orderBy('next_scrape_at');
 
-            $dispatched += $this->dispatchScrapePageJobs($query);
+            $dispatched += $this->dispatchScrapingJobs($query, ScrapePageJob::class);
         }
 
         return $dispatched;
     }
 
     /**
-     * @param Builder $pageQuery
+     * @param Builder $query
+     * @param class-string<ShouldQueue> $jobClass
+     * @param QueueEnum $queue
      * @return int The number of pages dispatched
      */
-    private function dispatchScrapePageJobs(Builder $pageQuery): int
+    private function dispatchScrapingJobs(Builder $query, string $jobClass, QueueEnum $queue = QueueEnum::SCRAPING): int
     {
-        $queue = QueueEnum::SCRAPING;
         $queueName = $queue->value;
 
         $slotsAvailable = $queue->slotsAvailable();
@@ -112,34 +130,21 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         $toDispatch = min($this->limit, $slotsAvailable);
 
-        $pages = $pageQuery->take($toDispatch)->get();
-
-        if ($pages->isEmpty()) {
+        $models = $query->take($toDispatch)->get();
+        if ($models->isEmpty()) {
             return 0;
         }
 
-        $ids = $pages->pluck('id')->toArray();
-        DB::transaction(function () use ($ids) {
-            Page::query()
-                ->whereIn('id', $ids)
-                ->lockForUpdate()
-                ->get()
-                ->each(function (Page $page) {
-                    $page->scraping_status  = ScrapingStatus::QUEUED;
-                    $page->save();
-                });
-        });
-
-        foreach ($pages as $page) {
-            ScrapePageJob::dispatch($page)->onQueue($queueName);
+        foreach ($models as $model) {
+            $jobClass::dispatch($model)->onQueue($queueName);
         }
 
         $maxQueueSize = $queue->maxSize();
         $currentSize = Queue::size($queueName);
-        Log::debug('ScheduleScrapeDueJob: Queued '.$pages->count().' pages for scraping.', [
-            'queue' => $currentSize.' → '.($currentSize + $pages->count()).'/'.$maxQueueSize,
+        Log::debug('ScheduleScrapeDueJob: Queued '.$models->count().' '.$jobClass.' for scraping.', [
+            'queue' => $currentSize.' → '.($currentSize + $models->count()).'/'.$maxQueueSize,
         ]);
 
-        return $pages->count();
+        return $models->count();
     }
 }

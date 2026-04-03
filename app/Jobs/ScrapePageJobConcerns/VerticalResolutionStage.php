@@ -131,7 +131,7 @@ trait VerticalResolutionStage
                 $page->verticals()->sync($verticalIds);
             }
         } catch (\Throwable $e) {
-            Log::warning('ScrapePageJob: Failed to sync verticals for entity', [
+            Log::warning('ScrapePageJob: Failed to sync verticals for page', [
                 'page_id' => $page->id,
                 'exception' => $e,
             ]);

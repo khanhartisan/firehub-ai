@@ -13,7 +13,7 @@ trait DataParsingStage
     protected function handleDataParsingStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
-            dump('Parse data, entity '.$page->id);
+            dump('Parse data, page '.$page->id);
         }
 
         if (!$snapshot = $page->currentSnapshot

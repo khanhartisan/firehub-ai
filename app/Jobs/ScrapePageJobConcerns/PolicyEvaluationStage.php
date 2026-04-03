@@ -12,7 +12,7 @@ trait PolicyEvaluationStage
     protected function handlePolicyEvaluationStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
-            dump('Evaluate policy, entity '.$page->id);
+            dump('Evaluate policy, page '.$page->id);
         }
 
         $policyResult = ScrapePolicyEngine::evaluate($page);

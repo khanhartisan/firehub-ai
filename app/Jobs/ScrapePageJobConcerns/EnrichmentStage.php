@@ -16,7 +16,7 @@ trait EnrichmentStage
     protected function handleEnrichmentStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
-            dump('Enrichment, entity '.$page->id);
+            dump('Enrichment, page '.$page->id);
         }
 
         if (!$snapshot = $page->currentSnapshot) {

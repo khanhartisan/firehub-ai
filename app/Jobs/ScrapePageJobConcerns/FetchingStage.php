@@ -21,7 +21,7 @@ trait FetchingStage
     protected function handleFetchingStage(Page $page): ?Snapshot
     {
         if (env('APP_DEBUG')) {
-            dump('Fetching, entity '.$page->id);
+            dump('Fetching, page '.$page->id);
         }
 
         // Update scraping status

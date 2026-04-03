@@ -9,8 +9,8 @@ use Carbon\Carbon;
 /**
  * Result of ScrapePolicyEngine::evaluate(): when to scrape next and policy metrics.
  *
- * next_scrape_at is stored on the entity; boosts/penalties/priority/urgency/cost_factor
- * are stored in entity.policy_result for analytics or future policy logic.
+ * next_scrape_at is stored on the page; boosts/penalties/priority/urgency/cost_factor
+ * are stored in page.policy_result for analytics or future policy logic.
  */
 final class PolicyResult implements Serializable
 {

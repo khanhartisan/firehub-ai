@@ -117,7 +117,8 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
         // Check budget
         // If budget is exceeded, push the job to the next window
-        if ($initialScrapingTime = ScrapePolicyEngine::calculateInitialScrapingTime($page)
+        if ($stage === ScrapingStage::FETCHING
+            and $initialScrapingTime = ScrapePolicyEngine::calculateInitialScrapingTime($page)
             and $initialScrapingTime->gt(now())
         ) {
             $page->scraping_status = ScrapingStatus::PENDING;
@@ -226,6 +227,9 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             if (is_null($fileEnrichmentResult)) {
                 $lock->release();
                 ScrapePageJob::dispatch($page)->delay(10);
+                if (env('APP_DEBUG')) {
+                    dump('Awaiting file enrichment...');
+                }
                 return;
             }
 

@@ -14,7 +14,7 @@ trait FinishingStage
     protected function handleFinishingStage(Page $page): bool
     {
         if (env('APP_DEBUG')) {
-            dump('Finishing, entity '.$page->id);
+            dump('Finishing, page '.$page->id);
         }
 
         // Apply the next scrape at from policy

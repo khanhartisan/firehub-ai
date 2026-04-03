@@ -20,7 +20,7 @@ return new class extends Migration
 
             $table->string('description', 4096)->nullable();
 
-            $table->string('url', 4096);
+            $table->text('url');
             $table->char('url_hash', 40)->unique();
 
             $table->string('path')->nullable()->index();

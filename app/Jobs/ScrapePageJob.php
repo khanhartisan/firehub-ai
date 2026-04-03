@@ -220,7 +220,17 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         // File enrichment stage
         elseif ($stage === ScrapingStage::FILE_ENRICHMENT) {
 
-            if (!$this->handleFileEnrichmentStage($page)) {
+            $fileEnrichmentResult = $this->handleFileEnrichmentStage($page);
+
+            // If return null, we wait
+            if (is_null($fileEnrichmentResult)) {
+                $lock->release();
+                ScrapePageJob::dispatch($page)->delay(10);
+                return;
+            }
+
+            // Failed
+            if (!$fileEnrichmentResult) {
                 $this->markPageFailed();
                 return;
             }

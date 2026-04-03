@@ -5,9 +5,15 @@ namespace App\Models;
 use App\Enums\ScrapingStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
+use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
+use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Snapshot extends Model
+class Snapshot extends Model implements ShouldCascade
 {
+    use Cascades;
+
     protected $fillable = [
         'page_id',
         'scraping_status',
@@ -40,5 +46,29 @@ class Snapshot extends Model
             'fileable_id',
             'file_id'
         )->where('fileables.fileable_type', $this->getMorphClass());
+    }
+
+    public function fileables(): HasMany
+    {
+        return $this
+            ->hasMany(Fileable::class, 'fileable_id')
+            ->where('fileable_type', $this->getMorphClass());
+    }
+
+    public function getCascadeDetails(): CascadeDetails|array
+    {
+        return [
+            // TODO: On fileable deleted -> check if the corresponding file is orphan
+            // If yes -> delete the file.
+            // We'll also need a force delete job to delete the file in the background
+            new CascadeDetails($this->fileables())
+        ];
+    }
+
+    public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
+    {
+        // TODO: Need a force delete job running in the background to delete snapshot files
+        // Currently this returns true, but it must return false
+        return true;
     }
 }

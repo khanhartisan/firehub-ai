@@ -40,6 +40,10 @@ return new class extends Migration
 
             $table->timestamps();
 
+            $table->softDeletes();
+            $table->cascades();
+            $table->index(['cascade_status', 'deleted_at']);
+
             $table->index(['page_id', 'created_at']);
         });
     }

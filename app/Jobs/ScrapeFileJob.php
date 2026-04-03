@@ -160,6 +160,10 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         if ($save) {
             $this->file->saveQuietly();
         }
+
+        if (env('APP_DEBUG')) {
+            dump('Update file scraping stage to: '.(!$stage ? 'null' : $stage->name));
+        }
     }
 
     protected function getManualLock(): Lock

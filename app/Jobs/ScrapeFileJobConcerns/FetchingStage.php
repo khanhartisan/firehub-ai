@@ -25,12 +25,6 @@ trait FetchingStage
             dump('Fetching file '.$file->id);
         }
 
-        if ($file->scraping_status !== ScrapingStatus::QUEUED) {
-            Log::debug("ScrapeFileJob: File [{$file->id}] status is {$file->scraping_status->name}, skipping");
-
-            return false;
-        }
-
         $file->scraping_status = ScrapingStatus::FETCHING;
         DB::transaction(fn () => $file->save());
 

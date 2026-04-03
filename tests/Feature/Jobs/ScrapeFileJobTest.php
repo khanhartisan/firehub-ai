@@ -58,19 +58,6 @@ class ScrapeFileJobTest extends TestCase
         ], $overrides));
     }
 
-    public function test_fetch_skips_when_status_is_not_queued(): void
-    {
-        $file = $this->makeFile(['scraping_status' => ScrapingStatus::PENDING]);
-
-        Scraper::shouldReceive('fetch')->never();
-
-        (new ScrapeFileJob($file))->handle();
-
-        $file->refresh();
-        $this->assertSame(ScrapingStatus::PENDING, $file->scraping_status);
-        Storage::assertMissing('files/'.$file->id.'/data.bin');
-    }
-
     public function test_fetch_http_4xx_increments_attempts_and_sets_failed_status(): void
     {
         $file = $this->makeFile(['attempts' => 0]);

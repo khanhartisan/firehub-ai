@@ -36,4 +36,17 @@ class VerticalResolverManager extends Manager
             $config
         );
     }
+
+    /**
+     * Create a Gemma 3 driver instance (uses OpenAI manager's gemma3 backend).
+     */
+    protected function createGemma3Driver(): Drivers\Gemma3VerticalResolverDriver
+    {
+        $config = $this->config->get('verticalresolver.drivers.gemma3', []);
+
+        return new Drivers\Gemma3VerticalResolverDriver(
+            $this->container->make('openai.manager'),
+            $config
+        );
+    }
 }

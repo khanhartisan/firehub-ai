@@ -24,7 +24,7 @@ return [
     | driver used by your application. An example configuration is provided
     | for each driver supported. You're also free to add more drivers.
     |
-    | Supported drivers: "openai", "keyword"
+    | Supported drivers: "openai", "keyword", "gemma3"
     |
     */
 
@@ -39,6 +39,11 @@ return [
             'match_threshold' => (float) env('VERTICALRESOLVER_MATCH_THRESHOLD', 0.4),
             'proposal_threshold' => (float) env('VERTICALRESOLVER_PROPOSAL_THRESHOLD', 0.15),
             'max_content_length' => (int) env('VERTICALRESOLVER_MAX_CONTENT_LENGTH', 50000),
+        ],
+
+        'gemma3' => [
+            'model' => env('VERTICALRESOLVER_GEMMA3_MODEL', env('GEMMA3_DEFAULT_MODEL', 'gemma-3-27b-it')),
+            'max_content_length' => (int) env('VERTICALRESOLVER_GEMMA3_MAX_CONTENT_LENGTH', env('VERTICALRESOLVER_MAX_CONTENT_LENGTH', 50000)),
         ],
 
     ],

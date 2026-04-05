@@ -1,0 +1,19 @@
+{
+    "verticals": [
+        {
+            "identifier": "technology",
+            "name": "Technology",
+            "description": "Software engineering, APIs, frameworks, and developer tutorials."
+        },
+        {
+            "identifier": "news",
+            "name": "News",
+            "description": "Breaking news, headlines, and current events."
+        },
+        {
+            "identifier": "documentation",
+            "name": "Documentation",
+            "description": "Technical documentation, reference material, and how-to guides."
+        }
+    ]
+}

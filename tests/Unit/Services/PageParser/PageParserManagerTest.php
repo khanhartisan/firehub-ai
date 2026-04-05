@@ -4,8 +4,10 @@ namespace Tests\Unit\Services\PageParser;
 
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\PageParser;
+use App\Services\PageParser\Drivers\Gemma3PageParserDriver;
 use App\Services\PageParser\Drivers\OpenAIPageParserDriver;
 use App\Services\PageParser\PageParserManager;
+use App\Services\OpenAI\OpenAIManager;
 use Illuminate\Support\Facades\Config;
 use Mockery;
 use Tests\TestCase;
@@ -62,6 +64,20 @@ class PageParserManagerTest extends TestCase
         $driver = $manager->driver('openai');
 
         $this->assertInstanceOf(OpenAIPageParserDriver::class, $driver);
+    }
+
+    public function test_it_returns_gemma3_driver(): void
+    {
+        $mockOpenAIManager = Mockery::mock(OpenAIManager::class);
+        $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
+        $mockOpenAIManager->shouldReceive('driver')->with('gemma3')->andReturn($mockOpenAIClient);
+        $this->app->instance('openai.manager', $mockOpenAIManager);
+
+        $manager = PageParser::getFacadeRoot();
+
+        $driver = $manager->driver('gemma3');
+
+        $this->assertInstanceOf(Gemma3PageParserDriver::class, $driver);
     }
 
     public function test_get_default_driver_returns_openai(): void

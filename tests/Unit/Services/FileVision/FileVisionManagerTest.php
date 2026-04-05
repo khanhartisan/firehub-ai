@@ -5,8 +5,10 @@ namespace Tests\Unit\Services\FileVision;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\FileVision;
 use App\Services\FileVision\Drivers\BasicFileVisionDriver;
+use App\Services\FileVision\Drivers\Gemma3FileVisionDriver;
 use App\Services\FileVision\Drivers\OpenAIFileVisionDriver;
 use App\Services\FileVision\FileVisionManager;
+use App\Services\OpenAI\OpenAIManager;
 use Illuminate\Support\Facades\Config;
 use Mockery;
 use Tests\TestCase;
@@ -49,6 +51,20 @@ class FileVisionManagerTest extends TestCase
         $driver = $manager->driver('openai');
 
         $this->assertInstanceOf(OpenAIFileVisionDriver::class, $driver);
+    }
+
+    public function test_it_returns_gemma3_driver(): void
+    {
+        $mockOpenAIManager = Mockery::mock(OpenAIManager::class);
+        $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
+        $mockOpenAIManager->shouldReceive('driver')->with('gemma3')->andReturn($mockOpenAIClient);
+        $this->app->instance('openai.manager', $mockOpenAIManager);
+
+        $manager = FileVision::getFacadeRoot();
+
+        $driver = $manager->driver('gemma3');
+
+        $this->assertInstanceOf(Gemma3FileVisionDriver::class, $driver);
     }
 
     public function test_it_uses_config_for_driver_creation(): void

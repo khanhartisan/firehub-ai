@@ -34,4 +34,17 @@ class ScrapePolicyEngineManager extends Manager
 
         return new Drivers\OpenAIScrapePolicyEngineDriver($this->container->make(OpenAIClient::class), $config);
     }
+
+    /**
+     * Create a Gemma 3 driver instance (uses OpenAI manager's gemma3 backend).
+     */
+    protected function createGemma3Driver(): Drivers\Gemma3ScrapePolicyEngineDriver
+    {
+        $config = $this->config->get('scrapepolicyengine.drivers.gemma3', []);
+
+        return new Drivers\Gemma3ScrapePolicyEngineDriver(
+            $this->container->make('openai.manager'),
+            $config
+        );
+    }
 }

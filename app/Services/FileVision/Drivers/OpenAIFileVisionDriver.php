@@ -70,7 +70,7 @@ class OpenAIFileVisionDriver extends FileVisionService
         $base64Image = base64_encode($imageData);
 
         // Create input with image
-        $input = ResponseInput::text('Describe this image in detail. Include information about what is shown, colors, composition, and any text or objects visible.')
+        $input = ResponseInput::text('Describe this image in detail. Include information about what is shown, colors, composition, and any text or objects visible. DO NOT include any other proposal texts (like "Would you like to..." or "Let me know..."), or opening texts (like "Here is...", or "Result: Here is..."), or any other unrelated information.')
             ->addImageFromBase64($base64Image, $mimeType, 'high');
 
         // Create response options

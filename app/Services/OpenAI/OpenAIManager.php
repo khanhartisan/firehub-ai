@@ -33,4 +33,14 @@ class OpenAIManager extends Manager
 
         return new Drivers\GrokDriver($config);
     }
+
+    /**
+     * Create a Gemma 3 (Gemini API OpenAI-compatible) driver instance.
+     */
+    protected function createGemma3Driver(): Drivers\Gemma3Driver
+    {
+        $config = $this->config->get('openai.drivers.gemma3', []);
+
+        return new Drivers\Gemma3Driver($config);
+    }
 }

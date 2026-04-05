@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\OpenAI;
 
 use App\Facades\OpenAI;
+use App\Services\OpenAI\Drivers\Gemma3Driver;
 use App\Services\OpenAI\Drivers\GrokDriver;
 use App\Services\OpenAI\Drivers\OpenAIDriver;
 use App\Services\OpenAI\OpenAIManager;
@@ -38,6 +39,15 @@ class OpenAIManagerTest extends TestCase
         $driver = $manager->driver('grok');
 
         $this->assertInstanceOf(GrokDriver::class, $driver);
+    }
+
+    public function test_it_returns_gemma3_driver(): void
+    {
+        $manager = OpenAI::getFacadeRoot();
+
+        $driver = $manager->driver('gemma3');
+
+        $this->assertInstanceOf(Gemma3Driver::class, $driver);
     }
 
     public function test_it_uses_config_for_driver_creation(): void

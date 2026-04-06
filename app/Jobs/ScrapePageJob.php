@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Contracts\PageParser\PageData;
+use App\Enums\PageType;
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
@@ -242,8 +243,15 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 return;
             }
 
+            // Continue to policy evaluation if not detail page
+            if ($page->page_type !== PageType::DETAIL) {
+                $this->updatePageScrapingStage(ScrapingStage::POLICY_EVALUATION);
+            }
             // Continue to file enrichment
-            $this->updatePageScrapingStage(ScrapingStage::FILE_ENRICHMENT);
+            else {
+                $this->updatePageScrapingStage(ScrapingStage::FILE_ENRICHMENT);
+            }
+
             $lock->release();
             ScrapePageJob::dispatch($page);
         }

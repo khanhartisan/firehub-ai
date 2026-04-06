@@ -19,6 +19,7 @@ use App\Jobs\ScrapePageJobConcerns\VerticalResolutionStage;
 use App\Models\Page;
 use App\Models\Snapshot;
 use Carbon\Carbon;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -91,10 +92,39 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         return $this->page->getKey();
     }
 
+    public function handle(): void
+    {
+        try {
+            $this->_handle();
+        } catch (\Exception $e) {
+            $this->markPageFailed();
+
+            $logs = $this->page->logs ?? '';
+            $logs .= "\n---\n".$e->getMessage()."\n---\n";
+            if ($e instanceof GuzzleException
+                and method_exists($e, 'getResponse')
+                and $errorResponseBody = $e->getResponse()->getBody()->getContents()
+            ) {
+                $logs .= $errorResponseBody."\n---\n";
+            }
+            $logs .= $e->getTraceAsString();
+
+            // Trim the logs
+            if (strlen($logs) > 10000) {
+                $logs = '...trimmed...'."\n".substr($logs, -10000);
+            }
+
+            // Log the exception for debugging
+            Page::query()->where('id', $this->page->id)->update([
+                'logs' => $logs,
+            ]);
+        }
+    }
+
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function _handle(): void
     {
         $page = $this->page;
 

@@ -51,6 +51,8 @@ return new class extends Migration
             $table->json('policy_result')->nullable();
             $table->dateTime('next_scrape_at')->nullable();
 
+            $table->longText('logs')->nullable();
+
             $table->softDeletes();
             $table->cascades();
             $table->index(['cascade_status', 'deleted_at']);

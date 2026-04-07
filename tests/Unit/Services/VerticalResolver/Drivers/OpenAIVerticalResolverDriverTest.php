@@ -411,10 +411,10 @@ class OpenAIVerticalResolverDriverTest extends TestCase
         $this->assertSame('Technology', $root->getDescription());
         $children = $root->getChildren();
         $this->assertCount(2, $children);
-        $this->assertSame('news_media', $children[0]->getName());
-        $this->assertSame('product_information', $children[1]->getName());
-        $this->assertSame('tech_news', $children[0]->getChildren()[0]->getName());
-        $this->assertSame('product_docs', $children[1]->getChildren()[0]->getName());
+        $this->assertSame('news-media', $children[0]->getName());
+        $this->assertSame('product-information', $children[1]->getName());
+        $this->assertSame('tech-news', $children[0]->getChildren()[0]->getName());
+        $this->assertSame('product-docs', $children[1]->getChildren()[0]->getName());
     }
 
     public function test_propose_returns_empty_when_no_suggestions(): void

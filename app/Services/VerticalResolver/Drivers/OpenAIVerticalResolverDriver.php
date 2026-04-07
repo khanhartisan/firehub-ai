@@ -449,7 +449,7 @@ PROMPT;
         }
 
         $description = isset($node['description']) ? (string) $node['description'] : null;
-        $vertical = new Vertical(Str::snake($name), $description);
+        $vertical = new Vertical(Str::slug($name), $description);
 
         $children = $node['children'] ?? [];
         if (! is_array($children)) {

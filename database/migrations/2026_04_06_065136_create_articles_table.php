@@ -29,7 +29,6 @@ return new class extends Migration
 
             $table->string('title')->nullable();
             $table->text('excerpt')->nullable();
-            $table->longText('body_html')->nullable();
             $table->longText('body_markdown')->nullable();
             $table->ulid('thumbnail_file_id')->nullable();
 

@@ -3,17 +3,23 @@
 namespace App\Filament\Resources\Verticals;
 
 use App\Filament\Resources\Verticals\Pages\ManageVerticals;
+use App\Filament\Resources\Verticals\Pages\ViewVertical;
+use App\Filament\Resources\Verticals\RelationManagers\ChildrenRelationManager;
 use App\Models\Vertical;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -58,14 +64,39 @@ class VerticalResource extends Resource
             ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make()
+                    ->schema([
+                        TextEntry::make('name'),
+                        TextEntry::make('description')
+                            ->placeholder('—')
+                            ->columnSpanFull(),
+                        TextEntry::make('parent.name')
+                            ->label('Parent vertical')
+                            ->placeholder('— (root)'),
+                        IconEntry::make('is_embeddable')
+                            ->label('Embeddable')
+                            ->boolean(),
+                        IconEntry::make('is_embedded')
+                            ->label('Embedded')
+                            ->boolean(),
+                        TextEntry::make('created_at')
+                            ->dateTime(),
+                        TextEntry::make('updated_at')
+                            ->dateTime(),
+                    ])
+                    ->columns(2),
+            ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('parent.name')
-                    ->label('Parent')
-                    ->sortable(),
                 TextColumn::make('description')->limit(50),
                 IconColumn::make('is_embeddable')
                     ->label('Embeddable')
@@ -80,6 +111,7 @@ class VerticalResource extends Resource
                 //
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -90,10 +122,18 @@ class VerticalResource extends Resource
             ]);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            ChildrenRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => ManageVerticals::route('/'),
+            'view' => ViewVertical::route('/{record}'),
         ];
     }
 }

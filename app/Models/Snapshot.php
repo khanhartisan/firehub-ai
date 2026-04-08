@@ -22,13 +22,24 @@ class Snapshot extends Model implements ShouldCascade
         'file_size',
         'file_mime_type',
         'file_extension',
+        'content_length',
+        'structured_data_count',
+        'files_count',
+        'links_count',
+        'content_change_percentage',
+        'fetch_duration_ms',
+        'cost',
         'error_logs',
     ];
 
     protected $casts = [
         'scraping_status' => ScrapingStatus::class,
+        'file_size' => 'integer',
+        'content_length' => 'integer',
+        'structured_data_count' => 'integer',
         'content_change_percentage' => 'float',
         'cost' => 'float',
+        'fetch_duration_ms' => 'integer',
         'files_count' => 'integer',
         'links_count' => 'integer',
     ];
@@ -61,7 +72,7 @@ class Snapshot extends Model implements ShouldCascade
             // TODO: On fileable deleted -> check if the corresponding file is orphan
             // If yes -> delete the file.
             // We'll also need a force delete job to delete the file in the background
-            new CascadeDetails($this->fileables())
+            new CascadeDetails($this->fileables()),
         ];
     }
 

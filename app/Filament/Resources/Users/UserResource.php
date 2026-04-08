@@ -9,6 +9,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -47,6 +48,10 @@ class UserResource extends Resource
                     ->dehydrated(fn ($state) => filled($state))
                     ->required(fn (string $operation): bool => $operation === 'create')
                     ->maxLength(255),
+                DateTimePicker::make('email_verified_at')
+                    ->label('Email verified at')
+                    ->seconds(false)
+                    ->nullable(),
             ]);
     }
 
@@ -56,6 +61,7 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('email')->searchable()->sortable(),
+                TextColumn::make('email_verified_at')->dateTime()->sortable(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->filters([

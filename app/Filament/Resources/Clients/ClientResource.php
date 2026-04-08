@@ -9,7 +9,9 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -29,7 +31,15 @@ class ClientResource extends Resource
     {
         return $schema
             ->components([
-                //
+                Section::make()
+                    ->description('Clients only store an id and timestamps; there are no additional columns to edit.')
+                    ->schema([
+                        TextInput::make('id')
+                            ->label('Client ID')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->visibleOn('edit'),
+                    ]),
             ]);
     }
 

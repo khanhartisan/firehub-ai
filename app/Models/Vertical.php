@@ -21,6 +21,7 @@ class Vertical extends EmbeddableModel implements PageCountableContract, ShouldC
         'description',
         'parent_id',
         'vector',
+        'is_embeddable',
         'is_embedded',
     ];
 
@@ -37,7 +38,7 @@ class Vertical extends EmbeddableModel implements PageCountableContract, ShouldC
 
     public function getTextForEmbedding(): ?string
     {
-        if (!$this->name and !$this->description) {
+        if (! $this->name and ! $this->description) {
             return null;
         }
 
@@ -46,13 +47,13 @@ class Vertical extends EmbeddableModel implements PageCountableContract, ShouldC
 
     public function isEmbedded(): bool
     {
-        if (!$this->is_embedded) {
+        if (! $this->is_embedded) {
             return false;
         }
 
         if ($this->isDirty('name')
             or $this->isDirty('description')
-            or !$this->getTextForEmbedding()
+            or ! $this->getTextForEmbedding()
         ) {
             return false;
         }
@@ -65,7 +66,7 @@ class Vertical extends EmbeddableModel implements PageCountableContract, ShouldC
         return [
             new CascadeDetails($this->pages()),
             new CascadeDetails($this->children()),
-            new CascadeDetails($this->hasMany(SourceVertical::class))
+            new CascadeDetails($this->hasMany(SourceVertical::class)),
         ];
     }
 

@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Contracts\Model\PageCountable;
+use App\Database\Eloquent\Relations\PageCountBelongsToMany;
 use App\Enums\ContentType;
 use App\Enums\PageType;
 use App\Enums\ScrapableType;
 use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
 use App\Enums\Temporal;
-use App\Database\Eloquent\Relations\PageCountBelongsToMany;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,13 +26,27 @@ class Page extends EmbeddableModel implements ShouldCascade
 
     protected $fillable = [
         'source_id',
+        'canonical_page_id',
+        'canonical_number',
         'url',
+        'title',
         'description',
         'type',
+        'ignore_scraping_budget',
         'scraping_status',
-        'vector',
-        'is_embedded',
+        'scraping_stage',
+        'page_type',
+        'content_type',
+        'temporal',
         'version_index',
+        'source_published_at',
+        'source_updated_at',
+        'scraped_at',
+        'attempts',
+        'next_scrape_at',
+        'vector',
+        'is_embeddable',
+        'is_embedded',
     ];
 
     protected $casts = [
@@ -65,14 +79,14 @@ class Page extends EmbeddableModel implements ShouldCascade
 
     public function isEmbedded(): bool
     {
-        if (!$this->is_embedded) {
+        if (! $this->is_embedded) {
             return false;
         }
 
         if ($this->isDirty('page_type')
             or $this->isDirty('content_type')
             or $this->isDirty('description')
-            or !$this->getTextForEmbedding()
+            or ! $this->getTextForEmbedding()
         ) {
             return false;
         }
@@ -82,7 +96,7 @@ class Page extends EmbeddableModel implements ShouldCascade
 
     public function getTextForEmbedding(): ?string
     {
-        if (!$this->isEmbeddable()) {
+        if (! $this->isEmbeddable()) {
             return null;
         }
 
@@ -109,7 +123,7 @@ class Page extends EmbeddableModel implements ShouldCascade
         return [
             new CascadeDetails($this->snapshots()),
             new CascadeDetails($this->hasMany(PageVertical::class)),
-            new CascadeDetails($this->hasMany(PageTag::class))
+            new CascadeDetails($this->hasMany(PageTag::class)),
         ];
     }
 

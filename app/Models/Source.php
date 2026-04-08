@@ -14,19 +14,25 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 class Source extends EmbeddableModel implements PageCountableContract, ShouldCascade
 {
     use Cascades;
-    use PageCountable;
     use HasFactory;
+    use PageCountable;
 
     protected $fillable = [
         'base_url',
+        'description',
+        'schedule_scraping',
         'authority_score',
         'priority',
+        'daily_budget',
+        'weekly_budget',
+        'monthly_budget',
         'vector',
         'is_embedded',
     ];
 
     protected $casts = [
         'authority_score' => 'integer',
+        'schedule_scraping' => 'boolean',
         'daily_budget' => 'integer',
         'weekly_budget' => 'integer',
         'monthly_budget' => 'integer',
@@ -37,17 +43,17 @@ class Source extends EmbeddableModel implements PageCountableContract, ShouldCas
 
     public function isEmbeddable(): bool
     {
-        return !!$this->description;
+        return (bool) $this->description;
     }
 
     public function isEmbedded(): bool
     {
-        if (!$this->is_embedded) {
+        if (! $this->is_embedded) {
             return false;
         }
 
         if ($this->isDirty('description')
-            or !$this->getTextForEmbedding()
+            or ! $this->getTextForEmbedding()
         ) {
             return false;
         }

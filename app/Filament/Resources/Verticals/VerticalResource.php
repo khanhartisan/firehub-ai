@@ -5,13 +5,14 @@ namespace App\Filament\Resources\Verticals;
 use App\Filament\Resources\Verticals\Pages\ManageVerticals;
 use App\Models\Vertical;
 use BackedEnum;
-use Filament\Forms\Components\Select;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -40,12 +41,19 @@ class VerticalResource extends Resource
                     ->unique(ignoreRecord: true),
                 Select::make('parent_id')
                     ->label('Parent vertical')
-                    ->relationship('parent', 'name')
+                    ->relationship('parent', 'name', null, true)
                     ->searchable()
+                    ->preload()
                     ->nullable(),
                 Textarea::make('description')
-                    ->maxLength(65535)
+                    ->rows(4)
                     ->columnSpanFull(),
+                Toggle::make('is_embeddable')
+                    ->label('Embeddable')
+                    ->default(false),
+                Toggle::make('is_embedded')
+                    ->label('Embedded')
+                    ->default(false),
             ]);
     }
 
@@ -58,6 +66,14 @@ class VerticalResource extends Resource
                     ->label('Parent')
                     ->sortable(),
                 TextColumn::make('description')->limit(50),
+                TextColumn::make('is_embeddable')
+                    ->label('Embeddable')
+                    ->boolean()
+                    ->sortable(),
+                TextColumn::make('is_embedded')
+                    ->label('Embedded')
+                    ->boolean()
+                    ->sortable(),
             ])
             ->filters([
                 //

@@ -17,6 +17,7 @@ class SourceFactory extends Factory
     public function definition(): array
     {
         return [
+            'schedule_scraping' => true,
             'base_url' => $this->faker->url(),
             'description' => $this->faker->sentence(),
         ];

@@ -50,13 +50,16 @@ class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
         $chunkSize = config('queue.scrape_sources_chunk_size');
 
         Source::query()
+            ->where('schedule_scraping', true)
             ->orderBy('updated_at')
             ->chunk($chunkSize, function ($sources) use ($startTime, $maxSeconds): bool {
                 if (time() - $startTime >= $maxSeconds) {
                     return false;
                 }
 
+                /** @var Source $source */
                 foreach ($sources as $source) {
+                    $source->touchQuietly();
                     $this->processSource($source);
                 }
 

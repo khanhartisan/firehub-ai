@@ -20,6 +20,7 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->string('base_url')->unique();
             $table->text('description')->nullable();
+            $table->boolean('schedule_scraping')->default(false);
             $table->unsignedTinyInteger('authority_score')->default(0);
             $table->decimal('priority', 3, 2)->default(0.5);
             $table->timestamps();

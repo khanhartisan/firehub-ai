@@ -31,7 +31,7 @@ class ScrapeSourcesJobTest extends TestCase
     {
         Bus::fake();
 
-        $source = Source::create([
+        $source = Source::factory()->create([
             'base_url' => 'https://example.com',
         ]);
 
@@ -66,7 +66,7 @@ class ScrapeSourcesJobTest extends TestCase
     {
         Queue::fake();
 
-        $source = Source::create([
+        $source = Source::factory()->create([
             'base_url' => 'https://example.com/',
         ]);
 
@@ -92,7 +92,7 @@ class ScrapeSourcesJobTest extends TestCase
     {
         Queue::fake();
 
-        $source = Source::create([
+        $source = Source::factory()->create([
             'base_url' => 'https://example.com/',
         ]);
 
@@ -119,7 +119,7 @@ class ScrapeSourcesJobTest extends TestCase
     {
         Queue::fake();
 
-        $source = Source::create([
+        $source = Source::factory()->create([
             'base_url' => '',
         ]);
 
@@ -134,7 +134,7 @@ class ScrapeSourcesJobTest extends TestCase
     {
         Queue::fake();
 
-        $source = Source::create([
+        $source = Source::factory()->create([
             'base_url' => 'not-a-url',
         ]);
 
@@ -150,7 +150,7 @@ class ScrapeSourcesJobTest extends TestCase
         Config::set('queue.max_page_scraping_queue_size', 0);
         Queue::fake();
 
-        $source = Source::create([
+        $source = Source::factory()->create([
             'base_url' => 'https://example.com',
         ]);
 
@@ -172,9 +172,9 @@ class ScrapeSourcesJobTest extends TestCase
     {
         Queue::fake();
 
-        $source1 = Source::create(['base_url' => 'https://first.com/']);
+        $source1 = Source::factory()->create(['base_url' => 'https://first.com/']);
         $source1->touch();
-        $source2 = Source::create(['base_url' => 'https://second.com/']);
+        $source2 = Source::factory()->create(['base_url' => 'https://second.com/']);
 
         $job = new ScrapeSourcesJob;
         $job->handle();
@@ -201,9 +201,9 @@ class ScrapeSourcesJobTest extends TestCase
         Config::set('queue.scrape_sources_chunk_size', 2);
         Queue::fake();
 
-        Source::create(['base_url' => 'https://one.com']);
-        Source::create(['base_url' => 'https://two.com']);
-        Source::create(['base_url' => 'https://three.com']);
+        Source::factory()->create(['base_url' => 'https://one.com']);
+        Source::factory()->create(['base_url' => 'https://two.com']);
+        Source::factory()->create(['base_url' => 'https://three.com']);
 
         $job = new ScrapeSourcesJob;
         $job->handle();

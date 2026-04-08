@@ -8,18 +8,19 @@ use App\Contracts\PageClassifier\Classifier;
 use App\Contracts\PageParser\Parser;
 use App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine;
 use App\Contracts\Scraper\Scraper;
+use App\Contracts\SearchEngine\SearchEngine;
 use App\Contracts\TextEmbedding\TextEmbedding as TextEmbeddingContract;
 use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VerticalResolver\VerticalResolver;
 use App\Models\Client;
 use App\Models\File;
 use App\Models\Fileable;
+use App\Models\Model;
 use App\Models\Page;
 use App\Models\PageCount;
 use App\Models\PageRelation;
 use App\Models\PageTag;
 use App\Models\PageVertical;
-use App\Models\Model;
 use App\Models\Snapshot;
 use App\Models\Source;
 use App\Models\SourceVertical;
@@ -32,6 +33,7 @@ use App\Services\PageClassifier\PageClassifierManager;
 use App\Services\PageParser\PageParserManager;
 use App\Services\ScrapePolicyEngine\ScrapePolicyEngineManager;
 use App\Services\Scraper\ScraperManager;
+use App\Services\SearchEngine\SearchEngineManager;
 use App\Services\TextEmbedding\TextEmbeddingManager;
 use App\Services\VectorDB\VectorDBManager;
 use App\Services\VerticalResolver\VerticalResolverManager;
@@ -56,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('vertical_resolver.manager', VerticalResolverManager::class);
         $this->app->singleton('vectordb.manager', VectorDBManager::class);
         $this->app->singleton('text_embedding.manager', TextEmbeddingManager::class);
+        $this->app->singleton('search_engine.manager', SearchEngineManager::class);
 
         // Bind interfaces to the default driver (type-safe for dependency injection)
         $this->app->singleton(OpenAIClient::class, fn ($app) => $app['openai.manager']->driver());
@@ -67,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(VerticalResolver::class, fn ($app) => $app['vertical_resolver.manager']->driver());
         $this->app->singleton(VectorDB::class, fn ($app) => $app['vectordb.manager']->driver());
         $this->app->singleton(TextEmbeddingContract::class, fn ($app) => $app['text_embedding.manager']->driver());
+        $this->app->singleton(SearchEngine::class, fn ($app) => $app['search_engine.manager']->driver());
     }
 
     /**

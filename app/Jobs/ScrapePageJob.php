@@ -85,7 +85,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             $this->updatePageScrapingStage($stage);
         }
 
-        $this->onQueue(QueueEnum::SCRAPING->value);
+        $this->onQueue(QueueEnum::PAGE_SCRAPING->value);
     }
 
     public function uniqueId(): string
@@ -346,6 +346,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
     {
         $page = $this->page;
         $this->updatePageScrapingStage(null, false);
+        $page->ignore_scraping_budget = false;
         $page->scraping_status = ScrapingStatus::SUCCESS;
         $page->attempts = 0;
         DB::transaction(fn () => $page->save());

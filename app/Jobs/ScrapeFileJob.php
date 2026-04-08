@@ -16,6 +16,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
@@ -45,7 +46,7 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             $this->updateFileScrapingStage($stage);
         }
 
-        $this->onQueue(QueueEnum::SCRAPING->value);
+        $this->onQueue(QueueEnum::FILE_SCRAPING->value);
     }
 
     public function uniqueId(): string
@@ -130,7 +131,7 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         // Finishing
         elseif ($stage === ScrapingStage::FINISHING) {
             if ($this->handleFileFinishingStage($file)) {
-                $this->updateFileScrapingStage(null);
+                $this->markFileSuccess();
                 $lock->release();
 
                 return;
@@ -151,6 +152,15 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $this->updateFileScrapingStage(null);
 
         $this->getManualLock()->release();
+    }
+
+    protected function markFileSuccess(): void
+    {
+        $file = $this->file;
+        $file->scraping_status = ScrapingStatus::SUCCESS;
+        $file->attempts = 0;
+        $this->updateFileScrapingStage(null, false);
+        DB::transaction(fn () => $file->save());
     }
 
     protected function updateFileScrapingStage(?ScrapingStage $stage, bool $save = true): void

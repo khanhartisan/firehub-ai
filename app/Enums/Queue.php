@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Queue as QueueFacade;
 enum Queue: string
 {
     case DEFAULT = 'default';
-    case SCRAPING = 'scraping';
+    case PAGE_SCRAPING = 'page_scraping';
+    case FILE_SCRAPING = 'file_scraping';
 
     case SCHEDULER = 'scheduler';
 

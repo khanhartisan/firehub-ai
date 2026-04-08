@@ -39,6 +39,7 @@ class Page extends EmbeddableModel implements ShouldCascade
         'canonical_number' => 'integer',
         'attempts' => 'integer',
         'type' => ScrapableType::class,
+        'ignore_scraping_budget' => 'boolean',
         'scraping_status' => ScrapingStatus::class,
         'scraping_stage' => ScrapingStage::class,
         'page_type' => PageType::class,

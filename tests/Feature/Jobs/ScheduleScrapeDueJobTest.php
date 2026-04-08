@@ -73,7 +73,7 @@ class ScheduleScrapeDueJobTest extends TestCase
 
         (new ScheduleScrapeDueJob(50))->handle();
 
-        Queue::assertPushedOn(QueueEnum::SCRAPING->value, ScrapePageJob::class, function (ScrapePageJob $job) use ($page): bool {
+        Queue::assertPushedOn(QueueEnum::PAGE_SCRAPING->value, ScrapePageJob::class, function (ScrapePageJob $job) use ($page): bool {
             return $job->page->id === $page->id;
         });
     }
@@ -97,7 +97,7 @@ class ScheduleScrapeDueJobTest extends TestCase
         (new ScheduleScrapeDueJob(50))->handle();
 
         Queue::assertPushedTimes(ScrapeFileJob::class, 1);
-        Queue::assertPushedOn(QueueEnum::SCRAPING->value, ScrapeFileJob::class);
+        Queue::assertPushedOn(QueueEnum::FILE_SCRAPING->value, ScrapeFileJob::class);
     }
 
     public function test_handle_skips_file_when_updated_within_cooldown_window(): void
@@ -123,7 +123,7 @@ class ScheduleScrapeDueJobTest extends TestCase
 
     public function test_handle_does_not_dispatch_scrape_jobs_when_scraping_queue_has_no_slots(): void
     {
-        Config::set('queue.max_scraping_queue_size', 0);
+        Config::set('queue.max_page_scraping_queue_size', 0);
 
         Queue::fake();
 

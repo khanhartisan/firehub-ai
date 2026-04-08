@@ -81,7 +81,7 @@ class ScrapeSourcesJobTest extends TestCase
         $this->assertSame(sha1('https://example.com/'), $page->url_hash);
         $this->assertSame(ScrapingStatus::QUEUED->value, $page->scraping_status->value);
 
-        Queue::assertPushedOn(QueueEnum::SCRAPING->value, ScrapePageJob::class, function (ScrapePageJob $job) use ($page): bool {
+        Queue::assertPushedOn(QueueEnum::PAGE_SCRAPING->value, ScrapePageJob::class, function (ScrapePageJob $job) use ($page): bool {
             return $job->page->id === $page->id
                 && $job->page->url === $page->url
                 && $job->page->source_id === $page->source_id;
@@ -110,7 +110,7 @@ class ScrapeSourcesJobTest extends TestCase
         $page->refresh();
         $this->assertDatabaseCount('pages', 1);
         $this->assertSame(ScrapingStatus::QUEUED->value, $page->scraping_status->value);
-        Queue::assertPushedOn(QueueEnum::SCRAPING->value, ScrapePageJob::class, function (ScrapePageJob $job) use ($page): bool {
+        Queue::assertPushedOn(QueueEnum::PAGE_SCRAPING->value, ScrapePageJob::class, function (ScrapePageJob $job) use ($page): bool {
             return $job->page->id === $page->id;
         });
     }
@@ -147,7 +147,7 @@ class ScrapeSourcesJobTest extends TestCase
 
     public function test_does_not_dispatch_when_queue_is_full(): void
     {
-        Config::set('queue.max_scraping_queue_size', 0);
+        Config::set('queue.max_page_scraping_queue_size', 0);
         Queue::fake();
 
         $source = Source::create([
@@ -163,7 +163,7 @@ class ScrapeSourcesJobTest extends TestCase
         $this->assertSame($source->id, $entity->source_id);
         $this->assertSame('https://example.com/', $entity->url);
         $this->assertSame(sha1('https://example.com/'), $entity->url_hash);
-        $this->assertSame(ScrapingStatus::PENDING->value, $entity->scraping_status->value);
+        $this->assertSame(ScrapingStatus::PENDING, $entity->scraping_status);
         $this->assertDatabaseCount('snapshots', 0);
         Queue::assertNotPushed(ScrapePageJob::class);
     }

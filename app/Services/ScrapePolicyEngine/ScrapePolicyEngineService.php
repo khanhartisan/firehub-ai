@@ -31,6 +31,10 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
 
     public function calculateInitialScrapingTime(Page $page): CarbonInterface
     {
+        if ($page->ignore_scraping_budget) {
+            return now();
+        }
+
         if ($page->next_scrape_at) {
             return $page->next_scrape_at;
         }

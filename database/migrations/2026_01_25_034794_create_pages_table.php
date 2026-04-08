@@ -24,6 +24,7 @@ return new class extends Migration
             $table->unsignedBigInteger('canonical_number')->default(0);
 
             $table->unsignedTinyInteger('type')->default(\App\Enums\ScrapableType::UNCLASSIFIED->value);
+            $table->boolean('ignore_scraping_budget')->default(false);
             $table->unsignedTinyInteger('scraping_status')->default(\App\Enums\ScrapingStatus::PENDING->value);
             $table->string('scraping_stage')->nullable();
 

@@ -85,6 +85,12 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         // Dispatch scrape file jobs
         foreach (ScrapingStatus::cases() as $scrapingStatus) {
+
+            // Ignore success
+            if ($scrapingStatus === ScrapingStatus::SUCCESS) {
+                continue;
+            }
+
             for ($attempts = 0;
                  $attempts < config('queue.max_scrape_attempts');
                  $attempts++
@@ -95,7 +101,11 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                     ->where('updated_at', '<', now()->subMinutes(5))
                     ->orderBy('updated_at');
 
-                $dispatched += $this->dispatchScrapingJobs($query, ScrapeFileJob::class);
+                $dispatched += $this->dispatchScrapingJobs(
+                    $query,
+                    ScrapeFileJob::class,
+                    QueueEnum::FILE_SCRAPING,
+                );
             }
         }
 
@@ -107,7 +117,11 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 ->where('next_scrape_at', '<=', now())
                 ->orderBy('next_scrape_at');
 
-            $dispatched += $this->dispatchScrapingJobs($query, ScrapePageJob::class);
+            $dispatched += $this->dispatchScrapingJobs(
+                $query,
+                ScrapePageJob::class,
+                QueueEnum::PAGE_SCRAPING
+            );
         }
 
         return $dispatched;
@@ -119,7 +133,7 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
      * @param QueueEnum $queue
      * @return int The number of pages dispatched
      */
-    private function dispatchScrapingJobs(Builder $query, string $jobClass, QueueEnum $queue = QueueEnum::SCRAPING): int
+    private function dispatchScrapingJobs(Builder $query, string $jobClass, QueueEnum $queue): int
     {
         $queueName = $queue->value;
 

@@ -89,7 +89,7 @@ class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
 
         if (($page->next_scrape_at
                 and $page->next_scrape_at->gte(now())
-            ) or !QueueEnum::SCRAPING->canDispatch()
+            ) or !QueueEnum::PAGE_SCRAPING->canDispatch()
         ) {
             return;
         }

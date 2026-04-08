@@ -16,6 +16,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -66,11 +67,11 @@ class VerticalResource extends Resource
                     ->label('Parent')
                     ->sortable(),
                 TextColumn::make('description')->limit(50),
-                TextColumn::make('is_embeddable')
+                IconColumn::make('is_embeddable')
                     ->label('Embeddable')
                     ->boolean()
                     ->sortable(),
-                TextColumn::make('is_embedded')
+                IconColumn::make('is_embedded')
                     ->label('Embedded')
                     ->boolean()
                     ->sortable(),

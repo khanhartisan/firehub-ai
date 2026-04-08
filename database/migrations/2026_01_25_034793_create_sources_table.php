@@ -38,6 +38,11 @@ return new class extends Migration
             $table->boolean('is_embeddable')->default(false);
             $table->boolean('is_embedded')->default(false);
             $table->index(['is_embeddable', 'is_embedded', 'updated_at']);
+
+            // Indexes
+            $table->index(['schedule_scraping', 'updated_at']);
+
+            // TODO: Need a script for 301 redirect (alias) websites
         });
     }
 

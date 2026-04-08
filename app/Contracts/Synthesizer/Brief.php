@@ -1,0 +1,142 @@
+<?php
+
+namespace App\Contracts\Synthesizer;
+
+use App\Concerns\Serializable as SerializableTrait;
+use App\Contracts\Serializable;
+use App\Models\Page;
+use Illuminate\Database\Eloquent\Collection;
+
+/**
+ * Brief payload for the synthesizer: title, description, instructions, and
+ * reference page IDs used to ground generation.
+ */
+final class Brief implements Serializable
+{
+    use SerializableTrait;
+
+    protected ?string $title = null;
+
+    protected ?string $description = null;
+
+    /**
+     * @var string[]
+     */
+    protected array $instructions = [];
+
+    /**
+     * @var string[]
+     */
+    protected array $referencePageIds = [];
+
+    public function getTitle(): ?string
+    {
+        return $this->title;
+    }
+
+    public function setTitle(?string $title): static
+    {
+        $this->title = $title;
+
+        return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): static
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getInstructions(): array
+    {
+        return $this->instructions;
+    }
+
+    /**
+     * @param  string[]  $instructions
+     */
+    public function setInstructions(array $instructions): static
+    {
+        $this->instructions = array_values(array_map(static fn ($line) => (string) $line, $instructions));
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getReferencePageIds(): array
+    {
+        return $this->referencePageIds;
+    }
+
+    /**
+     * @param  string[]  $referencePageIds
+     */
+    public function setReferencePageIds(array $referencePageIds): static
+    {
+        $this->referencePageIds = array_values(array_map(static fn ($id) => (string) $id, $referencePageIds));
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<Page>
+     */
+    public function getReferencePages(): Collection
+    {
+        if (!$this->getReferencePageIds()) {
+            return new Collection();
+        }
+
+        return Page::query()->whereIn('id', $this->getReferencePageIds())->get();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
+            'instructions' => $this->getInstructions(),
+            'reference_page_ids' => $this->getReferencePageIds(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public static function fromArray(array $data): static
+    {
+        $brief = new static;
+
+        if (isset($data['title'])) {
+            $brief->setTitle($data['title'] !== null ? (string) $data['title'] : null);
+        }
+
+        if (isset($data['description'])) {
+            $brief->setDescription($data['description'] !== null ? (string) $data['description'] : null);
+        }
+
+        if (isset($data['instructions']) && is_array($data['instructions'])) {
+            $brief->setInstructions($data['instructions']);
+        }
+
+        if (isset($data['reference_page_ids']) && is_array($data['reference_page_ids'])) {
+            $brief->setReferencePageIds($data['reference_page_ids']);
+        }
+
+        return $brief;
+    }
+}

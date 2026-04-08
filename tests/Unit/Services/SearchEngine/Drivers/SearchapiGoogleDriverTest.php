@@ -138,10 +138,9 @@ class SearchapiGoogleDriverTest extends TestCase
             'base_url' => 'https://www.searchapi.io',
         ], $client);
 
-        $driver->search('q', new SearchOptions(
-            language: Language::FR,
-            country: Country::DE,
-        ));
+        $driver->search('q', SearchOptions::create()
+            ->setLanguage(Language::FR)
+            ->setCountry(Country::DE));
 
         $this->assertNotEmpty($container);
         $uri = $container[0]['request']->getUri();

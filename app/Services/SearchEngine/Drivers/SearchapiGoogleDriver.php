@@ -53,8 +53,8 @@ class SearchapiGoogleDriver implements SearchEngine
         }
 
         $items = [];
-        $globalIndex = $options->offset;
-        $remaining = max(0, $options->limit);
+        $globalIndex = $options->getOffset();
+        $remaining = max(0, $options->getLimit());
         $totalEstimated = null;
 
         while ($remaining > 0) {
@@ -122,12 +122,12 @@ class SearchapiGoogleDriver implements SearchEngine
             'api_key' => $this->apiKey,
         ];
 
-        if ($options->language !== null) {
-            $queryParams['hl'] = $options->language->value;
+        if ($options->getLanguage() !== null) {
+            $queryParams['hl'] = $options->getLanguage()->value;
         }
 
-        if ($options->country !== null) {
-            $queryParams['gl'] = strtolower($options->country->value);
+        if ($options->getCountry() !== null) {
+            $queryParams['gl'] = strtolower($options->getCountry()->value);
         }
 
         try {

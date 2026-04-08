@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Collection;
 
 interface Embeddable
 {
+    public function getVectorIndex(): string;
+
     /**
      * Whether if the model is ready for embedding
      *

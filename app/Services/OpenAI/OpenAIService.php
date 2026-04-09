@@ -54,6 +54,12 @@ class OpenAIService implements OpenAIClient
         $payload = $this->buildPayload($input, $options);
 
         try {
+            if (env('APP_DEBUG')
+                and app()->runningInConsole()
+            ) {
+                dump('-- Sending request to OpenAI (compatible) API: '.$this->baseUrl.'. Payload length: '.strlen(json_encode($payload)));
+            }
+
             $response = $this->client->post('responses', [
                 'json' => $payload,
                 'timeout' => 300,
@@ -63,7 +69,7 @@ class OpenAIService implements OpenAIClient
 
             return ResponseObject::fromArray($data);
         } catch (BadResponseException $e) {
-            Log::error('OpenAI API error', [
+            Log::error('OpenAI API error', $errorLogs = [
                 'error' => $e->getMessage(),
                 'payload' => $payload,
                 'response' => (string) $e->getResponse()->getBody(),
@@ -71,13 +77,21 @@ class OpenAIService implements OpenAIClient
 
             throw $e;
         } catch (GuzzleException $e) {
-            Log::error('OpenAI API error', [
+            Log::error('OpenAI API error', $errorLogs = [
                 'error' => $e->getMessage(),
                 'payload' => $payload,
                 'response' => method_exists($e, 'getResponse') ? (string) $e->getResponse()?->getBody() : 'Connection error',
             ]);
 
             throw new \RuntimeException('Failed to create OpenAI response: '.$e->getMessage(), 0, $e);
+
+        } finally {
+            if (env('APP_DEBUG')
+                and app()->runningInConsole()
+                and isset($errorLogs)
+            ) {
+                dump($errorLogs);
+            }
         }
     }
 

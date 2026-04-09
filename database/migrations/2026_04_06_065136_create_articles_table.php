@@ -19,6 +19,8 @@ return new class extends Migration
         ) PARTITION BY HASH (space)");
 
         Schema::table('articles', function (Blueprint $table) {
+            $table->string('temporal')->nullable();
+
             $table->unsignedTinyInteger('stage')
                 ->default(\App\Enums\ArticleStage::BRIEF->value);
             $table->unsignedTinyInteger('stage_status')
@@ -34,6 +36,7 @@ return new class extends Migration
 
             $table->timestamps();
             $table->index(['stage', 'stage_status', 'updated_at'], 'stage_index');
+            $table->index(['temporal', 'updated_at'], 'temporal_index');
 
             $table
                 ->vector('vector', config('vectordb.drivers.pgvector.default_dimension'))

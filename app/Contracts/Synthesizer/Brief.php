@@ -4,16 +4,19 @@ namespace App\Contracts\Synthesizer;
 
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
+use App\Enums\Temporal;
 use App\Models\Page;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Brief payload for the synthesizer: title, description, instructions, and
- * reference page IDs used to ground generation.
+ * Brief payload for the synthesizer: temporal scope, title, description,
+ * instructions, and reference page IDs used to ground generation.
  */
 final class Brief implements Serializable
 {
     use SerializableTrait;
+
+    protected ?Temporal $temporal = null;
 
     protected ?string $title = null;
 
@@ -28,6 +31,18 @@ final class Brief implements Serializable
      * @var string[]
      */
     protected array $referencePageIds = [];
+
+    public function getTemporal(): ?Temporal
+    {
+        return $this->temporal;
+    }
+
+    public function setTemporal(?Temporal $temporal): static
+    {
+        $this->temporal = $temporal;
+
+        return $this;
+    }
 
     public function getTitle(): ?string
     {
@@ -94,8 +109,8 @@ final class Brief implements Serializable
      */
     public function getReferencePages(): Collection
     {
-        if (!$this->getReferencePageIds()) {
-            return new Collection();
+        if (! $this->getReferencePageIds()) {
+            return new Collection;
         }
 
         return Page::query()->whereIn('id', $this->getReferencePageIds())->get();
@@ -107,6 +122,7 @@ final class Brief implements Serializable
     public function toArray(): array
     {
         return [
+            'temporal' => $this->getTemporal()?->value ?? null,
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
             'instructions' => $this->getInstructions(),
@@ -120,6 +136,15 @@ final class Brief implements Serializable
     public static function fromArray(array $data): static
     {
         $brief = new static;
+
+        if (array_key_exists('temporal', $data)) {
+            $raw = $data['temporal'];
+            if ($raw === null || $raw === '') {
+                $brief->setTemporal(null);
+            } else {
+                $brief->setTemporal($raw instanceof Temporal ? $raw : Temporal::tryFrom((string) $raw));
+            }
+        }
 
         if (isset($data['title'])) {
             $brief->setTitle($data['title'] !== null ? (string) $data['title'] : null);

@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
+use App\Enums\Temporal;
 
 class Article extends EmbeddableModel
 {
     protected $casts = [
+        'temporal' => Temporal::class,
         'stage' => ArticleStage::class,
         'stage_status' => ArticleStageStatus::class,
         'vector' => 'array',

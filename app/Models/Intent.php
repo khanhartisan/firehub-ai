@@ -10,7 +10,7 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Intent extends Model implements ShouldCascade
+class Intent extends EmbeddableModel implements ShouldCascade
 {
     use Cascades;
 
@@ -56,5 +56,24 @@ class Intent extends Model implements ShouldCascade
             ->withPivot([
                 'relevance',
             ]);
+    }
+
+    public function isEmbeddable(): bool
+    {
+        return $this->title and $this->description;
+    }
+
+    public function isEmbedded(): bool
+    {
+        if ($this->isDirty('title') or $this->isDirty('description')) {
+            return false;
+        }
+
+        return !!$this->is_embedded;
+    }
+
+    public function getTextForEmbedding(): ?string
+    {
+        return $this->title."\n".$this->description;
     }
 }

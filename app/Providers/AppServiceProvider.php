@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\FileVision\FileVision;
+use App\Contracts\IntentResolver\IntentResolver;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\PageClassifier\Classifier;
 use App\Contracts\PageParser\Parser;
@@ -28,6 +29,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Models\Vertical;
 use App\Services\FileVision\FileVisionManager;
+use App\Services\IntentResolver\IntentResolverManager;
 use App\Services\OpenAI\OpenAIManager;
 use App\Services\PageClassifier\PageClassifierManager;
 use App\Services\PageParser\PageParserManager;
@@ -56,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('page_parser.manager', PageParserManager::class);
         $this->app->singleton('scrape_policy_engine.manager', ScrapePolicyEngineManager::class);
         $this->app->singleton('vertical_resolver.manager', VerticalResolverManager::class);
+        $this->app->singleton('intent_resolver.manager', IntentResolverManager::class);
         $this->app->singleton('vectordb.manager', VectorDBManager::class);
         $this->app->singleton('text_embedding.manager', TextEmbeddingManager::class);
         $this->app->singleton('search_engine.manager', SearchEngineManager::class);
@@ -68,6 +71,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(Parser::class, fn ($app) => $app['page_parser.manager']->driver());
         $this->app->singleton(ScrapePolicyEngine::class, fn ($app) => $app['scrape_policy_engine.manager']->driver());
         $this->app->singleton(VerticalResolver::class, fn ($app) => $app['vertical_resolver.manager']->driver());
+        $this->app->singleton(IntentResolver::class, fn ($app) => $app['intent_resolver.manager']->driver());
         $this->app->singleton(VectorDB::class, fn ($app) => $app['vectordb.manager']->driver());
         $this->app->singleton(TextEmbeddingContract::class, fn ($app) => $app['text_embedding.manager']->driver());
         $this->app->singleton(SearchEngine::class, fn ($app) => $app['search_engine.manager']->driver());

@@ -46,8 +46,6 @@ enum Language: string
     case EE = 'ee';
     case EL = 'el';
     case EN = 'en';
-    case EN_GB = 'en-GB';
-    case EN_US = 'en-US';
     case EO = 'eo';
     case ES = 'es';
     case ET = 'et';
@@ -140,7 +138,6 @@ enum Language: string
     case PI = 'pi';
     case PL = 'pl';
     case PS = 'ps';
-    case PT = 'pt';
     case PT_BR = 'pt-BR';
     case PT_PT = 'pt-PT';
     case QU = 'qu';
@@ -194,7 +191,6 @@ enum Language: string
     case YI = 'yi';
     case YO = 'yo';
     case ZA = 'za';
-    case ZH = 'zh';
     case ZH_CN = 'zh-CN';
     case ZH_TW = 'zh-TW';
     case ZU = 'zu';

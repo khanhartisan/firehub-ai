@@ -15,6 +15,31 @@ class Str extends \Illuminate\Support\Str
     ];
 
     /**
+     * Sanitize and normalize the keyword to a canonical form.
+     * - Convert to UTF-8 and strip BOM.
+     * - Trim whitespace and collapse multiple spaces.
+     * - Multi-byte lowercase (supports JP/CN characters).
+     * - Remove non-printable/control characters.
+     *
+     * @param  string  $keyword  The raw input string.
+     * @return string Normalized and sanitized keyword.
+     */
+    public static function sanitizeKeyword(string $keyword): string
+    {
+        $keyword = mb_scrub($keyword, 'UTF-8');
+
+        if (str_starts_with($keyword, "\xEF\xBB\xBF")) {
+            $keyword = substr($keyword, 3);
+        }
+
+        $keyword = preg_replace('/\s+/u', ' ', $keyword) ?? '';
+        $keyword = trim($keyword);
+        $keyword = preg_replace('/\p{C}/u', '', $keyword) ?? '';
+
+        return mb_strtolower($keyword, 'UTF-8');
+    }
+
+    /**
      * Extract direct file URLs from HTML, Markdown, or mixed content (e.g. Markdown with embedded HTML).
      * Page links are omitted unless the target path has a known file extension, or the URL appears in a
      * media context (markdown image, img/video/audio/source/embed, etc.).

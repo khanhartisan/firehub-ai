@@ -53,7 +53,7 @@ class TestIntentResolverService extends Command
 
         $action = $this->choice(
             'Select action',
-            ['resolve', 'guess_keywords'],
+            ['resolve', 'guess_keywords', 'score_keywords'],
             0
         );
 
@@ -66,6 +66,53 @@ class TestIntentResolverService extends Command
             $this->info('Processing time: '.(microtime(true) - $start).' seconds');
             $this->line('-----');
             $this->displayIntent($intent);
+
+            return self::SUCCESS;
+        }
+
+        if ($action === 'score_keywords') {
+            $start = microtime(true);
+            $this->info('Calling IntentResolver::resolve() then scoreKeywords() / Driver: '.$driver);
+            $intent = $resolver->resolve($html);
+            $this->info('Processing time (resolve): '.(microtime(true) - $start).' seconds');
+            $this->line('-----');
+            $this->displayIntent($intent);
+            $this->line('-----');
+
+            $sampleKeywords = [
+                'best product reviews 2026',
+                'buy online discount',
+                'how to choose guide',
+                'compare prices',
+                'best movies to watch',
+                'best films to watch',
+                'best movies ever',
+                'best films 2026',
+                'best films this year',
+                'best games 2026',
+                'what should I watch with family'
+            ];
+
+            $scoreStart = microtime(true);
+            $scored = $resolver->scoreKeywords($intent, $sampleKeywords);
+            $this->info('Processing time (scoreKeywords): '.(microtime(true) - $scoreStart).' seconds');
+            $this->comment('Scoring sample keywords: '.implode(', ', $sampleKeywords));
+            $this->line('-----');
+
+            if ($scored === []) {
+                $this->warn('No scored keywords returned.');
+            } else {
+                $rows = [];
+                foreach ($scored as $index => $keyword) {
+                    $relevance = $keyword->getRelevance();
+                    $rows[] = [
+                        (string) ($index + 1),
+                        $keyword->getKeyword(),
+                        $relevance !== null ? (string) $relevance : '',
+                    ];
+                }
+                $this->table(['#', 'keyword', 'relevance'], $rows);
+            }
 
             return self::SUCCESS;
         }

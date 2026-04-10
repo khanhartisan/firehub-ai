@@ -108,6 +108,184 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
         return $this->parseKeywordsResponse($responseText);
     }
 
+    /**
+     * @param  list<string|IntentKeywordData>  $keywords
+     * @return list<IntentKeywordData>
+     */
+    public function scoreKeywords(IntentData $intentData, array $keywords): array
+    {
+        $normalized = $this->normalizeKeywordsForScoring($keywords);
+
+        if ($normalized === []) {
+            return [];
+        }
+
+        $maxKeywords = max(1, min(50, (int) ($this->config['max_keywords'] ?? 25)));
+        if (count($normalized) > $maxKeywords) {
+            throw new \InvalidArgumentException(
+                sprintf('Cannot score more than %d keywords at once.', $maxKeywords)
+            );
+        }
+
+        $prompt = $this->buildScoreKeywordsPrompt($intentData, $normalized);
+        $jsonSchema = $this->buildScoreKeywordsJsonSchema(count($normalized));
+
+        $input = ResponseInput::text($prompt);
+        $options = ResponseOptions::create()
+            ->model($this->defaultModel)
+            ->responseFormat([
+                'type' => 'json_schema',
+                'name' => 'score_intent_keywords',
+                'schema' => $jsonSchema,
+                'strict' => true,
+            ]);
+
+        try {
+            $response = $this->openAIClient->createResponse($input, $options);
+        } catch (\Exception $e) {
+            throw new RuntimeException(
+                "Failed to score keywords with OpenAI: {$e->getMessage()}",
+                0,
+                $e
+            );
+        }
+
+        $this->checkForRefusal($response);
+
+        $responseText = $response->getFirstOutputText();
+
+        if ($responseText === null || $responseText === '') {
+            throw new RuntimeException(
+                'OpenAI returned empty keyword scoring response'
+            );
+        }
+
+        return $this->parseScoreKeywordsResponse($responseText, $normalized);
+    }
+
+    /**
+     * @param  list<string|IntentKeywordData>  $keywords
+     * @return list<string>
+     */
+    protected function normalizeKeywordsForScoring(array $keywords): array
+    {
+        $out = [];
+        $seen = [];
+
+        foreach ($keywords as $k) {
+            if ($k instanceof IntentKeywordData) {
+                $s = $k->getKeyword();
+            } elseif (is_string($k)) {
+                $s = trim($k);
+            } else {
+                continue;
+            }
+
+            if ($s === '') {
+                continue;
+            }
+
+            $key = mb_strtolower($s);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $s;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<string>  $keywordStrings
+     */
+    protected function buildScoreKeywordsPrompt(IntentData $intentData, array $keywordStrings): string
+    {
+        $payload = $intentData->toJson();
+        $numbered = [];
+        foreach ($keywordStrings as $i => $kw) {
+            $numbered[] = ($i + 1).'. '.$kw;
+        }
+        $list = implode("\n", $numbered);
+
+        return <<<PROMPT
+You score how well each search query matches the given resolved intent. Return exactly one object per keyword below, in the same order (1, 2, 3, …).
+
+For each item, set "relevance" to a float number (precision 2) between 0 and 1, with 0 is absolutely no relevant and 1 is extract relevant, or null only if scoring is impossible.
+
+Resolved intent (JSON):
+{$payload}
+
+Keywords to score (in order):
+{$list}
+PROMPT;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildScoreKeywordsJsonSchema(int $count): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'keywords' => [
+                    'type' => 'array',
+                    'description' => 'One relevance score per input keyword, same order as the prompt',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'keyword' => [
+                                'type' => 'string',
+                                'description' => 'The keyword phrase (must match the corresponding input)',
+                            ],
+                            'relevance' => [
+                                'type' => ['number', 'null'],
+                                'description' => 'Relevance to the intent (0–1), or null',
+                            ],
+                        ],
+                        'required' => ['keyword', 'relevance'],
+                        'additionalProperties' => false,
+                    ],
+                    'minItems' => $count,
+                    'maxItems' => $count,
+                ],
+            ],
+            'required' => ['keywords'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @param  list<string>  $expectedOrder
+     * @return list<IntentKeywordData>
+     */
+    protected function parseScoreKeywordsResponse(string $responseText, array $expectedOrder): array
+    {
+        $parsed = $this->parseKeywordsResponse($responseText);
+
+        $byLower = [];
+        foreach ($parsed as $row) {
+            $byLower[mb_strtolower($row->getKeyword())] = $row;
+        }
+
+        $out = [];
+        foreach ($expectedOrder as $kw) {
+            $match = $byLower[mb_strtolower($kw)] ?? null;
+            if ($match !== null) {
+                $out[] = $match;
+
+                continue;
+            }
+
+            $out[] = (new IntentKeywordData)
+                ->setKeyword($kw)
+                ->setRelevance(null);
+        }
+
+        return $out;
+    }
+
     protected function buildResolvePrompt(string $content): string
     {
         $typeLines = [];
@@ -122,6 +300,10 @@ You are a Senior SEO Content Architect and User Intent Analyst.
 You analyze text and infer the user's search intent for SEO / keyword research.
 
 Classify the content using one or more intent types (use the numeric codes below). You may assign short human-readable title and description fields summarizing the intent.
+
+General guidelines:
+- Source Neutrality: The Intent Title and Description must be Source-Agnostic.
+- Banned Content: Strictly DO NOT include specific brand names, websites, authors, or organization names (e.g., "BBC", "CNN", "Wikipedia", "Caryn James") in the Title or Description.
 
 Guidelines for the Title:
 - Temporal Inclusion: If the content refers to a specific year, season, or era, the title MUST include it (e.g., "2026 Best Tools..." instead of just "Best Tools...").

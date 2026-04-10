@@ -22,4 +22,12 @@ interface IntentResolver
      * @return list<IntentKeywordData>
      */
     public function guessKeywords(IntentData $intentData): array;
+
+    /**
+     * Assign a relevance score (0–1) to each given keyword for the resolved intent.
+     *
+     * @param  list<string|IntentKeywordData>  $keywords  Keywords to score (strings or {@see IntentKeywordData}; only the keyword text is used).
+     * @return list<IntentKeywordData> One row per input keyword (after normalisation), in input order.
+     */
+    public function scoreKeywords(IntentData $intentData, array $keywords): array;
 }

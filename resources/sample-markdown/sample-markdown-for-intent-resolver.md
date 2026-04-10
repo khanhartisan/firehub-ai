@@ -1,93 +1,49 @@
-# 9 Types of QR Codes: Which One Do You Actually Need?
+## Project Hail Mary to The Drama: Eight of the best films of 2026 so far
 
-Learn about 9 types of QR codes including URL, vCard, WiFi, and more. See what each type does, when to use it, and whether you need static or dynamic.
+**BBC film critics Caryn James and Nicholas Barber pick their cinema highlights of the year so far – from a touching sci-fi blockbuster to a provocative comedy-drama starring Zendaya.**
 
+![Collage of Jacob Elordi, Zendayak and Ryan Gosling in Wuthering Heights, The Drama and Project Hail Mary (Credit: Warner Bros/ A24/ Amazon MGM Studios/ BBC)](https://ichef.bbci.co.uk/images/ic/480xn/p0ncns52.jpg.webp)
 
-## Types of QR Codes
+### 1. 28 Years Later: The Bone Temple
+In 2002, director Danny Boyle and screenwriter Alex Garland helped to revive the zombie-apocalypse sub-genre with 28 Days Later. In 2025, they did it again with [28 Years Later.](https://www.bbc.com/culture/article/20250618-28-years-later-review) Amazingly, this sequel to the latter is even better. Scripted by Garland, with Nia DaCosta taking over as director, 28 Years Later: The Bone Temple delivers all of the gore and terror you want from a zombie film, but it's wonderfully idiosyncratic, too. It constructs its own elaborate folk-horror mythos; features the unlikely buddy-comedy pairing of a kindly mad scientist (Ralph Fiennes) and a hulking cannibal (Chi Lewis-Parry); and it's uncompromisingly British in its references, from its cheeky use of Duran Duran and Iron Maiden songs to its unforgettable villain (Jack O'Connell), a cult leader inspired by notorious television presenter and sex offender Jimmy Savile. An eccentric masterpiece. (NB)
 
-There are nine common types of QR codes, each encoding a different kind of data: URL, plain text, vCard, WiFi, email, SMS, phone, location, and app store. The type you choose determines what happens when someone scans the code, from opening a web page to connecting to a WiFi network to saving contact details directly to their phone.
+![MUBI (Credit: MUBI)](https://ichef.bbci.co.uk/images/ic/480xn/p0ncndcq.jpg.webp)
 
-Most people just need a URL code. According to [Bitly's 2024 QR Code Trends report](https://bitly.com/), URL codes account for over 75% of all QR codes created on their platform. But picking the right type matters, because a QR code that opens a web page behaves very differently from one that connects someone to your WiFi network. The wrong choice means the scan works, but the result isn't what you intended.
+### 2. My Father's Shadow
+Set in Nigeria in 1993, Akinola Davies's film about a father and his two small sons is eloquent, warm and fiercely honest as it moves gracefully from the personal to the political. Sope Dirisu gives a quiet, strong, immensely moving performance as the father, who spends most of his time away working to support the family. With pitch-perfect intimacy, the story follows him through a single day as he takes his sons along to Lagos, where they go to his workplace and he tries to get the money he's owed. Their day gradually reveals the tumultuous backdrop of the presidential election, the results of which are nullified by a military dictatorship. The director and his brother, Wale Davies, wrote the film loosely based on their childhood memories, but its achievement goes beyond that. Winner of the Bafta for outstanding British debut, it stunningly captures the bold colours of Lagos.
 
-This guide covers all nine types defined in the [QR code specification (ISO/IEC 18004)](https://www.iso.org/standard/62021.html), what each one does, when to use it, and whether you need a static or dynamic version.
+![Pixar (Credit: Pixar)](https://ichef.bbci.co.uk/images/ic/480xn/p0ncknlz.jpg.webp)
 
-Every QR code looks the same on the surface: a grid of black and white squares. The difference is what's encoded inside. A URL code opens a web page. A WiFi code connects you to a network. A vCard code saves someone's contact info. Nine data formats, nine different outcomes from the same visual pattern.
+### 3. Hoppers
+Pixar returns to form with a focused, fizzily energetic cartoon based on a conceit as old as big-screen animation itself: talking animals. The heroine of Hoppers, Mabel (voiced by Piper Curda), is an admirably tough and determined schoolgirl who has her mind "hopped" into a robotic beaver, a procedure which somehow allows her to understand animals' conversations (just go with it). She uses this fantastic ability to rally her furry friends against a corrupt mayor (Jon Hamm), but what happens when they go too far? Parents beware: Daniel Chong's film has nightmarish elements towards the end, but overall it's a sharply plotted, gloriously silly adventure that everyone can enjoy. It also has the kind of frank environmental message which live-action blockbusters tend to avoid. (NB)
 
-### Key Takeaways:
-- URL codes are the most common type, accounting for over 75% of QR codes created ([Bitly, 2024](https://bitly.com/)).
-- vCard, WiFi, email, SMS, and phone codes trigger specific device actions without opening a browser.
-- The QR code market reached [$13 billion in 2025](https://wavecnct.com/blogs/news/qr-code-statistics), with dynamic codes representing 64.92% of revenue (Mordor Intelligence, 2025).
-- Most types can be created as either static or dynamic. Dynamic gives you the ability to update the destination and track scans.
-- The "right" type depends on what you want to happen when someone scans the code.
+![Warner Bros Pictures (Credit: Warner Bros Pictures)](https://ichef.bbci.co.uk/images/ic/480xn/p0ncknnb.jpg.webp)
 
-## The 9 Types of QR Codes at a Glance
+### 4. Wuthering Heights
+Emerald Fennell's fearless reinvention of [Emily Brontë's 1847 novel](https://www.bbc.com/culture/article/20260202-why-wuthering-heights-is-so-misunderstood) is not for Brontë purists, but it is an [exhilarating take on the book](https://www.bbc.com/culture/article/20260209-wuthering-heights-review) and a striking example of Fennell's typical artistry and daring. Margot Robbie and Jacob Elordi are fiery as Cathy and Heathcliff, the classic lovers made for each other but separated by class. Their connection is at once frankly sexual, romantic and caustic in the cruelty they often display toward each other. With that cruelty, Fennell restores the vehemence often overlooked in Brontë adaptations.
 
-| Type | What it does | Best for | Static option | Dynamic option |
-|------|--------------|----------|---------------|----------------|
-| URL | Opens a web page | Websites, landing pages, menus | Yes | Yes |
-| Plain text | Displays text on screen | Short messages, serial numbers | Yes | No |
-| vCard | Saves contact details to phone | Business cards, name badges | Yes | Yes |
-| WiFi | Connects to a WiFi network | Guest networks, offices, cafes | Yes | No |
-| Email | Opens a pre-filled email draft | Customer support, feedback | Yes | Yes |
-| SMS | Opens a pre-filled text message | Opt-ins, quick replies | Yes | Yes |
-| Phone | Dials a phone number | Emergency contacts, support lines | Yes | Yes |
-| Location | Opens a map to specific coordinates | Store locations, event venues | Yes | Yes |
-| App Store | Opens an app listing for download | App promotion, onboarding | Yes | Yes |
+![Amazon MGM Studios (Credit: Amazon MGM Studios)](https://ichef.bbci.co.uk/images/ic/480xn/p0ncknp5.jpg.webp)
 
-### URL QR Codes
-![Smartphone scanning a URL QR code that opens a restaurant menu website](https://freeqr.com/storage/posts/01KMTBSWK9ECHATG9RFHBNW9CY.jpg)
+### 5. Project Hail Mary
+[Project Hail Mary](http://www.bbc.com/culture/article/20260309-project-hail-mary-review) is an unusual science-fiction blockbuster in that it's mostly about people using their brains to solve problems. Yes, one of those people is an alien made out of rocks, and, yes, there's an action-packed space-walking set piece, but the film's main concerns, for over two-and-a-half hours, are knowledge, discussion and painstaking research. The film's main concerns, for over two-and-a-half hours, are knowledge, discussion and painstaking research. If that approach sounds a bit dry and academic? If so, rest assured that Project Hail Mary is touching and inspiring – and surprisingly fun.
 
-A **URL QR code** encodes a web address that opens in the scanner's default browser. It is the most common type, accounting for over 75% of all QR codes created ([Bitly, 2024](https://bitly.com/)). The code encodes a full URL (like `https://example.com/menu`) and the phone treats it as a clickable link. URL QR codes are the backbone of the [$13 billion global QR code market](https://wavecnct.com/blogs/news/qr-code-statistics) (Mordor Intelligence, 2025).
+![Curzon (Credit: Curzon)](https://ichef.bbci.co.uk/images/ic/480xn/p0mnckn7.jpg.webp)
 
-**When to use it:** Linking to any web content. Product pages, restaurant menus, event registration forms, portfolios, social media profiles, or landing pages.
+### 6. Two Prosecutors
+This bracing drama from the acclaimed Ukrainian director Sergei Loznitsa is set in 1937, during the height of Stalin's purges of his political enemies, and it willfully echoes the creeping authoritarianism of today. The hero is Kornyev, an idealistic young Soviet lawyer, who receives a clandestine message written in blood from a political prisoner: the old man wants to reveal the torture he and so many others have been subjected to. The film unfolds with eerie calm and the feel of a low-boil thriller as Kornyev visits the prisoner and tries to circumvent the corrupt prison administrators and his own bosses to expose the injustice, naively believing that it is still possible.
 
-**Static vs. dynamic:** A static URL code bakes the URL directly into the pattern. It works forever, but the destination can never be changed. A dynamic URL code routes through a redirect server, so you can update where the code points without reprinting. If you're printing codes on physical materials and might need to change the link later, dynamic is the safer choice.
+![Row K Entertainment (Credit: Row K Entertainment)](https://ichef.bbci.co.uk/images/ic/480xn/p0uncnbdm.jpg.webp)
 
-**Real-world example:** A cafe prints a QR code on table tents that links to their online menu. With a dynamic URL code, they update the menu link every season without replacing the table tents.
+### 7. Dead Man's Wire
+Gus Van Sant's blackly comic thriller tells the stranger-than-fiction true story of Tony Kiritsis, an Indianapolis man who kidnaps the mortgage broker he blames for his financial woes. Kiritsis then becomes a minor celebrity by phoning a local radio station to update listeners on his state of mind. The media circus and the 1970s setting are reminiscent of Sidney Lumet's 1975 classic, Dog Day Afternoon, which could be why that film's star, Al Pacino, has a small role.
 
-## vCard QR Codes
-![Person tapping phone after scanning a vCard QR code from a printed business card](https://freeqr.com/storage/posts/01KMTBSWK9ECHATG9RFHBNW9CY.jpg)
+![Alamy (Credit: Alamy)](https://ichef.bbci.co.uk/images/ic/480xn/p0nc8zph.jpg.webp)
 
-A **vCard QR code** saves contact details directly to the scanner's phone. One scan, and your name, phone number, email, company, job title, and website appear as a new contact ready to save. No typing required. The vCard format follows the [vCard 4.0 standard (RFC 6350)](https://datatracker.ietf.org/doc/html/rfc6350) and supports up to 30 contact fields including address, URL, and photo. Most QR code generators use vCard 3.0 ([RFC 2426](https://datatracker.ietf.org/doc/html/rfc2426)) for broader device compatibility.
+### 8. The Drama
+Zendaya and Robert Pattinson in a romcom as an engaged couple, Emma and Charlie, would have been fun in itself. But Kristoffer Borgli's wilfully provocative dramedy takes a sharp detour away from its charming early stages when Emma reveals a dark secret to Charlie a week before the wedding. This high-wire act of a film might not have worked with less charismatic and adept stars, but these two navigate the changes in tone beautifully. Even before the film's release, the details of [Emma's confession caused backlash](https://www.bbc.com/culture/article/20260330-the-dramas-horrifying-twist-is-set-to-divide-audiences), with claims that the film trivializes a deadly-serious issue.
 
-**When to use it:** Business cards, conference badges, email signatures, company directories, and networking events. Anywhere someone might want to save your contact information.
+---
 
-**Static vs. dynamic:** A static vCard code encodes all contact details into the pattern itself. This makes the code denser (more data means more squares), which can make it harder to scan at small sizes. A dynamic vCard code stores only a short redirect URL in the pattern and keeps the contact details on a server. This produces a simpler, easier-to-scan code and lets you update your details (new phone number, new job title) without reprinting.
+*If you liked this story,* [*sign up for The Essential List newsletter*](https://www.bbc.com/newsletters?theessentiallist&at_bbc_team=studios&at_medium=Onsite&at_objective=acquisition&at_ptr_name=bbc.com&at_link_origin=featuresarticle&at_campaign=essentiallist&at_campaign_type=owned) *– a handpicked selection of features, videos and can't-miss news, delivered to your inbox twice a week.*
 
-**Real-world example:** A real estate agent prints a vCard QR code on their business card. When they change brokerages six months later, they update the contact details through their QR platform. Every card already in circulation now shares the updated information.
-
-### WiFi QR Codes
-A **WiFi QR code** connects the scanner's phone to a wireless network automatically. No need to ask for the password, spell it out, or type it character by character. The code encodes the network name (SSID), password, and encryption type (WPA, WPA2, or WEP). The phone reads it and offers to join the network. WiFi QR codes are supported natively on iOS 11+ and Android 10+, covering [over 98% of active smartphones](https://gs.statcounter.com/) worldwide.
-
-**When to use it:** Guest WiFi in offices, hotels, cafes, Airbnbs, co-working spaces, and events. Anywhere you want people to connect without sharing the password verbally or on a printed sign.
-
-**Static vs. dynamic:** WiFi codes are typically static. The network credentials are encoded directly into the pattern. If you change your WiFi password, you need to generate a new code. Some generators offer dynamic WiFi codes, but since the phone needs the actual credentials to connect (not a URL redirect), the practical benefit of dynamic is limited here.
-
-**Real-world example:** A coworking space posts a framed QR code at the front desk. New members scan it to connect to WiFi on their first visit. When the space changes its password quarterly, they print a new code.
-
-### Email QR Codes
-An email QR code opens the scanner's default email app with a pre-filled recipient address, subject line, and optional body text. The user just hits send.
-
-**When to use it:** Customer feedback collection, support requests, RSVP confirmations, and survey participation. Useful when you want someone to send a specific email without typing the address or subject line themselves.
-
-**Static vs. dynamic:** A static email code encodes the `mailto:` link directly. A dynamic version lets you update the recipient address or subject line after printing, which is useful if your support email changes or you want to rotate subject lines for tracking.
-
-**Real-world example:** A hotel places a QR code on the bedside table. Guests scan it to send a pre-filled email to housekeeping requesting extra towels or pillows. The subject line includes the room number.
-
-### SMS QR Codes
-An SMS QR code opens the scanner's messaging app with a pre-filled phone number and message. One scan, one tap to send.
-
-**When to use it:** Marketing opt-ins, quick customer responses, event RSVP by text, or two-factor authentication setup.
-
-**Static vs. dynamic:** A static SMS code encodes the phone number and message directly. A dynamic version allows you to change the phone number or message text after printing, which matters if you switch messaging providers or update your opt-in keywords.
-
-**Real-world example:** A retail store prints a QR code on receipts. Scanning it opens a text message pre-filled with "FEEDBACK" sent to their review collection number. Customers tap send and get a link to a survey by reply.
-
-### Phone QR Codes
-A phone QR code dials a phone number automatically when scanned.
-
-**When to use it:** Support lines, emergency contacts.
-
-**Static vs. dynamic:** Phone codes are static; the number is embedded directly in the code.
-
-**Real-world example:** Emergency services print QR codes on their vehicles. Scanning it automatically dials the emergency hotline.
+*For more Culture stories from the BBC, follow us on* [*Facebook*](https://www.facebook.com/BBCCulture) *and* [*Instagram*](https://www.instagram.com/bbc_culture/).*

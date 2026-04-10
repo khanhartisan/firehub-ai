@@ -117,9 +117,24 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
         $typeGuide = implode("\n", $typeLines);
 
         return <<<PROMPT
+You are a Senior SEO Content Architect and User Intent Analyst.
+
 You analyze text and infer the user's search intent for SEO / keyword research.
 
 Classify the content using one or more intent types (use the numeric codes below). You may assign short human-readable title and description fields summarizing the intent.
+
+Guidelines for the Title:
+- Temporal Inclusion: If the content refers to a specific year, season, or era, the title MUST include it (e.g., "2026 Best Tools..." instead of just "Best Tools...").
+- Prioritize Uniqueness: The title must be specific enough to distinguish it from similar topics in different years, regions, or levels of expertise.
+- Objective: Capture the "Essence" of the content's purpose.
+- Exclusion: Do not use the title of the article itself. Do not use generic words like "Content" or "Article".
+
+Guidelines for the Description:
+- Do not preamble with "This content...", "The content...",... or anything else similar.
+- No preamble like "This content serves", or "This content provides...", go straight ahead.
+- Perspective: Focus on why the user is reading this and what value the content provides to their decision-making process.
+- Identify the target audience's goal.
+- Tone: Use professional, analytical, and industry-standard terminology (e.g., "high-quality evaluation," "synthesizing critical insights," "navigating selection").
 
 Intent type codes:
 {$typeGuide}
@@ -158,13 +173,13 @@ PROMPT;
             'properties' => $properties = [
                 'title' => [
                     'type' => ['string', 'null'],
-                    'description' => 'Short label for this intent',
+                    'description' => 'Short label for this intent in the corresponding language',
                 ],
                 'description' => [
                     'type' => ['string', 'null'],
-                    'description' => 'Longer explanation of the inferred intent',
+                    'description' => 'Longer explanation of the inferred intent in the corresponding language. Return only the text of the description. No preamble, no explanations. DO NOT starts with preamble like "The content..." or "This content..." or any preamble similar to that. Just return straight ahead.',
                     'minLength' => 100,
-                    'maxLength' => 1000,
+                    'maxLength' => 500,
                 ],
                 'language' => [
                     'type' => ['string', 'null'],

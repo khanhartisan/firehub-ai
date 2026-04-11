@@ -3,8 +3,9 @@
 namespace App\Services\IntentResolver\Drivers;
 
 use App\Contracts\IntentResolver\IntentData;
-use App\Contracts\IntentResolver\IntentKeywordData;
+use App\Contracts\IntentResolver\IntentKeywordsData;
 use App\Contracts\IntentResolver\IntentResolver;
+use App\Contracts\IntentResolver\KeywordData;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
@@ -69,7 +70,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
     }
 
     /**
-     * @return list<IntentKeywordData>
+     * @return list<KeywordData>
      */
     public function guessKeywords(IntentData $intentData): array
     {
@@ -110,8 +111,196 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
     }
 
     /**
-     * @param  list<string|IntentKeywordData>  $keywords
-     * @return list<IntentKeywordData>
+     * @param  list<string>  $keywords
+     * @return list<IntentKeywordsData>
+     */
+    public function guessIntents(array $keywords): array
+    {
+        $normalized = $this->normalizeGuessKeywordInput($keywords);
+
+        if ($normalized === []) {
+            return [];
+        }
+
+        $maxKeywords = max(1, min(50, (int) ($this->config['max_keywords'] ?? 25)));
+        if (count($normalized) > $maxKeywords) {
+            throw new \InvalidArgumentException(
+                sprintf('Cannot process more than %d keywords at once.', $maxKeywords)
+            );
+        }
+
+        $prompt = $this->buildGuessIntentsPrompt($normalized);
+        $jsonSchema = $this->buildGuessIntentsJsonSchema(count($normalized));
+
+        $input = ResponseInput::text($prompt);
+        $options = ResponseOptions::create()
+            ->model($this->defaultModel)
+            ->temperature(0)
+            ->responseFormat([
+                'type' => 'json_schema',
+                'name' => 'guess_intents_from_keywords',
+                'schema' => $jsonSchema,
+                'strict' => true,
+            ]);
+
+        try {
+            $response = $this->openAIClient->createResponse($input, $options);
+        } catch (\Exception $e) {
+            throw new RuntimeException(
+                "Failed to guess intents from keywords with OpenAI: {$e->getMessage()}",
+                0,
+                $e
+            );
+        }
+
+        $this->checkForRefusal($response);
+
+        $responseText = $response->getFirstOutputText();
+
+        if ($responseText === null || $responseText === '') {
+            throw new RuntimeException(
+                'OpenAI returned empty guess-intents response'
+            );
+        }
+
+        return $this->parseGuessIntentsResponse($responseText);
+    }
+
+    /**
+     * @param  list<string>  $keywords
+     * @return list<string>
+     */
+    protected function normalizeGuessKeywordInput(array $keywords): array
+    {
+        $out = [];
+        $seen = [];
+
+        foreach ($keywords as $k) {
+            if (! is_string($k)) {
+                continue;
+            }
+            $s = trim($k);
+            if ($s === '') {
+                continue;
+            }
+            $key = mb_strtolower($s);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $s;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<string>  $keywordStrings
+     */
+    protected function buildGuessIntentsPrompt(array $keywordStrings): string
+    {
+        $numbered = [];
+        foreach ($keywordStrings as $i => $kw) {
+            $numbered[] = ($i + 1).'. '.$kw;
+        }
+        $list = implode("\n", $numbered);
+
+        return <<<PROMPT
+You are a Senior SEO Content Architect and User Intent Analyst.
+
+You receive a list of search keywords. Group them into one or more distinct user search intents.
+
+Each group must contain:
+- "intent": a full intent payload (title, description, language, types) as described in the schema. Follow the same tone and neutrality rules as for page-based intent analysis: no specific brand or website names in title/description.
+- "keywords": a non-empty subset of the input keywords with a relevance score (0–1) for how well each keyword fits that intent.
+
+A keyword may appear in more than one group if it genuinely fits multiple intents. Prefer covering every input keyword at least once across all groups (or assign it to the closest intent).
+
+Input keywords:
+{$list}
+PROMPT;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildGuessIntentsJsonSchema(int $keywordCount): array
+    {
+        $maxGroups = min(15, max(1, $keywordCount));
+
+        $intentObject = $this->intentDataJsonSchemaObject();
+        $keywordItem = $this->keywordDataJsonSchemaItem();
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'groups' => [
+                    'type' => 'array',
+                    'description' => 'Intent clusters; each links an inferred intent to keywords from the input',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'intent' => $intentObject,
+                            'keywords' => [
+                                'type' => 'array',
+                                'items' => $keywordItem,
+                                'minItems' => 1,
+                                'maxItems' => max(1, $keywordCount),
+                            ],
+                        ],
+                        'required' => ['intent', 'keywords'],
+                        'additionalProperties' => false,
+                    ],
+                    'minItems' => 1,
+                    'maxItems' => $maxGroups,
+                ],
+            ],
+            'required' => ['groups'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return list<IntentKeywordsData>
+     */
+    protected function parseGuessIntentsResponse(string $responseText): array
+    {
+        $data = json_decode($responseText, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException(
+                'Failed to parse guess-intents response as JSON: '.json_last_error_msg()
+            );
+        }
+
+        if (! is_array($data)) {
+            throw new RuntimeException('Guess-intents response JSON did not decode to an array');
+        }
+
+        $groups = $data['groups'] ?? [];
+
+        if (! is_array($groups)) {
+            throw new RuntimeException('Guess-intents response must contain a "groups" array');
+        }
+
+        $out = [];
+        foreach ($groups as $group) {
+            if (! is_array($group)) {
+                continue;
+            }
+            try {
+                $out[] = IntentKeywordsData::fromArray($group);
+            } catch (\InvalidArgumentException) {
+                continue;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<string|KeywordData>  $keywords
+     * @return list<KeywordData>
      */
     public function scoreKeywords(IntentData $intentData, array $keywords): array
     {
@@ -165,7 +354,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
     }
 
     /**
-     * @param  list<string|IntentKeywordData>  $keywords
+     * @param  list<string|KeywordData>  $keywords
      * @return list<string>
      */
     protected function normalizeKeywordsForScoring(array $keywords): array
@@ -174,7 +363,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
         $seen = [];
 
         foreach ($keywords as $k) {
-            if ($k instanceof IntentKeywordData) {
+            if ($k instanceof KeywordData) {
                 $s = $k->getKeyword();
             } elseif (is_string($k)) {
                 $s = trim($k);
@@ -233,21 +422,7 @@ PROMPT;
                 'keywords' => [
                     'type' => 'array',
                     'description' => 'One relevance score per input keyword, same order as the prompt',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'keyword' => [
-                                'type' => 'string',
-                                'description' => 'The keyword phrase (must match the corresponding input)',
-                            ],
-                            'relevance' => [
-                                'type' => ['number', 'null'],
-                                'description' => 'Relevance to the intent (0–1), or null',
-                            ],
-                        ],
-                        'required' => ['keyword', 'relevance'],
-                        'additionalProperties' => false,
-                    ],
+                    'items' => $this->keywordDataJsonSchemaItem(),
                     'minItems' => $count,
                     'maxItems' => $count,
                 ],
@@ -259,7 +434,7 @@ PROMPT;
 
     /**
      * @param  list<string>  $expectedOrder
-     * @return list<IntentKeywordData>
+     * @return list<KeywordData>
      */
     protected function parseScoreKeywordsResponse(string $responseText, array $expectedOrder): array
     {
@@ -279,7 +454,7 @@ PROMPT;
                 continue;
             }
 
-            $out[] = (new IntentKeywordData)
+            $out[] = (new KeywordData)
                 ->setKeyword($kw)
                 ->setRelevance(null);
         }
@@ -334,9 +509,11 @@ PROMPT;
     }
 
     /**
+     * JSON Schema for a single {@see IntentData} object (used by resolve and nested in guessIntents).
+     *
      * @return array<string, mixed>
      */
-    protected function buildIntentJsonSchema(): array
+    protected function intentDataJsonSchemaObject(): array
     {
         $intentValues = array_map(
             static fn (IntentType $type): int => $type->value,
@@ -385,6 +562,38 @@ PROMPT;
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildIntentJsonSchema(): array
+    {
+        return $this->intentDataJsonSchemaObject();
+    }
+
+    /**
+     * JSON Schema for one {@see KeywordData} row.
+     *
+     * @return array<string, mixed>
+     */
+    protected function keywordDataJsonSchemaItem(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'keyword' => [
+                    'type' => 'string',
+                    'description' => 'Search query phrase',
+                ],
+                'relevance' => [
+                    'type' => ['number', 'null'],
+                    'description' => 'Relevance to the intent (0–1), or null',
+                ],
+            ],
+            'required' => ['keyword', 'relevance'],
+            'additionalProperties' => false,
+        ];
+    }
+
     protected function buildKeywordsPrompt(IntentData $intentData): string
     {
         $payload = $intentData->toJson();
@@ -414,21 +623,7 @@ PROMPT;
                 'keywords' => [
                     'type' => 'array',
                     'description' => 'Relevant search queries for this intent with optional relevance scores',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'keyword' => [
-                                'type' => 'string',
-                                'description' => 'Search query phrase',
-                            ],
-                            'relevance' => [
-                                'type' => ['number', 'null'],
-                                'description' => 'Relevance to the intent (0–1), or null',
-                            ],
-                        ],
-                        'required' => ['keyword', 'relevance'],
-                        'additionalProperties' => false,
-                    ],
+                    'items' => $this->keywordDataJsonSchemaItem(),
                     'minItems' => 1,
                     'maxItems' => max(1, min(50, $maxKeywords)),
                 ],
@@ -472,7 +667,7 @@ PROMPT;
     }
 
     /**
-     * @return list<IntentKeywordData>
+     * @return list<KeywordData>
      */
     protected function parseKeywordsResponse(string $responseText): array
     {
@@ -499,7 +694,7 @@ PROMPT;
             }
 
             try {
-                $row = IntentKeywordData::fromArray($item);
+                $row = KeywordData::fromArray($item);
             } catch (\InvalidArgumentException) {
                 continue;
             }

@@ -5,7 +5,7 @@ namespace App\Contracts\IntentResolver;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 
-final class IntentKeywordData implements Serializable
+final class KeywordData implements Serializable
 {
     use SerializableTrait;
 
@@ -70,7 +70,7 @@ final class IntentKeywordData implements Serializable
         $instance = new static;
 
         if (! isset($data['keyword']) || ! is_string($data['keyword'])) {
-            throw new \InvalidArgumentException('IntentKeywordData requires a non-empty string "keyword".');
+            throw new \InvalidArgumentException('KeywordData requires a non-empty string "keyword".');
         }
 
         $instance->setKeyword($data['keyword']);

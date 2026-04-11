@@ -5,7 +5,7 @@ namespace App\Contracts\VectorDB;
 /**
  * Immutable value object representing an embedding vector (list of floats).
  *
- * Replaces primitive array for type safety and a consistent data standard
+ * Replaces a primitive array for type safety and a consistent data standard
  * across upsert, search, and record payloads.
  */
 final readonly class Vector

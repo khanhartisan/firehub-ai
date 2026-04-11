@@ -10,34 +10,35 @@ namespace App\Contracts\IntentResolver;
 interface IntentResolver
 {
     /**
-     * Analyze unstructured content and return a structured intent (title, description, intent types).
+     * Analyze unstructured content and return the resolved {@see Intent} plus {@see IntentableIntent} rows
+     * (typically one row linking the input {@see Intentable} to that intent).
      *
-     * @param  string  $content  Raw or HTML content (e.g. page body, user query context).
+     * @param  Intentable  $intentable  Wraps raw or HTML content (e.g. page body, user query context).
      */
-    public function resolve(string $content): IntentData;
+    public function resolve(Intentable $intentable): IntentableIntents;
 
     /**
      * Propose search-engine-style keywords that match the given resolved intent.
      *
-     * @return list<KeywordData>
+     * @return list<IntentKeyword>
      */
-    public function guessKeywords(IntentData $intentData): array;
+    public function guessIntentKeywords(Intent $intentData): array;
 
     /**
      * Receive a list of keywords and guess the possible intents for them.
-     * Then return a list of IntentKeywordsData.
+     * Then return a list of IntentKeywords.
      * Intent may have to many keywords, a keyword may also belong to many intents.
      *
-     * @param list<string> $keywords
-     * @return list<IntentKeywordsData>
+     * @param  list<string>  $keywords
+     * @return list<IntentKeywords>
      */
-    public function guessIntents(array $keywords): array;
+    public function inferFromKeywords(array $keywords): array;
 
     /**
      * Assign a relevance score (0–1) to each given keyword for the resolved intent.
      *
-     * @param  list<string|KeywordData>  $keywords  Keywords to score (strings or {@see KeywordData}; only the keyword text is used).
-     * @return list<KeywordData> One row per input keyword (after normalisation), in input order.
+     * @param  list<string|IntentKeyword>  $keywords  Keywords to score (strings or {@see IntentKeyword}; only the keyword text is used).
+     * @return list<IntentKeyword> One row per input keyword (after normalisation), in input order.
      */
-    public function scoreKeywords(IntentData $intentData, array $keywords): array;
+    public function scoreKeywords(Intent $intentData, array $keywords): array;
 }

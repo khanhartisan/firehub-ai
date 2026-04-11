@@ -2,7 +2,8 @@
 
 namespace App\Console\Commands\LiveTests;
 
-use App\Contracts\IntentResolver\IntentData;
+use App\Contracts\IntentResolver\Intent;
+use App\Contracts\IntentResolver\Intentable;
 use App\Facades\IntentResolver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
@@ -42,6 +43,7 @@ class TestIntentResolverService extends Command
         }
 
         $html = Storage::get($samplePath);
+        $intentable = (new Intentable)->setContent($html);
 
         $drivers = array_keys(config('intentresolver.drivers'));
         $defaultIndex = array_search(config('intentresolver.default'), $drivers, true);
@@ -53,7 +55,7 @@ class TestIntentResolverService extends Command
 
         $action = $this->choice(
             'Select action',
-            ['resolve', 'guess_keywords', 'guess_intents', 'score_keywords'],
+            ['resolve', 'guess_intent_keywords', 'infer_from_keywords', 'score_keywords'],
             0
         );
 
@@ -62,10 +64,16 @@ class TestIntentResolverService extends Command
         if ($action === 'resolve') {
             $start = microtime(true);
             $this->info('Calling IntentResolver::resolve() / Driver: '.$driver);
-            $intent = $resolver->resolve($html);
+            $resolved = $resolver->resolve($intentable);
             $this->info('Processing time: '.(microtime(true) - $start).' seconds');
             $this->line('-----');
-            $this->displayIntent($intent);
+
+            foreach ($resolved->getIntentableIntents() as $i => $row) {
+                $rel = $row->getRelevance();
+                $this->info('Intent '.($i + 1).' (relevance: '.($rel !== null ? (string) $rel : 'null').')');
+                $this->displayIntent($row->getIntent());
+                $this->line('-----');
+            }
 
             return self::SUCCESS;
         }
@@ -73,7 +81,12 @@ class TestIntentResolverService extends Command
         if ($action === 'score_keywords') {
             $start = microtime(true);
             $this->info('Calling IntentResolver::resolve() then scoreKeywords() / Driver: '.$driver);
-            $intent = $resolver->resolve($html);
+            $intent = $resolver->resolve($intentable)->getPrimaryIntent();
+            if ($intent === null) {
+                $this->error('Resolve returned no primary intent.');
+
+                return self::FAILURE;
+            }
             $this->info('Processing time (resolve): '.(microtime(true) - $start).' seconds');
             $this->line('-----');
             $this->displayIntent($intent);
@@ -117,7 +130,7 @@ class TestIntentResolverService extends Command
             return self::SUCCESS;
         }
 
-        if ($action === 'guess_intents') {
+        if ($action === 'infer_from_keywords') {
             $sampleKeywords = [
                 'best running shoes 2026',
                 'marathon training plan',
@@ -129,10 +142,10 @@ class TestIntentResolverService extends Command
             ];
 
             $start = microtime(true);
-            $this->info('Calling IntentResolver::guessIntents() / Driver: '.$driver);
+            $this->info('Calling IntentResolver::inferFromKeywords() / Driver: '.$driver);
             $this->comment('Sample keywords: '.implode(', ', $sampleKeywords));
 
-            $groups = $resolver->guessIntents($sampleKeywords);
+            $groups = $resolver->inferFromKeywords($sampleKeywords);
             $this->info('Processing time: '.(microtime(true) - $start).' seconds');
             $this->line('-----');
 
@@ -160,15 +173,20 @@ class TestIntentResolverService extends Command
         }
 
         $start = microtime(true);
-        $this->info('Calling IntentResolver::resolve() then guessKeywords() / Driver: '.$driver);
-        $intent = $resolver->resolve($html);
+        $this->info('Calling IntentResolver::resolve() then guessIntentKeywords() / Driver: '.$driver);
+        $intent = $resolver->resolve($intentable)->getPrimaryIntent();
+        if ($intent === null) {
+            $this->error('Resolve returned no primary intent.');
+
+            return self::FAILURE;
+        }
         $this->info('Processing time (resolve): '.(microtime(true) - $start).' seconds');
         $this->line('-----');
         $this->displayIntent($intent);
         $this->line('-----');
 
         $kwStart = microtime(true);
-        $keywords = $resolver->guessKeywords($intent);
+        $keywords = $resolver->guessIntentKeywords($intent);
         $this->info('Processing time (guessKeywords): '.(microtime(true) - $kwStart).' seconds');
         $this->line('-----');
 
@@ -190,7 +208,7 @@ class TestIntentResolverService extends Command
         return self::SUCCESS;
     }
 
-    private function displayIntent(IntentData $intent): void
+    private function displayIntent(Intent $intent): void
     {
         $types = array_map(
             static fn ($type) => $type->name.' ('.$type->value.')',

@@ -6,33 +6,20 @@ use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 
 /**
- * A resolved {@see IntentData} together with the {@see KeywordData} rows that belong to it.
+ * A resolved {@see Intent} together with the {@see IntentKeyword} rows that belong to it.
  *
  * Used when mapping many keywords to one or more intents (a keyword may appear under several intents).
  */
-final class IntentKeywordsData implements Serializable
+final class IntentKeywords implements Serializable
 {
     use SerializableTrait;
+    use HasIntent;
 
-    protected IntentData $intent;
-
-    /** @var list<KeywordData> */
+    /** @var list<IntentKeyword> */
     protected array $keywords = [];
 
-    public function getIntent(): IntentData
-    {
-        return $this->intent;
-    }
-
-    public function setIntent(IntentData $intent): static
-    {
-        $this->intent = $intent;
-
-        return $this;
-    }
-
     /**
-     * @return list<KeywordData>
+     * @return list<IntentKeyword>
      */
     public function getKeywords(): array
     {
@@ -40,16 +27,16 @@ final class IntentKeywordsData implements Serializable
     }
 
     /**
-     * @param  list<KeywordData>  $keywords
+     * @param  list<IntentKeyword>  $keywords
      *
-     * @throws \InvalidArgumentException When an element is not a {@see KeywordData} instance.
+     * @throws \InvalidArgumentException When an element is not a {@see IntentKeyword} instance.
      */
     public function setKeywords(array $keywords): static
     {
         foreach ($keywords as $index => $keyword) {
-            if (! $keyword instanceof KeywordData) {
+            if (! $keyword instanceof IntentKeyword) {
                 throw new \InvalidArgumentException(
-                    sprintf('keywords[%s] must be an instance of %s, %s given.', $index, KeywordData::class, get_debug_type($keyword))
+                    sprintf('keywords[%s] must be an instance of %s, %s given.', $index, IntentKeyword::class, get_debug_type($keyword))
                 );
             }
         }
@@ -69,7 +56,11 @@ final class IntentKeywordsData implements Serializable
         return [
             'intent' => $this->intent->toArray(),
             'keywords' => array_map(
-                static fn (KeywordData $k): array => $k->toArray(),
+                function (IntentKeyword $k): array {
+                    $data = $k->toArray();
+                    unset($data['intent']);
+                    return $data;
+                },
                 $this->keywords,
             ),
         ];
@@ -83,11 +74,11 @@ final class IntentKeywordsData implements Serializable
     public static function fromArray(array $data): static
     {
         if (! isset($data['intent']) || ! is_array($data['intent'])) {
-            throw new \InvalidArgumentException('IntentKeywordsData requires an "intent" object.');
+            throw new \InvalidArgumentException('IntentKeywords requires an "intent" object.');
         }
 
         $instance = new static;
-        $instance->setIntent(IntentData::fromArray($data['intent']));
+        $instance->setIntent(Intent::fromArray($data['intent']));
 
         $keywords = [];
         if (isset($data['keywords']) && is_array($data['keywords'])) {
@@ -96,7 +87,8 @@ final class IntentKeywordsData implements Serializable
                     continue;
                 }
                 try {
-                    $keywords[] = KeywordData::fromArray($row);
+                    $row['intent'] = $data['intent'];
+                    $keywords[] = IntentKeyword::fromArray($row);
                 } catch (\InvalidArgumentException) {
                     continue;
                 }

@@ -5,13 +5,13 @@ namespace App\Contracts\IntentResolver;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 
-final class KeywordData implements Serializable
+final class IntentKeyword implements Serializable
 {
     use SerializableTrait;
+    use HasIntent;
+    use HasRelevance;
 
     protected string $keyword = '';
-
-    protected ?float $relevance = null;
 
     public function getKeyword(): string
     {
@@ -33,18 +33,6 @@ final class KeywordData implements Serializable
         return $this;
     }
 
-    public function getRelevance(): ?float
-    {
-        return $this->relevance;
-    }
-
-    public function setRelevance(?float $relevance): static
-    {
-        $this->relevance = $relevance;
-
-        return $this;
-    }
-
     /**
      * {@inheritdoc}
      *
@@ -53,8 +41,9 @@ final class KeywordData implements Serializable
     public function toArray(): array
     {
         return [
-            'keyword' => $this->keyword,
-            'relevance' => $this->relevance,
+            'intent' => $this->getIntent()->toArray(),
+            'keyword' => $this->getKeyword(),
+            'relevance' => $this->getRelevance(),
         ];
     }
 
@@ -70,21 +59,13 @@ final class KeywordData implements Serializable
         $instance = new static;
 
         if (! isset($data['keyword']) || ! is_string($data['keyword'])) {
-            throw new \InvalidArgumentException('KeywordData requires a non-empty string "keyword".');
+            throw new \InvalidArgumentException('IntentKeyword requires a non-empty string "keyword".');
         }
 
+        $instance->setIntent(Intent::fromArray($data['intent']));
         $instance->setKeyword($data['keyword']);
 
-        if (array_key_exists('relevance', $data)) {
-            $relevance = $data['relevance'];
-            if ($relevance === null) {
-                $instance->setRelevance(null);
-            } elseif (is_int($relevance) || is_float($relevance)) {
-                $instance->setRelevance((float) $relevance);
-            } elseif (is_string($relevance) && is_numeric($relevance)) {
-                $instance->setRelevance((float) $relevance);
-            }
-        }
+        static::parseRelevance($instance, $data);
 
         return $instance;
     }

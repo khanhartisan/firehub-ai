@@ -7,7 +7,7 @@ use App\Contracts\Serializable;
 use App\Enums\IntentType;
 use App\Enums\Language;
 
-final class IntentData implements Serializable
+final class Intent implements Serializable
 {
     use SerializableTrait;
 

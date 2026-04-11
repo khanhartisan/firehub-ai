@@ -2,10 +2,13 @@
 
 namespace App\Services\IntentResolver\Drivers;
 
-use App\Contracts\IntentResolver\IntentData;
-use App\Contracts\IntentResolver\IntentKeywordsData;
+use App\Contracts\IntentResolver\Intent;
+use App\Contracts\IntentResolver\Intentable;
+use App\Contracts\IntentResolver\IntentableIntent;
+use App\Contracts\IntentResolver\IntentableIntents;
+use App\Contracts\IntentResolver\IntentKeyword;
+use App\Contracts\IntentResolver\IntentKeywords;
 use App\Contracts\IntentResolver\IntentResolver;
-use App\Contracts\IntentResolver\KeywordData;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
@@ -28,12 +31,12 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
         $this->defaultModel = $config['model'] ?? 'gpt-4o-mini';
     }
 
-    public function resolve(string $content): IntentData
+    public function resolve(Intentable $intentable): IntentableIntents
     {
-        $content = $this->prepareContent($content);
+        $content = $this->prepareContent($intentable->getContent() ?? '');
 
         $prompt = $this->buildResolvePrompt($content);
-        $jsonSchema = $this->buildIntentJsonSchema();
+        $jsonSchema = $this->buildResolveIntentableIntentsJsonSchema();
 
         $input = ResponseInput::text($prompt);
         $options = ResponseOptions::create()
@@ -41,7 +44,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
             ->temperature(0)
             ->responseFormat([
                 'type' => 'json_schema',
-                'name' => 'search_intent',
+                'name' => 'resolve_intentable_intents',
                 'schema' => $jsonSchema,
                 'strict' => true,
             ]);
@@ -66,13 +69,13 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
             );
         }
 
-        return $this->parseIntentResponse($responseText);
+        return $this->parseIntentableIntentsResponse($responseText, $intentable);
     }
 
     /**
-     * @return list<KeywordData>
+     * @return list<IntentKeyword>
      */
-    public function guessKeywords(IntentData $intentData): array
+    public function guessIntentKeywords(Intent $intentData): array
     {
         $prompt = $this->buildKeywordsPrompt($intentData);
         $jsonSchema = $this->buildKeywordsJsonSchema();
@@ -112,9 +115,9 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
 
     /**
      * @param  list<string>  $keywords
-     * @return list<IntentKeywordsData>
+     * @return list<IntentKeywords>
      */
-    public function guessIntents(array $keywords): array
+    public function inferFromKeywords(array $keywords): array
     {
         $normalized = $this->normalizeGuessKeywordInput($keywords);
 
@@ -129,8 +132,8 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
             );
         }
 
-        $prompt = $this->buildGuessIntentsPrompt($normalized);
-        $jsonSchema = $this->buildGuessIntentsJsonSchema(count($normalized));
+        $prompt = $this->buildInferFromKeywordsPrompt($normalized);
+        $jsonSchema = $this->buildInferFromKeywordsJsonSchema(count($normalized));
 
         $input = ResponseInput::text($prompt);
         $options = ResponseOptions::create()
@@ -138,7 +141,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
             ->temperature(0)
             ->responseFormat([
                 'type' => 'json_schema',
-                'name' => 'guess_intents_from_keywords',
+                'name' => 'infer_from_keywords',
                 'schema' => $jsonSchema,
                 'strict' => true,
             ]);
@@ -163,7 +166,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
             );
         }
 
-        return $this->parseGuessIntentsResponse($responseText);
+        return $this->parseInforFromKeywordsResponse($responseText);
     }
 
     /**
@@ -197,7 +200,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
     /**
      * @param  list<string>  $keywordStrings
      */
-    protected function buildGuessIntentsPrompt(array $keywordStrings): string
+    protected function buildInferFromKeywordsPrompt(array $keywordStrings): string
     {
         $numbered = [];
         foreach ($keywordStrings as $i => $kw) {
@@ -224,7 +227,7 @@ PROMPT;
     /**
      * @return array<string, mixed>
      */
-    protected function buildGuessIntentsJsonSchema(int $keywordCount): array
+    protected function buildInferFromKeywordsJsonSchema(int $keywordCount): array
     {
         $maxGroups = min(15, max(1, $keywordCount));
 
@@ -261,9 +264,9 @@ PROMPT;
     }
 
     /**
-     * @return list<IntentKeywordsData>
+     * @return list<IntentKeywords>
      */
-    protected function parseGuessIntentsResponse(string $responseText): array
+    protected function parseInforFromKeywordsResponse(string $responseText): array
     {
         $data = json_decode($responseText, true);
 
@@ -289,7 +292,7 @@ PROMPT;
                 continue;
             }
             try {
-                $out[] = IntentKeywordsData::fromArray($group);
+                $out[] = IntentKeywords::fromArray($group);
             } catch (\InvalidArgumentException) {
                 continue;
             }
@@ -299,10 +302,10 @@ PROMPT;
     }
 
     /**
-     * @param  list<string|KeywordData>  $keywords
-     * @return list<KeywordData>
+     * @param  list<string|IntentKeyword>  $keywords
+     * @return list<IntentKeyword>
      */
-    public function scoreKeywords(IntentData $intentData, array $keywords): array
+    public function scoreKeywords(Intent $intentData, array $keywords): array
     {
         $normalized = $this->normalizeKeywordsForScoring($keywords);
 
@@ -354,7 +357,7 @@ PROMPT;
     }
 
     /**
-     * @param  list<string|KeywordData>  $keywords
+     * @param  list<string|IntentKeyword>  $keywords
      * @return list<string>
      */
     protected function normalizeKeywordsForScoring(array $keywords): array
@@ -363,7 +366,7 @@ PROMPT;
         $seen = [];
 
         foreach ($keywords as $k) {
-            if ($k instanceof KeywordData) {
+            if ($k instanceof IntentKeyword) {
                 $s = $k->getKeyword();
             } elseif (is_string($k)) {
                 $s = trim($k);
@@ -389,7 +392,7 @@ PROMPT;
     /**
      * @param  list<string>  $keywordStrings
      */
-    protected function buildScoreKeywordsPrompt(IntentData $intentData, array $keywordStrings): string
+    protected function buildScoreKeywordsPrompt(Intent $intentData, array $keywordStrings): string
     {
         $payload = $intentData->toJson();
         $numbered = [];
@@ -434,7 +437,7 @@ PROMPT;
 
     /**
      * @param  list<string>  $expectedOrder
-     * @return list<KeywordData>
+     * @return list<IntentKeyword>
      */
     protected function parseScoreKeywordsResponse(string $responseText, array $expectedOrder): array
     {
@@ -454,7 +457,7 @@ PROMPT;
                 continue;
             }
 
-            $out[] = (new KeywordData)
+            $out[] = (new IntentKeyword)
                 ->setKeyword($kw)
                 ->setRelevance(null);
         }
@@ -473,9 +476,15 @@ PROMPT;
         return <<<PROMPT
 You are a Senior SEO Content Architect and User Intent Analyst.
 
-You analyze text and infer the user's search intent for SEO / keyword research.
+You analyze text and infer the user's search intent.
 
-Classify the content using one or more intent types (use the numeric codes below). You may assign short human-readable title and description fields summarizing the intent.
+Return one or more distinct intents in "intentable_intents". Each row is a full intent payload (title, description, language, types) plus a "relevance" score (0–1) for how strongly that intent applies to this content, or null if you cannot score it. Order rows from strongest relevance to weakest when possible.
+
+If the content clearly satisfies only one search intent, return a single row. When the content genuinely fits multiple distinct user goals (e.g. informational plus commercial), include multiple rows with appropriate relevances.
+
+Classify each intent using one or more intent types (use the numeric codes below). You may assign short human-readable title and description fields summarizing each intent.
+
+Only return different intentable_intents if the intents are clearly different and should be separated. If the intents are relevant and can be merged, you should return only one intentable_intent that represent the relevant intents.
 
 General guidelines:
 - Source Neutrality: The Intent Title and Description must be Source-Agnostic.
@@ -509,7 +518,44 @@ PROMPT;
     }
 
     /**
-     * JSON Schema for a single {@see IntentData} object (used by resolve and nested in guessIntents).
+     * JSON Schema for {@see IntentableIntents}: multiple intents with per-row relevance.
+     *
+     * @return array<string, mixed>
+     */
+    protected function buildResolveIntentableIntentsJsonSchema(): array
+    {
+        $max = max(1, min(10, (int) ($this->config['max_resolve_intents'] ?? 8)));
+        $intentObject = $this->intentDataJsonSchemaObject();
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'intentable_intents' => [
+                    'type' => 'array',
+                    'description' => 'Distinct intents this content may satisfy; each with relevance for this content',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'intent' => $intentObject,
+                            'relevance' => [
+                                'type' => ['number', 'null'],
+                                'description' => 'How strongly this content matches this intent (0–1), or null if unscored',
+                            ],
+                        ],
+                        'required' => ['intent', 'relevance'],
+                        'additionalProperties' => false,
+                    ],
+                    'minItems' => 1,
+                    'maxItems' => $max,
+                ],
+            ],
+            'required' => ['intentable_intents'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * JSON Schema for a single {@see Intent} object (nested in resolve and infer-from-keywords).
      *
      * @return array<string, mixed>
      */
@@ -563,15 +609,7 @@ PROMPT;
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    protected function buildIntentJsonSchema(): array
-    {
-        return $this->intentDataJsonSchemaObject();
-    }
-
-    /**
-     * JSON Schema for one {@see KeywordData} row.
+     * JSON Schema for one {@see IntentKeyword} row.
      *
      * @return array<string, mixed>
      */
@@ -594,7 +632,7 @@ PROMPT;
         ];
     }
 
-    protected function buildKeywordsPrompt(IntentData $intentData): string
+    protected function buildKeywordsPrompt(Intent $intentData): string
     {
         $payload = $intentData->toJson();
 
@@ -649,25 +687,54 @@ PROMPT;
         }
     }
 
-    protected function parseIntentResponse(string $responseText): IntentData
+    protected function parseIntentableIntentsResponse(string $responseText, Intentable $intentable): IntentableIntents
     {
         $data = json_decode($responseText, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new RuntimeException(
-                'Failed to parse intent response as JSON: '.json_last_error_msg()
+                'Failed to parse intent resolution response as JSON: '.json_last_error_msg()
             );
         }
 
         if (! is_array($data)) {
-            throw new RuntimeException('Intent response JSON did not decode to an array');
+            throw new RuntimeException('Intent resolution JSON did not decode to an array');
         }
 
-        return IntentData::fromArray($data);
+        $items = $data['intentable_intents'] ?? null;
+
+        if (! is_array($items) || $items === []) {
+            throw new RuntimeException('Intent resolution response must contain a non-empty "intentable_intents" array');
+        }
+
+        $rows = [];
+        foreach ($items as $item) {
+            if (! is_array($item) || ! isset($item['intent']) || ! is_array($item['intent'])) {
+                continue;
+            }
+
+            $payload = [
+                'intent' => $item['intent'],
+                'intentable' => $intentable->toArray(),
+                'relevance' => $item['relevance'] ?? null,
+            ];
+
+            try {
+                $rows[] = IntentableIntent::fromArray($payload);
+            } catch (\InvalidArgumentException) {
+                continue;
+            }
+        }
+
+        if ($rows === []) {
+            throw new RuntimeException('Intent resolution produced no valid intentable_intents rows');
+        }
+
+        return (new IntentableIntents)->setIntentableIntents($rows);
     }
 
     /**
-     * @return list<KeywordData>
+     * @return list<IntentKeyword>
      */
     protected function parseKeywordsResponse(string $responseText): array
     {
@@ -694,7 +761,7 @@ PROMPT;
             }
 
             try {
-                $row = KeywordData::fromArray($item);
+                $row = IntentKeyword::fromArray($item);
             } catch (\InvalidArgumentException) {
                 continue;
             }

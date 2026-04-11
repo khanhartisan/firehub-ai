@@ -3,11 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Contracts\IntentResolver\IntentData;
+use App\Facades\IntentResolver;
 use App\Facades\TextEmbedding;
 use App\Utils\Math;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 
 #[Signature('app:test-code')]
 #[Description('Command description')]
@@ -18,13 +20,18 @@ class TestCode extends Command
      */
     public function handle()
     {
-        $baseVector = TextEmbedding::embed('2026 Best Films of the Year: Highlights from Cinema Critiques');
+        $intentData = IntentResolver::resolve(Storage::get('live-tests/sample-page-for-intent-resolver-service.md'));
+        $intentVector = TextEmbedding::embed($intentData->getTitle()."\n".$intentData->getDescription());
+        $this->line($intentData->getTitle());
+        $this->line($intentData->getDescription());
+        $this->line('----------');
 
-        $keyword1Vector = TextEmbedding::embed('best films of 2026');
-        $keyword2Vector = TextEmbedding::embed('2026 cinematic trends');
+        $intentData2 = IntentResolver::resolve(Storage::get('live-tests/sample-page-for-intent-resolver-service.md'));
+        $intentVector2 = TextEmbedding::embed($intentData2->getTitle()."\n".$intentData2->getDescription());
+        $this->line($intentData2->getTitle());
+        $this->line($intentData2->getDescription());
+        $this->line('----------');
 
-        $this->info('Cosine 1: '.Math::vectorSimilarity($baseVector->toArray(), $keyword1Vector->toArray()));
-
-        $this->info('Cosine 2: '.Math::vectorSimilarity($baseVector->toArray(), $keyword2Vector->toArray()));
+        $this->info('Cosine: '.Math::vectorSimilarity($intentVector->toArray(), $intentVector2->toArray()));
     }
 }

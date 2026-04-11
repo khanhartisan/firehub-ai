@@ -37,6 +37,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
         $input = ResponseInput::text($prompt);
         $options = ResponseOptions::create()
             ->model($this->defaultModel)
+            ->temperature(0)
             ->responseFormat([
                 'type' => 'json_schema',
                 'name' => 'search_intent',

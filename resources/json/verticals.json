@@ -125,7 +125,7 @@
         },
         {
           "name": "Technical Utilities",
-          "leaf_nodes": ["APIs", "Source Code (GitHub)", "QR/PDF Tools", "VPN/Proxy", "Datasets"]
+          "leaf_nodes": ["APIs", "Source Code", "Technical Tools", "VPN/Proxy", "Datasets"]
         }
       ]
     },

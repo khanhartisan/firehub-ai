@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class IntentKeyword extends Pivot
+class IntentPage extends Pivot
 {
     protected $casts = [
         'relevance' => 'float',
@@ -15,8 +15,8 @@ class IntentKeyword extends Pivot
         return $this->belongsTo(Intent::class);
     }
 
-    public function keyword(): BelongsTo
+    public function page(): BelongsTo
     {
-        return $this->belongsTo(Keyword::class);
+        return $this->belongsTo(Page::class);
     }
 }

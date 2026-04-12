@@ -11,16 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('intent_keyword', function (Blueprint $table) {
+        Schema::create('intent_page', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('intent_id');
-            $table->ulid('keyword_id');
+            $table->ulid('page_id');
             $table->decimal('relevance', 3);
             $table->timestamps();
 
-            $table->unique(['intent_id', 'keyword_id']);
+            $table->unique(['intent_id', 'page_id']);
+            $table->index(['page_id', 'relevance']);
             $table->index(['intent_id', 'relevance']);
-            $table->index(['keyword_id', 'relevance']);
         });
     }
 
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('intent_keyword');
+        Schema::dropIfExists('intent_page');
     }
 };

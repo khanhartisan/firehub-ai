@@ -38,12 +38,20 @@ return new class extends Migration
             $table->index(['stage', 'stage_status', 'updated_at'], 'stage_index');
             $table->index(['temporal', 'updated_at'], 'temporal_index');
 
+            $table->softDeletes();
+            $table->cascades();
+            $table->index(['cascade_status', 'deleted_at']);
+
             $table
                 ->vector('vector', config('vectordb.drivers.pgvector.default_dimension'))
                 ->nullable();
             $table->boolean('is_embeddable')->default(false);
             $table->boolean('is_embedded')->default(false);
             $table->index(['is_embeddable', 'is_embedded', 'updated_at']);
+
+            $table->unsignedInteger('intents_count')->default(0);
+            $table->dateTime('intent_resolved_at')->nullable();
+            $table->index(['is_embedded', 'intent_resolved_at']);
         });
 
         for ($i = 0; $i < 128; $i++) {

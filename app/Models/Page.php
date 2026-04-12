@@ -68,6 +68,8 @@ class Page extends EmbeddableModel implements ShouldCascade
         'is_embeddable' => 'boolean',
         'is_embedded' => 'boolean',
         'version_index' => 'integer',
+        'intents_count' => 'integer',
+        'intent_resolved_at' => 'datetime',
     ];
 
     public function isEmbeddable(): bool
@@ -124,6 +126,7 @@ class Page extends EmbeddableModel implements ShouldCascade
             new CascadeDetails($this->snapshots()),
             new CascadeDetails($this->hasMany(PageVertical::class)),
             new CascadeDetails($this->hasMany(PageTag::class)),
+            new CascadeDetails($this->intentPages()),
         ];
     }
 
@@ -215,6 +218,21 @@ class Page extends EmbeddableModel implements ShouldCascade
         return $this->belongsToMany(Tag::class)
             ->using(PageTag::class)
             ->as('page_tag');
+    }
+
+    public function intentPages(): HasMany
+    {
+        return $this->hasMany(IntentPage::class);
+    }
+
+    public function intents(): BelongsToMany
+    {
+        return $this->belongsToMany(Intent::class)
+            ->using(IntentPage::class)
+            ->as('intent_page')
+            ->withPivot([
+                'relevance'
+            ]);
     }
 
     /**

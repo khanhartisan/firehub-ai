@@ -71,6 +71,10 @@ return new class extends Migration
             $table->boolean('is_embeddable')->default(false);
             $table->boolean('is_embedded')->default(false);
             $table->index(['is_embeddable', 'is_embedded', 'updated_at']);
+
+            $table->unsignedInteger('intents_count')->default(0);
+            $table->dateTime('intent_resolved_at')->nullable();
+            $table->index(['is_embedded', 'intent_resolved_at']);
         });
     }
 

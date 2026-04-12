@@ -7,6 +7,7 @@ use App\Contracts\PageParser\PageData;
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
 use App\Contracts\VectorDB\Vector;
 use App\Enums\ContentType;
+use App\Enums\Language;
 use App\Enums\PageType;
 use App\Enums\ScrapingStatus;
 use App\Enums\Temporal;
@@ -74,6 +75,7 @@ class MasterTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::BREAKING->value,
+            'language' => Language::EN->value,
             'description' => 'Integrated master-flow article body.',
         ]);
 

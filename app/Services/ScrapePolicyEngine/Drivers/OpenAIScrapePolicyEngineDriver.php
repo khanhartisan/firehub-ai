@@ -116,6 +116,7 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
             'Page Type' => $page->page_type?->value ?? 'unknown',
             'Content Type' => $page->content_type?->value ?? 'unknown',
             'Temporal Nature' => $page->temporal?->value ?? 'unknown',
+            'Language' => $page->language?->value ?? 'unknown',
             'Scraping Status' => $page->scraping_status?->value ?? 'pending',
             'Total Snapshots' => $snapshotCount,
             'Last Scraped' => $lastScrapeAt?->toIso8601String() ?? 'never',

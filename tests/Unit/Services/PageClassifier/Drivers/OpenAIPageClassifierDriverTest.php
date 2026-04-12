@@ -6,6 +6,7 @@ use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response as ResponseObject;
 use App\Contracts\PageClassifier\ClassificationResult;
 use App\Enums\ContentType;
+use App\Enums\Language;
 use App\Enums\PageType;
 use App\Enums\Temporal;
 use App\Services\PageClassifier\Drivers\OpenAIPageClassifierDriver;
@@ -39,6 +40,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'product',
                                 'page_type' => 'detail',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => ['product', 'shopping', 'ecommerce'],
                             ]),
                         ],
@@ -59,6 +61,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
         $this->assertEquals(ContentType::PRODUCT, $result->getContentType());
         $this->assertEquals(PageType::DETAIL, $result->getPageType());
         $this->assertEquals(Temporal::EVERGREEN, $result->getTemporal());
+        $this->assertEquals(Language::EN, $result->getLanguage());
         $this->assertEquals(['product', 'shopping', 'ecommerce'], $result->getTags());
     }
 
@@ -80,6 +83,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'article',
                                 'page_type' => 'detail',
                                 'temporal' => 'breaking',
+                                'language' => 'en',
                                 'tags' => ['news', 'breaking', 'current_events', 'updates'],
                             ]),
                         ],
@@ -120,6 +124,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'product',
                                 'page_type' => 'listing',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => ['products', 'catalog', 'list'],
                             ]),
                         ],
@@ -166,6 +171,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                     'content_type' => $contentType->value,
                                     'page_type' => 'detail',
                                     'temporal' => 'evergreen',
+                                    'language' => 'en',
                                     'tags' => ['test', 'tag1', 'tag2'],
                                 ]),
                             ],
@@ -213,6 +219,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                     'content_type' => 'article',
                                     'page_type' => 'detail',
                                     'temporal' => $temporal->value,
+                                    'language' => 'en',
                                     'tags' => ['test', 'tag1', 'tag2'],
                                 ]),
                             ],
@@ -251,6 +258,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'article',
                                 'page_type' => 'detail',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => ['test', 'tag1', 'tag2'],
                             ]),
                         ],
@@ -297,6 +305,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'article',
                                 'page_type' => 'detail',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => ['test', 'tag1', 'tag2'],
                             ]),
                         ],
@@ -346,6 +355,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'article',
                                 'page_type' => 'detail',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => ['test', 'tag1', 'tag2'],
                             ]),
                         ],
@@ -501,6 +511,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'invalid_type',
                                 'page_type' => 'detail',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => ['test', 'tag1', 'tag2'],
                             ]),
                         ],
@@ -539,6 +550,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'article',
                                 'page_type' => 'invalid_type',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => ['test', 'tag1', 'tag2'],
                             ]),
                         ],
@@ -577,6 +589,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'article',
                                 'page_type' => 'detail',
                                 'temporal' => 'invalid_temporal',
+                                'language' => 'en',
                                 'tags' => ['test', 'tag1', 'tag2'],
                             ]),
                         ],
@@ -593,6 +606,83 @@ class OpenAIPageClassifierDriverTest extends TestCase
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid temporal value');
+
+        $driver->classify($html);
+    }
+
+    public function test_it_accepts_null_language(): void
+    {
+        $html = '<html><body><h1>Test</h1></body></html>';
+
+        $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
+        $mockResponse = ResponseObject::fromArray([
+            'id' => 'resp_123',
+            'status' => 'completed',
+            'output' => [
+                [
+                    'type' => 'message',
+                    'content' => [
+                        [
+                            'type' => 'output_text',
+                            'text' => json_encode([
+                                'content_type' => 'article',
+                                'page_type' => 'detail',
+                                'temporal' => 'evergreen',
+                                'language' => null,
+                                'tags' => ['test', 'tag1', 'tag2'],
+                            ]),
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $mockOpenAIClient->shouldReceive('createResponse')
+            ->once()
+            ->andReturn($mockResponse);
+
+        $driver = new OpenAIPageClassifierDriver($mockOpenAIClient, ['model' => 'gpt-4o-mini']);
+
+        $result = $driver->classify($html);
+
+        $this->assertNull($result->getLanguage());
+    }
+
+    public function test_it_throws_exception_for_invalid_language(): void
+    {
+        $html = '<html><body><h1>Test</h1></body></html>';
+
+        $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
+        $mockResponse = ResponseObject::fromArray([
+            'id' => 'resp_123',
+            'status' => 'completed',
+            'output' => [
+                [
+                    'type' => 'message',
+                    'content' => [
+                        [
+                            'type' => 'output_text',
+                            'text' => json_encode([
+                                'content_type' => 'article',
+                                'page_type' => 'detail',
+                                'temporal' => 'evergreen',
+                                'language' => 'not-in-enum',
+                                'tags' => ['test', 'tag1', 'tag2'],
+                            ]),
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $mockOpenAIClient->shouldReceive('createResponse')
+            ->once()
+            ->andReturn($mockResponse);
+
+        $driver = new OpenAIPageClassifierDriver($mockOpenAIClient, ['model' => 'gpt-4o-mini']);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid language value');
 
         $driver->classify($html);
     }
@@ -615,6 +705,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'article',
                                 'page_type' => 'detail',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => ['test', 'tag1', 'tag2'],
                             ]),
                         ],
@@ -660,6 +751,7 @@ class OpenAIPageClassifierDriverTest extends TestCase
                                 'content_type' => 'article',
                                 'page_type' => 'detail',
                                 'temporal' => 'evergreen',
+                                'language' => 'en',
                                 'tags' => $tags,
                             ]),
                         ],

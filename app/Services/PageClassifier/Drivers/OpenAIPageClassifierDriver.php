@@ -7,6 +7,7 @@ use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Contracts\PageClassifier\ClassificationResult;
 use App\Enums\ContentType;
+use App\Enums\Language;
 use App\Enums\PageType;
 use App\Enums\Temporal;
 use App\Services\PageClassifier\PageClassifierService;
@@ -80,6 +81,7 @@ Guidelines:
 - content_type: Identify the primary type of content based on the page's main purpose
 - page_type: Determine if this is a listing page (multiple items), detail page (single item), redirect page, or unknown
 - temporal: Classify the temporal nature of the content (evergreen, breaking, seasonal, trending, or topical)
+- language: Primary language of the page body text as a BCP 47 tag from the schema enum, or null if you cannot determine it reliably
 - tags: Extract 3-10 relevant tags that describe the content (lowercase, no spaces, use underscores)
 
 HTML Content:
@@ -109,6 +111,14 @@ PROMPT;
             Temporal::cases()
         );
 
+        $languageEnum = array_merge(
+            [null],
+            array_map(
+                static fn (Language $language): string => $language->value,
+                Language::cases()
+            )
+        );
+
         return [
             'type' => 'object',
             'properties' => $properties = [
@@ -126,6 +136,11 @@ PROMPT;
                     'type' => 'string',
                     'description' => 'The temporal nature of the content',
                     'enum' => $temporalEnum,
+                ],
+                'language' => [
+                    'type' => ['string', 'null'],
+                    'description' => 'Primary language of the page body text (BCP 47 tag), or null if uncertain',
+                    'enum' => $languageEnum,
                 ],
                 'tags' => [
                     'type' => 'array',
@@ -210,6 +225,21 @@ PROMPT;
                 throw new RuntimeException(
                     "Invalid temporal value: {$data['temporal']}"
                 );
+            }
+        }
+
+        if (array_key_exists('language', $data)) {
+            if ($data['language'] === null) {
+                $result->setLanguage(null);
+            } elseif (is_string($data['language'])) {
+                $language = Language::tryFrom($data['language']);
+                if ($language !== null) {
+                    $result->setLanguage($language);
+                } else {
+                    throw new RuntimeException(
+                        "Invalid language value: {$data['language']}"
+                    );
+                }
             }
         }
 

@@ -82,10 +82,10 @@ class TestPage extends Command
         $classification = PageClassifier::classify($sanitizedHtml);
 
         $this->table(['Key', 'Value'], [
-            ['Description', $classification->getDescription()],
             ['Page Type', $classification->getPageType()->name],
             ['Content Type', $classification->getContentType()->name],
             ['Temporal', $classification->getTemporal()->name],
+            ['Language', $classification->getLanguage()?->value ?? '—'],
             ['Tags', implode(', ', $classification->getTags())],
         ]);
     }

@@ -40,6 +40,7 @@ return new class extends Migration
             $table->string('page_type')->nullable();
             $table->string('content_type')->nullable();
             $table->string('temporal')->nullable();
+            $table->string('language')->nullable();
 
             $table->unsignedInteger('snapshots_count')->default(0);
 

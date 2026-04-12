@@ -62,6 +62,7 @@ class TestPageClassifier extends Command
                 ['content_type', $result->getContentType()?->value ?? '—'],
                 ['page_type', $result->getPageType()?->value ?? '—'],
                 ['temporal', $result->getTemporal()?->value ?? '—'],
+                ['language', $result->getLanguage()?->value ?? '—'],
                 ['tags', implode(', ', $result->getTags())],
             ]
         );

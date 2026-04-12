@@ -61,6 +61,7 @@ trait EnrichmentStage
             $page->page_type = $classification->getPageType();
             $page->content_type = $classification->getContentType();
             $page->temporal = $classification->getTemporal();
+            $page->language = $classification->getLanguage();
             $isSaved = $page->save();
         });
 

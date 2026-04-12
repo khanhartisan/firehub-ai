@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Contracts\Model\PageCountable;
 use App\Database\Eloquent\Relations\PageCountBelongsToMany;
 use App\Enums\ContentType;
+use App\Enums\Language;
 use App\Enums\PageType;
 use App\Enums\ScrapableType;
 use App\Enums\ScrapingStage;
@@ -38,6 +39,7 @@ class Page extends EmbeddableModel implements ShouldCascade
         'page_type',
         'content_type',
         'temporal',
+        'language',
         'version_index',
         'source_published_at',
         'source_updated_at',
@@ -59,6 +61,7 @@ class Page extends EmbeddableModel implements ShouldCascade
         'page_type' => PageType::class,
         'content_type' => ContentType::class,
         'temporal' => Temporal::class,
+        'language' => Language::class,
         'source_published_at' => 'datetime',
         'source_updated_at' => 'datetime',
         'scraped_at' => 'datetime',
@@ -87,6 +90,7 @@ class Page extends EmbeddableModel implements ShouldCascade
 
         if ($this->isDirty('page_type')
             or $this->isDirty('content_type')
+            or $this->isDirty('language')
             or $this->isDirty('description')
             or ! $this->getTextForEmbedding()
         ) {
@@ -109,6 +113,10 @@ class Page extends EmbeddableModel implements ShouldCascade
 
         if ($this->content_type) {
             $text .= 'Content type: '.$this->content_type->name.' ('.ContentType::describe($this->content_type).')'."\n";
+        }
+
+        if ($this->language) {
+            $text .= 'Language: '.$this->language->value."\n";
         }
 
         if ($this->title) {

@@ -9,6 +9,7 @@ use App\Contracts\ScrapePolicyEngine\PolicyResult;
 use App\Contracts\VerticalResolver\Vertical as ContractVertical;
 use App\Contracts\VerticalResolver\VerticalMatch;
 use App\Enums\ContentType;
+use App\Enums\Language;
 use App\Enums\ScrapableType;
 use App\Enums\PageType;
 use App\Enums\ScrapingStatus;
@@ -277,6 +278,7 @@ class ScrapePageJobTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::BREAKING->value,
+            'language' => Language::EN->value,
             'description' => 'Test description',
         ]);
 
@@ -340,6 +342,7 @@ class ScrapePageJobTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::BREAKING->value,
+            'language' => Language::EN->value,
             'description' => 'Desc',
         ]);
 
@@ -405,6 +408,7 @@ class ScrapePageJobTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::BREAKING->value,
+            'language' => Language::EN->value,
             'description' => 'Desc',
         ]);
 
@@ -455,6 +459,7 @@ class ScrapePageJobTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::BREAKING->value,
+            'language' => Language::EN->value,
             'description' => 'Desc',
         ]);
         $pageData = new PageData;
@@ -509,6 +514,7 @@ class ScrapePageJobTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::BREAKING->value,
+            'language' => Language::EN->value,
             'description' => 'Desc',
         ]);
         $pageData = new PageData;
@@ -568,6 +574,7 @@ class ScrapePageJobTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::BREAKING->value,
+            'language' => Language::EN->value,
             'description' => 'Desc',
         ]);
         $pageData = new PageData;
@@ -623,6 +630,7 @@ class ScrapePageJobTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::EVERGREEN->value,
+            'language' => Language::EN->value,
             'description' => 'Desc',
         ]);
         $pageData = new PageData;
@@ -687,6 +695,7 @@ class ScrapePageJobTest extends TestCase
             'page_type' => PageType::DETAIL->value,
             'content_type' => ContentType::ARTICLE->value,
             'temporal' => Temporal::BREAKING->value,
+            'language' => Language::EN->value,
             'description' => 'Desc',
         ]);
         $pageData = new PageData;

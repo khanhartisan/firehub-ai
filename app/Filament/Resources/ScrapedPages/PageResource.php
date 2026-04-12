@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ScrapedPages;
 
 use App\Enums\ContentType;
+use App\Enums\Language;
 use App\Enums\PageType;
 use App\Enums\ScrapableType;
 use App\Enums\ScrapingStage;
@@ -80,6 +81,10 @@ class PageResource extends Resource
                             ->nullable(),
                         Select::make('temporal')
                             ->options(Temporal::class)
+                            ->nullable(),
+                        Select::make('language')
+                            ->options(Language::class)
+                            ->searchable()
                             ->nullable(),
                     ])
                     ->columns(2),

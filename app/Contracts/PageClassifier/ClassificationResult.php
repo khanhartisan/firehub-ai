@@ -3,16 +3,16 @@
 namespace App\Contracts\PageClassifier;
 
 use App\Concerns\Serializable as SerializableTrait;
-use App\Contracts\Describable;
 use App\Contracts\Serializable;
 use App\Enums\ContentType;
+use App\Enums\Language;
 use App\Enums\PageType;
 use App\Enums\Temporal;
 
 /**
  * Result of classifying a scraped HTML page (e.g. via PageClassifier).
  *
- * Holds page type, content type, temporal classification, and tags used to
+ * Holds page type, content type, temporal classification, language, and tags used to
  * categorize entities and drive downstream logic (policy, filtering).
  */
 final class ClassificationResult implements Serializable
@@ -27,6 +27,9 @@ final class ClassificationResult implements Serializable
 
     /** Time relevance: evergreen, time-sensitive, etc. */
     protected Temporal $temporal;
+
+    /** Primary language of the page body (BCP 47), or null if uncertain. */
+    protected ?Language $language = null;
 
     /** Normalized tag names (lowercase, trimmed) for the page. @var array<int, string> */
     protected array $tags = [];
@@ -131,6 +134,17 @@ final class ClassificationResult implements Serializable
         return $this;
     }
 
+    public function getLanguage(): ?Language
+    {
+        return $this->language ?? null;
+    }
+
+    public function setLanguage(?Language $language): static
+    {
+        $this->language = $language;
+        return $this;
+    }
+
     /**
      * Convert the classification result to an array representation.
      *
@@ -142,6 +156,7 @@ final class ClassificationResult implements Serializable
             'content_type' => $this->contentType?->value ?? null,
             'page_type' => $this->pageType?->value ?? null,
             'temporal' => $this->temporal?->value ?? null,
+            'language' => $this->language?->value ?? null,
             'tags' => $this->tags ?? [],
         ];
     }
@@ -174,6 +189,17 @@ final class ClassificationResult implements Serializable
             $temporal = Temporal::tryFrom($data['temporal']);
             if ($temporal !== null) {
                 $result->setTemporal($temporal);
+            }
+        }
+
+        if (array_key_exists('language', $data)) {
+            if ($data['language'] === null || $data['language'] === '') {
+                $result->setLanguage(null);
+            } elseif (is_string($data['language'])) {
+                $language = Language::tryFrom($data['language']);
+                if ($language !== null) {
+                    $result->setLanguage($language);
+                }
             }
         }
 

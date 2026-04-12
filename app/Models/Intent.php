@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\IntentType;
+use App\Enums\Language;
 use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,6 +21,7 @@ class Intent extends EmbeddableModel implements ShouldCascade
     protected function casts(): array
     {
         return [
+            'language' => Language::class,
             'types' => AsEnumCollection::of(IntentType::class),
             'keywords_count' => 'integer',
             'pages_count' => 'integer',

@@ -12,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // We shard the "articles" table by the space column
+        // because we want to be able to perform the vector queries
+        // against a space with the best performance
+
         DB::statement("CREATE TABLE articles (
             id char(26) NOT NULL,
             space varchar(255) NOT NULL,
@@ -19,6 +23,7 @@ return new class extends Migration
         ) PARTITION BY HASH (space)");
 
         Schema::table('articles', function (Blueprint $table) {
+            $table->string('language')->nullable();
             $table->string('temporal')->nullable();
 
             $table->unsignedTinyInteger('stage')

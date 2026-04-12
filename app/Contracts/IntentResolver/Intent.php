@@ -20,36 +20,36 @@ final class Intent implements Serializable
     /** @var list<IntentType> */
     protected array $types = [];
 
-    public function getTitle(): ?string
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    public function setTitle(?string $title): static
+    public function setTitle(string $title): static
     {
         $this->title = $title;
 
         return $this;
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): string
     {
         return $this->description;
     }
 
-    public function setDescription(?string $description): static
+    public function setDescription(string $description): static
     {
         $this->description = $description;
 
         return $this;
     }
 
-    public function getLanguage(): ?Language
+    public function getLanguage(): Language
     {
         return $this->language;
     }
 
-    public function setLanguage(?Language $language): static
+    public function setLanguage(Language $language): static
     {
         $this->language = $language;
 
@@ -126,7 +126,7 @@ final class Intent implements Serializable
             if ($language instanceof Language) {
                 $instance->setLanguage($language);
             } elseif ($language === null || $language === '') {
-                $instance->setLanguage(null);
+                throw new \InvalidArgumentException('Language is required');
             } elseif (is_string($language)) {
                 $instance->setLanguage(Language::tryFrom($language));
             }

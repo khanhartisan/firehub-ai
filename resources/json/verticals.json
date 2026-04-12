@@ -1,0 +1,391 @@
+{
+  "taxonomy_name": "Omni-Verticals Apex Capitalist Framework",
+  "version": "12.0",
+  "last_updated": "2026-04-13",
+  "pillars": [
+    {
+      "id": 1,
+      "name": "Sports & Athletics",
+      "categories": [
+        {
+          "name": "Competitive & Motorsports",
+          "leaf_nodes": ["Football", "Basketball", "MMA", "Tennis", "Golf", "Formula 1", "MotoGP", "NASCAR"]
+        },
+        {
+          "name": "Digital & Extreme",
+          "leaf_nodes": ["Esports (Professional Play)", "Skateboarding", "Surfing", "Drone Racing"]
+        },
+        {
+          "name": "Outdoor Adventures",
+          "leaf_nodes": ["Fishing", "Hunting", "Hiking", "Trekking", "Kayaking", "Mountaineering"]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Fitness & Physique",
+      "categories": [
+        {
+          "name": "Athletic Training",
+          "leaf_nodes": ["Bodybuilding", "Crossfit", "Powerlifting", "Gym Workouts", "Supplements"]
+        },
+        {
+          "name": "Wellness & Recovery",
+          "leaf_nodes": ["Yoga (Asana)", "Pilates", "Running", "Personal Training", "Physical Therapy"]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Science & Knowledge",
+      "categories": [
+        {
+          "name": "Pure Sciences",
+          "leaf_nodes": ["Theoretical Physics", "Chemistry", "Biology", "Mathematics", "Neuroscience"]
+        },
+        {
+          "name": "Data & Earth Science",
+          "leaf_nodes": ["Data Science", "Statistics", "Econometrics", "Meteorology", "Climate Research"]
+        },
+        {
+          "name": "Space & Astronomy",
+          "leaf_nodes": ["Space Exploration", "Astrophysics", "Satellite Tech", "Astrobiology"]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "History & Humanities",
+      "categories": [
+        {
+          "name": "History & Archaeology",
+          "leaf_nodes": ["Ancient History", "World Wars", "Archaeology", "Civilizations", "Genealogy"]
+        },
+        {
+          "name": "Philosophy & Psych",
+          "leaf_nodes": ["Psychology", "Behavioral Science", "Ethics", "Existentialism", "Logic", "Etiquette"]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Food & Beverage Arts",
+      "categories": [
+        {
+          "name": "Home Culinary",
+          "leaf_nodes": ["Home Cooking Recipes", "Baking", "Kitchen Skills", "Food Science"]
+        },
+        {
+          "name": "Beverage Culture",
+          "leaf_nodes": ["Coffee (Barista)", "Tea Arts", "Mixology", "Sommelier (Wine)"]
+        },
+        {
+          "name": "Dining & Gastronomy",
+          "leaf_nodes": ["Fine Dining", "Restaurant Reviews", "Food Tourism", "Street Food"]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Hobbies & Collectibles",
+      "categories": [
+        {
+          "name": "Collectibles & Antiques",
+          "leaf_nodes": ["Trading Cards (Pokemon)", "Antiques", "Coins", "Stamps", "Figures", "Statues"]
+        },
+        {
+          "name": "Amateur Hobbies",
+          "leaf_nodes": ["Amateur Photography", "Crafting", "Gardening", "Woodworking"]
+        },
+        {
+          "name": "Hobbyist Gear",
+          "leaf_nodes": ["EDC", "Horology (Watches)", "Audio/Hi-Fi", "Fountain Pens", "Pocket Tools"]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Tech & Innovation",
+      "categories": [
+        {
+          "name": "Biotech & Life Sciences",
+          "leaf_nodes": ["CRISPR", "Synthetic Biology", "Bionics", "Genetic Engineering", "Biohacking"]
+        },
+        {
+          "name": "Hardware & Components",
+          "leaf_nodes": ["CPUs/GPUs", "Semiconductors", "Component Reviews", "Hardware Architecture"]
+        },
+        {
+          "name": "Consumer Electronics",
+          "leaf_nodes": ["Smartphones", "Laptops", "Tablets", "Gaming Hardware", "Wearables", "Tech Reviews"]
+        },
+        {
+          "name": "Software, AI & Design",
+          "leaf_nodes": ["Web/App Dev", "AI/LLMs", "UI/UX Design", "Cybersecurity", "Blockchain"]
+        },
+        {
+          "name": "Technical Utilities",
+          "leaf_nodes": ["APIs", "Source Code (GitHub)", "QR/PDF Tools", "VPN/Proxy", "Datasets"]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Business & Finance",
+      "categories": [
+        {
+          "name": "Market & E-commerce",
+          "leaf_nodes": ["Stocks", "Crypto", "Forex", "E-commerce Platforms", "Dropshipping", "POD"]
+        },
+        {
+          "name": "Enterprise, IP & ESG",
+          "leaf_nodes": ["Intellectual Property (Patents/Copyright)", "ESG Reporting", "Sustainability Strategy"]
+        },
+        {
+          "name": "Consumer Finance",
+          "leaf_nodes": ["Personal Insurance", "Retirement Planning", "Credit Cards", "Personal Tax", "Banking"]
+        },
+        {
+          "name": "Enterprise Services",
+          "leaf_nodes": ["Legal Services (B2B)", "Corporate Tax", "Risk Management", "Consulting"]
+        },
+        {
+          "name": "Marketing & Ads",
+          "leaf_nodes": ["SEO", "SEM", "Digital Ads", "Branding", "PR", "Market Research"]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Platform & Gig Economy",
+      "categories": [
+        {
+          "name": "Sharing & Rental",
+          "leaf_nodes": ["Airbnb", "Uber/Grab", "Co-working", "Rental Platforms"]
+        },
+        {
+          "name": "Freelance & Content",
+          "leaf_nodes": ["Upwork/Fiverr", "Video Editing", "Copywriting", "Creator Strategy", "SEO Writing"]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Fashion & Beauty",
+      "categories": [
+        {
+          "name": "Fashion & Style",
+          "leaf_nodes": ["Luxury", "Streetwear", "Apparel", "Footwear", "Runway", "Jewelry"]
+        },
+        {
+          "name": "Beauty & Grooming",
+          "leaf_nodes": ["Skincare", "Makeup", "Haircare", "Fragrance", "Aesthetic Medicine"]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Arts & Entertainment",
+      "categories": [
+        {
+          "name": "Fine Arts & Architecture",
+          "leaf_nodes": ["Architecture", "Fine Art Photography", "Fine Art", "Landscape Design"]
+        },
+        {
+          "name": "Performing Arts",
+          "leaf_nodes": ["Theatre", "Dance", "Opera", "Ballet", "Circus", "Live Performance"]
+        },
+        {
+          "name": "Gaming & Media",
+          "leaf_nodes": ["Game Reviews", "Game Lore", "Film", "Music", "Anime/Manga", "Comics"]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Home, Family & Assets",
+      "categories": [
+        {
+          "name": "Parenting & Relationships",
+          "leaf_nodes": ["Childcare", "Pregnancy", "Wedding", "Marriage & Divorce", "Relationship Advice"]
+        },
+        {
+          "name": "Real Estate & Legal",
+          "leaf_nodes": ["Home Buying", "Renting", "Property Investment", "Inheritance", "Civil Law"]
+        },
+        {
+          "name": "Home Care & Design",
+          "leaf_nodes": ["Interior Design", "Smart Home", "Housekeeping", "Pet Care & Vet"]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Health & Wellness",
+      "categories": [
+        {
+          "name": "Clinical Medicine",
+          "leaf_nodes": ["Pharmacology", "Diseases", "Surgery", "Medical Research", "Medical Devices"]
+        },
+        {
+          "name": "Holistic Wellness",
+          "leaf_nodes": ["Meditation", "Breathwork", "Mindfulness", "Nutrition", "Biohacking"]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Edu & Career",
+      "categories": [
+        {
+          "name": "Education Systems",
+          "leaf_nodes": ["K-12", "Higher Ed", "Vocational", "Language Learning"]
+        },
+        {
+          "name": "Career & Productivity",
+          "leaf_nodes": ["Soft Skills", "EQ", "Career Growth", "Time Management", "Productivity"]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Travel & Tourism",
+      "categories": [
+        {
+          "name": "Travel Planning",
+          "leaf_nodes": ["Flights", "Visa Procedures", "Hotels", "Car Rentals", "Travel Insurance"]
+        },
+        {
+          "name": "Destinations",
+          "leaf_nodes": ["Destination Guides", "Sightseeing", "Itineraries", "Local Customs"]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Mobility & Logistics",
+      "categories": [
+        {
+          "name": "Automotive",
+          "leaf_nodes": ["Car Reviews", "EV Culture", "Buying Guides", "Maintenance", "Classic Cars"]
+        },
+        {
+          "name": "Logistics & Transport",
+          "leaf_nodes": ["Aviation", "Maritime", "Freight", "Warehousing", "Customs", "Cold Chain"]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Personal Safety",
+      "categories": [
+        {
+          "name": "Physical Defense",
+          "leaf_nodes": ["Self-Defense", "Combat Training (Non-pro)", "Personal Protection"]
+        },
+        {
+          "name": "Safety & Survival",
+          "leaf_nodes": ["Home Security Hardware", "Prepping", "Survival Skills", "First Aid"]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Society, Civic & News",
+      "categories": [
+        {
+          "name": "News & Journalism",
+          "leaf_nodes": ["World News", "Investigative", "Breaking News", "Photojournalism"]
+        },
+        {
+          "name": "Gov & Politics",
+          "leaf_nodes": ["Politics", "International Relations", "Military", "Law", "Public Policy"]
+        },
+        {
+          "name": "Philanthropy",
+          "leaf_nodes": ["NGOs", "Charity", "Social Movements", "Volunteerism", "Disaster Relief"]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Faith & Beliefs",
+      "categories": [
+        {
+          "name": "Mainstream Religion",
+          "leaf_nodes": ["Buddhism", "Christianity", "Islam", "Hinduism", "Theology", "Scripture"]
+        },
+        {
+          "name": "Occult & Alt. Beliefs",
+          "leaf_nodes": ["Astrology", "Tarot", "Feng Shui", "Numerology", "Esotericism", "Paranormal"]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Agri & Environment",
+      "categories": [
+        {
+          "name": "Agriculture & Primary",
+          "leaf_nodes": ["Farming", "Aquaculture", "Forestry", "Agritech", "Livestock", "Crops"]
+        },
+        {
+          "name": "Nature & Eco",
+          "leaf_nodes": ["Zoology", "Botany", "Marine Biology", "Conservation", "Environment"]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Industry & Infra",
+      "categories": [
+        {
+          "name": "Manufacturing & Energy",
+          "leaf_nodes": ["Automotive Mfg", "Aerospace", "Heavy Machinery", "Oil & Gas", "Renewables"]
+        },
+        {
+          "name": "Construction & Urban",
+          "leaf_nodes": ["Civil Engineering", "Industrial Real Estate", "Urban Planning"]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Public Life",
+      "categories": [
+        {
+          "name": "Civil Utilities",
+          "leaf_nodes": ["Public Transport", "Water/Power/Gas", "Admin Services", "Postal"]
+        },
+        {
+          "name": "Daily Live Info",
+          "leaf_nodes": ["Daily Weather", "Traffic Alerts", "Public Announcements"]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Social & Connection",
+      "categories": [
+        {
+          "name": "Human Dynamics",
+          "leaf_nodes": ["Etiquette & Protocol", "Dating", "Friendship", "Social Skills", "Communication Arts"]
+        },
+        {
+          "name": "Digital Communities",
+          "leaf_nodes": ["Social Platforms", "Forums", "Fandom Communities", "Personal Blogs"]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Restricted Content",
+      "categories": [
+        {
+          "name": "Sensitive & Risky",
+          "leaf_nodes": ["Adult Content", "Gambling", "Casinos", "Erotica", "Dark Web Assets", "Regulated Goods"]
+        }
+      ]
+    }
+  ]
+}

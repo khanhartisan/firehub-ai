@@ -51,7 +51,7 @@ return new class extends Migration
 
             $table->unsignedInteger('intents_count')->default(0);
             $table->dateTime('intent_resolved_at')->nullable();
-            $table->index(['is_embedded', 'intent_resolved_at', 'updated_at'], 'intent_resolved_at_index');
+            $table->index(['is_embedded', 'intent_resolved_at', 'updated_at'], 'is_embedded_intent_resolved_at_index');
         });
 
         for ($i = 0; $i < 128; $i++) {

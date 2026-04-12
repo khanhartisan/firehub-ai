@@ -45,6 +45,8 @@ Schedule::job(new ScheduleEmbeddingJob(perModelLimit: 100))->everyMinute();
 
 Schedule::job(new \App\Jobs\SetInitialScrapingTimeJob())->everyMinute();
 
+Schedule::job(new \App\Jobs\ResolveIntent())->everyMinute();
+
 // Cascading jobs
 Schedule::job(new CascadeDelete)->everyMinute();
 Schedule::job(new CascadeRestore)->everyMinute();

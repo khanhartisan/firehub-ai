@@ -2,8 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Contracts\IntentResolver\Intentable;
 use App\Enums\Queue;
+use App\Facades\IntentResolver;
+use App\Facades\TextEmbedding;
 use App\Models\Article;
+use App\Models\Intent;
 use App\Models\Page;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -43,13 +47,75 @@ class ResolveIntent implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
-        $intentableModelClasses = [
-            Page::class, Article::class
-        ];
+        $startedAt = time();
+        $limit = 1;
+        $resolved = 0;
 
-        // TODO: Implement the job
+        while (true) {
+            if (time() - $startedAt >= $this->timeout - 5) {
+                break;
+            }
+
+            // Wait if we have any intents that are not embedded
+            if (Intent::query()
+                    ->where('is_embeddable', false)
+                    ->exists()
+                or Intent::query()
+                    ->where('is_embeddable', true)
+                    ->where('is_embedded', false)
+                    ->exists()
+            ) {
+                $lock->release();
+                return;
+            }
+
+            $resolved += $this->resolveArticleIntents($limit);
+            $resolved += $this->resolvePageIntents($limit);
+        }
 
         $lock->release();
+        if ($resolved) {
+            static::dispatch();
+        }
+    }
+
+    protected function resolveArticleIntents(int $limit): int
+    {
+        $articles = Article::query()
+            ->where('is_embedded', true)
+            ->whereNull('intent_resolved_at')
+            ->orderBy('updated_at')
+            ->take($limit)
+            ->get();
+
+        $articles->each(function (Article $article) {
+            $intentable = new Intentable()
+                ->setContent($article->getTextForEmbedding());
+
+            $intentableIntents = IntentResolver::resolve($intentable);
+            foreach ($intentableIntents->getIntentableIntents() as $intentableIntent) {
+                $intentData = $intentableIntent->getIntent();
+                $intentVector = TextEmbedding::embed($intentData->getTitle()."\n".$intentData->getDescription());
+
+                // TODO
+            }
+        });
+
+        return $articles->count();
+    }
+
+    protected function resolvePageIntents(int $limit): int
+    {
+        $pages = Page::query()
+            ->where('is_embedded', true)
+            ->whereNull('intent_resolved_at')
+            ->orderBy('updated_at')
+            ->take($limit)
+            ->get();
+
+        // TODO:
+
+        return $pages->count();
     }
 
     protected function getManualLock(): Lock

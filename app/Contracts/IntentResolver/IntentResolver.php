@@ -18,6 +18,16 @@ interface IntentResolver
     public function resolve(Intentable $intentable): IntentableIntents;
 
     /**
+     * Return null if two intents are distinguished and should not or cannot be merged.
+     * Return a new intent (merged from the 2) if they're the same and can be merged.
+     *
+     * @param Intent $intent1
+     * @param Intent $intent2
+     * @return Intent|null
+     */
+    public function mergeIntents(Intent $intent1, Intent $intent2): ?Intent;
+
+    /**
      * Propose search-engine-style keywords that match the given resolved intent.
      *
      * @return list<IntentKeyword>

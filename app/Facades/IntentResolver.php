@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static \App\Contracts\IntentResolver\IntentableIntents resolve(\App\Contracts\IntentResolver\Intentable $intentable)
+ * @method static \App\Contracts\IntentResolver\Intent|null mergeIntents(\App\Contracts\IntentResolver\Intent $intent1, \App\Contracts\IntentResolver\Intent $intent2)
  * @method static list<\App\Contracts\IntentResolver\IntentKeyword> guessIntentKeywords(\App\Contracts\IntentResolver\Intent $intentData)
  * @method static list<\App\Contracts\IntentResolver\IntentKeywords> inferFromKeywords(array $keywords)
  * @method static list<\App\Contracts\IntentResolver\IntentKeyword> scoreKeywords(\App\Contracts\IntentResolver\Intent $intentData, array $keywords)

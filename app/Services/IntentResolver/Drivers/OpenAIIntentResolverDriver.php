@@ -72,6 +72,45 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
         return $this->parseIntentableIntentsResponse($responseText, $intentable);
     }
 
+    public function mergeIntents(Intent $intent1, Intent $intent2): ?Intent
+    {
+        $prompt = $this->buildMergeIntentsPrompt($intent1, $intent2);
+        $jsonSchema = $this->buildMergeIntentsJsonSchema();
+
+        $input = ResponseInput::text($prompt);
+        $options = ResponseOptions::create()
+            ->model($this->defaultModel)
+            ->temperature(0)
+            ->responseFormat([
+                'type' => 'json_schema',
+                'name' => 'merge_intents',
+                'schema' => $jsonSchema,
+                'strict' => true,
+            ]);
+
+        try {
+            $response = $this->openAIClient->createResponse($input, $options);
+        } catch (\Exception $e) {
+            throw new RuntimeException(
+                "Failed to merge intents with OpenAI: {$e->getMessage()}",
+                0,
+                $e
+            );
+        }
+
+        $this->checkForRefusal($response);
+
+        $responseText = $response->getFirstOutputText();
+
+        if ($responseText === null || $responseText === '') {
+            throw new RuntimeException(
+                'OpenAI returned empty merge-intents response'
+            );
+        }
+
+        return $this->parseMergeIntentsResponse($responseText);
+    }
+
     /**
      * @return list<IntentKeyword>
      */
@@ -195,6 +234,92 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
         }
 
         return $out;
+    }
+
+    /**
+     * @param  list<string>  $keywordStrings
+     */
+    protected function buildMergeIntentsPrompt(Intent $intent1, Intent $intent2): string
+    {
+        $a = $intent1->toJson();
+        $b = $intent2->toJson();
+
+        return <<<PROMPT
+You compare two resolved search intents (JSON below). Decide whether they describe the same underlying user goal and can be merged into a single intent.
+
+If they target different goals, audiences, or are incompatible (for example conflicting commercial vs purely informational purpose), set "should_merge" to false and "merged_intent" to null.
+
+If they are duplicates or near-duplicates that should be consolidated, set "should_merge" to true and provide "merged_intent": one intent with a clear title and description, union of applicable intent types when reasonable, and a single primary language when you can infer it.
+
+Follow the same neutrality rules as other intent tasks: no brand or website names in title or description.
+
+Intent A:
+{$a}
+
+Intent B:
+{$b}
+PROMPT;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildMergeIntentsJsonSchema(): array
+    {
+        $intentObject = $this->intentDataJsonSchemaObject();
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'should_merge' => [
+                    'type' => 'boolean',
+                    'description' => 'True if both intents describe the same user goal and can be merged into one',
+                ],
+                'merged_intent' => [
+                    'anyOf' => [
+                        ['type' => 'null'],
+                        $intentObject,
+                    ],
+                ],
+            ],
+            'required' => ['should_merge', 'merged_intent'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    protected function parseMergeIntentsResponse(string $responseText): ?Intent
+    {
+        $data = json_decode($responseText, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException(
+                'Failed to parse merge-intents response as JSON: '.json_last_error_msg()
+            );
+        }
+
+        if (! is_array($data)) {
+            throw new RuntimeException('Merge-intents response JSON did not decode to an array');
+        }
+
+        if (empty($data['should_merge'])) {
+            return null;
+        }
+
+        $merged = $data['merged_intent'] ?? null;
+
+        if (! is_array($merged)) {
+            return null;
+        }
+
+        try {
+            return Intent::fromArray($merged);
+        } catch (\InvalidArgumentException $e) {
+            throw new RuntimeException(
+                'Invalid merged intent payload: '.$e->getMessage(),
+                0,
+                $e
+            );
+        }
     }
 
     /**

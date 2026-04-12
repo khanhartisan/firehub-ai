@@ -4,6 +4,8 @@ namespace App\Console\Commands\LiveTests;
 
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\IntentResolver\Intentable;
+use App\Contracts\IntentResolver\IntentableIntents;
+use App\Contracts\IntentResolver\IntentResolver as IntentResolverContract;
 use App\Facades\IntentResolver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
@@ -29,22 +31,6 @@ class TestIntentResolverService extends Command
      */
     public function handle(): int
     {
-        $samplePath = 'live-tests/sample-page-for-intent-resolver-service.md';
-        $htmlResourcePath = resource_path('sample-markdown/sample-markdown-for-intent-resolver.md');
-
-        if (! Storage::exists($samplePath)) {
-            if (! is_file($htmlResourcePath)) {
-                $this->error("Missing sample HTML fixture: {$htmlResourcePath}");
-
-                return self::FAILURE;
-            }
-
-            Storage::put($samplePath, file_get_contents($htmlResourcePath));
-        }
-
-        $html = Storage::get($samplePath);
-        $intentable = (new Intentable)->setContent($html);
-
         $drivers = array_keys(config('intentresolver.drivers'));
         $defaultIndex = array_search(config('intentresolver.default'), $drivers, true);
         $driver = $this->choice(
@@ -55,11 +41,94 @@ class TestIntentResolverService extends Command
 
         $action = $this->choice(
             'Select action',
-            ['resolve', 'guess_intent_keywords', 'infer_from_keywords', 'score_keywords'],
+            ['resolve', 'guess_intent_keywords', 'infer_from_keywords', 'score_keywords', 'merge_intents'],
             0
         );
 
         $resolver = IntentResolver::driver($driver);
+
+        if ($action === 'merge_intents') {
+            $mergeOptions = [
+                'Test merge: resolve the same sample .md twice',
+                'Two samples: intent-resolver.md + intent2-resolver.md',
+            ];
+            $mergeMode = $this->choice('How to obtain the two primary intents?', $mergeOptions, 0);
+
+            if ($mergeMode === $mergeOptions[0]) {
+                $intentable = $this->intentableForDefaultSample();
+                if ($intentable === null) {
+                    return self::FAILURE;
+                }
+
+                $this->comment('Both resolves use: resources/sample-markdown/sample-markdown-for-intent-resolver.md');
+                $this->info('Calling resolve(same sample) ×2 → mergeIntents() / Driver: '.$driver);
+
+                $start1 = microtime(true);
+                $resolved1 = $resolver->resolve($intentable);
+                $this->info('Processing time (resolve #1): '.(microtime(true) - $start1).' seconds');
+
+                $start2 = microtime(true);
+                $resolved2 = $resolver->resolve($intentable);
+                $this->info('Processing time (resolve #2): '.(microtime(true) - $start2).' seconds');
+                $this->line('-----');
+
+                if (! $this->runMergeIntentsAfterResolves(
+                    $resolver,
+                    $resolved1,
+                    $resolved2,
+                    'Primary intent from resolve #1 (same .md):',
+                    'Primary intent from resolve #2 (same .md):'
+                )) {
+                    return self::FAILURE;
+                }
+
+                return self::SUCCESS;
+            }
+
+            $intentable1 = $this->loadIntentableFromResource(
+                'live-tests/sample-page-for-intent-resolver-service.md',
+                'sample-markdown/sample-markdown-for-intent-resolver.md'
+            );
+            $intentable2 = $this->loadIntentableFromResource(
+                'live-tests/sample-markdown-for-intent2-resolver.md',
+                'sample-markdown/sample-markdown-for-intent2-resolver.md'
+            );
+
+            if ($intentable1 === null || $intentable2 === null) {
+                return self::FAILURE;
+            }
+
+            $this->comment('Intent A ← resources/sample-markdown/sample-markdown-for-intent-resolver.md');
+            $this->comment('Intent B ← resources/sample-markdown/sample-markdown-for-intent2-resolver.md');
+
+            $this->info('Calling resolve(sample A) → resolve(sample B) → mergeIntents() / Driver: '.$driver);
+
+            $start1 = microtime(true);
+            $resolved1 = $resolver->resolve($intentable1);
+            $this->info('Processing time (resolve A): '.(microtime(true) - $start1).' seconds');
+
+            $start2 = microtime(true);
+            $resolved2 = $resolver->resolve($intentable2);
+            $this->info('Processing time (resolve B): '.(microtime(true) - $start2).' seconds');
+            $this->line('-----');
+
+            if (! $this->runMergeIntentsAfterResolves(
+                $resolver,
+                $resolved1,
+                $resolved2,
+                'Primary intent from sample A:',
+                'Primary intent from sample B:'
+            )) {
+                return self::FAILURE;
+            }
+
+            return self::SUCCESS;
+        }
+
+        $intentable = $this->intentableForDefaultSample();
+        if ($intentable === null) {
+            return self::FAILURE;
+        }
 
         if ($action === 'resolve') {
             $start = microtime(true);
@@ -206,6 +275,75 @@ class TestIntentResolverService extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @return Intentable|null Null when the resource file is missing.
+     */
+    private function intentableForDefaultSample(): ?Intentable
+    {
+        return $this->loadIntentableFromResource(
+            'live-tests/sample-page-for-intent-resolver-service.md',
+            'sample-markdown/sample-markdown-for-intent-resolver.md'
+        );
+    }
+
+    /**
+     * @return Intentable|null Null when the resource file is missing.
+     */
+    private function loadIntentableFromResource(string $storageKey, string $resourcePathRelative): ?Intentable
+    {
+        $resourcePath = resource_path($resourcePathRelative);
+
+        if (! Storage::exists($storageKey)) {
+            if (! is_file($resourcePath)) {
+                $this->error("Missing sample fixture: {$resourcePath}");
+
+                return null;
+            }
+
+            Storage::put($storageKey, file_get_contents($resourcePath));
+        }
+
+        return (new Intentable)->setContent(Storage::get($storageKey));
+    }
+
+    private function runMergeIntentsAfterResolves(
+        IntentResolverContract $resolver,
+        IntentableIntents $resolved1,
+        IntentableIntents $resolved2,
+        string $label1,
+        string $label2,
+    ): bool {
+        $i1 = $resolved1->getPrimaryIntent();
+        $i2 = $resolved2->getPrimaryIntent();
+
+        if ($i1 === null || $i2 === null) {
+            $this->error('resolve() returned no primary intent for one of the runs.');
+
+            return false;
+        }
+
+        $this->info($label1);
+        $this->displayIntent($i1);
+        $this->line('-----');
+        $this->info($label2);
+        $this->displayIntent($i2);
+        $this->line('-----');
+
+        $mergeStart = microtime(true);
+        $merged = $resolver->mergeIntents($i1, $i2);
+        $this->info('Processing time (mergeIntents): '.(microtime(true) - $mergeStart).' seconds');
+        $this->line('-----');
+
+        if ($merged === null) {
+            $this->warn('mergeIntents returned null (intents kept distinct).');
+        } else {
+            $this->info('Merged intent:');
+            $this->displayIntent($merged);
+        }
+
+        return true;
     }
 
     private function displayIntent(Intent $intent): void

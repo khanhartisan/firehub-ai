@@ -79,13 +79,15 @@ class IntentResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('title')
-                    ->searchable()
-                    ->sortable()
-                    ->limit(40),
+                    ->width(350)
+                    ->wrap()
+                    ->wrapHeader()
+                    ->description(fn (Intent $intent) => $intent->description)
+                    ->searchable(),
                 TextColumn::make('language')
                     ->sortable(),
                 TextColumn::make('types')
-                    ->formatStateUsing(fn ($state): string => collect($state ?? [])->implode(', '))
+                    ->formatStateUsing(fn ($state): string => collect($state ?? [])->map(fn (IntentType $type) => $type->name)->implode(', '))
                     ->wrap()
                     ->toggleable(),
                 TextColumn::make('keywords_count')->sortable(),

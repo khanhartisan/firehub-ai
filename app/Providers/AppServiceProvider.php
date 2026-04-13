@@ -13,9 +13,15 @@ use App\Contracts\SearchEngine\SearchEngine;
 use App\Contracts\TextEmbedding\TextEmbedding as TextEmbeddingContract;
 use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VerticalResolver\VerticalResolver;
+use App\Models\Article;
+use App\Models\ArticleIntent;
 use App\Models\Client;
 use App\Models\File;
 use App\Models\Fileable;
+use App\Models\Intent;
+use App\Models\IntentKeyword;
+use App\Models\IntentPage;
+use App\Models\Keyword;
 use App\Models\Model;
 use App\Models\Page;
 use App\Models\PageCount;
@@ -93,9 +99,15 @@ class AppServiceProvider extends ServiceProvider
     protected function registerMorphMap(): void
     {
         $models = [
+            Article::class,
+            ArticleIntent::class,
             Client::class,
             File::class,
             Fileable::class,
+            Intent::class,
+            IntentKeyword::class,
+            IntentPage::class,
+            Keyword::class,
             Page::class,
             PageCount::class,
             PageRelation::class,

@@ -80,6 +80,12 @@ class ScheduleEmbeddingJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 continue;
             }
 
+            if (env('APP_DEBUG')
+                and app()->runningInConsole()
+            ) {
+                dump('Scheduling embedding for '.$class);
+            }
+
             $limit = min(max($this->perModelLimit, 0), 1000);
             if ($limit === 0) {
                 continue;

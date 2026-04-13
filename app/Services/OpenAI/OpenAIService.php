@@ -67,6 +67,12 @@ class OpenAIService implements OpenAIClient
 
             $data = json_decode($response->getBody()->getContents(), true);
 
+            if (env('APP_DEBUG')
+                and app()->runningInConsole()
+            ) {
+                dump('---- Response payload length: '.strlen(json_encode($data)));
+            }
+
             return ResponseObject::fromArray($data);
         } catch (BadResponseException $e) {
             Log::error('OpenAI API error', $errorLogs = [

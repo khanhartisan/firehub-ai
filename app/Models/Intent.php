@@ -99,7 +99,10 @@ class Intent extends EmbeddableModel implements ShouldCascade
 
     public function isEmbedded(): bool
     {
-        if ($this->isDirty('title') or $this->isDirty('description')) {
+        if (($this->isDirty('title')
+            or $this->isDirty('description'))
+            and !$this->isDirty('is_embedded')
+        ) {
             return false;
         }
 

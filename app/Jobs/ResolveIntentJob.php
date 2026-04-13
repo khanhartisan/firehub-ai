@@ -12,8 +12,11 @@ use App\Facades\VectorDB;
 use App\Models\Article;
 use App\Models\ArticleIntent;
 use App\Models\Intent;
+use App\Models\IntentKeyword;
 use App\Models\IntentPage;
+use App\Models\Keyword;
 use App\Models\Page;
+use App\Utils\Str;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -27,9 +30,9 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     protected Lock $manualLock;
 
-    public int $timeout = 60;
+    public int $timeout = 300;
 
-    public int $uniqueFor = 300;
+    public int $uniqueFor = 120;
 
     /**
      * Create a new job instance.
@@ -47,21 +50,22 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         if (!$lock = $this->getManualLock()
             or !$lock->get()
         ) {
-            dump('Skipped intent resolution job: lock not acquired (another run may be in progress).', [
-                'job' => static::class,
-            ]);
+            if (env('APP_DEBUG')) {
+                dump('Skipped intent resolution job: lock not acquired (another run may be in progress).', [
+                    'job' => static::class,
+                ]);
+            }
 
             return;
         }
 
         $startedAt = time();
-        $limit = 1;
         $resolved = 0;
 
         try {
 
             while (true) {
-                if (time() - $startedAt >= $this->timeout - 5) {
+                if (time() - $startedAt >= 60) {
                     break;
                 }
 
@@ -74,19 +78,25 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                         ->where('is_embedded', false)
                         ->exists()
                 ) {
+                    if (env('APP_DEBUG')) {
+                        dump('Found un-embedded intent, return and wait...');
+                    }
+
                     $lock->release();
                     return;
                 }
 
-                $resolvedArticleIntents = $this->resolveArticleIntents($limit);
-                $resolvedPageIntents = $this->resolvePageIntents($limit);
-                if (!$resolvedArticleIntents
+                $resolvedKeywordIntents = $this->resolveKeywordIntents(10);
+                $resolvedArticleIntents = $this->resolveArticleIntents(1);
+                $resolvedPageIntents = $this->resolvePageIntents(1);
+                if (!$resolvedKeywordIntents
+                    and !$resolvedArticleIntents
                     and !$resolvedPageIntents
                 ) {
                     break;
                 }
 
-                $resolved += $resolvedArticleIntents + $resolvedPageIntents;
+                $resolved += $resolvedKeywordIntents + $resolvedArticleIntents + $resolvedPageIntents;
             }
 
         } finally {
@@ -95,6 +105,53 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 ResolveIntentJob::dispatch();
             }
         }
+    }
+
+    protected function resolveKeywordIntents(int $limit): int
+    {
+        $keywords = Keyword::query()
+            ->whereNull('intent_resolved_at')
+            ->orderBy('updated_at')
+            ->take($limit)
+            ->get();
+
+        if ($keywords->isEmpty()) {
+            return 0;
+        }
+
+        $listIntentKeywords = IntentResolver::inferFromKeywords($keywords->pluck('keyword')->values()->toArray());
+
+        foreach ($listIntentKeywords as $intentKeywords) {
+            $intentModel = $this->getIntentModelByIntentData($intentKeywords->getIntent());
+
+            foreach ($intentKeywords->getKeywords() as $intentKeyword) {
+                $keywordModel = $keywords
+                    ->firstWhere(
+                        'keyword',
+                        Str::sanitizeKeyword($intentKeyword->getKeyword())
+                    );
+
+                if (!$keywordModel) {
+                    continue;
+                }
+
+                $intentKeywordModel = IntentKeyword::query()->firstOrNew([
+                    'keyword_id' => $keywordModel->id,
+                    'intent_id' => $intentModel->id
+                ]);
+                $intentKeywordModel->relevance = $intentKeyword->getRelevance();
+                DB::transaction(fn () => $intentKeywordModel->save());
+            }
+        }
+
+        Keyword::query()
+            ->whereIn('id', $keywords->pluck('id'))
+            ->update([
+                'intent_resolved_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return $keywords->count();
     }
 
     protected function resolveArticleIntents(int $limit): int
@@ -183,7 +240,11 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     protected function getIntentModelByIntentableIntent(IntentableIntent $intentableIntent): Intent
     {
-        $intentData = $intentableIntent->getIntent();
+        return $this->getIntentModelByIntentData($intentableIntent->getIntent());
+    }
+
+    protected function getIntentModelByIntentData(\App\Contracts\IntentResolver\Intent $intentData): Intent
+    {
         $intentVector = TextEmbedding::embed($intentData->getTitle()."\n".$intentData->getDescription());
 
         $similarIntents = VectorDB::search(
@@ -218,7 +279,12 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 $intentModel->title = $mergedIntentData->getTitle();
                 $intentModel->description = $mergedIntentData->getDescription();
                 $intentModel->types = $mergedIntentData->getTypes();
-                $intentModel->save();
+                DB::transaction(fn () => $intentModel->save());
+
+                // Update new vector
+                $newIntentVector = TextEmbedding::embed($intentModel->getTextForEmbedding());
+                DB::transaction(fn () => $intentModel->setEmbedding($newIntentVector));
+
                 return $intentModel;
             }
         }
@@ -235,6 +301,6 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     protected function getManualLock(): Lock
     {
-        return $this->manualLock ??= Cache::lock(static::class, $this->timeout);
+        return $this->manualLock ??= Cache::lock(static::class, $this->uniqueFor);
     }
 }

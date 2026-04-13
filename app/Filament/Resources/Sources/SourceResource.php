@@ -26,7 +26,7 @@ class SourceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'base_url';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Content';
+    protected static string|\UnitEnum|null $navigationGroup = 'Remote';
 
     protected static ?int $navigationSort = 2;
 

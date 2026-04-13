@@ -21,9 +21,9 @@ class ClientResource extends Resource
 {
     protected static ?string $model = Client::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Integrations';
+    protected static string|\UnitEnum|null $navigationGroup = 'Administration';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 200;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 

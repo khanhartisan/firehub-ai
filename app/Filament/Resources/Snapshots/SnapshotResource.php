@@ -24,7 +24,7 @@ class SnapshotResource extends Resource
 {
     protected static ?string $model = Snapshot::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Content';
+    protected static string|\UnitEnum|null $navigationGroup = 'Remote';
 
     protected static ?int $navigationSort = 4;
 

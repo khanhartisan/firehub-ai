@@ -81,14 +81,16 @@ class ResolveIntentJobTest extends TestCase
         $lock = Mockery::mock(Lock::class);
         $lock->shouldReceive('get')->once()->andReturnFalse();
 
+        $job = new ResolveIntentJob();
+
         Cache::shouldReceive('lock')
             ->once()
-            ->with(ResolveIntentJob::class, 60)
+            ->with(ResolveIntentJob::class, $job->uniqueFor)
             ->andReturn($lock);
 
         IntentResolver::shouldReceive('resolve')->never();
 
-        (new ResolveIntentJob())->handle();
+        $job->handle();
 
         Bus::assertNotDispatched(ResolveIntentJob::class);
     }

@@ -4,5 +4,5 @@ namespace App\Contracts\Synthesizer;
 
 interface BriefBuilder
 {
-    public function conceive(string $space, ?string $prompt = null): Brief;
+    public function conceive(string $clientId, ?string $prompt = null): Brief;
 }

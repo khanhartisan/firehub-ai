@@ -27,7 +27,7 @@ class VectorSearch
         );
     }
 
-    public static function searchArticles(string $space,
+    public static function searchArticles(string $clientId,
                                           string $searchString,
                                           int $limit = 100,
                                           float $scoreThreshold = 0.5): Collection
@@ -36,12 +36,12 @@ class VectorSearch
             new Article(),
             $searchString,
             [
-                'space' => $space,
+                'client_id' => $clientId,
             ],
             $limit,
             $scoreThreshold,
-            function (Builder $query) use ($space) {
-                $query->where('space', $space);
+            function (Builder $query) use ($clientId) {
+                $query->where('client_id', $clientId);
             }
         );
     }

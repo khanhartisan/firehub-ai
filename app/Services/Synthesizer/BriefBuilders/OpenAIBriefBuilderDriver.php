@@ -8,7 +8,7 @@ use App\Services\Synthesizer\BriefBuilderService;
 
 class OpenAIBriefBuilderDriver extends BriefBuilderService
 {
-    public function conceive(string $space, ?string $prompt = null): Brief
+    public function conceive(string $clientId, ?string $prompt = null): Brief
     {
         // TODO: Implement conceive() method.
     }

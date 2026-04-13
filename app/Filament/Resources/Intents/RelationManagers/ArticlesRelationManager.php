@@ -14,7 +14,7 @@ class ArticlesRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('space')
+                TextColumn::make('client_id')
                     ->sortable(),
                 TextColumn::make('title')
                     ->searchable()

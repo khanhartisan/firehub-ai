@@ -12,15 +12,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // We shard the "articles" table by the space column
+        // We shard the "articles" table by the client_id column
         // because we want to be able to perform the vector queries
-        // against a space with the best performance
+        // against a client_id with the best performance
 
         DB::statement("CREATE TABLE articles (
             id char(26) NOT NULL,
-            space varchar(255) NOT NULL,
-            primary key(space, id)
-        ) PARTITION BY HASH (space)");
+            client_id varchar(255) NOT NULL,
+            primary key(client_id, id)
+        ) PARTITION BY HASH (client_id)");
 
         Schema::table('articles', function (Blueprint $table) {
             $table->string('language')->nullable();

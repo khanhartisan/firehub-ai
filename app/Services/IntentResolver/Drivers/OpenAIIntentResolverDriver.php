@@ -14,6 +14,7 @@ use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Enums\IntentType;
 use App\Enums\Language;
+use App\Enums\Temporal;
 use App\Services\IntentResolver\IntentResolverService;
 use RuntimeException;
 
@@ -339,7 +340,7 @@ You are a Senior SEO Content Architect and User Intent Analyst.
 You receive a list of search keywords. Group them into one or more distinct user search intents.
 
 # Each group must contain:
-- "intent": a full intent payload (title, description, language, types) as described in the schema. Follow the same tone and neutrality rules as for page-based intent analysis: no specific brand or website names in title/description.
+- "intent": a full intent payload (title, description, language, temporal, types) as described in the schema. Follow the same tone and neutrality rules as for page-based intent analysis: no specific brand or website names in title/description.
 - "keywords": a non-empty subset of the input keywords with a relevance score (0–1) for how well each keyword fits that intent.
 
 ---
@@ -629,7 +630,7 @@ You are a Senior SEO Content Architect and User Intent Analyst.
 
 You analyze text and infer the user's search intent.
 
-Return one or more distinct intents in "intentable_intents". Each row is a full intent payload (title, description, language, types) plus a "relevance" score (0–1) for how strongly that intent applies to this content, or null if you cannot score it. Order rows from strongest relevance to weakest when possible.
+Return one or more distinct intents in "intentable_intents". Each row is a full intent payload (title, description, language, temporal, types) plus a "relevance" score (0–1) for how strongly that intent applies to this content, or null if you cannot score it. Order rows from strongest relevance to weakest when possible.
 
 If the content clearly satisfies only one search intent, return a single row. When the content genuinely fits multiple distinct user goals (e.g. informational plus commercial), include multiple rows with appropriate relevances.
 
@@ -659,6 +660,7 @@ Intent type codes:
 
 Rules:
 - "language": primary language of the content as a BCP 47 tag from the schema enum, or null if you cannot determine it reliably.
+- "temporal": temporal nature of the intent as one of the enum values in schema, or null if no temporal framing is implied.
 - "types" may include multiple values when the content clearly fits more than one intent.
 - Use "unknown" (6) only when the intent cannot be determined.
 - Prefer specific intents over UNKNOWN when possible.
@@ -725,6 +727,14 @@ PROMPT;
             )
         );
 
+        $temporalEnum = array_merge(
+            [null],
+            array_map(
+                static fn (Temporal $temporal): string => $temporal->value,
+                Temporal::cases()
+            )
+        );
+
         return [
             'type' => 'object',
             'properties' => $properties = [
@@ -742,6 +752,11 @@ PROMPT;
                     'type' => ['string', 'null'],
                     'description' => 'Primary language of the content (BCP 47 tag)',
                     'enum' => $languageEnum,
+                ],
+                'temporal' => [
+                    'type' => ['string', 'null'],
+                    'description' => 'Temporal nature of the intent',
+                    'enum' => $temporalEnum,
                 ],
                 'types' => [
                     'type' => 'array',

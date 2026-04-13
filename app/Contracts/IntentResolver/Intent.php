@@ -6,6 +6,7 @@ use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 use App\Enums\IntentType;
 use App\Enums\Language;
+use App\Enums\Temporal;
 
 final class Intent implements Serializable
 {
@@ -16,6 +17,8 @@ final class Intent implements Serializable
     protected ?string $description = null;
 
     protected ?Language $language = null;
+
+    protected ?Temporal $temporal = null;
 
     /** @var list<IntentType> */
     protected array $types = [];
@@ -56,6 +59,18 @@ final class Intent implements Serializable
         return $this;
     }
 
+    public function getTemporal(): ?Temporal
+    {
+        return $this->temporal;
+    }
+
+    public function setTemporal(?Temporal $temporal): static
+    {
+        $this->temporal = $temporal;
+
+        return $this;
+    }
+
     /**
      * @return list<IntentType>
      */
@@ -87,7 +102,7 @@ final class Intent implements Serializable
     /**
      * {@inheritdoc}
      *
-     * @return array{title: string|null, description: string|null, language: string|null, types: list<int>}
+     * @return array{title: string|null, description: string|null, language: string|null, temporal: string|null, types: list<int>}
      */
     public function toArray(): array
     {
@@ -95,6 +110,7 @@ final class Intent implements Serializable
             'title' => $this->title,
             'description' => $this->description,
             'language' => $this->language?->value,
+            'temporal' => $this->temporal?->value,
             'types' => array_map(
                 static fn (IntentType $type): int => $type->value,
                 $this->types,
@@ -129,6 +145,17 @@ final class Intent implements Serializable
                 throw new \InvalidArgumentException('Language is required');
             } elseif (is_string($language)) {
                 $instance->setLanguage(Language::tryFrom($language));
+            }
+        }
+
+        if (array_key_exists('temporal', $data)) {
+            $temporal = $data['temporal'];
+            if ($temporal === null || $temporal === '') {
+                $instance->setTemporal(null);
+            } elseif ($temporal instanceof Temporal) {
+                $instance->setTemporal($temporal);
+            } elseif (is_string($temporal)) {
+                $instance->setTemporal(Temporal::tryFrom($temporal));
             }
         }
 

@@ -284,6 +284,7 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 dump('Merging intents...');
                 }
 
+                $intentModel->temporal = $mergedIntentData->getTemporal();
                 $intentModel->title = $mergedIntentData->getTitle();
                 $intentModel->description = $mergedIntentData->getDescription();
                 $intentModel->types = $mergedIntentData->getTypes();
@@ -301,6 +302,7 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         }
 
         $newIntentModel = new Intent();
+        $newIntentModel->temporal = $intentData->getTemporal();
         $newIntentModel->title = $intentData->getTitle();
         $newIntentModel->description = $intentData->getDescription();
         $newIntentModel->language = $intentData->getLanguage();

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('intents', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('language')->nullable();
+            $table->string('temporal')->nullable();
             $table->string('title')->nullable();
             $table->text('description')->nullable();
             $table->jsonb('types')->nullable()->index();

@@ -253,6 +253,7 @@ If they target different goals, audiences, or are incompatible (for example conf
 If they are duplicates or near-duplicates that should be consolidated, set "should_merge" to true and provide "merged_intent": one intent with a clear title and description, union of applicable intent types when reasonable, and a single primary language when you can infer it.
 
 Follow the same neutrality rules as other intent tasks: no brand or website names in title or description.
+When you provide "merged_intent", the "title" and "description" must be written in the exact same language as "language" for that merged intent.
 
 Intent A:
 {$a}
@@ -342,6 +343,9 @@ You receive a list of search keywords. Group them into one or more distinct user
 # Each group must contain:
 - "intent": a full intent payload (title, description, language, temporal, types) as described in the schema. Follow the same tone and neutrality rules as for page-based intent analysis: no specific brand or website names in title/description.
 - "keywords": a non-empty subset of the input keywords with a relevance score (0–1) for how well each keyword fits that intent.
+
+Language consistency rule:
+- For each "intent", write both "title" and "description" in the same language as that intent's "language" field.
 
 ---
 
@@ -660,6 +664,7 @@ Intent type codes:
 
 Rules:
 - "language": primary language of the content as a BCP 47 tag from the schema enum, or null if you cannot determine it reliably.
+- "title" and "description" must be written in the same language as "language" for that intent.
 - "temporal": temporal nature of the intent as one of the enum values in schema, or null if no temporal framing is implied.
 - "types" may include multiple values when the content clearly fits more than one intent.
 - Use "unknown" (6) only when the intent cannot be determined.

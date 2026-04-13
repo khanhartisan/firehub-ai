@@ -52,10 +52,10 @@ trait VerticalResolutionStage
                 })
                 ->all();
 
-            $verticalProposals = VerticalResolverFacade::propose(
+            $verticalProposals = []; /*VerticalResolverFacade::propose(
                 $markdownContent,
                 $initialContractVerticals
-            );
+            );*/ // Skip proposing verticals
 
             if (!empty($verticalProposals)) {
                 foreach ($verticalProposals as $proposal) {

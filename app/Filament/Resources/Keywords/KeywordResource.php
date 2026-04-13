@@ -40,10 +40,6 @@ class KeywordResource extends Resource
                 TextInput::make('keyword')
                     ->required()
                     ->maxLength(255),
-                TextInput::make('hash')
-                    ->required()
-                    ->maxLength(40)
-                    ->unique(ignoreRecord: true),
                 TextInput::make('global_volume')
                     ->numeric()
                     ->minValue(0),

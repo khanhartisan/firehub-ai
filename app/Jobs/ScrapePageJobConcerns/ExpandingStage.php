@@ -18,6 +18,11 @@ trait ExpandingStage
             dump('Expanding, page '.$page->id);
         }
 
+        // Skip if the source isn't auto scheduled
+        if (!$page->source?->schedule_scraping) {
+            return;
+        }
+
         if ($page->type !== ScrapableType::TEXT
             or !$snapshot = $page->currentSnapshot
         ) {

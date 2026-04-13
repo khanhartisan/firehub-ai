@@ -329,7 +329,10 @@ class ScrapePageJobTest extends TestCase
 
     public function test_creates_linked_entities_with_correct_data_same_host_only(): void
     {
-        $source = Source::create(['base_url' => 'https://example.com']);
+        $source = Source::create([
+            'base_url' => 'https://example.com',
+            'schedule_scraping' => true,
+        ]);
         $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/page',
@@ -389,7 +392,10 @@ class ScrapePageJobTest extends TestCase
 
     public function test_does_not_duplicate_linked_entity_when_url_already_exists_for_source(): void
     {
-        $source = Source::create(['base_url' => 'https://example.com']);
+        $source = Source::create([
+            'base_url' => 'https://example.com',
+            'schedule_scraping' => true,
+        ]);
         $entity = Page::create([
             'source_id' => $source->id,
             'url' => 'https://example.com/page',

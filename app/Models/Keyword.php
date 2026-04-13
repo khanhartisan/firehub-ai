@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Utils\Str;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
@@ -19,6 +20,11 @@ class Keyword extends Model implements ShouldCascade
         'intents_count' => 'integer',
         'deleted_at' => 'datetime',
     ];
+
+    public static function makeHash(string $keyword): string
+    {
+        return sha1(Str::sanitizeKeyword($keyword));
+    }
 
     public function getCascadeDetails(): CascadeDetails|array
     {

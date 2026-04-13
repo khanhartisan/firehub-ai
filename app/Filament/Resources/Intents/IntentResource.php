@@ -5,16 +5,22 @@ namespace App\Filament\Resources\Intents;
 use App\Enums\IntentType;
 use App\Enums\Language;
 use App\Filament\Resources\Intents\Pages\ManageIntents;
+use App\Filament\Resources\Intents\Pages\ViewIntent;
+use App\Filament\Resources\Intents\RelationManagers\ArticlesRelationManager;
+use App\Filament\Resources\Intents\RelationManagers\KeywordsRelationManager;
+use App\Filament\Resources\Intents\RelationManagers\PagesRelationManager;
 use App\Models\Intent;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -90,15 +96,27 @@ class IntentResource extends Resource
                     ->formatStateUsing(fn ($state): string => collect($state ?? [])->map(fn (IntentType $type) => $type->name)->implode(', '))
                     ->wrap()
                     ->toggleable(),
-                TextColumn::make('keywords_count')->sortable(),
-                TextColumn::make('pages_count')->sortable(),
-                TextColumn::make('articles_count')->sortable(),
+                TextColumn::make('counts')
+                    ->label('Counts')
+                    ->state(fn (Intent $intent): string => sprintf(
+                        'K:%d P:%d A:%d',
+                        $intent->keywords_count ?? 0,
+                        $intent->pages_count ?? 0,
+                        $intent->articles_count ?? 0
+                    ))
+                    ->tooltip(fn (Intent $intent): string => sprintf(
+                        'Keywords: %d, Pages: %d, Articles: %d',
+                        $intent->keywords_count ?? 0,
+                        $intent->pages_count ?? 0,
+                        $intent->articles_count ?? 0
+                    )),
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
             ->filters([
                 //
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -109,10 +127,41 @@ class IntentResource extends Resource
             ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Intent')
+                    ->schema([
+                        TextEntry::make('title'),
+                        TextEntry::make('language'),
+                        TextEntry::make('description')
+                            ->placeholder('—')
+                            ->columnSpanFull(),
+                        TextEntry::make('types')
+                            ->formatStateUsing(fn ($state): string => collect($state ?? [])->map(fn (IntentType $type) => $type->name)->implode(', ')),
+                        TextEntry::make('keywords_count')->label('Keywords'),
+                        TextEntry::make('pages_count')->label('Pages'),
+                        TextEntry::make('articles_count')->label('Articles'),
+                    ])
+                    ->columns(2),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            KeywordsRelationManager::class,
+            ArticlesRelationManager::class,
+            PagesRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => ManageIntents::route('/'),
+            'view' => ViewIntent::route('/{record}'),
         ];
     }
 }

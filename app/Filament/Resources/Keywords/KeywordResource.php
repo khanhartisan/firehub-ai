@@ -2,15 +2,20 @@
 
 namespace App\Filament\Resources\Keywords;
 
+use App\Filament\Resources\Keywords\Pages\ViewKeyword;
 use App\Filament\Resources\Keywords\Pages\ManageKeywords;
+use App\Filament\Resources\Keywords\RelationManagers\IntentsRelationManager;
 use App\Models\Keyword;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -69,6 +74,7 @@ class KeywordResource extends Resource
                 //
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -79,10 +85,38 @@ class KeywordResource extends Resource
             ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Keyword')
+                    ->schema([
+                        TextEntry::make('keyword'),
+                        TextEntry::make('hash'),
+                        TextEntry::make('global_volume')
+                            ->label('Global volume'),
+                        TextEntry::make('difficulty'),
+                        TextEntry::make('intents_count')
+                            ->label('Intents'),
+                        TextEntry::make('created_at')->dateTime(),
+                        TextEntry::make('updated_at')->dateTime(),
+                    ])
+                    ->columns(2),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            IntentsRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => ManageKeywords::route('/'),
+            'view' => ViewKeyword::route('/{record}'),
         ];
     }
 }

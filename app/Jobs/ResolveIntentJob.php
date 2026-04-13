@@ -259,6 +259,10 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             )
         );
 
+        if (env('APP_DEBUG') and app()->runningInConsole()) {
+            dump('Found '.count($similarIntents).' similar intents');
+        }
+
         // Check merging
         foreach ($similarIntents as $similarIntent) {
             if (!$intentModel = Intent::query()->find($similarIntent->record->id)) {
@@ -276,12 +280,19 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             );
 
             if ($mergedIntentData) {
+                if (env('APP_DEBUG') and app()->runningInConsole()) {
+                dump('Merging intents...');
+                }
+
                 $intentModel->title = $mergedIntentData->getTitle();
                 $intentModel->description = $mergedIntentData->getDescription();
                 $intentModel->types = $mergedIntentData->getTypes();
                 DB::transaction(fn () => $intentModel->save());
 
                 // Update new vector
+                if (env('APP_DEBUG') and app()->runningInConsole()) {
+                    dump('Update merged intent embedding...');
+                }
                 $newIntentVector = TextEmbedding::embed($intentModel->getTextForEmbedding());
                 DB::transaction(fn () => $intentModel->setEmbedding($newIntentVector));
 

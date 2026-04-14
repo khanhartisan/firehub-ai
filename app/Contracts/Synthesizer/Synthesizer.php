@@ -2,6 +2,10 @@
 
 namespace App\Contracts\Synthesizer;
 
+use App\Contracts\Synthesizer\Author\Author;
+use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
+use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
+
 interface Synthesizer
 {
     public function setBriefBuilder(BriefBuilder $builder): static;

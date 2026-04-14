@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Synthesizer;
+namespace App\Contracts\Synthesizer\BriefBuilder;
 
 interface BriefBuilder
 {

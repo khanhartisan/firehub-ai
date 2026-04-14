@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Contracts\Synthesizer;
+namespace App\Contracts\Synthesizer\OutlineBuilder;
+
+use App\Contracts\Synthesizer\BriefBuilder\Brief;
 
 interface OutlineBuilder
 {

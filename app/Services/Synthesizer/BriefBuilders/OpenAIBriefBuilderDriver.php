@@ -2,8 +2,7 @@
 
 namespace App\Services\Synthesizer\BriefBuilders;
 
-use App\Contracts\Synthesizer\Brief;
-use App\Contracts\Synthesizer\BriefBuilder;
+use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Services\Synthesizer\BriefBuilderService;
 
 class OpenAIBriefBuilderDriver extends BriefBuilderService

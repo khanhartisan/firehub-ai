@@ -21,11 +21,11 @@ class ClientResource extends Resource
 {
     protected static ?string $model = Client::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Administration';
+    protected static string|\UnitEnum|null $navigationGroup = 'Distribution';
 
     protected static ?int $navigationSort = 200;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWindow;
 
     public static function form(Schema $schema): Schema
     {

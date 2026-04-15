@@ -8,6 +8,7 @@ use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Facades\Synthesizer as SynthesizerFacade;
 use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
+use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
@@ -79,5 +80,14 @@ class SynthesizerManagerTest extends TestCase
         $this->assertNotEmpty($brief->getTitle());
         $this->assertNotEmpty($outline->getItems());
         $this->assertStringContainsString('## Introduction', (string) $draft->getBodyMarkdown());
+    }
+
+    public function test_it_selects_sub_service_driver_from_configuration(): void
+    {
+        Config::set('synthesizer.drivers.basic.brief_builder.driver', OpenAIBriefBuilderDriver::class);
+
+        $driver = SynthesizerFacade::driver('basic');
+
+        $this->assertInstanceOf(OpenAIBriefBuilderDriver::class, $driver->getBriefBuilder());
     }
 }

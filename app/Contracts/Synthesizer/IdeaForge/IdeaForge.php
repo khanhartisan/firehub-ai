@@ -4,17 +4,18 @@ namespace App\Contracts\Synthesizer\IdeaForge;
 
 interface IdeaForge
 {
-    public function getAudienceIdeaAdvisor(): IdeaAdvisor;
+    /**
+     * @return IdeaAdvisor[]
+     */
+    public function getIdeaAdvisors(): array;
 
-    public function setAudienceIdeaAdvisor(IdeaAdvisor $advisor): static;
+    /**
+     * @param IdeaAdvisor[] $ideaAdvisors
+     * @return static
+     */
+    public function setIdeaAdvisors(array $ideaAdvisors): static;
 
-    public function getOwnerIdeaAdvisor(): IdeaAdvisor;
-
-    public function setOwnerIdeaAdvisor(IdeaAdvisor $advisor): static;
-
-    public function getResearcherIdeaAdvisor(): IdeaAdvisor;
-
-    public function setResearcherIdeaAdvisor(IdeaAdvisor $advisor): static;
+    public function addIdeaAdvisor(IdeaAdvisor $ideaAdvisor): static;
 
     public function getIdeaAuditor(): IdeaAuditor;
 

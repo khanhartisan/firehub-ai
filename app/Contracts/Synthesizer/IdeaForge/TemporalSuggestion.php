@@ -69,18 +69,17 @@ final class TemporalSuggestion implements Serializable
 
     public static function fromArray(array $data): static
     {
-        $suggestion = new static; // TODO: Missing required param
-
-        if (array_key_exists('temporal', $data)) {
-            $raw = $data['temporal'];
-            if ($raw === null || $raw === '') {
-                $suggestion->setTemporal(null); // TODO: Null is now allowed
-            } else {
-                $suggestion->setTemporal($raw instanceof Temporal ? $raw : Temporal::tryFrom((string) $raw));
-            }
-        } else {
+        if (! array_key_exists('temporal', $data)) {
             throw new \Exception('temporal must be set');
         }
+
+        $raw = $data['temporal'];
+        $temporal = $raw instanceof Temporal ? $raw : (is_string($raw) ? Temporal::tryFrom($raw) : null);
+        if (! $temporal instanceof Temporal) {
+            throw new \Exception('temporal is invalid');
+        }
+
+        $suggestion = new static($temporal);
 
         if (array_key_exists('confidence', $data)) {
             $suggestion->setConfidence($data['confidence'] !== null ? (float) $data['confidence'] : null);

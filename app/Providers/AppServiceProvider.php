@@ -10,6 +10,7 @@ use App\Contracts\PageParser\Parser;
 use App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine;
 use App\Contracts\Scraper\Scraper;
 use App\Contracts\SearchEngine\SearchEngine;
+use App\Contracts\Synthesizer\Synthesizer as SynthesizerContract;
 use App\Contracts\TextEmbedding\TextEmbedding as TextEmbeddingContract;
 use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VerticalResolver\VerticalResolver;
@@ -45,6 +46,7 @@ use App\Services\SearchEngine\SearchEngineManager;
 use App\Services\TextEmbedding\TextEmbeddingManager;
 use App\Services\VectorDB\VectorDBManager;
 use App\Services\VerticalResolver\VerticalResolverManager;
+use App\Services\Synthesizer\SynthesizerManager;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -68,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('vectordb.manager', VectorDBManager::class);
         $this->app->singleton('text_embedding.manager', TextEmbeddingManager::class);
         $this->app->singleton('search_engine.manager', SearchEngineManager::class);
+        $this->app->singleton('synthesizer.manager', SynthesizerManager::class);
 
         // Bind interfaces to the default driver (type-safe for dependency injection)
         $this->app->singleton(OpenAIClient::class, fn ($app) => $app['openai.manager']->driver());
@@ -81,6 +84,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(VectorDB::class, fn ($app) => $app['vectordb.manager']->driver());
         $this->app->singleton(TextEmbeddingContract::class, fn ($app) => $app['text_embedding.manager']->driver());
         $this->app->singleton(SearchEngine::class, fn ($app) => $app['search_engine.manager']->driver());
+        $this->app->singleton(SynthesizerContract::class, fn ($app) => $app['synthesizer.manager']->driver());
     }
 
     /**

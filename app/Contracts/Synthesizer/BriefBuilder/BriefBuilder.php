@@ -2,7 +2,9 @@
 
 namespace App\Contracts\Synthesizer\BriefBuilder;
 
+use App\Contracts\Synthesizer\IdeaForge\Idea;
+
 interface BriefBuilder
 {
-    public function conceive(string $clientId, ?string $prompt = null): Brief;
+    public function conceive(Idea $idea, string $context): Brief;
 }

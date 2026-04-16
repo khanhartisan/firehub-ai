@@ -212,9 +212,9 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
-        $this->article->stage_data = $stageData instanceof StageData
-            ? $stageData
-            : ($this->article->stage_data instanceof StageData ? $this->article->stage_data : StageData::fromArray([]));
+        if ($stageData) {
+            $this->article->stage_data = $stageData;
+        }
 
         $this->article->updated_at = now();
         $this->article->saveQuietly();

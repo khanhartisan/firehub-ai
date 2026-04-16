@@ -82,7 +82,7 @@ class ArticleResource extends Resource
                         Textarea::make('excerpt')
                             ->rows(4)
                             ->columnSpanFull(),
-                        Textarea::make('prompt')
+                        Textarea::make('context')
                             ->rows(8)
                             ->columnSpanFull(),
                         Textarea::make('body_markdown')

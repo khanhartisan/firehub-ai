@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Language;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
@@ -10,6 +11,10 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 class Client extends Model implements ShouldCascade
 {
     use Cascades;
+
+    protected $casts = [
+        'language' => Language::class,
+    ];
 
     public function getCascadeDetails(): CascadeDetails|array
     {

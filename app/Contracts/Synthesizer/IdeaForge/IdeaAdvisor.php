@@ -2,7 +2,9 @@
 
 namespace App\Contracts\Synthesizer\IdeaForge;
 
-interface IdeaAdvisor
+use App\Contracts\Describable;
+
+interface IdeaAdvisor extends Describable
 {
     /**
      * Suggest the temporal for the next idea

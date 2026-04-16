@@ -63,6 +63,20 @@ class IdeaForgeServiceTest extends TestCase
     {
         return new class implements IdeaAdvisor
         {
+            protected ?string $description = null;
+
+            public function getDescription(): ?string
+            {
+                return $this->description;
+            }
+
+            public function setDescription(?string $description): static
+            {
+                $this->description = $description;
+
+                return $this;
+            }
+
             public function suggestTemporal(string $clientId, string $context): array
             {
                 return [];

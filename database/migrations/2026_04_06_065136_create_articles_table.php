@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('temporal')->nullable();
 
             $table->unsignedTinyInteger('stage')
-                ->default(\App\Enums\ArticleStage::BRIEF->value);
+                ->default(\App\Enums\ArticleStage::IDEA->value);
             $table->unsignedTinyInteger('stage_status')
                 ->default(\App\Enums\ArticleStageStatus::PENDING->value);
             $table->jsonb('stage_data')->nullable();

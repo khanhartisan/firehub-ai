@@ -6,6 +6,7 @@ use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\Language;
 use App\Enums\Temporal;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
@@ -38,6 +39,11 @@ class Article extends EmbeddableModel implements ShouldCascade
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
     {
         return true;
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
     }
 
     public function articleIntents(): HasMany

@@ -13,7 +13,14 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->ulid('id')->primary();
+            $table->string('reference_id')->nullable()->unique();
+            $table->string('name')->nullable()->unique();
+            $table->longText('context')->nullable();
             $table->timestamps();
+
+            $table->softDeletes();
+            $table->cascades();
+            $table->index(['cascade_status', 'deleted_at']);
         });
     }
 

@@ -25,12 +25,11 @@ final class IdeaStageData implements \App\Contracts\Serializable
     protected ?IdeaAuditReport $pickedReport = null;
 
     /** @var Idea[] */
-    protected array $mergedIdeas = [];
-    protected int $mergeCandidateIndex = 0;
-    protected int $mergeCompareIndex = 0;
+    protected array $ideas = [];
 
-    /** @var Idea[] */
-    protected array $uniqueIdeas = [];
+    /** @var array<int, array{0: string, 1: string}> */
+    protected array $uniqueIdeaIdentifierPairs = [];
+
     protected int $uniquenessIndex = 0;
 
     /** @var IdeaAuditReport[] */
@@ -136,48 +135,56 @@ final class IdeaStageData implements \App\Contracts\Serializable
     }
 
     /** @return Idea[] */
-    public function getMergedIdeas(): array
+    public function getIdeas(): array
     {
-        return $this->mergedIdeas;
+        return $this->ideas;
     }
 
-    public function setMergedIdeas(array $ideas): static
+    public function setIdeas(array $ideas): static
     {
-        $this->mergedIdeas = array_values(array_filter($ideas, static fn ($v): bool => $v instanceof Idea));
+        $this->ideas = array_values(array_filter($ideas, static fn ($v): bool => $v instanceof Idea));
         return $this;
     }
 
-    public function getMergeCandidateIndex(): int
+    /** @return array<int, array{0: string, 1: string}> */
+    public function getUniqueIdeaIdentifierPairs(): array
     {
-        return max(0, $this->mergeCandidateIndex);
+        return $this->uniqueIdeaIdentifierPairs;
     }
 
-    public function setMergeCandidateIndex(int $index): static
+    public function setUniqueIdeaIdentifierPairs(array $pairs): static
     {
-        $this->mergeCandidateIndex = max(0, $index);
-        return $this;
-    }
+        $normalizedPairs = [];
+        $seen = [];
+        foreach ($pairs as $pair) {
+            if (! is_array($pair)) {
+                continue;
+            }
 
-    public function getMergeCompareIndex(): int
-    {
-        return max(0, $this->mergeCompareIndex);
-    }
+            $values = array_values($pair);
+            if (count($values) < 2) {
+                continue;
+            }
 
-    public function setMergeCompareIndex(int $index): static
-    {
-        $this->mergeCompareIndex = max(0, $index);
-        return $this;
-    }
+            $left = trim((string) ($values[0] ?? ''));
+            $right = trim((string) ($values[1] ?? ''));
+            if ($left === '' || $right === '' || $left === $right) {
+                continue;
+            }
 
-    /** @return Idea[] */
-    public function getUniqueIdeas(): array
-    {
-        return $this->uniqueIdeas;
-    }
+            $ordered = [$left, $right];
+            sort($ordered);
+            $pairKey = implode('|', $ordered);
+            if (isset($seen[$pairKey])) {
+                continue;
+            }
 
-    public function setUniqueIdeas(array $ideas): static
-    {
-        $this->uniqueIdeas = array_values(array_filter($ideas, static fn ($v): bool => $v instanceof Idea));
+            $seen[$pairKey] = true;
+            $normalizedPairs[] = $ordered;
+        }
+
+        $this->uniqueIdeaIdentifierPairs = array_values($normalizedPairs);
+
         return $this;
     }
 
@@ -223,10 +230,8 @@ final class IdeaStageData implements \App\Contracts\Serializable
             'selected_intent_type_suggestion' => $this->selectedIntentTypeSuggestion?->toArray(),
             'picked_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->pickedReports),
             'picked_report' => $this->pickedReport?->toArray(),
-            'merged_ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->mergedIdeas),
-            'merge_candidate_index' => $this->getMergeCandidateIndex(),
-            'merge_compare_index' => $this->getMergeCompareIndex(),
-            'unique_ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->uniqueIdeas),
+            'ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->ideas),
+            'unique_idea_identifier_pairs' => $this->getUniqueIdeaIdentifierPairs(),
             'uniqueness_index' => $this->getUniquenessIndex(),
             'audit_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->auditReports),
             'audit_index' => $this->getAuditIndex(),
@@ -272,20 +277,30 @@ final class IdeaStageData implements \App\Contracts\Serializable
             $dto->setPickedReport(IdeaAuditReport::fromArray($data['picked_report']));
         }
 
-        if (isset($data['merged_ideas']) && is_array($data['merged_ideas'])) {
-            $dto->setMergedIdeas(array_map(
+        if (isset($data['ideas']) && is_array($data['ideas'])) {
+            $dto->setIdeas(array_map(
+                static fn (array $v): Idea => Idea::fromArray($v),
+                array_values(array_filter($data['ideas'], 'is_array'))
+            ));
+        } elseif (isset($data['merged_ideas']) && is_array($data['merged_ideas'])) {
+            $dto->setIdeas(array_map(
                 static fn (array $v): Idea => Idea::fromArray($v),
                 array_values(array_filter($data['merged_ideas'], 'is_array'))
             ));
-        }
-        $dto->setMergeCandidateIndex((int) ($data['merge_candidate_index'] ?? 0));
-        $dto->setMergeCompareIndex((int) ($data['merge_compare_index'] ?? 0));
-
-        if (isset($data['unique_ideas']) && is_array($data['unique_ideas'])) {
-            $dto->setUniqueIdeas(array_map(
+        } elseif (isset($data['unique_ideas']) && is_array($data['unique_ideas'])) {
+            $dto->setIdeas(array_map(
                 static fn (array $v): Idea => Idea::fromArray($v),
                 array_values(array_filter($data['unique_ideas'], 'is_array'))
             ));
+        }
+
+        if (isset($data['unique_idea_identifier_pairs']) && is_array($data['unique_idea_identifier_pairs'])) {
+            $dto->setUniqueIdeaIdentifierPairs($data['unique_idea_identifier_pairs']);
+        } elseif (isset($data['unique_pairs']) && is_array($data['unique_pairs'])) {
+            $dto->setUniqueIdeaIdentifierPairs($data['unique_pairs']);
+        } elseif (isset($data['pending_merge_pairs']) && is_array($data['pending_merge_pairs'])) {
+            // Backward compatibility from earlier pending queue format.
+            $dto->setUniqueIdeaIdentifierPairs($data['pending_merge_pairs']);
         }
         $dto->setUniquenessIndex((int) ($data['uniqueness_index'] ?? 0));
 

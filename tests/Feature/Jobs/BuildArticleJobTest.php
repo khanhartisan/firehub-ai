@@ -3,9 +3,15 @@
 namespace Tests\Feature\Jobs;
 
 use App\Contracts\Model\Article\StageData;
+use App\Contracts\Model\Article\StageData\IdeaStageData;
+use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
+use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\IntentResolver\Intent;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
+use App\Enums\Language;
+use App\Facades\IntentResolver;
 use App\Jobs\BuildArticleJob;
 use App\Models\Article;
 use App\Models\Client;
@@ -17,14 +23,20 @@ class BuildArticleJobTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+    }
+
     public function test_builds_article_through_all_stages_and_marks_ready(): void
     {
         Bus::fake();
+        $this->mockIntentResolverNeverMerge();
 
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
-        for ($i = 0; $i < 100; $i++) {
+        for ($i = 0; $i < 500; $i++) {
             (new BuildArticleJob($client, $article->id))->handle();
             $article->refresh();
             if ($article->status === ArticleStatus::READY) {
@@ -49,9 +61,108 @@ class BuildArticleJobTest extends TestCase
         Bus::assertDispatched(BuildArticleJob::class);
     }
 
+    public function test_builds_article_when_intent_resolver_always_merges(): void
+    {
+        Bus::fake();
+
+        IntentResolver::shouldReceive('mergeIntents')
+            ->andReturnUsing(static fn ($left, $right) => $right);
+
+        $client = $this->makeClient('Client context');
+        $article = $this->makeArticle($client, 'Build me an article from this context.');
+
+        for ($i = 0; $i < 500; $i++) {
+            (new BuildArticleJob($client, $article->id))->handle();
+            $article->refresh();
+            if ($article->status === ArticleStatus::READY) {
+                break;
+            }
+        }
+
+        $article->refresh();
+        $this->assertSame(ArticleStatus::READY, $article->status);
+        $this->assertSame(ArticleStage::FINAL, $article->stage);
+        $this->assertSame(ArticleStageStatus::APPROVED, $article->stage_status);
+        $this->assertNotEmpty($article->body_markdown);
+    }
+
+    public function test_builds_article_when_intent_resolver_mixes_merge_and_no_merge(): void
+    {
+        Bus::fake();
+
+        IntentResolver::shouldReceive('mergeIntents')
+            ->andReturnUsing(static fn ($left, $right) => random_int(0, 1) === 1 ? $right : null);
+
+        $client = $this->makeClient('Client context');
+        $article = $this->makeArticle($client, 'Build me an article from this context.');
+
+        for ($i = 0; $i < 500; $i++) {
+            (new BuildArticleJob($client, $article->id))->handle();
+            $article->refresh();
+            if ($article->status === ArticleStatus::READY) {
+                break;
+            }
+        }
+
+        $article->refresh();
+        $this->assertSame(ArticleStatus::READY, $article->status);
+        $this->assertSame(ArticleStage::FINAL, $article->stage);
+        $this->assertSame(ArticleStageStatus::APPROVED, $article->stage_status);
+    }
+
+    public function test_process_intent_merging_with_always_merge_strategy(): void
+    {
+        IntentResolver::shouldReceive('mergeIntents')
+            ->andReturnUsing(static fn ($left, $right) => $right);
+
+        [$article, $job] = $this->makeArticleAndJobWithIdeaPool();
+
+        $result = null;
+        for ($i = 0; $i < 20; $i++) {
+            $result = $job->runMergeOnce();
+            $article->refresh();
+            if ($result === true) {
+                break;
+            }
+        }
+
+        $ideaData = $article->stage_data->getIdeaStageData();
+        $this->assertTrue($result === true);
+        $this->assertCount(1, $ideaData->getIdeas());
+    }
+
+    public function test_process_intent_merging_with_mixed_merge_strategy(): void
+    {
+        $callCount = 0;
+        IntentResolver::shouldReceive('mergeIntents')
+            ->andReturnUsing(static function ($left, $right) use (&$callCount) {
+                $callCount++;
+
+                return $callCount % 2 === 0 ? $right : null;
+            });
+
+        [$article, $job] = $this->makeArticleAndJobWithIdeaPool();
+
+        $result = null;
+        for ($i = 0; $i < 30; $i++) {
+            $result = $job->runMergeOnce();
+            $article->refresh();
+            if ($result === true) {
+                break;
+            }
+        }
+
+        $ideaData = $article->stage_data->getIdeaStageData();
+        $this->assertTrue($result === true);
+        $this->assertGreaterThan(0, $callCount);
+        $this->assertGreaterThanOrEqual(1, count($ideaData->getIdeas()));
+        $this->assertLessThanOrEqual(3, count($ideaData->getIdeas()));
+    }
+
     public function test_marks_article_failed_when_idea_stage_cannot_generate_candidates(): void
     {
         Bus::fake();
+        $this->mockIntentResolverNeverMerge();
 
         $client = $this->makeClient('');
         $article = $this->makeArticle($client, '');
@@ -69,6 +180,7 @@ class BuildArticleJobTest extends TestCase
     public function test_does_not_process_article_when_not_unready(): void
     {
         Bus::fake();
+        $this->mockIntentResolverNeverMerge();
 
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Context for article.');
@@ -90,6 +202,7 @@ class BuildArticleJobTest extends TestCase
     public function test_processes_single_stage_per_execution_and_re_dispatches(): void
     {
         Bus::fake();
+        $this->mockIntentResolverNeverMerge();
 
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
@@ -113,6 +226,7 @@ class BuildArticleJobTest extends TestCase
     public function test_persists_newly_initialized_advisor_data_on_first_idea_checkpoint(): void
     {
         Bus::fake();
+        $this->mockIntentResolverNeverMerge();
 
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
@@ -134,6 +248,7 @@ class BuildArticleJobTest extends TestCase
     public function test_persists_idea_stage_data_consistently_across_reloads(): void
     {
         Bus::fake();
+        $this->mockIntentResolverNeverMerge();
 
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
@@ -166,6 +281,7 @@ class BuildArticleJobTest extends TestCase
     public function test_retries_and_logs_error_when_exception_happens(): void
     {
         Bus::fake();
+        $this->mockIntentResolverNeverMerge();
 
         config()->set('queue.max_article_build_attempts', 3);
 
@@ -195,6 +311,7 @@ class BuildArticleJobTest extends TestCase
     public function test_marks_article_error_when_max_attempts_is_reached(): void
     {
         Bus::fake();
+        $this->mockIntentResolverNeverMerge();
 
         config()->set('queue.max_article_build_attempts', 1);
 
@@ -242,5 +359,60 @@ class BuildArticleJobTest extends TestCase
         $article->save();
 
         return $article;
+    }
+
+    protected function mockIntentResolverNeverMerge(): void
+    {
+        IntentResolver::shouldReceive('mergeIntents')
+            ->andReturn(null);
+    }
+
+    /**
+     * @return array{0: Article, 1: BuildArticleJob}
+     */
+    protected function makeArticleAndJobWithIdeaPool(): array
+    {
+        $client = $this->makeClient('Client context');
+        $article = $this->makeArticle($client, 'Context for merge testing.');
+
+        $ideas = [
+            $this->makeIdea('idea-a'),
+            $this->makeIdea('idea-b'),
+            $this->makeIdea('idea-c'),
+        ];
+
+        $stageData = $article->stage_data instanceof StageData ? $article->stage_data : StageData::fromArray([]);
+        $ideaData = $stageData->getIdeaStageData();
+        $ideaData->setIdeas($ideas);
+        $ideaData->setUniqueIdeaIdentifierPairs([]);
+        $ideaData->setUniquenessIndex(0);
+
+        $advisorData = new AdvisorData;
+        $advisorData->setIdeas($ideas);
+        $ideaData->setAdvisorDataByIdentifier('merge-test-advisor', $advisorData);
+
+        $article->stage_data = $stageData;
+        $article->save();
+        $article->refresh();
+
+        $job = new class($client, $article->id) extends BuildArticleJob
+        {
+            public function runMergeOnce(): ?bool
+            {
+                return $this->processIntentMerging();
+            }
+        };
+
+        return [$article, $job];
+    }
+
+    protected function makeIdea(string $title): Idea
+    {
+        $intent = new Intent;
+        $intent->setTitle($title);
+        $intent->setDescription('Description for '.$title);
+        $intent->setLanguage(Language::EN);
+
+        return new Idea($intent, 0.8, 'test');
     }
 }

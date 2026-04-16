@@ -78,18 +78,21 @@ trait HandleIdeaStage
         }
 
         // 4) Merge similar intents
-        if ($progress = $this->processIntentMerging()) {
-            return $progress;
+        $mergeProgress = $this->processIntentMerging();
+        if ($mergeProgress !== true) {
+            return $mergeProgress;
         }
 
         // 5) Filter uniqueness
-        if ($progress = $this->processUniquenessChecks()) {
-            return $progress;
+        $uniquenessProgress = $this->processUniquenessChecks();
+        if ($uniquenessProgress !== true) {
+            return $uniquenessProgress;
         }
 
         // 6) Audit surviving ideas.
-        if ($progress = $this->processAudits()) {
-            return $progress;
+        $auditProgress = $this->processAudits();
+        if ($auditProgress !== true) {
+            return $auditProgress;
         }
 
         $ideaData = $this->getIdeaStageData();
@@ -101,13 +104,16 @@ trait HandleIdeaStage
 
         // 7) Persist picker output first, then finalize picked report on next run.
         if (! $ideaData->hasPickedReports()) {
-            $ideaData->setPickedReports(
-                $this
-                    ->getIdeaForgeService()
-                    ->getIdeaPicker()
-                    ->pick($ideaAuditReports, $context, 1)
-                    ?? []
-            );
+            $pickedReports = $this
+                ->getIdeaForgeService()
+                ->getIdeaPicker()
+                ->pick($ideaAuditReports, $context, 1)
+                ?? [];
+            if ($pickedReports === []) {
+                return false;
+            }
+
+            $ideaData->setPickedReports($pickedReports);
             $this->touchArticleQuietly();
 
             return null;
@@ -255,9 +261,14 @@ trait HandleIdeaStage
             }
 
             // Same checkpoint model for brainstorm calls.
-            $advisorData->setIdeas(
-                $advisor->brainstorm([$temporalSuggestion], [$intentTypeSuggestion], $context, 5)
+            $ideas = $advisor->brainstorm(
+                [$temporalSuggestion],
+                [$intentTypeSuggestion],
+                $context,
+                5
             );
+            $ideas = array_values(array_filter($ideas, static fn ($idea): bool => $idea instanceof Idea));
+            $advisorData->setIdeas($ideas);
             $this->touchArticleQuietly();
 
             return null;
@@ -273,113 +284,268 @@ trait HandleIdeaStage
         foreach ($ideaData->getAdvisorDataMap() as $advisorData) {
             $allIdeas = [...$allIdeas, ...$advisorData->getIdeas()];
         }
+        $allIdeas = array_values(array_filter($allIdeas, static fn ($idea): bool => $idea instanceof Idea));
+
         if ($allIdeas === []) {
             return false;
         }
 
-        $candidateIndex = $ideaData->getMergeCandidateIndex();
-        $compareIndex = $ideaData->getMergeCompareIndex();
-        $mergedIdeas = $ideaData->getMergedIdeas();
-
-        if ($candidateIndex >= count($allIdeas)) {
-            return null;
+        $ideas = $ideaData->getIdeas();
+        if ($ideas === []) {
+            $ideas = $allIdeas;
         }
 
-        $candidate = $allIdeas[$candidateIndex];
-        if (! $candidate instanceof Idea) {
+        $ideaMap = $this->buildIdeaMap($ideas);
+        if ($ideaMap === []) {
             return false;
         }
 
-        // Try merging candidate with existing merged ideas before appending as new.
-        if ($compareIndex < count($mergedIdeas)) {
-            $mergedIdea = $mergedIdeas[$compareIndex];
-            if (! $mergedIdea instanceof Idea) {
-                return false;
-            }
-
-            $mergedIntent = IntentResolver::mergeIntents($candidate->getIntent(), $mergedIdea->getIntent());
-            if ($mergedIntent) {
-                $mergedIdea->setIntent($mergedIntent);
-                $mergedIdeas[$compareIndex] = $mergedIdea;
-                $ideaData->setMergedIdeas($mergedIdeas);
-                $ideaData->setMergeCandidateIndex($candidateIndex + 1);
-                $ideaData->setMergeCompareIndex(0);
-            } else {
-                $ideaData->setMergeCompareIndex($compareIndex + 1);
-            }
+        $possiblePairs = $this->buildUniqueMergePairs($ideaMap);
+        if ($possiblePairs === []) {
+            $ideaData->setIdeas(array_values($ideaMap));
+            $ideaData->setUniqueIdeaIdentifierPairs([]);
             $this->touchArticleQuietly();
+
+            return true;
+        }
+
+        $uniquePairs = $this->cleanPairs($ideaData->getUniqueIdeaIdentifierPairs(), $ideaMap);
+        $uniquePairKeys = $this->buildPairKeyMap($uniquePairs);
+
+        $pairToCheck = null;
+        foreach ($possiblePairs as $pair) {
+            $pairKey = $this->makePairKey($pair);
+            if (! isset($uniquePairKeys[$pairKey])) {
+                $pairToCheck = $pair;
+                break;
+            }
+        }
+
+        if (! is_array($pairToCheck)) {
+            $ideaData->setIdeas(array_values($ideaMap));
+            $ideaData->setUniqueIdeaIdentifierPairs($uniquePairs);
+            $this->touchArticleQuietly();
+
+            return true;
+        }
+
+        $pairValues = array_values($pairToCheck);
+        $leftId = trim((string) ($pairValues[0] ?? ''));
+        $rightId = trim((string) ($pairValues[1] ?? ''));
+        if (! isset($ideaMap[$leftId], $ideaMap[$rightId])) {
+            $ideaData->setIdeas(array_values($ideaMap));
+            $ideaData->setUniqueIdeaIdentifierPairs($this->cleanPairs($uniquePairs, $ideaMap));
+            $this->touchArticleQuietly();
+
             return null;
         }
 
-        $mergedIdeas[] = $candidate;
-        $ideaData->setMergedIdeas($mergedIdeas);
-        $ideaData->setMergeCandidateIndex($candidateIndex + 1);
-        $ideaData->setMergeCompareIndex(0);
+        $leftIdea = $ideaMap[$leftId];
+        $rightIdea = $ideaMap[$rightId];
+        $mergedIntent = IntentResolver::mergeIntents($leftIdea->getIntent(), $rightIdea->getIntent());
+        if ($mergedIntent) {
+            $rightIdea->setIntent($mergedIntent);
+            $ideaMap[$rightId] = $rightIdea;
+            unset($ideaMap[$leftId]);
+            // Idea graph changed; previous "already checked unique pairs" are stale.
+            $uniquePairs = [];
+        } else {
+            $uniquePairs[] = [$leftId, $rightId];
+            $uniquePairs = $this->cleanPairs($uniquePairs, $ideaMap);
+        }
+
+        $possiblePairs = $this->buildUniqueMergePairs($ideaMap);
+        $uniquePairs = $this->cleanPairs($uniquePairs, $ideaMap);
+        $ideaData->setIdeas(array_values($ideaMap));
+        $ideaData->setUniqueIdeaIdentifierPairs($uniquePairs);
         $this->touchArticleQuietly();
 
-        return null;
+        return count($uniquePairs) >= count($possiblePairs) ? true : null;
+    }
+
+    /** @param Idea[] $ideas
+     *  @return array<string, Idea>
+     */
+    protected function buildIdeaMap(array $ideas): array
+    {
+        $ideaMap = [];
+        foreach ($ideas as $idea) {
+            if (! $idea instanceof Idea) {
+                continue;
+            }
+
+            $identifier = trim((string) $idea->getIdentifier());
+            if ($identifier === '') {
+                continue;
+            }
+
+            $ideaMap[$identifier] = $idea;
+        }
+
+        return $ideaMap;
+    }
+
+    /**
+     * @param array<string, Idea> $ideaMap
+     * @return array<int, array{0: string, 1: string}>
+     */
+    protected function buildUniqueMergePairs(array $ideaMap): array
+    {
+        $identifiers = array_values(array_keys($ideaMap));
+        $pairs = [];
+        $count = count($identifiers);
+
+        for ($i = 0; $i < $count; $i++) {
+            for ($j = $i + 1; $j < $count; $j++) {
+                $pairs[] = [$identifiers[$i], $identifiers[$j]];
+            }
+        }
+
+        return $pairs;
+    }
+
+    /**
+     * @param array<int, array<int, string>> $pairs
+     * @param array<string, Idea> $ideaMap
+     * @return array<int, array{0: string, 1: string}>
+     */
+    protected function cleanPairs(array $pairs, array $ideaMap): array
+    {
+        $cleaned = [];
+        $seen = [];
+
+        foreach ($pairs as $pair) {
+            if (! is_array($pair)) {
+                continue;
+            }
+
+            $values = array_values($pair);
+            $left = trim((string) ($values[0] ?? ''));
+            $right = trim((string) ($values[1] ?? ''));
+            if ($left === '' || $right === '' || $left === $right) {
+                continue;
+            }
+
+            if (! isset($ideaMap[$left], $ideaMap[$right])) {
+                continue;
+            }
+
+            $ordered = [$left, $right];
+            sort($ordered);
+            $pairKey = implode('|', $ordered);
+            if (isset($seen[$pairKey])) {
+                continue;
+            }
+
+            $seen[$pairKey] = true;
+            $cleaned[] = $ordered;
+        }
+
+        return $cleaned;
+    }
+
+    /**
+     * @param array<int, array{0: string, 1: string}> $pairs
+     * @return array<string, true>
+     */
+    protected function buildPairKeyMap(array $pairs): array
+    {
+        $map = [];
+        foreach ($pairs as $pair) {
+            $key = $this->makePairKey($pair);
+            if ($key === '') {
+                continue;
+            }
+
+            $map[$key] = true;
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param array<int, string> $pair
+     */
+    protected function makePairKey(array $pair): string
+    {
+        $values = array_values($pair);
+        $left = trim((string) ($values[0] ?? ''));
+        $right = trim((string) ($values[1] ?? ''));
+        if ($left === '' || $right === '' || $left === $right) {
+            return '';
+        }
+
+        $ordered = [$left, $right];
+        sort($ordered);
+
+        return implode('|', $ordered);
     }
 
     protected function processUniquenessChecks(): ?bool
     {
         $ideaData = $this->getIdeaStageData();
         $ideaForge = $this->getIdeaForgeService();
-        $mergedIdeas = $ideaData->getMergedIdeas();
-        if ($mergedIdeas === []) {
+        $ideas = $ideaData->getIdeas();
+        if ($ideas === []) {
             return false;
         }
 
         $index = $ideaData->getUniquenessIndex();
-        if ($index >= count($mergedIdeas)) {
-            return null;
+        $remainingChecks = 20;
+
+        while ($remainingChecks > 0 && $index < count($ideas)) {
+            $idea = $ideas[$index];
+            if (! $idea instanceof Idea) {
+                return false;
+            }
+
+            // Remove idea in place if it fails uniqueness; keep index on same slot.
+            $uniqueness = $ideaForge->getIdeaAuditor()->isIdeaUnique($this->client->id, $idea);
+            if ($uniqueness->getIsUnique() === false) {
+                array_splice($ideas, $index, 1);
+            } else {
+                $index++;
+            }
+            $remainingChecks--;
         }
 
-        $idea = $mergedIdeas[$index];
-        if (! $idea instanceof Idea) {
-            return false;
-        }
-
-        // Only keep ideas that pass uniqueness screening.
-        $uniqueness = $ideaForge->getIdeaAuditor()->isIdeaUnique($this->client->id, $idea);
-        if ($uniqueness->getIsUnique() !== false) {
-            $uniqueIdeas = $ideaData->getUniqueIdeas();
-            $uniqueIdeas[] = $idea;
-            $ideaData->setUniqueIdeas($uniqueIdeas);
-        }
-
-        $ideaData->setUniquenessIndex($index + 1);
+        $ideaData->setIdeas($ideas);
+        $ideaData->setUniquenessIndex($index);
         $this->touchArticleQuietly();
 
-        return null;
+        return $index >= count($ideas) ? true : null;
     }
 
     protected function processAudits(): ?bool
     {
         $ideaData = $this->getIdeaStageData();
         $ideaForge = $this->getIdeaForgeService();
-        $uniqueIdeas = $ideaData->getUniqueIdeas();
-        if ($uniqueIdeas === []) {
+        $ideas = $ideaData->getIdeas();
+        if ($ideas === []) {
             return false;
         }
 
         $index = $ideaData->getAuditIndex();
-        if ($index >= count($uniqueIdeas)) {
-            return null;
-        }
-
-        $idea = $uniqueIdeas[$index];
-        if (! $idea instanceof Idea) {
-            return false;
-        }
-
-        // Audit is done after uniqueness filtering to avoid unnecessary scoring.
         $auditReports = $ideaData->getAuditReports();
-        $auditReports[] = $ideaForge->getIdeaAuditor()->audit($idea);
+        $remainingAudits = 20;
+
+        while ($remainingAudits > 0 && $index < count($ideas)) {
+            $idea = $ideas[$index];
+            if (! $idea instanceof Idea) {
+                return false;
+            }
+
+            // Audit is done after uniqueness filtering to avoid unnecessary scoring.
+            $auditReports[] = $ideaForge->getIdeaAuditor()->audit($idea);
+            $index++;
+            $remainingAudits--;
+        }
+
         $ideaData->setAuditReports($auditReports);
-        $ideaData->setAuditIndex($index + 1);
+        $ideaData->setAuditIndex($index);
         $this->touchArticleQuietly();
 
-        return null;
+        return $index >= count($ideas) ? true : null;
     }
 
     protected function selectTopSuggestions(): bool

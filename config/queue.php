@@ -48,6 +48,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Max Article Build Attempts
+    |--------------------------------------------------------------------------
+    |
+    | Maximum retries for BuildArticleJob when a stage throws an exception.
+    | Set via ARTICLE_BUILD_MAX_ATTEMPTS (default: 5).
+    |
+    */
+
+    'max_article_build_attempts' => (int) env('ARTICLE_BUILD_MAX_ATTEMPTS', 5),
+
+    /*
+    |--------------------------------------------------------------------------
     | ScrapeSourcesJob: Chunk Size & Timeout
     |--------------------------------------------------------------------------
     |

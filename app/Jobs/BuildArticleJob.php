@@ -3,9 +3,13 @@
 namespace App\Jobs;
 
 use App\Enums\ArticleStage;
+use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
 use App\Enums\Queue;
+use App\Jobs\BuildArticleJobConcerns\HandleBriefStage;
+use App\Jobs\BuildArticleJobConcerns\HandleDraftStage;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStage;
+use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
 use App\Models\Article;
 use App\Models\Client;
 use Illuminate\Contracts\Cache\Lock;
@@ -18,6 +22,9 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Queueable;
     use HandleIdeaStage;
+    use HandleBriefStage;
+    use HandleDraftStage;
+    use HandleOutlineStage;
 
     public int $timeout = 300;
 
@@ -54,7 +61,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
      */
     public function handle(): void
     {
-        if (!$article = $this->article) {
+        if (! $article = $this->article) {
             return;
         }
 
@@ -62,36 +69,139 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
-        if (!$lock = $this->getManualLock() or !$lock->get()) {
+        if (! $lock = $this->getManualLock() or ! $lock->get()) {
             return;
         }
 
-        $article->stage = $article->stage ?: ArticleStage::IDEA;
+        try {
+            if ($article->attempts >= $this->getMaxAttempts()) {
+                $this->markArticleFailed(ArticleStatus::FAILED);
+                return;
+            }
 
-        // Idea stage
-        if ($article->stage === ArticleStage::IDEA) {
-            $stageResult = $this->handleIdeaStage();
+            $article->stage = $article->stage ?: ArticleStage::IDEA;
+            $article->stage_status = ArticleStageStatus::PROCESSING;
+            $article->save();
 
-            // Return null mean processing -> continue dispatching the job
+            $stageResult = $this->runCurrentStage();
+
+            // Null means stage is still processing.
             if (is_null($stageResult)) {
-                $lock->release();
                 static::dispatch($this->client, $this->articleId);
                 return;
             }
 
-            // False means failed
-            if (!$stageResult) {
-
+            // False means failed.
+            if (! $stageResult) {
+                $this->markArticleFailed(ArticleStatus::FAILED);
+                return;
             }
 
-            // Move to the next stage
-        }
+            if ($article->stage === ArticleStage::FINAL) {
+                $this->markArticleReady();
+                return;
+            }
 
-        $lock->release();
+            $article->stage = $this->getNextStage($article->stage);
+            $article->stage_status = ArticleStageStatus::PENDING;
+            $article->save();
+
+            static::dispatch($this->client, $this->articleId);
+        } catch (\Throwable $e) {
+            $this->recordError($e);
+
+            if (($article->attempts ?? 0) >= $this->getMaxAttempts()) {
+                $this->markArticleFailed(ArticleStatus::ERROR);
+                return;
+            }
+
+            $article->status = ArticleStatus::UNREADY;
+            $article->stage_status = ArticleStageStatus::PENDING;
+            $article->save();
+            static::dispatch($this->client, $this->articleId);
+        }
+        finally {
+            $lock->release();
+        }
     }
 
     protected function getManualLock(): Lock
     {
         return $this->manualLock ??= Cache::lock(sha1($this->uniqueId()), $this->uniqueFor);
+    }
+
+    protected function runCurrentStage(): ?bool
+    {
+        $article = $this->article;
+        if (! $article) {
+            return false;
+        }
+
+        return match ($article->stage) {
+            ArticleStage::IDEA => $this->handleIdeaStage(),
+            ArticleStage::BRIEF => $this->handleBriefStage(),
+            ArticleStage::OUTLINE => $this->handleOutlineStage(),
+            ArticleStage::DRAFT => $this->handleDraftStage(),
+            ArticleStage::FINAL => true,
+        };
+    }
+
+    protected function getNextStage(ArticleStage $currentStage): ArticleStage
+    {
+        return match ($currentStage) {
+            ArticleStage::IDEA => ArticleStage::BRIEF,
+            ArticleStage::BRIEF => ArticleStage::OUTLINE,
+            ArticleStage::OUTLINE => ArticleStage::DRAFT,
+            ArticleStage::DRAFT, ArticleStage::FINAL => ArticleStage::FINAL,
+        };
+    }
+
+    protected function markArticleFailed(ArticleStatus $status): void
+    {
+        if (! $this->article) {
+            return;
+        }
+
+        $this->article->status = $status;
+        $this->article->stage_status = ArticleStageStatus::REJECTED;
+        $this->article->save();
+    }
+
+    protected function markArticleReady(): void
+    {
+        if (! $this->article) {
+            return;
+        }
+
+        $this->article->status = ArticleStatus::READY;
+        $this->article->stage_status = ArticleStageStatus::APPROVED;
+        $this->article->attempts = 0;
+        $this->article->save();
+    }
+
+    protected function getMaxAttempts(): int
+    {
+        return max(1, (int) config('queue.max_article_build_attempts', 5));
+    }
+
+    protected function recordError(\Throwable $e): void
+    {
+        if (! $this->article) {
+            return;
+        }
+
+        $logs = (string) ($this->article->error_logs ?? '');
+        $logs .= "\n---\n".$e->getMessage()."\n---\n".$e->getTraceAsString();
+
+        // Keep no more than 10KB of error logs.
+        $maxLength = 10 * 1024;
+        if (strlen($logs) > $maxLength) {
+            $prefix = '...trimmed...'."\n";
+            $logs = $prefix.substr($logs, -($maxLength - strlen($prefix)));
+        }
+
+        $this->article->attempts = (int) ($this->article->attempts ?? 0) + 1;
+        $this->article->error_logs = $logs;
+        $this->article->saveQuietly();
     }
 }

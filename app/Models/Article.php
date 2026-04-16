@@ -24,9 +24,11 @@ class Article extends EmbeddableModel implements ShouldCascade
         'temporal' => Temporal::class,
         'stage' => ArticleStage::class,
         'stage_status' => ArticleStageStatus::class,
+        'stage_data' => 'array',
         'vector' => 'array',
         'is_embeddable' => 'boolean',
         'is_embedded' => 'boolean',
+        'attempts' => 'integer',
         'intents_count' => 'integer',
         'intent_resolved_at' => 'datetime',
     ];

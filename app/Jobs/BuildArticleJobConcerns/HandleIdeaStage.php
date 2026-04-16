@@ -4,7 +4,7 @@ namespace App\Jobs\BuildArticleJobConcerns;
 
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
-use App\Contracts\Model\Article\StageData\IdeaStageData\IdeaAdvisorData;
+use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
@@ -101,7 +101,7 @@ trait HandleIdeaStage
             }
 
             $advisorIdentifier = $this->resolveAdvisorIdentifier($advisor, $position);
-            $advisorData = $ideaData->getAdvisorByIdentifier($advisorIdentifier);
+            $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier);
             $this->attachAdvisorContext($advisor, $advisorData);
 
             if ($this->processAdvisorTemporalSuggestions($advisor, $context, $stageData, $ideaData, $advisorData, $advisorIdentifier)) {
@@ -116,7 +116,7 @@ trait HandleIdeaStage
         return true;
     }
 
-    protected function attachAdvisorContext(IdeaAdvisor $advisor, IdeaAdvisorData $advisorData): void
+    protected function attachAdvisorContext(IdeaAdvisor $advisor, AdvisorData $advisorData): void
     {
         if (method_exists($advisor, 'getDescription')) {
             $advisorData->setAdvisorDescription($advisor->getDescription());
@@ -128,7 +128,7 @@ trait HandleIdeaStage
         string $context,
         StageData $stageData,
         IdeaStageData $ideaData,
-        IdeaAdvisorData $advisorData,
+        AdvisorData $advisorData,
         string $advisorIdentifier
     ): bool {
         if ($advisorData->getTemporalSuggestions() !== []) {
@@ -148,7 +148,7 @@ trait HandleIdeaStage
         string $context,
         StageData $stageData,
         IdeaStageData $ideaData,
-        IdeaAdvisorData $advisorData,
+        AdvisorData $advisorData,
         string $advisorIdentifier
     ): bool {
         if ($advisorData->getIntentTypeSuggestions() !== []) {
@@ -192,7 +192,7 @@ trait HandleIdeaStage
             }
 
             $advisorIdentifier = $this->resolveAdvisorIdentifier($advisor, $position);
-            $advisorData = $ideaData->getAdvisorByIdentifier($advisorIdentifier);
+            $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier);
             if ($advisorData->getIdeas() !== []) {
                 continue;
             }
@@ -200,7 +200,6 @@ trait HandleIdeaStage
             $advisorData->setIdeas(
                 $advisor->brainstorm([$temporalSuggestion], [$intentTypeSuggestion], $context, 5)
             );
-            $advisorData->setIdeaIndex(0);
             $this->saveAdvisorState($stageData, $ideaData, $advisorData, $advisorIdentifier);
 
             return null;
@@ -212,7 +211,7 @@ trait HandleIdeaStage
     protected function processIntentMerging(StageData $stageData, IdeaStageData $ideaData): ?bool
     {
         $allIdeas = [];
-        foreach ($ideaData->getAdvisors() as $advisorData) {
+        foreach ($ideaData->getAdvisorDataMap() as $advisorData) {
             $allIdeas = [...$allIdeas, ...$advisorData->getIdeas()];
         }
         if ($allIdeas === []) {
@@ -346,7 +345,7 @@ trait HandleIdeaStage
         $allTemporalSuggestions = [];
         $allIntentTypeSuggestions = [];
 
-        foreach ($ideaData->getAdvisors() as $savedAdvisorData) {
+        foreach ($ideaData->getAdvisorDataMap() as $savedAdvisorData) {
             $allTemporalSuggestions = [...$allTemporalSuggestions, ...$savedAdvisorData->getTemporalSuggestions()];
             $allIntentTypeSuggestions = [...$allIntentTypeSuggestions, ...$savedAdvisorData->getIntentTypeSuggestions()];
         }
@@ -371,19 +370,22 @@ trait HandleIdeaStage
     protected function saveAdvisorState(
         StageData $stageData,
         IdeaStageData $ideaData,
-        IdeaAdvisorData $advisorData,
+        AdvisorData $advisorData,
         string $advisorIdentifier
     ): void {
-        $ideaData->setAdvisorByIdentifier($advisorIdentifier, $advisorData);
+        $ideaData->setAdvisorDataByIdentifier($advisorIdentifier, $advisorData);
         $this->saveIdeaState($stageData, $ideaData);
     }
 
     protected function resolveAdvisorIdentifier(IdeaAdvisor $advisor, int $position): string
     {
         $identifier = $advisor->getIdentifier();
-        if (! $identifier) {
-            $identifier = sprintf('%s#%d', $advisor::class, $position);
-            $advisor->setIdentifier($identifier);
+        if (! is_string($identifier) || trim($identifier) === '') {
+            throw new \RuntimeException(sprintf(
+                'Idea advisor at position %d (%s) is missing required identifier.',
+                $position,
+                $advisor::class
+            ));
         }
 
         return $identifier;

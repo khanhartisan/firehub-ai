@@ -3,7 +3,7 @@
 namespace App\Contracts\Model\Article\StageData;
 
 use App\Concerns\Serializable;
-use App\Contracts\Model\Article\StageData\IdeaStageData\IdeaAdvisorData;
+use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
@@ -13,8 +13,8 @@ final class IdeaStageData implements \App\Contracts\Serializable
 {
     use Serializable;
 
-    /** @var array<string, IdeaAdvisorData> */
-    protected array $advisors = [];
+    /** @var array<string, AdvisorData> */
+    protected array $advisorDataByIdentifier = [];
 
     protected ?TemporalSuggestion $selectedTemporalSuggestion = null;
     protected ?IntentTypeSuggestion $selectedIntentTypeSuggestion = null;
@@ -37,20 +37,20 @@ final class IdeaStageData implements \App\Contracts\Serializable
     protected array $auditReports = [];
     protected int $auditIndex = 0;
 
-    /** @return array<string, IdeaAdvisorData> */
-    public function getAdvisors(): array
+    /** @return array<string, AdvisorData> */
+    public function getAdvisorDataMap(): array
     {
-        return $this->advisors;
+        return $this->advisorDataByIdentifier;
     }
 
-    public function getAdvisorByIdentifier(string $identifier): IdeaAdvisorData
+    public function getAdvisorDataByIdentifier(string $identifier): AdvisorData
     {
-        return $this->advisors[$identifier] ?? new IdeaAdvisorData;
+        return $this->advisorDataByIdentifier[$identifier] ?? new AdvisorData;
     }
 
-    public function setAdvisorByIdentifier(string $identifier, IdeaAdvisorData $advisor): static
+    public function setAdvisorDataByIdentifier(string $identifier, AdvisorData $advisorData): static
     {
-        $this->advisors[$identifier] = $advisor;
+        $this->advisorDataByIdentifier[$identifier] = $advisorData;
 
         return $this;
     }
@@ -214,7 +214,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
     public function toArray(): array
     {
         return [
-            'advisors' => array_map(static fn (IdeaAdvisorData $v) => $v->toArray(), $this->advisors),
+            'advisors' => array_map(static fn (AdvisorData $v) => $v->toArray(), $this->advisorDataByIdentifier),
             'selected_temporal_suggestion' => $this->selectedTemporalSuggestion?->toArray(),
             'selected_intent_type_suggestion' => $this->selectedIntentTypeSuggestion?->toArray(),
             'picked_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->pickedReports),
@@ -236,15 +236,15 @@ final class IdeaStageData implements \App\Contracts\Serializable
         if (isset($data['advisors']) && is_array($data['advisors'])) {
             foreach ($data['advisors'] as $identifier => $advisorData) {
                 if (is_string($identifier) && is_array($advisorData)) {
-                    $dto->setAdvisorByIdentifier($identifier, IdeaAdvisorData::fromArray($advisorData));
+                    $dto->setAdvisorDataByIdentifier($identifier, AdvisorData::fromArray($advisorData));
                 }
             }
 
             // Backward compatibility for older list-based stage data.
             foreach (array_values(array_filter($data['advisors'], 'is_array')) as $index => $advisorData) {
                 $legacyIdentifier = sprintf('legacy#%d', $index);
-                if (! isset($dto->advisors[$legacyIdentifier])) {
-                    $dto->setAdvisorByIdentifier($legacyIdentifier, IdeaAdvisorData::fromArray($advisorData));
+                if (! isset($dto->advisorDataByIdentifier[$legacyIdentifier])) {
+                    $dto->setAdvisorDataByIdentifier($legacyIdentifier, AdvisorData::fromArray($advisorData));
                 }
             }
         }

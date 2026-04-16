@@ -6,7 +6,7 @@ use App\Concerns\Serializable;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
 
-final class IdeaReviewData implements \App\Contracts\Serializable
+final class ReviewData implements \App\Contracts\Serializable
 {
     use Serializable;
 

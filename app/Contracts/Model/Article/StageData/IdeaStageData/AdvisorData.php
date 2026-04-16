@@ -7,7 +7,7 @@ use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 
-final class IdeaAdvisorData implements \App\Contracts\Serializable
+final class AdvisorData implements \App\Contracts\Serializable
 {
     use Serializable;
 
@@ -22,9 +22,7 @@ final class IdeaAdvisorData implements \App\Contracts\Serializable
     /** @var Idea[] */
     protected array $ideas = [];
 
-    public int $ideaIndex = 0;
-
-    /** @var IdeaReviewData[] */
+    /** @var ReviewData[] */
     protected array $ideaReviews = [];
 
     public function getAdvisorDescription(): ?string
@@ -86,19 +84,7 @@ final class IdeaAdvisorData implements \App\Contracts\Serializable
         return $this;
     }
 
-    public function getIdeaIndex(): int
-    {
-        return max(0, $this->ideaIndex);
-    }
-
-    public function setIdeaIndex(int $ideaIndex): static
-    {
-        $this->ideaIndex = max(0, $ideaIndex);
-
-        return $this;
-    }
-
-    /** @return IdeaReviewData[] */
+    /** @return ReviewData[] */
     public function getIdeaReviews(): array
     {
         return $this->ideaReviews;
@@ -108,18 +94,18 @@ final class IdeaAdvisorData implements \App\Contracts\Serializable
     {
         $this->ideaReviews = array_values(array_filter(
             $ideaReviews,
-            static fn ($v): bool => $v instanceof IdeaReviewData
+            static fn ($v): bool => $v instanceof ReviewData
         ));
 
         return $this;
     }
 
-    public function getIdeaReview(int $index): IdeaReviewData
+    public function getIdeaReview(int $index): ReviewData
     {
-        return $this->ideaReviews[$index] ?? new IdeaReviewData;
+        return $this->ideaReviews[$index] ?? new ReviewData;
     }
 
-    public function setIdeaReview(int $index, IdeaReviewData $review): static
+    public function setIdeaReview(int $index, ReviewData $review): static
     {
         $this->ideaReviews[$index] = $review;
         ksort($this->ideaReviews);
@@ -134,8 +120,7 @@ final class IdeaAdvisorData implements \App\Contracts\Serializable
             'temporal_suggestions' => array_map(static fn (TemporalSuggestion $v) => $v->toArray(), $this->temporalSuggestions),
             'intent_type_suggestions' => array_map(static fn (IntentTypeSuggestion $v) => $v->toArray(), $this->intentTypeSuggestions),
             'ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->ideas),
-            'idea_index' => $this->getIdeaIndex(),
-            'idea_reviews' => array_map(static fn (IdeaReviewData $v) => $v->toArray(), $this->ideaReviews),
+            'idea_reviews' => array_map(static fn (ReviewData $v) => $v->toArray(), $this->ideaReviews),
         ];
     }
 
@@ -170,11 +155,9 @@ final class IdeaAdvisorData implements \App\Contracts\Serializable
             ));
         }
 
-        $dto->setIdeaIndex((int) ($data['idea_index'] ?? 0));
-
         if (isset($data['idea_reviews']) && is_array($data['idea_reviews'])) {
             $dto->setIdeaReviews(array_map(
-                static fn (array $v): IdeaReviewData => IdeaReviewData::fromArray($v),
+                static fn (array $v): ReviewData => ReviewData::fromArray($v),
                 array_values(array_filter($data['idea_reviews'], 'is_array'))
             ));
         }

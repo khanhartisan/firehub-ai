@@ -13,6 +13,14 @@ use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\IdeaAdvisorService;
 
 class BasicIdeaAdvisorDriver extends IdeaAdvisorService
 {
+    public function __construct(
+        ?string $identifier = 'basic-idea-advisor',
+        ?string $description = 'A demo-dummy advisor for temporal and intent suggestions in testing mode.'
+    ) {
+        $this->setIdentifier($identifier);
+        $this->setDescription($description);
+    }
+
     public function suggestTemporal(string $clientId, string $context): array
     {
         $context = mb_strtolower(trim($context));

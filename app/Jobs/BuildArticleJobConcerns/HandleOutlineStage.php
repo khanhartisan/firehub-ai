@@ -2,25 +2,28 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
+use App\Contracts\Model\Article\StageData;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Facades\Synthesizer;
 use App\Models\Article;
 
 trait HandleOutlineStage
 {
-    protected function handleOutlineStage(): bool
+    protected function handleOutlineStage(): ?bool
     {
         $article = $this->article;
         if (! $article instanceof Article or ! $brief = $this->getBrief()) {
-            return false;
+            return null;
         }
 
         $outline = Synthesizer::driver()
             ->getOutlineBuilder()
             ->outline($brief, null);
 
-        $stageData = is_array($article->stage_data) ? $article->stage_data : [];
-        $stageData['outline'] = $outline->toArray();
+        $stageData = $article->stage_data instanceof StageData
+            ? $article->stage_data
+            : StageData::fromArray([]);
+        $stageData->setOutline($outline->toArray());
         $article->stage_data = $stageData;
         $article->save();
 
@@ -30,15 +33,10 @@ trait HandleOutlineStage
     protected function getOutline(): ?Outline
     {
         $article = $this->article;
-        if (! $article instanceof Article || ! is_array($article->stage_data)) {
+        if (! $article instanceof Article || ! $article->stage_data instanceof StageData) {
             return null;
         }
 
-        $rawOutline = data_get($article->stage_data, 'outline');
-        if (! is_array($rawOutline)) {
-            return null;
-        }
-
-        return Outline::fromArray($rawOutline);
+        return $article->stage_data->getOutline();
     }
 }

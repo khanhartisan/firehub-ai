@@ -40,6 +40,10 @@ abstract class IdeaForgeService implements IdeaForge
 
     public function addIdeaAdvisor(IdeaAdvisor $ideaAdvisor): static
     {
+        if (! $ideaAdvisor->getIdentifier()) {
+            $ideaAdvisor->setIdentifier(sprintf('%s#%d', $ideaAdvisor::class, count($this->ideaAdvisors)));
+        }
+
         $this->ideaAdvisors[] = $ideaAdvisor;
 
         return $this;

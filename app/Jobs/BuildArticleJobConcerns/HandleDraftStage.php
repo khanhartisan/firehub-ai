@@ -2,27 +2,30 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
+use App\Contracts\Model\Article\StageData;
 use App\Facades\Synthesizer;
 use App\Models\Article;
 
 trait HandleDraftStage
 {
-    protected function handleDraftStage(): bool
+    protected function handleDraftStage(): ?bool
     {
         $article = $this->article;
         if (! $article instanceof Article
             or ! $brief = $this->getBrief()
             or ! $outline = $this->getOutline()
         ) {
-            return false;
+            return null;
         }
 
         $draft = Synthesizer::driver()
             ->getAuthor()
             ->draft($brief, $outline);
 
-        $stageData = is_array($article->stage_data) ? $article->stage_data : [];
-        $stageData['draft'] = $draft->toArray();
+        $stageData = $article->stage_data instanceof StageData
+            ? $article->stage_data
+            : StageData::fromArray([]);
+        $stageData->setDraft($draft->toArray());
 
         $article->stage_data = $stageData;
         $article->title = $draft->getTitle();

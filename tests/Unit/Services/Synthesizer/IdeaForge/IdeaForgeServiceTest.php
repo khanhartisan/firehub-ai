@@ -64,6 +64,7 @@ class IdeaForgeServiceTest extends TestCase
         return new class implements IdeaAdvisor
         {
             protected ?string $description = null;
+            protected ?string $identifier = null;
 
             public function getDescription(): ?string
             {
@@ -73,6 +74,18 @@ class IdeaForgeServiceTest extends TestCase
             public function setDescription(?string $description): static
             {
                 $this->description = $description;
+
+                return $this;
+            }
+
+            public function getIdentifier(): ?string
+            {
+                return $this->identifier;
+            }
+
+            public function setIdentifier(?string $identifier): static
+            {
+                $this->identifier = $identifier;
 
                 return $this;
             }

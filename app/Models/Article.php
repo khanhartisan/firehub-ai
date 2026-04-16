@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\ArticleStageDataCast;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
@@ -24,7 +25,7 @@ class Article extends EmbeddableModel implements ShouldCascade
         'temporal' => Temporal::class,
         'stage' => ArticleStage::class,
         'stage_status' => ArticleStageStatus::class,
-        'stage_data' => 'array',
+        'stage_data' => ArticleStageDataCast::class,
         'vector' => 'array',
         'is_embeddable' => 'boolean',
         'is_embedded' => 'boolean',

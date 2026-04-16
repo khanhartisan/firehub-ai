@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Jobs;
 
+use App\Contracts\Model\Article\StageData;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
@@ -23,14 +24,15 @@ class BuildArticleJobTest extends TestCase
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
-        (new BuildArticleJob($client, $article->id))->handle();
-        (new BuildArticleJob($client, $article->id))->handle();
-        (new BuildArticleJob($client, $article->id))->handle();
-        (new BuildArticleJob($client, $article->id))->handle();
-        (new BuildArticleJob($client, $article->id))->handle();
+        for ($i = 0; $i < 100; $i++) {
+            (new BuildArticleJob($client, $article->id))->handle();
+            $article->refresh();
+            if ($article->status === ArticleStatus::READY) {
+                break;
+            }
+        }
 
         $article->refresh();
-
         $this->assertSame(ArticleStatus::READY, $article->status);
         $this->assertSame(ArticleStage::FINAL, $article->stage);
         $this->assertSame(ArticleStageStatus::APPROVED, $article->stage_status);
@@ -38,8 +40,8 @@ class BuildArticleJobTest extends TestCase
         $this->assertNotEmpty($article->title);
         $this->assertNotEmpty($article->excerpt);
         $this->assertNotEmpty($article->body_markdown);
-        $stageData = $article->stage_data;
-        $this->assertIsArray($stageData);
+        $this->assertInstanceOf(StageData::class, $article->stage_data);
+        $stageData = $article->stage_data->toArray();
         $this->assertArrayHasKey('idea', $stageData);
         $this->assertArrayHasKey('brief', $stageData);
         $this->assertArrayHasKey('outline', $stageData);
@@ -80,7 +82,8 @@ class BuildArticleJobTest extends TestCase
         $this->assertSame(ArticleStatus::READY, $article->status);
         $this->assertSame(ArticleStage::IDEA, $article->stage);
         $this->assertSame(ArticleStageStatus::PENDING, $article->stage_status);
-        $this->assertNull($article->stage_data);
+        $this->assertInstanceOf(StageData::class, $article->stage_data);
+        $this->assertSame([], $article->stage_data->toArray());
         Bus::assertNotDispatched(BuildArticleJob::class);
     }
 
@@ -95,12 +98,13 @@ class BuildArticleJobTest extends TestCase
 
         $article->refresh();
         $this->assertSame(ArticleStatus::UNREADY, $article->status);
-        $this->assertSame(ArticleStage::BRIEF, $article->stage);
-        $this->assertSame(ArticleStageStatus::PENDING, $article->stage_status);
+        $this->assertSame(ArticleStage::IDEA, $article->stage);
+        $this->assertSame(ArticleStageStatus::PROCESSING, $article->stage_status);
 
-        $stageData = $article->stage_data;
-        $this->assertIsArray($stageData);
+        $this->assertInstanceOf(StageData::class, $article->stage_data);
+        $stageData = $article->stage_data->toArray();
         $this->assertArrayHasKey('idea', $stageData);
+        $this->assertArrayHasKey('advisors', $stageData['idea']);
         $this->assertArrayNotHasKey('brief', $stageData);
 
         Bus::assertDispatchedTimes(BuildArticleJob::class, 1);

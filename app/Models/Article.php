@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
+use App\Enums\ArticleStatus;
 use App\Enums\Language;
 use App\Enums\Temporal;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,7 @@ class Article extends EmbeddableModel implements ShouldCascade
     use Cascades;
 
     protected $casts = [
+        'status' => ArticleStatus::class,
         'language' => Language::class,
         'temporal' => Temporal::class,
         'stage' => ArticleStage::class,

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Queue as QueueFacade;
 enum Queue: string
 {
     case DEFAULT = 'default';
+    case ARTICLE_BUILDING = 'article_building';
     case PAGE_SCRAPING = 'page_scraping';
     case FILE_SCRAPING = 'file_scraping';
 
@@ -26,7 +27,7 @@ enum Queue: string
     private const int DEFAULT_MAX_SIZE = 100;
 
     /**
-     * Maximum number of jobs allowed on this queue. Defaults to 10,000 when not set in config.
+     * Maximum number of jobs allowed on this queue. Defaults to DEFAULT_MAX_SIZE when not set in config.
      */
     public function maxSize(): int
     {

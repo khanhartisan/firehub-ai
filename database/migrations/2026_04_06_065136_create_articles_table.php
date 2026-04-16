@@ -26,6 +26,8 @@ return new class extends Migration
             $table->string('language')->nullable();
             $table->string('temporal')->nullable();
 
+            $table->unsignedTinyInteger('status')->default(\App\Enums\ArticleStatus::UNREADY);
+
             $table->unsignedTinyInteger('stage')
                 ->default(\App\Enums\ArticleStage::IDEA->value);
             $table->unsignedTinyInteger('stage_status')

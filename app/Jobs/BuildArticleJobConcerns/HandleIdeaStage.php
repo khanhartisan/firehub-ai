@@ -6,70 +6,109 @@ use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
+use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
+use App\Enums\ArticleStatus;
 use App\Facades\IntentResolver;
 use App\Facades\Synthesizer;
 use App\Models\Article;
+use App\Utils\Str;
 
 trait HandleIdeaStage
 {
+    /** @var IdeaAdvisor[]|null */
+    protected ?array $resolvedIdeaAdvisors = null;
+    protected ?IdeaForge $resolvedIdeaForge = null;
+
+    /**
+     * @throws \Exception
+     */
     protected function handleIdeaStage(): ?bool
     {
         if (! $this->article instanceof Article) {
             return false;
         }
 
-        $context = trim((string) $this->article->context);
-        if ($context === '') {
+        // Common context
+        $clientContext = trim($this->client->context);
+        $articleContext = trim($this->article->context);
+        $context = $clientContext."\n---\n".$articleContext;
+        if (!$clientContext and !$articleContext) {
             return false;
         }
 
-        $ideaForge = Synthesizer::getIdeaForge();
-        $stageData = $this->getStageData();
-        $ideaData = $stageData->getIdeaStageData();
-        $advisors = array_values($ideaForge->getIdeaAdvisors());
+        // Get latest posts
+        $latestArticles = $this->client
+            ->articles()
+            ->take(1000)
+            ->orderByDesc('id')
+            ->get()
+            ->filter(function (Article $article) {
+                return !!$article->title;
+            });
 
-        $suggestionProgress = $this->processSuggestionCollection($advisors, $context, $stageData, $ideaData);
+        // Idea brainstorm context
+        $ideaBrainstormContext = $context
+        ."\n---\n Below is the list of the latest articles:\n"
+        .$latestArticles
+            ->map(function (Article $article) {
+                return Str::limit($article->title, 160);
+            })->join("\n- ");
+
+        // 1) Collect advisor suggestions.
+        // Each costly step checkpoints and exits for re-execution.
+        $suggestionProgress = $this->processSuggestionCollection($ideaBrainstormContext);
         if ($suggestionProgress !== true) {
             return $suggestionProgress;
         }
 
-        $topSelection = $this->processTopSuggestionSelection($stageData, $ideaData);
+        // 2) Pick one highest-confidence temporal + intent suggestion globally.
+        $topSelection = $this->processTopSuggestionSelection();
         if ($topSelection !== true) {
             return $topSelection;
         }
 
-        $brainstormProgress = $this->processBrainstormCollection($advisors, $context, $stageData, $ideaData);
+        // 3) Brainstorm per advisor using the selected temporal + intent pair.
+        $brainstormProgress = $this->processBrainstormCollection($ideaBrainstormContext);
         if ($brainstormProgress !== true) {
             return $brainstormProgress;
         }
 
-        if ($progress = $this->processIntentMerging($stageData, $ideaData)) {
+        // 4) Merge similar intents
+        if ($progress = $this->processIntentMerging()) {
             return $progress;
         }
 
-        if ($progress = $this->processUniquenessChecks($ideaForge, $stageData, $ideaData)) {
+        // 5) Filter uniqueness
+        if ($progress = $this->processUniquenessChecks()) {
             return $progress;
         }
 
-        if ($progress = $this->processAudits($ideaForge, $stageData, $ideaData)) {
+        // 6) Audit surviving ideas.
+        if ($progress = $this->processAudits()) {
             return $progress;
         }
 
+        $ideaData = $this->getIdeaStageData();
         $ideaAuditReports = $ideaData->getAuditReports();
 
         if ($ideaData->getPickedReport() instanceof IdeaAuditReport) {
             return true;
         }
 
+        // 7) Persist picker output first, then finalize picked report on next run.
         if (! $ideaData->hasPickedReports()) {
             $ideaData->setPickedReports(
-                $ideaForge->getIdeaPicker()->pick($ideaAuditReports, $context, 1) ?? []
+                $this
+                    ->getIdeaForgeService()
+                    ->getIdeaPicker()
+                    ->pick($ideaAuditReports, $context, 1)
+                    ?? []
             );
-            $this->saveIdeaState($stageData, $ideaData);
+            $this->touchArticleQuietly();
 
             return null;
         }
@@ -86,29 +125,38 @@ trait HandleIdeaStage
         }
 
         $ideaData->setPickedReport($pickedReport);
-        $this->saveIdeaState($stageData, $ideaData);
-        $this->article->temporal = $pickedReport->getIdea()->getIntent()->getTemporal();
-        $this->article->save();
+        $this->touchArticleQuietly();
+        $this->article->temporal = $pickedReport
+            ->getIdea()
+            ->getIntent()
+            ->getTemporal();
+        $this->touchArticleQuietly();
 
         return true;
     }
 
-    protected function processSuggestionCollection(array $advisors, string $context, StageData $stageData, IdeaStageData $ideaData): ?bool
+    /**
+     * @param string $context
+     * @return bool|null
+     */
+    protected function processSuggestionCollection(string $context): ?bool
     {
-        foreach ($advisors as $position => $advisor) {
+        $stageData = $this->getStageData();
+        $ideaData = $stageData->getIdeaStageData();
+
+        foreach ($this->getIdeaAdvisors() as $advisor) {
             if (! $advisor instanceof IdeaAdvisor) {
                 return false;
             }
 
-            $advisorIdentifier = $this->resolveAdvisorIdentifier($advisor, $position);
-            $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier);
+            $advisorIdentifier = (string) $advisor->getIdentifier();
+            $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier, true);
             $this->attachAdvisorContext($advisor, $advisorData);
 
-            if ($this->processAdvisorTemporalSuggestions($advisor, $context, $stageData, $ideaData, $advisorData, $advisorIdentifier)) {
-                return null;
-            }
-
-            if ($this->processAdvisorIntentTypeSuggestions($advisor, $context, $stageData, $ideaData, $advisorData, $advisorIdentifier)) {
+            // Bound runtime: do a single external call per execution, persist, then return.
+            if ($this->processAdvisorTemporalSuggestions($advisor, $context)
+                or $this->processAdvisorIntentTypeSuggestions($advisor, $context)
+            ) {
                 return null;
             }
         }
@@ -125,82 +173,92 @@ trait HandleIdeaStage
 
     protected function processAdvisorTemporalSuggestions(
         IdeaAdvisor $advisor,
-        string $context,
-        StageData $stageData,
-        IdeaStageData $ideaData,
-        AdvisorData $advisorData,
-        string $advisorIdentifier
+        string $context
     ): bool {
-        if ($advisorData->getTemporalSuggestions() !== []) {
+        $stageData = $this->getStageData();
+        $ideaData = $stageData->getIdeaStageData();
+        $advisorIdentifier = (string) $advisor->getIdentifier();
+        $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier, true);
+
+        if ($advisorData->getTemporalSuggestions()) {
             return false;
         }
 
         $advisorData->setTemporalSuggestions(
             $advisor->suggestTemporal($this->client->id, $context)
         );
-        $this->saveAdvisorState($stageData, $ideaData, $advisorData, $advisorIdentifier);
+        $ideaData->setAdvisorDataByIdentifier($advisorIdentifier, $advisorData);
+        $this->touchArticleQuietly();
 
         return true;
     }
 
     protected function processAdvisorIntentTypeSuggestions(
         IdeaAdvisor $advisor,
-        string $context,
-        StageData $stageData,
-        IdeaStageData $ideaData,
-        AdvisorData $advisorData,
-        string $advisorIdentifier
+        string $context
     ): bool {
-        if ($advisorData->getIntentTypeSuggestions() !== []) {
+        $stageData = $this->getStageData();
+        $ideaData = $stageData->getIdeaStageData();
+        $advisorIdentifier = (string) $advisor->getIdentifier();
+        $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier, true);
+
+        if ($advisorData->getIntentTypeSuggestions()) {
             return false;
         }
 
         $advisorData->setIntentTypeSuggestions(
             $advisor->suggestIntentTypes($this->client->id, $context)
         );
-        $this->saveAdvisorState($stageData, $ideaData, $advisorData, $advisorIdentifier);
+        $ideaData->setAdvisorDataByIdentifier($advisorIdentifier, $advisorData);
+        $this->touchArticleQuietly();
 
         return true;
     }
 
-    protected function processTopSuggestionSelection(StageData $stageData, IdeaStageData $ideaData): ?bool
+    protected function processTopSuggestionSelection(): ?bool
     {
+        $ideaData = $this->getIdeaStageData();
+
         if ($ideaData->hasSelectedTemporalSuggestion()
             && $ideaData->hasSelectedIntentTypeSuggestion()
         ) {
             return true;
         }
 
-        if (! $this->selectTopSuggestions($stageData, $ideaData)) {
+        if (! $this->selectTopSuggestions()) {
             return false;
         }
 
         return null;
     }
 
-    protected function processBrainstormCollection(array $advisors, string $context, StageData $stageData, IdeaStageData $ideaData): ?bool
+    protected function processBrainstormCollection(string $context): ?bool
     {
+        $ideaData = $this->getIdeaStageData();
         $temporalSuggestion = $ideaData->getSelectedTemporalSuggestion();
         $intentTypeSuggestion = $ideaData->getSelectedIntentTypeSuggestion();
         if (! $temporalSuggestion || ! $intentTypeSuggestion) {
             return false;
         }
 
-        foreach ($advisors as $position => $advisor) {
+        foreach ($this->getIdeaAdvisors() as $advisor) {
             if (! $advisor instanceof IdeaAdvisor) {
                 return false;
             }
 
-            $advisorIdentifier = $this->resolveAdvisorIdentifier($advisor, $position);
-            $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier);
-            if ($advisorData->getIdeas() !== []) {
+            $advisorIdentifier = (string) $advisor->getIdentifier();
+            $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier, true);
+
+            // Skip if not empty
+            if ($advisorData->getIdeas()) {
                 continue;
             }
 
+            // Same checkpoint model for brainstorm calls.
             $advisorData->setIdeas(
                 $advisor->brainstorm([$temporalSuggestion], [$intentTypeSuggestion], $context, 5)
             );
-            $this->saveAdvisorState($stageData, $ideaData, $advisorData, $advisorIdentifier);
+            $this->touchArticleQuietly();
 
             return null;
         }
@@ -208,8 +266,9 @@ trait HandleIdeaStage
         return true;
     }
 
-    protected function processIntentMerging(StageData $stageData, IdeaStageData $ideaData): ?bool
+    protected function processIntentMerging(): ?bool
     {
+        $ideaData = $this->getIdeaStageData();
         $allIdeas = [];
         foreach ($ideaData->getAdvisorDataMap() as $advisorData) {
             $allIdeas = [...$allIdeas, ...$advisorData->getIdeas()];
@@ -231,6 +290,7 @@ trait HandleIdeaStage
             return false;
         }
 
+        // Try merging candidate with existing merged ideas before appending as new.
         if ($compareIndex < count($mergedIdeas)) {
             $mergedIdea = $mergedIdeas[$compareIndex];
             if (! $mergedIdea instanceof Idea) {
@@ -247,7 +307,7 @@ trait HandleIdeaStage
             } else {
                 $ideaData->setMergeCompareIndex($compareIndex + 1);
             }
-            $this->saveIdeaState($stageData, $ideaData);
+            $this->touchArticleQuietly();
             return null;
         }
 
@@ -255,13 +315,15 @@ trait HandleIdeaStage
         $ideaData->setMergedIdeas($mergedIdeas);
         $ideaData->setMergeCandidateIndex($candidateIndex + 1);
         $ideaData->setMergeCompareIndex(0);
-        $this->saveIdeaState($stageData, $ideaData);
+        $this->touchArticleQuietly();
 
         return null;
     }
 
-    protected function processUniquenessChecks(mixed $ideaForge, StageData $stageData, IdeaStageData $ideaData): ?bool
+    protected function processUniquenessChecks(): ?bool
     {
+        $ideaData = $this->getIdeaStageData();
+        $ideaForge = $this->getIdeaForgeService();
         $mergedIdeas = $ideaData->getMergedIdeas();
         if ($mergedIdeas === []) {
             return false;
@@ -277,6 +339,7 @@ trait HandleIdeaStage
             return false;
         }
 
+        // Only keep ideas that pass uniqueness screening.
         $uniqueness = $ideaForge->getIdeaAuditor()->isIdeaUnique($this->client->id, $idea);
         if ($uniqueness->getIsUnique() !== false) {
             $uniqueIdeas = $ideaData->getUniqueIdeas();
@@ -285,13 +348,15 @@ trait HandleIdeaStage
         }
 
         $ideaData->setUniquenessIndex($index + 1);
-        $this->saveIdeaState($stageData, $ideaData);
+        $this->touchArticleQuietly();
 
         return null;
     }
 
-    protected function processAudits(mixed $ideaForge, StageData $stageData, IdeaStageData $ideaData): ?bool
+    protected function processAudits(): ?bool
     {
+        $ideaData = $this->getIdeaStageData();
+        $ideaForge = $this->getIdeaForgeService();
         $uniqueIdeas = $ideaData->getUniqueIdeas();
         if ($uniqueIdeas === []) {
             return false;
@@ -307,17 +372,19 @@ trait HandleIdeaStage
             return false;
         }
 
+        // Audit is done after uniqueness filtering to avoid unnecessary scoring.
         $auditReports = $ideaData->getAuditReports();
         $auditReports[] = $ideaForge->getIdeaAuditor()->audit($idea);
         $ideaData->setAuditReports($auditReports);
         $ideaData->setAuditIndex($index + 1);
-        $this->saveIdeaState($stageData, $ideaData);
+        $this->touchArticleQuietly();
 
         return null;
     }
 
-    protected function selectTopSuggestions(StageData $stageData, IdeaStageData $ideaData): bool
+    protected function selectTopSuggestions(): bool
     {
+        $ideaData = $this->getIdeaStageData();
         [$allTemporalSuggestions, $allIntentTypeSuggestions] = $this->collectAllSuggestions($ideaData);
 
         $selectedTemporalSuggestion = collect($allTemporalSuggestions)
@@ -335,7 +402,7 @@ trait HandleIdeaStage
 
         $ideaData->setSelectedTemporalSuggestion($selectedTemporalSuggestion);
         $ideaData->setSelectedIntentTypeSuggestion($selectedIntentTypeSuggestion);
-        $this->saveIdeaState($stageData, $ideaData);
+        $this->touchArticleQuietly();
 
         return true;
     }
@@ -353,48 +420,37 @@ trait HandleIdeaStage
         return [$allTemporalSuggestions, $allIntentTypeSuggestions];
     }
 
+    protected function getIdeaStageData(): IdeaStageData
+    {
+        return $this->getStageData()->getIdeaStageData();
+    }
+
+    /** @return IdeaAdvisor[] */
+    protected function getIdeaAdvisors(): array
+    {
+        if (is_array($this->resolvedIdeaAdvisors)) {
+            return $this->resolvedIdeaAdvisors;
+        }
+
+        $this->resolvedIdeaAdvisors = array_values($this->getIdeaForgeService()->getIdeaAdvisors());
+
+        return $this->resolvedIdeaAdvisors;
+    }
+
+    protected function getIdeaForgeService(): IdeaForge
+    {
+        return $this->resolvedIdeaForge ??= Synthesizer::getIdeaForge();
+    }
+
     protected function getStageData(): StageData
     {
         if ($this->article->stage_data instanceof StageData) {
             return $this->article->stage_data;
         }
 
-        return StageData::fromArray([]);
+        $this->article->stage_data = StageData::fromArray([]);
+
+        return $this->article->stage_data;
     }
 
-    protected function getIdeaData(StageData $stageData): IdeaStageData
-    {
-        return $stageData->getIdeaStageData();
-    }
-
-    protected function saveAdvisorState(
-        StageData $stageData,
-        IdeaStageData $ideaData,
-        AdvisorData $advisorData,
-        string $advisorIdentifier
-    ): void {
-        $ideaData->setAdvisorDataByIdentifier($advisorIdentifier, $advisorData);
-        $this->saveIdeaState($stageData, $ideaData);
-    }
-
-    protected function resolveAdvisorIdentifier(IdeaAdvisor $advisor, int $position): string
-    {
-        $identifier = $advisor->getIdentifier();
-        if (! is_string($identifier) || trim($identifier) === '') {
-            throw new \RuntimeException(sprintf(
-                'Idea advisor at position %d (%s) is missing required identifier.',
-                $position,
-                $advisor::class
-            ));
-        }
-
-        return $identifier;
-    }
-
-    protected function saveIdeaState(StageData $stageData, IdeaStageData $ideaData): void
-    {
-        $stageData->setIdeaStageData($ideaData);
-        $this->article->stage_data = $stageData;
-        $this->article->save();
-    }
 }

@@ -24,9 +24,9 @@ trait HandleBriefStage
         $stageData = $article->stage_data instanceof StageData
             ? $article->stage_data
             : StageData::fromArray([]);
-        $stageData->setBrief($brief->toArray());
         $article->stage_data = $stageData;
-        $article->save();
+        $stageData->setBrief($brief->toArray());
+        $this->touchArticleQuietly();
 
         return true;
     }

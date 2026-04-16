@@ -23,9 +23,9 @@ trait HandleOutlineStage
         $stageData = $article->stage_data instanceof StageData
             ? $article->stage_data
             : StageData::fromArray([]);
-        $stageData->setOutline($outline->toArray());
         $article->stage_data = $stageData;
-        $article->save();
+        $stageData->setOutline($outline->toArray());
+        $this->touchArticleQuietly();
 
         return true;
     }

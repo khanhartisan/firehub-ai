@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Contracts\Model\Article\StageData;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
@@ -202,6 +203,20 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         $this->article->attempts = (int) ($this->article->attempts ?? 0) + 1;
         $this->article->error_logs = $logs;
+        $this->article->saveQuietly();
+    }
+
+    protected function touchArticleQuietly(?StageData $stageData = null): void
+    {
+        if (! $this->article) {
+            return;
+        }
+
+        $this->article->stage_data = $stageData instanceof StageData
+            ? $stageData
+            : ($this->article->stage_data instanceof StageData ? $this->article->stage_data : StageData::fromArray([]));
+
+        $this->article->updated_at = now();
         $this->article->saveQuietly();
     }
 }

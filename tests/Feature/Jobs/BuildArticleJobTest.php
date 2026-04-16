@@ -53,7 +53,7 @@ class BuildArticleJobTest extends TestCase
     {
         Bus::fake();
 
-        $client = $this->makeClient('Client context');
+        $client = $this->makeClient('');
         $article = $this->makeArticle($client, '');
 
         (new BuildArticleJob($client, $article->id))->handle();
@@ -108,6 +108,59 @@ class BuildArticleJobTest extends TestCase
         $this->assertArrayNotHasKey('brief', $stageData);
 
         Bus::assertDispatchedTimes(BuildArticleJob::class, 1);
+    }
+
+    public function test_persists_newly_initialized_advisor_data_on_first_idea_checkpoint(): void
+    {
+        Bus::fake();
+
+        $client = $this->makeClient('Client context');
+        $article = $this->makeArticle($client, 'Build me an article from this context.');
+
+        (new BuildArticleJob($client, $article->id))->handle();
+
+        $article->refresh();
+        $this->assertInstanceOf(StageData::class, $article->stage_data);
+
+        $advisors = data_get($article->stage_data->toArray(), 'idea.advisors', []);
+        $this->assertNotEmpty($advisors);
+        $firstAdvisor = collect($advisors)->first();
+        $this->assertIsArray($firstAdvisor);
+        $this->assertArrayHasKey('advisor_description', $firstAdvisor);
+        $this->assertIsString($firstAdvisor['advisor_description']);
+        $this->assertNotSame('', trim($firstAdvisor['advisor_description']));
+    }
+
+    public function test_persists_idea_stage_data_consistently_across_reloads(): void
+    {
+        Bus::fake();
+
+        $client = $this->makeClient('Client context');
+        $article = $this->makeArticle($client, 'Build me an article from this context.');
+
+        for ($i = 0; $i < 25; $i++) {
+            (new BuildArticleJob($client, $article->id))->handle();
+            $article->refresh();
+
+            $this->assertInstanceOf(StageData::class, $article->stage_data);
+            $reloaded = Article::query()->findOrFail($article->id);
+            $this->assertInstanceOf(StageData::class, $reloaded->stage_data);
+            $this->assertSame($article->stage_data->toArray(), $reloaded->stage_data->toArray());
+
+            $advisors = data_get($article->stage_data->toArray(), 'idea.advisors', []);
+            foreach ($advisors as $advisorData) {
+                if (! is_array($advisorData)) {
+                    continue;
+                }
+
+                $this->assertIsString($advisorData['advisor_description'] ?? null);
+                $this->assertNotSame('', trim((string) ($advisorData['advisor_description'] ?? '')));
+            }
+
+            if ($article->stage !== ArticleStage::IDEA) {
+                break;
+            }
+        }
     }
 
     public function test_retries_and_logs_error_when_exception_happens(): void

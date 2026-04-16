@@ -25,13 +25,13 @@ trait HandleDraftStage
         $stageData = $article->stage_data instanceof StageData
             ? $article->stage_data
             : StageData::fromArray([]);
+        $article->stage_data = $stageData;
         $stageData->setDraft($draft->toArray());
 
-        $article->stage_data = $stageData;
         $article->title = $draft->getTitle();
         $article->excerpt = $draft->getExcerpt();
         $article->body_markdown = $draft->getBodyMarkdown();
-        $article->save();
+        $this->touchArticleQuietly();
 
         return true;
     }

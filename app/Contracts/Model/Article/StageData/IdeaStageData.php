@@ -43,9 +43,13 @@ final class IdeaStageData implements \App\Contracts\Serializable
         return $this->advisorDataByIdentifier;
     }
 
-    public function getAdvisorDataByIdentifier(string $identifier): AdvisorData
+    public function getAdvisorDataByIdentifier(string $identifier, bool $autoCreate = false): ?AdvisorData
     {
-        return $this->advisorDataByIdentifier[$identifier] ?? new AdvisorData;
+        if ($autoCreate) {
+            return $this->advisorDataByIdentifier[$identifier] ??= new AdvisorData();
+        }
+
+        return $this->advisorDataByIdentifier[$identifier] ?? null;
     }
 
     public function setAdvisorDataByIdentifier(string $identifier, AdvisorData $advisorData): static

@@ -104,11 +104,11 @@ trait HandleIdeaStage
         $ideaAuditReports = $ideaData->getIdeaAuditReports();
 
         // Resume path: we already persisted the final choice on a previous run.
-        if ($ideaData->getPickedReport() instanceof IdeaAuditReport) {
+        if ($ideaData->getPickedIdeaAuditReport() instanceof IdeaAuditReport) {
             return true;
         }
 
-        // 7) Two-step picker: first call stores candidates; next run attaches picked_report + article.temporal.
+        // 7) Two-step picker: first call stores candidates; next run attaches picked_idea_audit_report + article.temporal.
         if (! $ideaData->hasPickedReports()) {
             // Ask forge for up to one audit winner; empty means cannot continue the pipeline.
             $pickedReports = $this
@@ -139,7 +139,7 @@ trait HandleIdeaStage
             return false;
         }
 
-        $ideaData->setPickedReport($pickedReport);
+        $ideaData->setPickedIdeaAuditReport($pickedReport);
         $this->touchArticleQuietly();
         // Denormalize temporal onto Article for downstream stages / queries.
         $this->article->temporal = $pickedReport

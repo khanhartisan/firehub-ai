@@ -23,7 +23,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
     /** @var IdeaAuditReport[] */
     protected array $pickedReports = [];
 
-    protected ?IdeaAuditReport $pickedReport = null;
+    protected ?IdeaAuditReport $pickedIdeaAuditReport = null;
 
     /** @var Idea[] */
     protected array $ideas = [];
@@ -119,21 +119,21 @@ final class IdeaStageData implements \App\Contracts\Serializable
         return $this;
     }
 
-    public function getPickedReport(): ?IdeaAuditReport
+    public function getPickedIdeaAuditReport(): ?IdeaAuditReport
     {
-        return $this->pickedReport;
+        return $this->pickedIdeaAuditReport;
     }
 
-    public function setPickedReport(?IdeaAuditReport $pickedReport): static
+    public function setPickedIdeaAuditReport(?IdeaAuditReport $pickedIdeaAuditReport): static
     {
-        $this->pickedReport = $pickedReport;
+        $this->pickedIdeaAuditReport = $pickedIdeaAuditReport;
 
         return $this;
     }
 
-    public function getPickedReportIdea(): ?Idea
+    public function getPickedIdea(): ?Idea
     {
-        $picked = $this->getPickedReport();
+        $picked = $this->getPickedIdeaAuditReport();
         if ($picked !== null) {
             return $picked->getIdea();
         }
@@ -410,7 +410,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
             'selected_temporal_suggestion' => $this->getSelectedTemporalSuggestion()?->toArray(),
             'selected_intent_type_suggestion' => $this->getSelectedIntentTypeSuggestion()?->toArray(),
             'picked_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->getPickedReports()),
-            'picked_report' => $this->getPickedReport()?->toArray(),
+            'picked_idea_audit_report' => $this->getPickedIdeaAuditReport()?->toArray(),
             'ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->getIdeas()),
             'unique_idea_identifier_pairs' => $this->getUniqueIdeaIdentifierPairs(),
             'idea_uniqueness_reports' => array_map(
@@ -456,8 +456,14 @@ final class IdeaStageData implements \App\Contracts\Serializable
             ));
         }
 
-        if (isset($data['picked_report']) && is_array($data['picked_report'])) {
-            $dto->setPickedReport(IdeaAuditReport::fromArray($data['picked_report']));
+        $pickedIdeaAuditReportPayload = null;
+        if (isset($data['picked_idea_audit_report']) && is_array($data['picked_idea_audit_report'])) {
+            $pickedIdeaAuditReportPayload = $data['picked_idea_audit_report'];
+        } elseif (isset($data['picked_report']) && is_array($data['picked_report'])) {
+            $pickedIdeaAuditReportPayload = $data['picked_report'];
+        }
+        if ($pickedIdeaAuditReportPayload !== null) {
+            $dto->setPickedIdeaAuditReport(IdeaAuditReport::fromArray($pickedIdeaAuditReportPayload));
         }
 
         if (isset($data['ideas']) && is_array($data['ideas'])) {

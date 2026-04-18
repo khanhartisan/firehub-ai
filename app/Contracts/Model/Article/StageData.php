@@ -96,9 +96,9 @@ final class StageData implements \App\Contracts\Serializable
         return $this;
     }
 
-    public function getPickedReportIdea(): ?\App\Contracts\Synthesizer\IdeaForge\Idea
+    public function getPickedIdea(): ?\App\Contracts\Synthesizer\IdeaForge\Idea
     {
-        return $this->getIdeaStageData()->getPickedReportIdea();
+        return $this->getIdeaStageData()->getPickedIdea();
     }
 
     protected function hydrateFromArray(array $data): void

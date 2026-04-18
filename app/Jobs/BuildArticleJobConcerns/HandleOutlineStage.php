@@ -24,9 +24,7 @@ trait HandleOutlineStage
             ->getOutlineBuilder()
             ->outline($brief, null);
 
-        $stageData = $this->getStageData();
-        $article->stage_data = $stageData;
-        $stageData->setOutline($outline->toArray());
+        $this->getStageData()->setOutline($outline->toArray());
         $this->touchArticleQuietly();
 
         return true;

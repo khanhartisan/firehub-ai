@@ -26,9 +26,7 @@ trait HandleDraftStage
             ->getAuthor()
             ->draft($brief, $outline);
 
-        $stageData = $this->getStageData();
-        $article->stage_data = $stageData;
-        $stageData->setDraft($draft->toArray());
+        $this->getStageData()->setDraft($draft->toArray());
 
         $article->title = $draft->getTitle();
         $article->excerpt = $draft->getExcerpt();

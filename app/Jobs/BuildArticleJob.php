@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Contracts\Model\Article\StageData;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
@@ -30,7 +29,8 @@ use Illuminate\Support\Facades\Cache;
  * - Marks the row PROCESSING, calls the handler for the current {@see ArticleStage}, then
  *   interprets the result (see below).
  * - Stage implementations live in traits (HandleIdeaStage, HandleBriefStage, …). They persist
- *   progress in {@see Article::$stage_data} via {@see static::touchArticleQuietly()}.
+ *   progress by mutating the {@see StageData} tree from {@see InteractsWithArticleStageData::getStageData()}
+ *   (same object as {@see Article::$stage_data}), then {@see static::touchArticleQuietly()}.
  *   Shared accessors: {@see InteractsWithArticleStageData}, {@see InteractsWithSynthesizer}.
  *
  * Stage handler return value (and thus {@see runCurrentStage()}):
@@ -246,21 +246,14 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     /**
      * Persists {@see Article::$stage_data} without touching status/stage columns.
-     * Traits assign nested DTOs on {@see $this->article->stage_data} then call this so
-     * checkpoints survive between job runs.
+     * Callers mutate the DTO graph from {@see InteractsWithArticleStageData::getStageData()} (no reassignment).
      */
-    protected function touchArticleQuietly(?StageData $stageData = null): void
+    protected function touchArticleQuietly(): void
     {
         if (! $this->article) {
             return;
         }
 
-        // Optional replace when callers build a new StageData root in one shot.
-        if ($stageData) {
-            $this->article->stage_data = $stageData;
-        }
-
-        // saveQuietly: traits already mutated nested DTOs; avoid firing model events that might recurse.
         $this->article->updated_at = now();
         $this->article->saveQuietly();
     }

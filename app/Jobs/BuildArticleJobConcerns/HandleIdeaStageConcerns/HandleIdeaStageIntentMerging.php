@@ -24,7 +24,6 @@ trait HandleIdeaStageIntentMerging
         foreach ($ideaData->getAdvisorDataMap() as $advisorData) {
             $allIdeas = [...$allIdeas, ...$advisorData->getIdeas()];
         }
-        $allIdeas = array_values(array_filter($allIdeas, static fn ($idea): bool => $idea instanceof Idea));
 
         if ($allIdeas === []) {
             return false;
@@ -124,10 +123,6 @@ trait HandleIdeaStageIntentMerging
     {
         $ideaMap = [];
         foreach ($ideas as $idea) {
-            if (! $idea instanceof Idea) {
-                continue;
-            }
-
             $identifier = trim((string) $idea->getIdentifier());
             if ($identifier === '') {
                 continue;

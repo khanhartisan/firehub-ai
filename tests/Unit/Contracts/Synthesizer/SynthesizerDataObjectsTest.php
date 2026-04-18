@@ -117,17 +117,20 @@ class SynthesizerDataObjectsTest extends TestCase
 
         $report = (new IdeaUniquenessReport)
             ->setClientId('client-1')
+            ->setIdeaIdentifier('idea-xyz')
             ->setIsUnique(false)
             ->setSimilarity(0.88)
             ->setSimilarArticles([$article]);
 
         $this->assertSame('client-1', $report->getClientId());
+        $this->assertSame('idea-xyz', $report->getIdeaIdentifier());
         $this->assertFalse($report->getIsUnique());
         $this->assertSame(0.88, $report->getSimilarity());
         $this->assertCount(1, $report->getSimilarArticles());
 
         $payload = $report->toArray();
         $this->assertSame('client-1', $payload['client_id']);
+        $this->assertSame('idea-xyz', $payload['idea_identifier']);
         $this->assertFalse($payload['is_unique']);
         $this->assertSame(0.88, $payload['similarity']);
         $this->assertCount(1, $payload['similar_articles']);

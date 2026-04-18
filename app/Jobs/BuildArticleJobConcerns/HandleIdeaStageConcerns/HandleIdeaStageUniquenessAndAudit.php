@@ -2,56 +2,59 @@
 
 namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 
-use App\Contracts\Synthesizer\IdeaForge\Idea;
-
 /**
- * Filters merged ideas for uniqueness, then builds audit reports. Batched (max 20 per run per loop)
- * so long lists do not block a single job forever.
+ * Filters merged ideas for uniqueness, then builds audit reports for survivors.
+ *
+ * Uniqueness progress is stored as a list in {@see \App\Contracts\Model\Article\StageData\IdeaStageData::getIdeaUniquenessReports()};
+ * each {@see \App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport} carries the idea id via {@see \App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport::getIdeaIdentifier()}. Pending ideas each get {@see \App\Contracts\Synthesizer\IdeaForge\IdeaAuditor::isIdeaUnique()} (the basic driver loads comparison articles once per client per auditor instance), then persists (audit uses its own pass).
  */
 trait HandleIdeaStageUniquenessAndAudit
 {
     /**
-     * @return ?true when every current idea has been uniqueness-checked; null if more batches remain.
+     * @return ?true when every current idea has been uniqueness-checked; false when there are no ideas to check.
+     * @throws \Exception
      */
     protected function processUniquenessChecks(): ?bool
     {
         $ideaData = $this->getIdeaStageData();
         $ideaForge = $this->getIdeaForgeService();
-        $ideas = $ideaData->getIdeas();
-        if ($ideas === []) {
+        if ($ideaData->getIdeas() === []) {
             return false;
         }
 
-        // Resume from last index; batch so one job does not scan thousands of ideas.
-        $index = $ideaData->getUniquenessIndex();
-        $remainingChecks = 20;
+        $auditor = $ideaForge->getIdeaAuditor();
+        $performedUniquenessCheck = false;
 
-        while ($remainingChecks > 0 && $index < count($ideas)) {
-            $idea = $ideas[$index];
-            if (! $idea instanceof Idea) {
-                return false;
+        foreach ($ideaData->getIdeas() as $idea) {
+
+            if ($ideaData->getIdeaUniquenessReport($idea->getIdentifier())) {
+                continue;
             }
 
-            // Remove idea in place if it fails uniqueness; keep index on same slot.
-            $uniqueness = $ideaForge->getIdeaAuditor()->isIdeaUnique($this->client->id, $idea);
-            if ($uniqueness->getIsUnique() === false) {
-                array_splice($ideas, $index, 1);
-            } else {
-                $index++;
+            // Perform uniqueness check
+            $performedUniquenessCheck = true;
+            $uniquenessReport = $auditor->isIdeaUnique($this->client->id, $idea);
+            if (!$uniquenessReport->getIdeaIdentifier()) {
+                $uniquenessReport->setIdeaIdentifier($idea->getIdentifier());
             }
-            $remainingChecks--;
+
+            // Remove the idea if it's not unique
+            if (!$uniquenessReport->getIsUnique()) {
+                $ideaData->removeIdeaByIdentifier($idea->getIdentifier());
+                break;
+            }
+
+            // otherwise add the uniqueness report
+            $ideaData->addIdeaUniquenessReport($uniquenessReport);
         }
 
-        $ideaData->setIdeas($ideas);
-        $ideaData->setUniquenessIndex($index);
         $this->touchArticleQuietly();
 
-        // Index reached end of list: all remaining ideas kept; otherwise come back for more batches.
-        return $index >= count($ideas) ? true : null;
+        return $performedUniquenessCheck ? null : true;
     }
 
     /**
-     * @return ?true when every surviving idea has an audit row; null if more batches remain.
+     * @return ?true when every surviving idea has an audit row; false when there are no ideas.
      */
     protected function processAudits(): ?bool
     {
@@ -64,25 +67,19 @@ trait HandleIdeaStageUniquenessAndAudit
 
         $index = $ideaData->getAuditIndex();
         $auditReports = $ideaData->getAuditReports();
-        $remainingAudits = 20;
 
-        // Append-only audit list aligned by order with ideas (same batching as uniqueness).
-        while ($remainingAudits > 0 && $index < count($ideas)) {
+        while ($index < count($ideas)) {
             $idea = $ideas[$index];
-            if (! $idea instanceof Idea) {
-                return false;
-            }
 
             // Audit is done after uniqueness filtering to avoid unnecessary scoring.
             $auditReports[] = $ideaForge->getIdeaAuditor()->audit($idea);
             $index++;
-            $remainingAudits--;
         }
 
         $ideaData->setAuditReports($auditReports);
         $ideaData->setAuditIndex($index);
         $this->touchArticleQuietly();
 
-        return $index >= count($ideas) ? true : null;
+        return true;
     }
 }

@@ -11,6 +11,9 @@ final class IdeaUniquenessReport implements Serializable
 
     protected ?string $clientId = null;
 
+    /** Which {@see Idea} this report refers to (same as {@see Idea::getIdentifier()}). */
+    protected ?string $ideaIdentifier = null;
+
     protected ?bool $isUnique = null;
 
     protected ?float $similarity = null;
@@ -28,6 +31,21 @@ final class IdeaUniquenessReport implements Serializable
     public function setClientId(string $clientId): static
     {
         $this->clientId = $clientId;
+
+        return $this;
+    }
+
+    public function getIdeaIdentifier(): ?string
+    {
+        return $this->ideaIdentifier;
+    }
+
+    public function setIdeaIdentifier(?string $ideaIdentifier): static
+    {
+        $this->ideaIdentifier = $ideaIdentifier !== null ? trim($ideaIdentifier) : null;
+        if ($this->ideaIdentifier === '') {
+            $this->ideaIdentifier = null;
+        }
 
         return $this;
     }
@@ -78,6 +96,7 @@ final class IdeaUniquenessReport implements Serializable
     {
         return [
             'client_id' => $this->getClientId(),
+            'idea_identifier' => $this->getIdeaIdentifier(),
             'is_unique' => $this->getIsUnique(),
             'similarity' => $this->getSimilarity(),
             'similar_articles' => array_map(static fn (Article $article) => $article->toArray(), $this->getSimilarArticles()),
@@ -92,6 +111,10 @@ final class IdeaUniquenessReport implements Serializable
             $report->setClientId((string) $data['client_id']);
         } else {
             throw new \Exception('client_id must be set');
+        }
+
+        if (array_key_exists('idea_identifier', $data) && $data['idea_identifier'] !== null && $data['idea_identifier'] !== '') {
+            $report->setIdeaIdentifier((string) $data['idea_identifier']);
         }
 
         if (array_key_exists('is_unique', $data)) {

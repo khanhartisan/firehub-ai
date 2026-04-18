@@ -455,7 +455,6 @@ class BuildArticleJobTest extends TestCase
         $ideaData = $stageData->getIdeaStageData();
         $ideaData->setIdeas($ideas);
         $ideaData->setUniqueIdeaIdentifierPairs([]);
-        $ideaData->setUniquenessIndex(0);
 
         $advisorData = new AdvisorData;
         $advisorData->setIdeas($ideas);

@@ -6,6 +6,7 @@ use App\Concerns\Serializable;
 use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
+use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 
@@ -30,7 +31,13 @@ final class IdeaStageData implements \App\Contracts\Serializable
     /** @var array<int, array{0: string, 1: string}> */
     protected array $uniqueIdeaIdentifierPairs = [];
 
-    protected int $uniquenessIndex = 0;
+    /**
+     * One report per checked idea; {@see IdeaUniquenessReport::getIdeaIdentifier()} links to {@see Idea::getIdentifier()}.
+     * An idea with no matching report is still pending uniqueness.
+     *
+     * @var list<IdeaUniquenessReport>
+     */
+    protected array $ideaUniquenessReports = [];
 
     /** @var IdeaAuditReport[] */
     protected array $auditReports = [];
@@ -48,7 +55,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
             return $this->advisorDataByIdentifier[$identifier] ??= new AdvisorData();
         }
 
-        return $this->advisorDataByIdentifier[$identifier] ?? null;
+        return $this->getAdvisorDataMap()[$identifier] ?? null;
     }
 
     public function setAdvisorDataByIdentifier(string $identifier, AdvisorData $advisorData): static
@@ -60,7 +67,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
 
     public function hasSelectedTemporalSuggestion(): bool
     {
-        return $this->selectedTemporalSuggestion instanceof TemporalSuggestion;
+        return $this->getSelectedTemporalSuggestion() instanceof TemporalSuggestion;
     }
 
     public function getSelectedTemporalSuggestion(): ?TemporalSuggestion
@@ -77,7 +84,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
 
     public function hasSelectedIntentTypeSuggestion(): bool
     {
-        return $this->selectedIntentTypeSuggestion instanceof IntentTypeSuggestion;
+        return $this->getSelectedIntentTypeSuggestion() instanceof IntentTypeSuggestion;
     }
 
     public function getSelectedIntentTypeSuggestion(): ?IntentTypeSuggestion
@@ -100,7 +107,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
 
     public function hasPickedReports(): bool
     {
-        return $this->pickedReports !== [];
+        return $this->getPickedReports() !== [];
     }
 
     public function setPickedReports(array $pickedReports): static
@@ -127,11 +134,14 @@ final class IdeaStageData implements \App\Contracts\Serializable
 
     public function getPickedReportIdea(): ?Idea
     {
-        if ($this->pickedReport instanceof IdeaAuditReport) {
-            return $this->pickedReport->getIdea();
+        $picked = $this->getPickedReport();
+        if ($picked !== null) {
+            return $picked->getIdea();
         }
 
-        return $this->pickedReports[0]->getIdea() ?? null;
+        $reports = $this->getPickedReports();
+
+        return $reports[0]->getIdea() ?? null;
     }
 
     /** @return Idea[] */
@@ -140,9 +150,72 @@ final class IdeaStageData implements \App\Contracts\Serializable
         return $this->ideas;
     }
 
-    public function setIdeas(array $ideas): static
+    /**
+     * Appends an idea when its trimmed identifier is non-empty and not already present (first wins).
+     */
+    public function addIdea(Idea $idea): static
     {
-        $this->ideas = array_values(array_filter($ideas, static fn ($v): bool => $v instanceof Idea));
+        $id = trim((string) $idea->getIdentifier());
+        if ($id === '') {
+            return $this;
+        }
+
+        if ($this->getIdeaByIdentifier($id) !== null) {
+            return $this;
+        }
+
+        $this->ideas[] = $idea;
+
+        return $this;
+    }
+
+    /**
+     * Replaces the list, reusing {@see addIdea()} so the same validation and de-duplication apply.
+     *
+     * @param  iterable<Idea>  $ideas
+     */
+    public function setIdeas(iterable $ideas): static
+    {
+        $this->ideas = [];
+        foreach ($ideas as $idea) {
+            if (! $idea instanceof Idea) {
+                continue;
+            }
+
+            $this->addIdea($idea);
+        }
+
+        return $this;
+    }
+
+    public function getIdeaByIdentifier(string $identifier): ?Idea
+    {
+        $key = trim($identifier);
+        if ($key === '') {
+            return null;
+        }
+
+        foreach ($this->getIdeas() as $idea) {
+            if (trim((string) $idea->getIdentifier()) === $key) {
+                return $idea;
+            }
+        }
+
+        return null;
+    }
+
+    public function removeIdeaByIdentifier(string $identifier): static
+    {
+        $key = trim($identifier);
+        if ($key === '') {
+            return $this;
+        }
+
+        $this->ideas = array_values(array_filter(
+            $this->getIdeas(),
+            static fn (Idea $idea): bool => trim((string) $idea->getIdentifier()) !== $key
+        ));
+
         return $this;
     }
 
@@ -188,15 +261,81 @@ final class IdeaStageData implements \App\Contracts\Serializable
         return $this;
     }
 
-    public function getUniquenessIndex(): int
+    /**
+     * Reports whose {@see IdeaUniquenessReport::getIdeaIdentifier()} matches a current {@see Idea} only.
+     * Stale rows may remain in internal storage until overwritten; they are never exposed here or in {@see toArray()}.
+     *
+     * @return list<IdeaUniquenessReport>
+     */
+    public function getIdeaUniquenessReports(): array
     {
-        return max(0, $this->uniquenessIndex);
+        return array_values(array_filter(
+            $this->ideaUniquenessReports,
+            function (IdeaUniquenessReport $report): bool {
+                if (!$id = trim((string) $report->getIdeaIdentifier())) {
+                    return false;
+                }
+                return !!$this->getIdeaByIdentifier($id);
+            }
+        ));
     }
 
-    public function setUniquenessIndex(int $index): static
+    /**
+     * Inserts or replaces the report for {@see IdeaUniquenessReport::getIdeaIdentifier()} when that id exists
+     * on some {@see Idea} in {@see $ideas}; otherwise no-op. Empty identifiers are ignored.
+     */
+    public function addIdeaUniquenessReport(IdeaUniquenessReport $report): static
     {
-        $this->uniquenessIndex = max(0, $index);
+        if (!$id = trim((string) $report->getIdeaIdentifier())) {
+            throw new \Exception('Idea identifier was not set, cannot add IdeaUniquenessReport');
+        }
+
+        if (!$this->getIdeaByIdentifier($id)) {
+            throw new \Exception('Idea not found, cannot add IdeaUniquenessReport');
+        }
+
+        foreach ($this->ideaUniquenessReports as $index => $existing) {
+            if (trim((string) $existing->getIdeaIdentifier()) === $id) {
+                $this->ideaUniquenessReports[$index] = $report;
+
+                return $this;
+            }
+        }
+
+        $this->ideaUniquenessReports[] = $report;
+
         return $this;
+    }
+
+    /**
+     * Replaces the whole list; later items with the same idea id win (via {@see addIdeaUniquenessReport()}).
+     *
+     * @param iterable<IdeaUniquenessReport> $reports
+     * @throws \Exception
+     */
+    public function setIdeaUniquenessReports(iterable $reports): static
+    {
+        $this->ideaUniquenessReports = [];
+        foreach ($reports as $report) {
+            if (! $report instanceof IdeaUniquenessReport) {
+                continue;
+            }
+
+            $this->addIdeaUniquenessReport($report);
+        }
+
+        return $this;
+    }
+
+    public function getIdeaUniquenessReport(string $ideaIdentifier): ?IdeaUniquenessReport
+    {
+        $key = trim($ideaIdentifier);
+        if ($key === '') {
+            return null;
+        }
+
+        return array_find($this->getIdeaUniquenessReports(), fn($report) => trim((string)$report->getIdeaIdentifier()) === $key);
+
     }
 
     /** @return IdeaAuditReport[] */
@@ -225,15 +364,18 @@ final class IdeaStageData implements \App\Contracts\Serializable
     public function toArray(): array
     {
         return [
-            'advisors' => array_map(static fn (AdvisorData $v) => $v->toArray(), $this->advisorDataByIdentifier),
-            'selected_temporal_suggestion' => $this->selectedTemporalSuggestion?->toArray(),
-            'selected_intent_type_suggestion' => $this->selectedIntentTypeSuggestion?->toArray(),
-            'picked_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->pickedReports),
-            'picked_report' => $this->pickedReport?->toArray(),
-            'ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->ideas),
+            'advisors' => array_map(static fn (AdvisorData $v) => $v->toArray(), $this->getAdvisorDataMap()),
+            'selected_temporal_suggestion' => $this->getSelectedTemporalSuggestion()?->toArray(),
+            'selected_intent_type_suggestion' => $this->getSelectedIntentTypeSuggestion()?->toArray(),
+            'picked_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->getPickedReports()),
+            'picked_report' => $this->getPickedReport()?->toArray(),
+            'ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->getIdeas()),
             'unique_idea_identifier_pairs' => $this->getUniqueIdeaIdentifierPairs(),
-            'uniqueness_index' => $this->getUniquenessIndex(),
-            'audit_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->auditReports),
+            'idea_uniqueness_reports' => array_map(
+                static fn (IdeaUniquenessReport $v) => $v->toArray(),
+                $this->getIdeaUniquenessReports()
+            ),
+            'audit_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->getAuditReports()),
             'audit_index' => $this->getAuditIndex(),
         ];
     }
@@ -244,17 +386,14 @@ final class IdeaStageData implements \App\Contracts\Serializable
 
         if (isset($data['advisors']) && is_array($data['advisors'])) {
             foreach ($data['advisors'] as $identifier => $advisorData) {
-                if (is_string($identifier) && is_array($advisorData)) {
-                    $dto->setAdvisorDataByIdentifier($identifier, AdvisorData::fromArray($advisorData));
+                if (! is_array($advisorData)) {
+                    continue;
                 }
-            }
 
-            // Backward compatibility for older list-based stage data.
-            foreach (array_values(array_filter($data['advisors'], 'is_array')) as $index => $advisorData) {
-                $legacyIdentifier = sprintf('legacy#%d', $index);
-                if (! isset($dto->advisorDataByIdentifier[$legacyIdentifier])) {
-                    $dto->setAdvisorDataByIdentifier($legacyIdentifier, AdvisorData::fromArray($advisorData));
-                }
+                $key = is_string($identifier)
+                    ? $identifier
+                    : sprintf('legacy#%d', (int) $identifier);
+                $dto->setAdvisorDataByIdentifier($key, AdvisorData::fromArray($advisorData));
             }
         }
 
@@ -282,27 +421,36 @@ final class IdeaStageData implements \App\Contracts\Serializable
                 static fn (array $v): Idea => Idea::fromArray($v),
                 array_values(array_filter($data['ideas'], 'is_array'))
             ));
-        } elseif (isset($data['merged_ideas']) && is_array($data['merged_ideas'])) {
-            $dto->setIdeas(array_map(
-                static fn (array $v): Idea => Idea::fromArray($v),
-                array_values(array_filter($data['merged_ideas'], 'is_array'))
-            ));
-        } elseif (isset($data['unique_ideas']) && is_array($data['unique_ideas'])) {
-            $dto->setIdeas(array_map(
-                static fn (array $v): Idea => Idea::fromArray($v),
-                array_values(array_filter($data['unique_ideas'], 'is_array'))
-            ));
         }
 
         if (isset($data['unique_idea_identifier_pairs']) && is_array($data['unique_idea_identifier_pairs'])) {
             $dto->setUniqueIdeaIdentifierPairs($data['unique_idea_identifier_pairs']);
-        } elseif (isset($data['unique_pairs']) && is_array($data['unique_pairs'])) {
-            $dto->setUniqueIdeaIdentifierPairs($data['unique_pairs']);
-        } elseif (isset($data['pending_merge_pairs']) && is_array($data['pending_merge_pairs'])) {
-            // Backward compatibility from earlier pending queue format.
-            $dto->setUniqueIdeaIdentifierPairs($data['pending_merge_pairs']);
         }
-        $dto->setUniquenessIndex((int) ($data['uniqueness_index'] ?? 0));
+
+        if (isset($data['idea_uniqueness_reports']) && is_array($data['idea_uniqueness_reports'])) {
+            $loaded = [];
+            foreach ($data['idea_uniqueness_reports'] as $key => $report) {
+                if (! is_array($report)) {
+                    continue;
+                }
+
+                // Old shape: map idea_id => report array; new shape: list with idea_identifier on each report.
+                if (! is_int($key)) {
+                    $legacyKey = trim((string) $key);
+                    if ($legacyKey !== '' && ! isset($report['idea_identifier'])) {
+                        $report['idea_identifier'] = $legacyKey;
+                    }
+                }
+
+                try {
+                    $loaded[] = IdeaUniquenessReport::fromArray($report);
+                } catch (\Throwable) {
+                    continue;
+                }
+            }
+
+            $dto->setIdeaUniquenessReports($loaded);
+        }
 
         if (isset($data['audit_reports']) && is_array($data['audit_reports'])) {
             $dto->setAuditReports(array_map(

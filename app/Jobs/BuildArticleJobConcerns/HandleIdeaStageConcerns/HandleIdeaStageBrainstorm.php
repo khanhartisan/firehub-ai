@@ -2,7 +2,6 @@
 
 namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 
-use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
@@ -62,7 +61,6 @@ trait HandleIdeaStageBrainstorm
                 $context,
                 5
             );
-            $ideas = array_values(array_filter($ideas, static fn ($idea): bool => $idea instanceof Idea));
             $advisorData->setIdeas($ideas);
             $this->touchArticleQuietly();
 

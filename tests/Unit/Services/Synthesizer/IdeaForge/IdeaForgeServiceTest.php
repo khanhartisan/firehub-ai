@@ -128,7 +128,9 @@ class IdeaForgeServiceTest extends TestCase
         {
             public function isIdeaUnique(string $clientId, Idea $idea): IdeaUniquenessReport
             {
-                return new IdeaUniquenessReport;
+                return (new IdeaUniquenessReport)
+                    ->setClientId($clientId)
+                    ->setIdeaIdentifier(trim((string) $idea->getIdentifier()));
             }
 
             public function audit(Idea $idea): IdeaAuditReport

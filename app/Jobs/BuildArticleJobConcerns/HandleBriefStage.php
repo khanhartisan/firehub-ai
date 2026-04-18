@@ -25,7 +25,7 @@ trait HandleBriefStage
             ->getBriefBuilder()
             ->conceive($idea, (string) $article->context);
 
-        $this->getStageData()->setBrief($brief->toArray());
+        $this->getStageData()->setBrief($brief);
         $this->touchArticleQuietly();
 
         return true;

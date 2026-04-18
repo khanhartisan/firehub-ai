@@ -65,9 +65,9 @@ final class StageData implements \App\Contracts\Serializable
         return $this->brief;
     }
 
-    public function setBrief(Brief|array $brief): static
+    public function setBrief(Brief $brief): static
     {
-        $this->brief = $brief instanceof Brief ? $brief : Brief::fromArray($brief);
+        $this->brief = $brief;
 
         return $this;
     }
@@ -77,9 +77,9 @@ final class StageData implements \App\Contracts\Serializable
         return $this->outline;
     }
 
-    public function setOutline(Outline|array $outline): static
+    public function setOutline(Outline $outline): static
     {
-        $this->outline = $outline instanceof Outline ? $outline : Outline::fromArray($outline);
+        $this->outline = $outline;
 
         return $this;
     }
@@ -89,9 +89,9 @@ final class StageData implements \App\Contracts\Serializable
         return $this->draft;
     }
 
-    public function setDraft(Draft|array $draft): static
+    public function setDraft(Draft $draft): static
     {
-        $this->draft = $draft instanceof Draft ? $draft : Draft::fromArray($draft);
+        $this->draft = $draft;
 
         return $this;
     }
@@ -101,6 +101,9 @@ final class StageData implements \App\Contracts\Serializable
         return $this->getIdeaStageData()->getPickedIdea();
     }
 
+    /**
+     * @throws \Exception
+     */
     protected function hydrateFromArray(array $data): void
     {
         if (isset($data['idea']) && is_array($data['idea'])) {
@@ -108,15 +111,15 @@ final class StageData implements \App\Contracts\Serializable
         }
 
         if (isset($data['brief']) && is_array($data['brief'])) {
-            $this->setBrief($data['brief']);
+            $this->setBrief(Brief::fromArray($data['brief']));
         }
 
         if (isset($data['outline']) && is_array($data['outline'])) {
-            $this->setOutline($data['outline']);
+            $this->setOutline(Outline::fromArray($data['outline']));
         }
 
         if (isset($data['draft']) && is_array($data['draft'])) {
-            $this->setDraft($data['draft']);
+            $this->setDraft(Draft::fromArray($data['draft']));
         }
     }
 }

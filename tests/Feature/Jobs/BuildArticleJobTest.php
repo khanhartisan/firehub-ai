@@ -124,7 +124,7 @@ class BuildArticleJobTest extends TestCase
         $alpha = new WeightedStubIdeaAdvisor('weighted-alpha', 1.0);
         $beta = new WeightedStubIdeaAdvisor('weighted-beta', 3.0);
 
-        $stageData = $article->stage_data instanceof StageData ? $article->stage_data : StageData::fromArray([]);
+        $stageData = $this->ensureStageData($article);
         $ideaData = $stageData->getIdeaStageData();
 
         $alphaData = new AdvisorData;
@@ -451,7 +451,7 @@ class BuildArticleJobTest extends TestCase
             $this->makeIdea('idea-c'),
         ];
 
-        $stageData = $article->stage_data instanceof StageData ? $article->stage_data : StageData::fromArray([]);
+        $stageData = $this->ensureStageData($article);
         $ideaData = $stageData->getIdeaStageData();
         $ideaData->setIdeas($ideas);
         $ideaData->setUniqueIdeaIdentifierPairs([]);
@@ -474,6 +474,21 @@ class BuildArticleJobTest extends TestCase
         };
 
         return [$article, $job];
+    }
+
+    /**
+     * Mirrors job {@see \App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData::getStageData()}
+     * without constructing a job (test setup only).
+     */
+    protected function ensureStageData(Article $article): StageData
+    {
+        if ($article->stage_data instanceof StageData) {
+            return $article->stage_data;
+        }
+
+        $article->stage_data = StageData::fromArray([]);
+
+        return $article->stage_data;
     }
 
     protected function makeIdea(string $title): Idea

@@ -2,10 +2,8 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
-use App\Contracts\Model\Article\StageData;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
-use App\Facades\Synthesizer;
 use App\Models\Article;
 
 /**
@@ -23,13 +21,11 @@ trait HandleBriefStage
             return null;
         }
 
-        $brief = Synthesizer::driver()
+        $brief = $this->synthesizer()
             ->getBriefBuilder()
             ->conceive($idea, (string) $article->context);
 
-        $stageData = $article->stage_data instanceof StageData
-            ? $article->stage_data
-            : StageData::fromArray([]);
+        $stageData = $this->getStageData();
         $article->stage_data = $stageData;
         $stageData->setBrief($brief->toArray());
         $this->touchArticleQuietly();
@@ -43,17 +39,19 @@ trait HandleBriefStage
     protected function getPickedIdea(): ?Idea
     {
         $article = $this->article;
-        if (! $article instanceof Article || ! $article->stage_data instanceof StageData) {
+        if (! $article instanceof Article) {
             return null;
         }
 
-        if ($idea = $article->stage_data->getPickedReportIdea()) {
+        $stageData = $this->getStageData();
+
+        if ($idea = $stageData->getPickedReportIdea()) {
             return $idea;
         }
 
         // Cast/hydration edge cases: rebuild from array if DTO helpers did not populate objects.
-        $rawIdea = data_get($article->stage_data->toArray(), 'idea.picked_report.idea')
-            ?? data_get($article->stage_data->toArray(), 'idea.picked_reports.0.idea');
+        $rawIdea = data_get($stageData->toArray(), 'idea.picked_report.idea')
+            ?? data_get($stageData->toArray(), 'idea.picked_reports.0.idea');
         if (! is_array($rawIdea)) {
             return null;
         }
@@ -64,10 +62,10 @@ trait HandleBriefStage
     protected function getBrief(): ?Brief
     {
         $article = $this->article;
-        if (! $article instanceof Article || ! $article->stage_data instanceof StageData) {
+        if (! $article instanceof Article) {
             return null;
         }
 
-        return $article->stage_data->getBrief();
+        return $this->getStageData()->getBrief();
     }
 }

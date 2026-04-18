@@ -2,21 +2,18 @@
 
 namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 
-use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
-use App\Facades\Synthesizer;
 
 /**
- * Shared IDEA-stage accessors: {@see StageData} on the article, cached IdeaForge and advisor list.
+ * Shared IDEA-stage accessors: {@see getIdeaStageData()} and cached advisor list.
+ * {@see getStageData()} and {@see synthesizer()} come from job-level traits.
  */
 trait HandleIdeaStageContext
 {
     /** @var IdeaAdvisor[]|null Cached per job instance to avoid repeated container resolution. */
     protected ?array $resolvedIdeaAdvisors = null;
-
-    protected ?IdeaForge $resolvedIdeaForge = null;
 
     protected function getIdeaStageData(): IdeaStageData
     {
@@ -37,20 +34,6 @@ trait HandleIdeaStageContext
 
     protected function getIdeaForgeService(): IdeaForge
     {
-        return $this->resolvedIdeaForge ??= Synthesizer::getIdeaForge();
-    }
-
-    /**
-     * Ensures {@see Article::$stage_data} is a {@see StageData} DTO (hydrates from DB cast when present).
-     */
-    protected function getStageData(): StageData
-    {
-        if ($this->article->stage_data instanceof StageData) {
-            return $this->article->stage_data;
-        }
-
-        $this->article->stage_data = StageData::fromArray([]);
-
-        return $this->article->stage_data;
+        return $this->synthesizer()->getIdeaForge();
     }
 }

@@ -2,9 +2,7 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
-use App\Contracts\Model\Article\StageData;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
-use App\Facades\Synthesizer;
 use App\Models\Article;
 
 /**
@@ -22,13 +20,11 @@ trait HandleOutlineStage
             return null;
         }
 
-        $outline = Synthesizer::driver()
+        $outline = $this->synthesizer()
             ->getOutlineBuilder()
             ->outline($brief, null);
 
-        $stageData = $article->stage_data instanceof StageData
-            ? $article->stage_data
-            : StageData::fromArray([]);
+        $stageData = $this->getStageData();
         $article->stage_data = $stageData;
         $stageData->setOutline($outline->toArray());
         $this->touchArticleQuietly();
@@ -39,10 +35,10 @@ trait HandleOutlineStage
     protected function getOutline(): ?Outline
     {
         $article = $this->article;
-        if (! $article instanceof Article || ! $article->stage_data instanceof StageData) {
+        if (! $article instanceof Article) {
             return null;
         }
 
-        return $article->stage_data->getOutline();
+        return $this->getStageData()->getOutline();
     }
 }

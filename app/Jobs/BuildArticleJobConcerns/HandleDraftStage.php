@@ -2,8 +2,6 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
-use App\Contracts\Model\Article\StageData;
-use App\Facades\Synthesizer;
 use App\Models\Article;
 
 /**
@@ -24,13 +22,11 @@ trait HandleDraftStage
             return null;
         }
 
-        $draft = Synthesizer::driver()
+        $draft = $this->synthesizer()
             ->getAuthor()
             ->draft($brief, $outline);
 
-        $stageData = $article->stage_data instanceof StageData
-            ? $article->stage_data
-            : StageData::fromArray([]);
+        $stageData = $this->getStageData();
         $article->stage_data = $stageData;
         $stageData->setDraft($draft->toArray());
 

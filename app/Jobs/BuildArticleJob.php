@@ -11,6 +11,8 @@ use App\Jobs\BuildArticleJobConcerns\HandleBriefStage;
 use App\Jobs\BuildArticleJobConcerns\HandleDraftStage;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStage;
 use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
+use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
+use App\Jobs\BuildArticleJobConcerns\InteractsWithSynthesizer;
 use App\Models\Article;
 use App\Models\Client;
 use Illuminate\Contracts\Cache\Lock;
@@ -29,6 +31,7 @@ use Illuminate\Support\Facades\Cache;
  *   interprets the result (see below).
  * - Stage implementations live in traits (HandleIdeaStage, HandleBriefStage, …). They persist
  *   progress in {@see Article::$stage_data} via {@see static::touchArticleQuietly()}.
+ *   Shared accessors: {@see InteractsWithArticleStageData}, {@see InteractsWithSynthesizer}.
  *
  * Stage handler return value (and thus {@see runCurrentStage()}):
  * - true  — this stage is finished; the job advances stage (or marks READY if already FINAL).
@@ -41,6 +44,8 @@ use Illuminate\Support\Facades\Cache;
 class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Queueable;
+    use InteractsWithArticleStageData;
+    use InteractsWithSynthesizer;
     use HandleIdeaStage;
     use HandleBriefStage;
     use HandleDraftStage;

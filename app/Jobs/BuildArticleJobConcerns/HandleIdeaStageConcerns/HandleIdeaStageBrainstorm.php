@@ -7,8 +7,15 @@ use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 
+/**
+ * Chooses global temporal + intent picks (weighted), then brainstorms ideas per advisor for that pair.
+ */
 trait HandleIdeaStageBrainstorm
 {
+    /**
+     * @return ?true if selections already exist; false if {@see selectTopSuggestions()} cannot pick;
+     *         null after successfully persisting first-time selections (checkpoint before brainstorm).
+     */
     protected function processTopSuggestionSelection(): ?bool
     {
         $ideaData = $this->getIdeaStageData();
@@ -43,12 +50,12 @@ trait HandleIdeaStageBrainstorm
             $advisorIdentifier = (string) $advisor->getIdentifier();
             $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier, true);
 
-            // Skip if not empty
+            // Already brainstormed for this advisor on a prior run.
             if ($advisorData->getIdeas()) {
                 continue;
             }
 
-            // Same checkpoint model for brainstorm calls.
+            // One advisor per job run: persist then exit so the queue slices long advisor lists.
             $ideas = $advisor->brainstorm(
                 [$temporalSuggestion],
                 [$intentTypeSuggestion],
@@ -65,6 +72,10 @@ trait HandleIdeaStageBrainstorm
         return true;
     }
 
+    /**
+     * For each advisor, score suggestions as (confidence × advisor weight); take the best temporal
+     * and the best intent independently (not necessarily from the same advisor).
+     */
     protected function selectTopSuggestions(): bool
     {
         $ideaData = $this->getIdeaStageData();
@@ -85,6 +96,7 @@ trait HandleIdeaStageBrainstorm
                 continue;
             }
 
+            // Compare weighted scores across advisors for temporal…
             foreach ($advisorData->getTemporalSuggestions() as $suggestion) {
                 if (! $suggestion instanceof TemporalSuggestion) {
                     continue;
@@ -97,6 +109,7 @@ trait HandleIdeaStageBrainstorm
                 }
             }
 
+            // …and independently for intent type (winners may come from different advisors).
             foreach ($advisorData->getIntentTypeSuggestions() as $suggestion) {
                 if (! $suggestion instanceof IntentTypeSuggestion) {
                     continue;

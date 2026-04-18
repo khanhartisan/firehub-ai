@@ -8,8 +8,14 @@ use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Facades\Synthesizer;
 use App\Models\Article;
 
+/**
+ * BRIEF stage: builds a {@see Brief} from the picked idea (IDEA stage output) and stores it on {@see StageData}.
+ */
 trait HandleBriefStage
 {
+    /**
+     * @return ?true once the brief is stored on stage_data; null when article or picked idea is missing.
+     */
     protected function handleBriefStage(): ?bool
     {
         $article = $this->article;
@@ -31,6 +37,9 @@ trait HandleBriefStage
         return true;
     }
 
+    /**
+     * Resolves the chosen {@see Idea} from the IDEA stage DTO, with fallbacks for array-shaped persistence.
+     */
     protected function getPickedIdea(): ?Idea
     {
         $article = $this->article;
@@ -42,6 +51,7 @@ trait HandleBriefStage
             return $idea;
         }
 
+        // Cast/hydration edge cases: rebuild from array if DTO helpers did not populate objects.
         $rawIdea = data_get($article->stage_data->toArray(), 'idea.picked_report.idea')
             ?? data_get($article->stage_data->toArray(), 'idea.picked_reports.0.idea');
         if (! is_array($rawIdea)) {

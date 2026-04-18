@@ -19,6 +19,25 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Queued article build: one stage worth of work per job execution, then self-dispatch.
+ *
+ * Flow:
+ * - Only runs when the article status is UNREADY. Uses a cache lock (uniqueId) so the same
+ *   article is not processed concurrently.
+ * - Marks the row PROCESSING, calls the handler for the current {@see ArticleStage}, then
+ *   interprets the result (see below).
+ * - Stage implementations live in traits (HandleIdeaStage, HandleBriefStage, …). They persist
+ *   progress in {@see Article::$stage_data} via {@see static::touchArticleQuietly()}.
+ *
+ * Stage handler return value (and thus {@see runCurrentStage()}):
+ * - true  — this stage is finished; the job advances stage (or marks READY if already FINAL).
+ * - false — unrecoverable failure; article is marked FAILED.
+ * - null  — not done yet (e.g. checkpoint after an AI call); job re-dispatches without advancing stage.
+ *
+ * After a successful stage (true), if the stage is not FINAL, the job bumps to the next stage,
+ * sets PENDING, saves, and dispatches itself again so the next run executes the next stage.
+ */
 class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Queueable;
@@ -58,23 +77,27 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     }
 
     /**
-     * Execute the job.
+     * Run at most one stage transition per invocation; rely on queue for the rest.
      */
     public function handle(): void
     {
+        // Job was queued for a deleted article (or race): nothing to do.
         if (! $article = $this->article) {
             return;
         }
 
+        // Do not rebuild articles that already finished or were stopped elsewhere.
         if ($article->status !== ArticleStatus::UNREADY) {
             return;
         }
 
+        // Same article must not run two builds at once (queue can deliver duplicates).
         if (! $lock = $this->getManualLock() or ! $lock->get()) {
             return;
         }
 
         try {
+            // Hard cap on thrown errors / retries (separate from stage checkpoints).
             if ($article->attempts >= $this->getMaxAttempts()) {
                 $this->markArticleFailed(ArticleStatus::FAILED);
                 return;
@@ -86,23 +109,26 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
             $stageResult = $this->runCurrentStage();
 
-            // Null means stage is still processing.
+            // Stage asked to pause (e.g. IDEA checkpoint): re-queue same stage, do not advance.
             if (is_null($stageResult)) {
                 static::dispatch($this->client, $this->articleId);
                 return;
             }
 
-            // False means failed.
+            // Stage reported hard failure (e.g. no ideas, picker empty).
             if (! $stageResult) {
                 $this->markArticleFailed(ArticleStatus::FAILED);
                 return;
             }
 
+            // After DRAFT succeeds, stage is still DRAFT in memory here; next lines bump to FINAL and re-dispatch.
+            // On the following run, stage is FINAL, handler is a no-op true, and we mark READY below.
             if ($article->stage === ArticleStage::FINAL) {
                 $this->markArticleReady();
                 return;
             }
 
+            // Finished this stage in one go: move pipeline forward and queue the next stage.
             $article->stage = $this->getNextStage($article->stage);
             $article->stage_status = ArticleStageStatus::PENDING;
             $article->save();
@@ -111,11 +137,13 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         } catch (\Throwable $e) {
             $this->recordError($e);
 
+            // Too many failures: stop retrying and mark terminal error.
             if (($article->attempts ?? 0) >= $this->getMaxAttempts()) {
                 $this->markArticleFailed(ArticleStatus::ERROR);
                 return;
             }
 
+            // Leave article buildable and retry later.
             $article->status = ArticleStatus::UNREADY;
             $article->stage_status = ArticleStageStatus::PENDING;
             $article->save();
@@ -131,6 +159,10 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         return $this->manualLock ??= Cache::lock(sha1($this->uniqueId()), $this->uniqueFor);
     }
 
+    /**
+     * Delegates to the trait that matches {@see Article::$stage}. FINAL is a no-op success
+     * so the outer handle() path can mark the article READY.
+     */
     protected function runCurrentStage(): ?bool
     {
         $article = $this->article;
@@ -194,28 +226,36 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $logs = (string) ($this->article->error_logs ?? '');
         $logs .= "\n---\n".$e->getMessage()."\n---\n".$e->getTraceAsString();
 
-        // Keep no more than 10KB of error logs.
+        // Cap size so the DB column and logs stay bounded.
         $maxLength = 10 * 1024;
         if (strlen($logs) > $maxLength) {
             $prefix = '...trimmed...'."\n";
             $logs = $prefix.substr($logs, -($maxLength - strlen($prefix)));
         }
 
+        // Count this failure toward max_article_build_attempts.
         $this->article->attempts = (int) ($this->article->attempts ?? 0) + 1;
         $this->article->error_logs = $logs;
         $this->article->saveQuietly();
     }
 
+    /**
+     * Persists {@see Article::$stage_data} without touching status/stage columns.
+     * Traits assign nested DTOs on {@see $this->article->stage_data} then call this so
+     * checkpoints survive between job runs.
+     */
     protected function touchArticleQuietly(?StageData $stageData = null): void
     {
         if (! $this->article) {
             return;
         }
 
+        // Optional replace when callers build a new StageData root in one shot.
         if ($stageData) {
             $this->article->stage_data = $stageData;
         }
 
+        // saveQuietly: traits already mutated nested DTOs; avoid firing model events that might recurse.
         $this->article->updated_at = now();
         $this->article->saveQuietly();
     }

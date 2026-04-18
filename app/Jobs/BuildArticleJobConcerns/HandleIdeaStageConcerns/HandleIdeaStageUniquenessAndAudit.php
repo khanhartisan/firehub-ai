@@ -4,8 +4,15 @@ namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 
+/**
+ * Filters merged ideas for uniqueness, then builds audit reports. Batched (max 20 per run per loop)
+ * so long lists do not block a single job forever.
+ */
 trait HandleIdeaStageUniquenessAndAudit
 {
+    /**
+     * @return ?true when every current idea has been uniqueness-checked; null if more batches remain.
+     */
     protected function processUniquenessChecks(): ?bool
     {
         $ideaData = $this->getIdeaStageData();
@@ -15,6 +22,7 @@ trait HandleIdeaStageUniquenessAndAudit
             return false;
         }
 
+        // Resume from last index; batch so one job does not scan thousands of ideas.
         $index = $ideaData->getUniquenessIndex();
         $remainingChecks = 20;
 
@@ -38,9 +46,13 @@ trait HandleIdeaStageUniquenessAndAudit
         $ideaData->setUniquenessIndex($index);
         $this->touchArticleQuietly();
 
+        // Index reached end of list: all remaining ideas kept; otherwise come back for more batches.
         return $index >= count($ideas) ? true : null;
     }
 
+    /**
+     * @return ?true when every surviving idea has an audit row; null if more batches remain.
+     */
     protected function processAudits(): ?bool
     {
         $ideaData = $this->getIdeaStageData();
@@ -54,6 +66,7 @@ trait HandleIdeaStageUniquenessAndAudit
         $auditReports = $ideaData->getAuditReports();
         $remainingAudits = 20;
 
+        // Append-only audit list aligned by order with ideas (same batching as uniqueness).
         while ($remainingAudits > 0 && $index < count($ideas)) {
             $idea = $ideas[$index];
             if (! $idea instanceof Idea) {

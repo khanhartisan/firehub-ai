@@ -6,8 +6,14 @@ use App\Contracts\Model\Article\StageData;
 use App\Facades\Synthesizer;
 use App\Models\Article;
 
+/**
+ * DRAFT stage: author produces draft content; article title/excerpt/body are set from the draft payload.
+ */
 trait HandleDraftStage
 {
+    /**
+     * @return ?true when draft + article copy fields are saved; null if brief or outline is missing.
+     */
     protected function handleDraftStage(): ?bool
     {
         $article = $this->article;

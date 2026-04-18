@@ -5,11 +5,14 @@ namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 
+/**
+ * Per-advisor temporal and intent-type suggestion calls. One network-heavy call per job tick
+ * (temporal first, then intent for the same advisor) until all advisors have both lists filled.
+ */
 trait HandleIdeaStageSuggestionCollection
 {
     /**
-     * @param string $context
-     * @return bool|null
+     * @return ?true when every advisor has temporal + intent suggestions; null after one advisor was just filled (checkpoint); false on invalid advisor.
      */
     protected function processSuggestionCollection(string $context): ?bool
     {
@@ -25,7 +28,7 @@ trait HandleIdeaStageSuggestionCollection
             $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier, true);
             $this->attachAdvisorContext($advisor, $advisorData);
 
-            // Bound runtime: do a single external call per execution, persist, then return.
+            // Temporal first, then intent for this advisor; only one API call total per job tick.
             if ($this->processAdvisorTemporalSuggestions($advisor, $context)
                 or $this->processAdvisorIntentTypeSuggestions($advisor, $context)
             ) {
@@ -56,6 +59,7 @@ trait HandleIdeaStageSuggestionCollection
             return false;
         }
 
+        // Cold path: fetch and store temporal list, then checkpoint.
         $advisorData->setTemporalSuggestions(
             $advisor->suggestTemporal($this->client->id, $context)
         );
@@ -78,6 +82,7 @@ trait HandleIdeaStageSuggestionCollection
             return false;
         }
 
+        // Second call for this advisor in a separate tick after temporal exists.
         $advisorData->setIntentTypeSuggestions(
             $advisor->suggestIntentTypes($this->client->id, $context)
         );

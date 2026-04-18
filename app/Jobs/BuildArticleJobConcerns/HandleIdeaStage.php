@@ -11,6 +11,13 @@ use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageUniq
 use App\Models\Article;
 use App\Utils\Str;
 
+/**
+ * IDEA stage: suggestions → weighted top picks → brainstorm → merge intents → uniqueness → audit → pick one idea.
+ *
+ * Sub-steps are split across {@see HandleIdeaStageConcerns} traits. Most substeps use checkpoints:
+ * return null after one expensive/persisted unit of work so the queue can run the next job
+ * tick; return true when that phase is complete; false on hard failure.
+ */
 trait HandleIdeaStage
 {
     use HandleIdeaStageContext;
@@ -21,6 +28,8 @@ trait HandleIdeaStage
 
     /**
      * @throws \Exception
+     * @return ?true when the idea stage is complete and the job may advance to BRIEF; false on failure;
+     *         null while still in-flight (checkpoint — job will be run again on the same stage).
      */
     protected function handleIdeaStage(): ?bool
     {
@@ -36,7 +45,7 @@ trait HandleIdeaStage
             return false;
         }
 
-        // Get latest posts
+        // Titles give advisors local context (what the client already published).
         $latestArticles = $this->client
             ->articles()
             ->take(1000)
@@ -61,7 +70,7 @@ trait HandleIdeaStage
             return $suggestionProgress;
         }
 
-        // 2) Pick one highest-confidence temporal + intent suggestion globally.
+        // 2) Pick best temporal and best intent (weighted by advisor; independent choices).
         $topSelection = $this->processTopSuggestionSelection();
         if ($topSelection !== true) {
             return $topSelection;
@@ -73,7 +82,7 @@ trait HandleIdeaStage
             return $brainstormProgress;
         }
 
-        // 4) Merge similar intents
+        // 4) Merge similar intents (pairwise; state in idea.ideas + unique_idea_identifier_pairs).
         $mergeProgress = $this->processIntentMerging();
         if ($mergeProgress !== true) {
             return $mergeProgress;
@@ -94,12 +103,14 @@ trait HandleIdeaStage
         $ideaData = $this->getIdeaStageData();
         $ideaAuditReports = $ideaData->getAuditReports();
 
+        // Resume path: we already persisted the final choice on a previous run.
         if ($ideaData->getPickedReport() instanceof IdeaAuditReport) {
             return true;
         }
 
-        // 7) Persist picker output first, then finalize picked report on next run.
+        // 7) Two-step picker: first call stores candidates; next run attaches picked_report + article.temporal.
         if (! $ideaData->hasPickedReports()) {
+            // Ask forge for up to one audit winner; empty means cannot continue the pipeline.
             $pickedReports = $this
                 ->getIdeaForgeService()
                 ->getIdeaPicker()
@@ -112,6 +123,7 @@ trait HandleIdeaStage
             $ideaData->setPickedReports($pickedReports);
             $this->touchArticleQuietly();
 
+            // Stop here so the next job tick can finalize without duplicating picker side effects.
             return null;
         }
 
@@ -120,6 +132,7 @@ trait HandleIdeaStage
             return false;
         }
 
+        // Normalize to a single report object for stage_data + article columns.
         $pickedReport = collect($pickedReports)
             ->first(fn ($report) => $report instanceof IdeaAuditReport);
         if (! $pickedReport instanceof IdeaAuditReport) {
@@ -128,6 +141,7 @@ trait HandleIdeaStage
 
         $ideaData->setPickedReport($pickedReport);
         $this->touchArticleQuietly();
+        // Denormalize temporal onto Article for downstream stages / queries.
         $this->article->temporal = $pickedReport
             ->getIdea()
             ->getIntent()

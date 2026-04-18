@@ -5,11 +5,21 @@ namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Facades\IntentResolver;
 
+/**
+ * Collapses brainstormed ideas using pairwise intent merge. State: canonical {@see IdeaStageData::getIdeas()},
+ * plus {@see IdeaStageData::getUniqueIdeaIdentifierPairs()} for pairs already ruled “distinct”.
+ */
 trait HandleIdeaStageIntentMerging
 {
+    /**
+     * One merge attempt (or bookkeeping) per invocation; completes when all unordered pairs are classified.
+     *
+     * @return ?true merge phase done; false no ideas; null checkpoint (more pairs to try or graph changed).
+     */
     protected function processIntentMerging(): ?bool
     {
         $ideaData = $this->getIdeaStageData();
+        // Source ideas still live per advisor until we fold them into idea.ideas.
         $allIdeas = [];
         foreach ($ideaData->getAdvisorDataMap() as $advisorData) {
             $allIdeas = [...$allIdeas, ...$advisorData->getIdeas()];
@@ -20,6 +30,7 @@ trait HandleIdeaStageIntentMerging
             return false;
         }
 
+        // First time through, working set is the brainstorm output; later runs reload from idea.ideas.
         $ideas = $ideaData->getIdeas();
         if ($ideas === []) {
             $ideas = $allIdeas;
@@ -32,6 +43,7 @@ trait HandleIdeaStageIntentMerging
 
         $possiblePairs = $this->buildUniqueMergePairs($ideaMap);
         if ($possiblePairs === []) {
+            // Single idea (or one valid id): nothing to compare.
             $ideaData->setIdeas(array_values($ideaMap));
             $ideaData->setUniqueIdeaIdentifierPairs([]);
             $this->touchArticleQuietly();
@@ -39,9 +51,11 @@ trait HandleIdeaStageIntentMerging
             return true;
         }
 
+        // Pairs we already treated as "distinct" (mergeIntents returned null) — do not re-ask forever.
         $uniquePairs = $this->cleanPairs($ideaData->getUniqueIdeaIdentifierPairs(), $ideaMap);
         $uniquePairKeys = $this->buildPairKeyMap($uniquePairs);
 
+        // Pick the first possible pair that still needs a merge decision.
         $pairToCheck = null;
         foreach ($possiblePairs as $pair) {
             $pairKey = $this->makePairKey($pair);
@@ -52,6 +66,7 @@ trait HandleIdeaStageIntentMerging
         }
 
         if (! is_array($pairToCheck)) {
+            // Every pair is classified; merge round finished.
             $ideaData->setIdeas(array_values($ideaMap));
             $ideaData->setUniqueIdeaIdentifierPairs($uniquePairs);
             $this->touchArticleQuietly();
@@ -63,6 +78,7 @@ trait HandleIdeaStageIntentMerging
         $leftId = trim((string) ($pairValues[0] ?? ''));
         $rightId = trim((string) ($pairValues[1] ?? ''));
         if (! isset($ideaMap[$leftId], $ideaMap[$rightId])) {
+            // Stale pair after a merge removed an id; drop invalid rows and retry next tick.
             $ideaData->setIdeas(array_values($ideaMap));
             $ideaData->setUniqueIdeaIdentifierPairs($this->cleanPairs($uniquePairs, $ideaMap));
             $this->touchArticleQuietly();
@@ -74,22 +90,26 @@ trait HandleIdeaStageIntentMerging
         $rightIdea = $ideaMap[$rightId];
         $mergedIntent = IntentResolver::mergeIntents($leftIdea->getIntent(), $rightIdea->getIntent());
         if ($mergedIntent) {
+            // Collapse into right-hand id (left id disappears from the map).
             $rightIdea->setIntent($mergedIntent);
             $ideaMap[$rightId] = $rightIdea;
             unset($ideaMap[$leftId]);
             // Idea graph changed; previous "already checked unique pairs" are stale.
             $uniquePairs = [];
         } else {
+            // Record this unordered pair as distinct so we skip it next time.
             $uniquePairs[] = [$leftId, $rightId];
             $uniquePairs = $this->cleanPairs($uniquePairs, $ideaMap);
         }
 
+        // Recompute totals: merge may have shrunk N, changing possible pair count.
         $possiblePairs = $this->buildUniqueMergePairs($ideaMap);
         $uniquePairs = $this->cleanPairs($uniquePairs, $ideaMap);
         $ideaData->setIdeas(array_values($ideaMap));
         $ideaData->setUniqueIdeaIdentifierPairs($uniquePairs);
         $this->touchArticleQuietly();
 
+        // Done when every surviving unordered pair is in uniquePairs (all merge decisions made).
         return count($uniquePairs) >= count($possiblePairs) ? true : null;
     }
 

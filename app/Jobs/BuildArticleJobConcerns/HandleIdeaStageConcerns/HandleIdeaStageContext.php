@@ -8,9 +8,12 @@ use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
 use App\Facades\Synthesizer;
 
+/**
+ * Shared IDEA-stage accessors: {@see StageData} on the article, cached IdeaForge and advisor list.
+ */
 trait HandleIdeaStageContext
 {
-    /** @var IdeaAdvisor[]|null */
+    /** @var IdeaAdvisor[]|null Cached per job instance to avoid repeated container resolution. */
     protected ?array $resolvedIdeaAdvisors = null;
 
     protected ?IdeaForge $resolvedIdeaForge = null;
@@ -37,6 +40,9 @@ trait HandleIdeaStageContext
         return $this->resolvedIdeaForge ??= Synthesizer::getIdeaForge();
     }
 
+    /**
+     * Ensures {@see Article::$stage_data} is a {@see StageData} DTO (hydrates from DB cast when present).
+     */
     protected function getStageData(): StageData
     {
         if ($this->article->stage_data instanceof StageData) {

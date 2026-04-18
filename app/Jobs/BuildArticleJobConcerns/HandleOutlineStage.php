@@ -7,8 +7,14 @@ use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Facades\Synthesizer;
 use App\Models\Article;
 
+/**
+ * OUTLINE stage: derives an {@see Outline} from the brief.
+ */
 trait HandleOutlineStage
 {
+    /**
+     * @return ?true when outline is stored; null when brief is not available yet.
+     */
     protected function handleOutlineStage(): ?bool
     {
         $article = $this->article;

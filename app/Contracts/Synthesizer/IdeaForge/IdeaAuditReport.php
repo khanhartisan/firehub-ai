@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 
 final class IdeaAuditReport implements Identifiable, Serializable
 {
+    use HasIdeaIdentifier;
     use \App\Concerns\Identifiable;
     use \App\Concerns\Serializable;
 
@@ -39,6 +40,7 @@ final class IdeaAuditReport implements Identifiable, Serializable
         $this->setHighlights($highlights);
         $this->setConcerns($concerns);
         $this->setIdentifier(Str::uuid()->toString());
+        $this->setIdeaIdentifier(trim((string) $idea->getIdentifier()) ?: null);
     }
 
     public function getIdea(): Idea
@@ -49,6 +51,7 @@ final class IdeaAuditReport implements Identifiable, Serializable
     public function setIdea(Idea $idea): static
     {
         $this->idea = $idea;
+        $this->setIdeaIdentifier(trim((string) $idea->getIdentifier()) ?: null);
 
         return $this;
     }
@@ -111,6 +114,7 @@ final class IdeaAuditReport implements Identifiable, Serializable
     {
         return [
             'identifier' => $this->idea->getIdentifier(),
+            'idea_identifier' => $this->getIdeaIdentifier(),
             'idea' => $this->getIdea()->toArray(),
             'score' => $this->getScore(),
             'highlights' => $this->getHighlights(),
@@ -137,6 +141,10 @@ final class IdeaAuditReport implements Identifiable, Serializable
         }
 
         $report = new static($idea);
+
+        if (array_key_exists('idea_identifier', $data) && $data['idea_identifier'] !== null && $data['idea_identifier'] !== '') {
+            $report->setIdeaIdentifier((string) $data['idea_identifier']);
+        }
 
         if (array_key_exists('score', $data)) {
             $report->setScore($data['score'] !== null ? (float) $data['score'] : null);

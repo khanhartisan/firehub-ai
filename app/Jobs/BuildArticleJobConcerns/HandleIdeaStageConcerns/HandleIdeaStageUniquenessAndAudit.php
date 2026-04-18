@@ -6,7 +6,7 @@ namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
  * Filters merged ideas for uniqueness, then builds audit reports for survivors.
  *
  * Uniqueness progress is stored as a list in {@see \App\Contracts\Model\Article\StageData\IdeaStageData::getIdeaUniquenessReports()};
- * each {@see \App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport} carries the idea id via {@see \App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport::getIdeaIdentifier()}. Pending ideas each get {@see \App\Contracts\Synthesizer\IdeaForge\IdeaAuditor::isIdeaUnique()} (the basic driver loads comparison articles once per client per auditor instance), then persists (audit uses its own pass).
+ * each {@see \App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport} carries the idea id via {@see \App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport::getIdeaIdentifier()}. {@see processUniquenessChecks()} and {@see processAudits()} return null after doing work this tick (checkpoint); return true when that sub-phase is finished (nothing pending).
  */
 trait HandleIdeaStageUniquenessAndAudit
 {
@@ -55,6 +55,7 @@ trait HandleIdeaStageUniquenessAndAudit
 
     /**
      * @return ?true when every surviving idea has an audit row; false when there are no ideas.
+     * @throws \Exception
      */
     protected function processAudits(): ?bool
     {
@@ -65,21 +66,22 @@ trait HandleIdeaStageUniquenessAndAudit
             return false;
         }
 
-        $index = $ideaData->getAuditIndex();
-        $auditReports = $ideaData->getAuditReports();
+        $auditor = $ideaForge->getIdeaAuditor();
+        $performedAudit = false;
 
-        while ($index < count($ideas)) {
-            $idea = $ideas[$index];
+        foreach ($ideas as $idea) {
+            $id = trim((string) $idea->getIdentifier());
+            if ($ideaData->getIdeaAuditReport($id)) {
+                continue;
+            }
 
-            // Audit is done after uniqueness filtering to avoid unnecessary scoring.
-            $auditReports[] = $ideaForge->getIdeaAuditor()->audit($idea);
-            $index++;
+            $performedAudit = true;
+            $ideaData->addIdeaAuditReport($auditor->audit($idea));
+            break;
         }
 
-        $ideaData->setAuditReports($auditReports);
-        $ideaData->setAuditIndex($index);
         $this->touchArticleQuietly();
 
-        return true;
+        return $performedAudit ? null : true;
     }
 }

@@ -101,7 +101,7 @@ trait HandleIdeaStage
         }
 
         $ideaData = $this->getIdeaStageData();
-        $ideaAuditReports = $ideaData->getAuditReports();
+        $ideaAuditReports = $ideaData->getIdeaAuditReports();
 
         // Resume path: we already persisted the final choice on a previous run.
         if ($ideaData->getPickedReport() instanceof IdeaAuditReport) {

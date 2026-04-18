@@ -7,12 +7,10 @@ use App\Models\Article;
 
 final class IdeaUniquenessReport implements Serializable
 {
+    use HasIdeaIdentifier;
     use \App\Concerns\Serializable;
 
     protected ?string $clientId = null;
-
-    /** Which {@see Idea} this report refers to (same as {@see Idea::getIdentifier()}). */
-    protected ?string $ideaIdentifier = null;
 
     protected ?bool $isUnique = null;
 
@@ -31,21 +29,6 @@ final class IdeaUniquenessReport implements Serializable
     public function setClientId(string $clientId): static
     {
         $this->clientId = $clientId;
-
-        return $this;
-    }
-
-    public function getIdeaIdentifier(): ?string
-    {
-        return $this->ideaIdentifier;
-    }
-
-    public function setIdeaIdentifier(?string $ideaIdentifier): static
-    {
-        $this->ideaIdentifier = $ideaIdentifier !== null ? trim($ideaIdentifier) : null;
-        if ($this->ideaIdentifier === '') {
-            $this->ideaIdentifier = null;
-        }
 
         return $this;
     }

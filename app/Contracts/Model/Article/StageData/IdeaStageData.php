@@ -40,8 +40,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
     protected array $ideaUniquenessReports = [];
 
     /** @var IdeaAuditReport[] */
-    protected array $auditReports = [];
-    protected int $auditIndex = 0;
+    protected array $ideaAuditReports = [];
 
     /** @return array<string, AdvisorData> */
     public function getAdvisorDataMap(): array
@@ -339,26 +338,69 @@ final class IdeaStageData implements \App\Contracts\Serializable
     }
 
     /** @return IdeaAuditReport[] */
-    public function getAuditReports(): array
+    public function getIdeaAuditReports(): array
     {
-        return $this->auditReports;
+        return $this->ideaAuditReports;
     }
 
-    public function setAuditReports(array $reports): static
+    /**
+     * Appends or replaces the audit row for the report’s idea id. The idea must exist in {@see $ideas}.
+     *
+     * @throws \Exception
+     */
+    public function addIdeaAuditReport(IdeaAuditReport $report): static
     {
-        $this->auditReports = array_values(array_filter($reports, static fn ($v): bool => $v instanceof IdeaAuditReport));
+        $id = trim((string) $report->getIdea()->getIdentifier());
+        if ($id === '') {
+            throw new \Exception('Idea identifier empty on audit report');
+        }
+
+        if ($this->getIdeaByIdentifier($id) === null) {
+            throw new \Exception('Idea not found, cannot add IdeaAuditReport');
+        }
+
+        foreach ($this->ideaAuditReports as $index => $existing) {
+            if (trim((string) $existing->getIdea()->getIdentifier()) === $id) {
+                $this->ideaAuditReports[$index] = $report;
+
+                return $this;
+            }
+        }
+
+        $this->ideaAuditReports[] = $report;
+
         return $this;
     }
 
-    public function getAuditIndex(): int
+    /**
+     * Replaces the whole list; later items with the same idea id win (via {@see addIdeaAuditReport()}).
+     *
+     * @param iterable<IdeaAuditReport> $reports
+     * @throws \Exception
+     */
+    public function setIdeaAuditReports(iterable $reports): static
     {
-        return max(0, $this->auditIndex);
+        $this->ideaAuditReports = [];
+        foreach ($reports as $report) {
+            if (! $report instanceof IdeaAuditReport) {
+                continue;
+            }
+
+            $this->addIdeaAuditReport($report);
+        }
+
+        return $this;
     }
 
-    public function setAuditIndex(int $index): static
+    public function getIdeaAuditReport(string $ideaIdentifier): ?IdeaAuditReport
     {
-        $this->auditIndex = max(0, $index);
-        return $this;
+        $key = trim($ideaIdentifier);
+        if ($key === '') {
+            return null;
+        }
+
+        return array_find($this->getIdeaAuditReports(), fn($report) => trim((string)$report->getIdea()->getIdentifier()) === $key);
+
     }
 
     public function toArray(): array
@@ -375,11 +417,13 @@ final class IdeaStageData implements \App\Contracts\Serializable
                 static fn (IdeaUniquenessReport $v) => $v->toArray(),
                 $this->getIdeaUniquenessReports()
             ),
-            'audit_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->getAuditReports()),
-            'audit_index' => $this->getAuditIndex(),
+            'idea_audit_reports' => array_map(static fn (IdeaAuditReport $v) => $v->toArray(), $this->getIdeaAuditReports()),
         ];
     }
 
+    /**
+     * @throws \Exception
+     */
     public static function fromArray(array $data): static
     {
         $dto = new static;
@@ -452,13 +496,18 @@ final class IdeaStageData implements \App\Contracts\Serializable
             $dto->setIdeaUniquenessReports($loaded);
         }
 
-        if (isset($data['audit_reports']) && is_array($data['audit_reports'])) {
-            $dto->setAuditReports(array_map(
+        $ideaAuditReportsPayload = null;
+        if (isset($data['idea_audit_reports']) && is_array($data['idea_audit_reports'])) {
+            $ideaAuditReportsPayload = $data['idea_audit_reports'];
+        } elseif (isset($data['audit_reports']) && is_array($data['audit_reports'])) {
+            $ideaAuditReportsPayload = $data['audit_reports'];
+        }
+        if ($ideaAuditReportsPayload !== null) {
+            $dto->setIdeaAuditReports(array_map(
                 static fn (array $v): IdeaAuditReport => IdeaAuditReport::fromArray($v),
-                array_values(array_filter($data['audit_reports'], 'is_array'))
+                array_values(array_filter($ideaAuditReportsPayload, 'is_array'))
             ));
         }
-        $dto->setAuditIndex((int) ($data['audit_index'] ?? 0));
 
         return $dto;
     }

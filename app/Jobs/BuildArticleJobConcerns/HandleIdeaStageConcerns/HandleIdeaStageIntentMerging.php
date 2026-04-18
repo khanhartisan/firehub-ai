@@ -113,8 +113,12 @@ trait HandleIdeaStageIntentMerging
         return count($uniquePairs) >= count($possiblePairs) ? true : null;
     }
 
-    /** @param Idea[] $ideas
-     * @return array<string, Idea>
+    /**
+     * Index the working idea list by non-empty `identifier` so merge steps can look up neighbors by id.
+     * Later ids with the same key overwrite earlier ones (should not happen if identifiers are unique).
+     *
+     * @param Idea[] $ideas
+     * @return array<string, Idea> identifier => idea
      */
     protected function buildIdeaMap(array $ideas): array
     {
@@ -136,6 +140,10 @@ trait HandleIdeaStageIntentMerging
     }
 
     /**
+     * Every unordered pair of distinct identifiers once (nested loop: second index always after the first),
+     * i.e. the full set of merge decisions
+     * still outstanding until each pair is merged or marked distinct.
+     *
      * @param array<string, Idea> $ideaMap
      * @return array<int, array{0: string, 1: string}>
      */
@@ -155,6 +163,9 @@ trait HandleIdeaStageIntentMerging
     }
 
     /**
+     * Normalize stored pairs after merges: drop rows whose ids vanished, trim, dedupe by unordered key,
+     * and skip invalid self-pairs. Output pairs are sorted `[smallerId, largerId]` for stable storage.
+     *
      * @param array<int, array<int, string>> $pairs
      * @param array<string, Idea> $ideaMap
      * @return array<int, array{0: string, 1: string}>
@@ -195,8 +206,10 @@ trait HandleIdeaStageIntentMerging
     }
 
     /**
+     * Build a set-like map of canonical pair keys for O(1) “this unordered pair already ruled distinct”.
+     *
      * @param array<int, array{0: string, 1: string}> $pairs
-     * @return array<string, true>
+     * @return array<string, true> key from {@see makePairKey()} => true
      */
     protected function buildPairKeyMap(array $pairs): array
     {
@@ -214,6 +227,9 @@ trait HandleIdeaStageIntentMerging
     }
 
     /**
+     * Stable string for an unordered pair: sort the two ids and join with `|`, so (a,b) and (b,a) match.
+     * Empty string means invalid or degenerate pair and callers should skip.
+     *
      * @param array<int, string> $pair
      */
     protected function makePairKey(array $pair): string

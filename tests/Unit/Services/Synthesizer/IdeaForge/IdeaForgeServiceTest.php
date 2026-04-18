@@ -64,7 +64,22 @@ class IdeaForgeServiceTest extends TestCase
         return new class implements IdeaAdvisor
         {
             protected ?string $description = null;
+
             protected ?string $identifier = null;
+
+            protected float $weight = 1.0;
+
+            public function getWeight(): float
+            {
+                return $this->weight;
+            }
+
+            public function setWeight(float $weight): static
+            {
+                $this->weight = abs($weight);
+
+                return $this;
+            }
 
             public function getDescription(): ?string
             {

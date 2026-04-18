@@ -2,7 +2,6 @@
 
 namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 
-use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
@@ -69,38 +68,63 @@ trait HandleIdeaStageBrainstorm
     protected function selectTopSuggestions(): bool
     {
         $ideaData = $this->getIdeaStageData();
-        [$allTemporalSuggestions, $allIntentTypeSuggestions] = $this->collectAllSuggestions($ideaData);
 
-        $selectedTemporalSuggestion = collect($allTemporalSuggestions)
-            ->sortByDesc(static fn (TemporalSuggestion $suggestion): float => $suggestion->getConfidence() ?? 0.0)
-            ->first();
-        $selectedIntentTypeSuggestion = collect($allIntentTypeSuggestions)
-            ->sortByDesc(static fn (IntentTypeSuggestion $suggestion): float => $suggestion->getConfidence() ?? 0.0)
-            ->first();
+        $bestTemporal = null;
+        $bestTemporalWeighted = -1.0;
+        $bestIntent = null;
+        $bestIntentWeighted = -1.0;
 
-        if (! $selectedTemporalSuggestion instanceof TemporalSuggestion
-            || ! $selectedIntentTypeSuggestion instanceof IntentTypeSuggestion
+        foreach ($this->getIdeaAdvisors() as $advisor) {
+            if (! $advisor instanceof IdeaAdvisor) {
+                continue;
+            }
+
+            $weight = $advisor->getWeight();
+            $advisorData = $ideaData->getAdvisorDataByIdentifier((string) $advisor->getIdentifier());
+            if (! $advisorData) {
+                continue;
+            }
+
+            foreach ($advisorData->getTemporalSuggestions() as $suggestion) {
+                if (! $suggestion instanceof TemporalSuggestion) {
+                    continue;
+                }
+
+                $weighted = $this->weightedSuggestionScore($suggestion->getConfidence(), $weight);
+                if ($weighted > $bestTemporalWeighted) {
+                    $bestTemporalWeighted = $weighted;
+                    $bestTemporal = $suggestion;
+                }
+            }
+
+            foreach ($advisorData->getIntentTypeSuggestions() as $suggestion) {
+                if (! $suggestion instanceof IntentTypeSuggestion) {
+                    continue;
+                }
+
+                $weighted = $this->weightedSuggestionScore($suggestion->getConfidence(), $weight);
+                if ($weighted > $bestIntentWeighted) {
+                    $bestIntentWeighted = $weighted;
+                    $bestIntent = $suggestion;
+                }
+            }
+        }
+
+        if (! $bestTemporal instanceof TemporalSuggestion
+            || ! $bestIntent instanceof IntentTypeSuggestion
         ) {
             return false;
         }
 
-        $ideaData->setSelectedTemporalSuggestion($selectedTemporalSuggestion);
-        $ideaData->setSelectedIntentTypeSuggestion($selectedIntentTypeSuggestion);
+        $ideaData->setSelectedTemporalSuggestion($bestTemporal);
+        $ideaData->setSelectedIntentTypeSuggestion($bestIntent);
         $this->touchArticleQuietly();
 
         return true;
     }
 
-    protected function collectAllSuggestions(IdeaStageData $ideaData): array
+    protected function weightedSuggestionScore(?float $confidence, float $weight): float
     {
-        $allTemporalSuggestions = [];
-        $allIntentTypeSuggestions = [];
-
-        foreach ($ideaData->getAdvisorDataMap() as $savedAdvisorData) {
-            $allTemporalSuggestions = [...$allTemporalSuggestions, ...$savedAdvisorData->getTemporalSuggestions()];
-            $allIntentTypeSuggestions = [...$allIntentTypeSuggestions, ...$savedAdvisorData->getIntentTypeSuggestions()];
-        }
-
-        return [$allTemporalSuggestions, $allIntentTypeSuggestions];
+        return ($confidence ?? 0.0) * $weight;
     }
 }

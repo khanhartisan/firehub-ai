@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer;
 
+use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\Synthesizer as SynthesizerContract;
 use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
@@ -34,8 +35,7 @@ class SynthesizerManager extends Manager
     protected function buildSynthesizer(array $driverConfig): SynthesizerContract
     {
         $ideaForgeConfig = $driverConfig['idea_forge'] ?? [];
-        $ideaAdvisors = array_map(
-            fn (string $advisorClass) => $this->container->make($advisorClass),
+        $ideaAdvisors = $this->makeIdeaAdvisorsFromConfig(
             $ideaForgeConfig['advisors'] ?? [BasicIdeaAdvisorDriver::class]
         );
         $ideaAuditor = $this->container->make($ideaForgeConfig['auditor'] ?? BasicIdeaAuditorDriver::class);
@@ -72,5 +72,59 @@ class SynthesizerManager extends Manager
                 'author' => $author,
             ]
         );
+    }
+
+    /**
+     * @param  list<string|array{class: string, weight?: float|int|string}>  $entries
+     * @return list<IdeaAdvisor>
+     */
+    protected function makeIdeaAdvisorsFromConfig(array $entries): array
+    {
+        $advisors = [];
+        foreach ($entries as $entry) {
+            $advisors[] = $this->makeIdeaAdvisorFromConfigEntry($entry);
+        }
+
+        return $advisors;
+    }
+
+    /**
+     * @param  string|array{class: string, weight?: float|int|string}  $entry
+     */
+    protected function makeIdeaAdvisorFromConfigEntry(string|array $entry): IdeaAdvisor
+    {
+        if (is_string($entry)) {
+            $advisor = $this->container->make($entry);
+            if (! $advisor instanceof IdeaAdvisor) {
+                throw new \InvalidArgumentException(sprintf(
+                    'Idea advisor class "%s" must implement %s.',
+                    $entry,
+                    IdeaAdvisor::class
+                ));
+            }
+
+            return $advisor;
+        }
+
+        if (! is_array($entry) || ! isset($entry['class']) || ! is_string($entry['class'])) {
+            throw new \InvalidArgumentException(
+                'Idea advisor config must be a class string or an array with a string "class" key.'
+            );
+        }
+
+        $advisor = $this->container->make($entry['class']);
+        if (! $advisor instanceof IdeaAdvisor) {
+            throw new \InvalidArgumentException(sprintf(
+                'Idea advisor class "%s" must implement %s.',
+                $entry['class'],
+                IdeaAdvisor::class
+            ));
+        }
+
+        if (array_key_exists('weight', $entry)) {
+            $advisor->setWeight((float) $entry['weight']);
+        }
+
+        return $advisor;
     }
 }

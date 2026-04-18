@@ -6,11 +6,15 @@ use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
+use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 use App\Contracts\IntentResolver\Intent;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
+use App\Enums\IntentType;
 use App\Enums\Language;
+use App\Enums\Temporal;
 use App\Facades\IntentResolver;
 use App\Jobs\BuildArticleJob;
 use App\Models\Article;
@@ -108,6 +112,72 @@ class BuildArticleJobTest extends TestCase
         $this->assertSame(ArticleStatus::READY, $article->status);
         $this->assertSame(ArticleStage::FINAL, $article->stage);
         $this->assertSame(ArticleStageStatus::APPROVED, $article->stage_status);
+    }
+
+    public function test_selects_top_suggestions_using_advisor_weights(): void
+    {
+        $client = $this->makeClient('Client context');
+        $article = $this->makeArticle($client, 'Weighted selection test.');
+
+        // Alpha: weight 1 — high temporal score wins overall for temporal pick.
+        // Beta: weight 3 — low raw intent score still wins after weighting for intent pick.
+        $alpha = new WeightedStubIdeaAdvisor('weighted-alpha', 1.0);
+        $beta = new WeightedStubIdeaAdvisor('weighted-beta', 3.0);
+
+        $stageData = $article->stage_data instanceof StageData ? $article->stage_data : StageData::fromArray([]);
+        $ideaData = $stageData->getIdeaStageData();
+
+        $alphaData = new AdvisorData;
+        $alphaData->setTemporalSuggestions([
+            new TemporalSuggestion(Temporal::TOPICAL, 0.9, 'alpha-temporal'),
+        ]);
+        $alphaData->setIntentTypeSuggestions([
+            new IntentTypeSuggestion(IntentType::INFORMATIONAL, 0.2, 'alpha-intent'),
+        ]);
+        $ideaData->setAdvisorDataByIdentifier('weighted-alpha', $alphaData);
+
+        $betaData = new AdvisorData;
+        $betaData->setTemporalSuggestions([
+            new TemporalSuggestion(Temporal::EVERGREEN, 0.2, 'beta-temporal'),
+        ]);
+        $betaData->setIntentTypeSuggestions([
+            new IntentTypeSuggestion(IntentType::COMMERCIAL, 0.1, 'beta-intent'),
+        ]);
+        $ideaData->setAdvisorDataByIdentifier('weighted-beta', $betaData);
+
+        $article->stage_data = $stageData;
+        $article->save();
+        $article->refresh();
+
+        // Weighted temporal: 0.9*1=0.9 (alpha) vs 0.2*3=0.6 (beta) → TOPICAL.
+        // Weighted intent: 0.2*1=0.2 (alpha) vs 0.1*3=0.3 (beta) → COMMERCIAL.
+        $job = new class($client, $article->id, [$alpha, $beta]) extends BuildArticleJob
+        {
+            /**
+             * @param  \App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor[]  $stubAdvisors
+             */
+            public function __construct(Client $client, string $articleId, private array $stubAdvisors)
+            {
+                parent::__construct($client, $articleId);
+            }
+
+            protected function getIdeaAdvisors(): array
+            {
+                return $this->stubAdvisors;
+            }
+
+            public function runSelectTopSuggestions(): bool
+            {
+                return $this->selectTopSuggestions();
+            }
+        };
+
+        $this->assertTrue($job->runSelectTopSuggestions());
+        $article->refresh();
+        $selected = $article->stage_data->getIdeaStageData();
+
+        $this->assertSame(Temporal::TOPICAL, $selected->getSelectedTemporalSuggestion()->getTemporal());
+        $this->assertSame(IntentType::COMMERCIAL, $selected->getSelectedIntentTypeSuggestion()->getIntentType());
     }
 
     public function test_process_intent_merging_with_always_merge_strategy(): void
@@ -414,5 +484,34 @@ class BuildArticleJobTest extends TestCase
         $intent->setLanguage(Language::EN);
 
         return new Idea($intent, 0.8, 'test');
+    }
+}
+
+final class WeightedStubIdeaAdvisor extends \App\Services\Synthesizer\IdeaForge\IdeaAdvisor\IdeaAdvisorService
+{
+    public function __construct(string $identifier, float $weight)
+    {
+        $this->setIdentifier($identifier);
+        $this->setDescription('Weighted stub advisor for tests.');
+        $this->setWeight($weight);
+    }
+
+    public function suggestTemporal(string $clientId, string $context): array
+    {
+        return [];
+    }
+
+    public function suggestIntentTypes(string $clientId, string $context): array
+    {
+        return [];
+    }
+
+    public function brainstorm(
+        array $temporalSuggestions,
+        array $intentTypeSuggestions,
+        string $context,
+        int $limit = 5
+    ): array {
+        return [];
     }
 }

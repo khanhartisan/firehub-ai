@@ -8,6 +8,21 @@ use App\Contracts\Identifiable;
 interface IdeaAdvisor extends Describable, Identifiable
 {
     /**
+     * A relative weight is useful when we have multiple idea advisors
+     *
+     * @return float
+     */
+    public function getWeight(): float;
+
+    /**
+     * Set the weight
+     *
+     * @param float $weight
+     * @return $this
+     */
+    public function setWeight(float $weight): static;
+
+    /**
      * Suggest the temporal for the next idea
      *
      * @param string $clientId

@@ -13,6 +13,8 @@ abstract class IdeaAdvisorService implements IdeaAdvisor
         getIdentifier as private getIdentifierFromTrait;
     }
 
+    protected float $weight = 1;
+
     public function getIdentifier(): ?string
     {
         $identifier = trim((string) $this->getIdentifierFromTrait());
@@ -24,5 +26,16 @@ abstract class IdeaAdvisorService implements IdeaAdvisor
         }
 
         return $identifier;
+    }
+
+    public function getWeight(): float
+    {
+        return $this->weight;
+    }
+
+    public function setWeight(float $weight): static
+    {
+        $this->weight = abs($weight);
+        return $this;
     }
 }

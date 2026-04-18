@@ -108,44 +108,20 @@ trait HandleIdeaStage
             return true;
         }
 
-        // 7) Two-step picker: first call stores candidates; next run attaches picked_idea_audit_report + article.temporal.
-        if (! $ideaData->hasPickedReports()) {
-            // Ask forge for up to one audit winner; empty means cannot continue the pipeline.
-            $pickedReports = $this
-                ->getIdeaForgeService()
-                ->getIdeaPicker()
-                ->pick($ideaAuditReports, $context, 1)
-                ?? [];
-            if ($pickedReports === []) {
-                return false;
-            }
-
-            $ideaData->setPickedReports($pickedReports);
-            $this->touchArticleQuietly();
-
-            // Stop here so the next job tick can finalize without duplicating picker side effects.
-            return null;
-        }
-
-        $pickedReports = $ideaData->getPickedReports();
-        if (! $pickedReports) {
-            return false;
-        }
-
-        // Normalize to a single report object for stage_data + article columns.
-        $pickedReport = collect($pickedReports)
-            ->first(fn ($report) => $report instanceof IdeaAuditReport);
+        // 7) Pick one winning idea (limit 1).
+        $pickedList = $this->getIdeaForgeService()->getIdeaPicker()->pick($ideaAuditReports, $context, 1) ?? [];
+        $pickedReport = $pickedList[0] ?? null;
         if (! $pickedReport instanceof IdeaAuditReport) {
             return false;
         }
 
         $ideaData->setPickedIdeaAuditReport($pickedReport);
-        $this->touchArticleQuietly();
-        // Denormalize temporal onto Article for downstream stages / queries.
+
         $this->article->temporal = $pickedReport
             ->getIdea()
             ->getIntent()
             ->getTemporal();
+
         $this->touchArticleQuietly();
 
         return true;

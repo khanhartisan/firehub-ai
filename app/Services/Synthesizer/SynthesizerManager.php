@@ -22,7 +22,7 @@ class SynthesizerManager extends Manager
 
     protected function createDriver($driver): SynthesizerContract
     {
-        return $this->createConfiguredDriver('basic');
+        return $this->createConfiguredDriver($driver);
     }
 
     protected function createConfiguredDriver(string $driver): SynthesizerContract

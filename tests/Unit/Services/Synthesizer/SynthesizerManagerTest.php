@@ -11,7 +11,9 @@ use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\SynthesizerManager;
@@ -89,5 +91,16 @@ class SynthesizerManagerTest extends TestCase
         $driver = SynthesizerFacade::driver('basic');
 
         $this->assertInstanceOf(OpenAIBriefBuilderDriver::class, $driver->getBriefBuilder());
+    }
+
+    public function test_openai_driver_wires_openai_idea_advisor_and_auditor(): void
+    {
+        Config::set('synthesizer.default', 'openai');
+
+        $driver = SynthesizerFacade::driver('openai');
+        $ideaForge = $driver->getIdeaForge();
+
+        $this->assertInstanceOf(OpenAIIdeaAdvisorDriver::class, $ideaForge->getIdeaAdvisors()[0]);
+        $this->assertInstanceOf(OpenAIIdeaAuditorDriver::class, $ideaForge->getIdeaAuditor());
     }
 }

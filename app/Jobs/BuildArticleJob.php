@@ -14,6 +14,7 @@ use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSynthesizer;
 use App\Models\Article;
 use App\Models\Client;
+use Exception;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -165,8 +166,9 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     }
 
     /**
-     * Delegates to the trait that matches {@see Article::$stage}. FINAL is a no-op success
+     * Delegates to the trait that matches {@see Article::$stage}. FINAL is a no-op success,
      * so the outer handle() path can mark the article READY.
+     * @throws Exception
      */
     protected function runCurrentStage(): ?bool
     {

@@ -43,8 +43,8 @@ final class ReviewData implements \App\Contracts\Serializable
     public function toArray(): array
     {
         return [
-            'uniqueness' => $this->uniquenessReport?->toArray(),
-            'audit_report' => $this->auditReport?->toArray(),
+            'uniqueness_report' => $this->getUniquenessReport()?->toArray(),
+            'audit_report' => $this->getAuditReport()?->toArray(),
         ];
     }
 
@@ -52,8 +52,8 @@ final class ReviewData implements \App\Contracts\Serializable
     {
         $dto = new static;
 
-        if (isset($data['uniqueness']) && is_array($data['uniqueness'])) {
-            $dto->setUniquenessReport(IdeaUniquenessReport::fromArray($data['uniqueness']));
+        if (isset($data['uniqueness_report']) && is_array($data['uniqueness_report'])) {
+            $dto->setUniquenessReport(IdeaUniquenessReport::fromArray($data['uniqueness_report']));
         }
 
         if (isset($data['audit_report']) && is_array($data['audit_report'])) {

@@ -42,10 +42,6 @@ trait HandleIdeaStageBrainstorm
         }
 
         foreach ($this->getIdeaAdvisors() as $advisor) {
-            if (! $advisor instanceof IdeaAdvisor) {
-                return false;
-            }
-
             $advisorIdentifier = (string) $advisor->getIdentifier();
             $advisorData = $ideaData->getAdvisorDataByIdentifier($advisorIdentifier, true);
 

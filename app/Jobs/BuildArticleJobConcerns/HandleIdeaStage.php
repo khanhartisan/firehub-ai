@@ -45,10 +45,7 @@ trait HandleIdeaStage
             return false;
         }
 
-        // Titles give advisors local context (what the client already published).
-
-
-        // Idea brainstorm context
+        // Idea brainstorm context, appending the latest articles
         $ideaBrainstormContext = $context;
         if ($latestArticles = $this->client
             ->articles()
@@ -65,6 +62,8 @@ trait HandleIdeaStage
                 ->map(function (Article $article) {
                     return Str::limit($article->title, 160);
                 })->join("\n- ");
+        } else {
+            $ideaBrainstormContext .= "\n---\n This will be the first article.";
         }
 
         // 1) Collect advisor suggestions.
@@ -74,13 +73,13 @@ trait HandleIdeaStage
             return $suggestionProgress;
         }
 
-        // 2) Pick best temporal and best intent (weighted by advisor; independent choices).
+        // 2) Pick the best temporal and best intent (weighted by advisor; independent choices).
         $topSelection = $this->processTopSuggestionSelection();
         if ($topSelection !== true) {
             return $topSelection;
         }
 
-        // 3) Brainstorm per advisor using the selected temporal + intent pair.
+        // 3) Brainstorm per advisor using the selected temporal and intent pair.
         $brainstormProgress = $this->processBrainstormCollection($ideaBrainstormContext);
         if ($brainstormProgress !== true) {
             return $brainstormProgress;

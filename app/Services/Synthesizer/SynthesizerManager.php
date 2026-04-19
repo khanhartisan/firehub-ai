@@ -20,7 +20,7 @@ class SynthesizerManager extends Manager
         return $this->config->get('synthesizer.default', 'basic');
     }
 
-    protected function createBasicDriver(): SynthesizerContract
+    protected function createDriver($driver): SynthesizerContract
     {
         return $this->createConfiguredDriver('basic');
     }

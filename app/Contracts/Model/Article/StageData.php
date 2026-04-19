@@ -19,10 +19,11 @@ final class StageData implements \App\Contracts\Serializable
 
     /**
      * @param array<string, mixed> $data
+     * @throws \Exception
      */
     public function __construct(array $data = [])
     {
-        if ($data !== []) {
+        if ($data) {
             $this->hydrateFromArray($data);
         }
     }

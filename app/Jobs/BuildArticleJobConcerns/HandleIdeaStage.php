@@ -46,22 +46,26 @@ trait HandleIdeaStage
         }
 
         // Titles give advisors local context (what the client already published).
-        $latestArticles = $this->client
+
+
+        // Idea brainstorm context
+        $ideaBrainstormContext = $context;
+        if ($latestArticles = $this->client
             ->articles()
             ->take(1000)
             ->orderByDesc('id')
             ->get()
             ->filter(function (Article $article) {
                 return !! $article->title;
-            });
-
-        // Idea brainstorm context
-        $ideaBrainstormContext = $context
-        ."\n---\n Below is the list of the latest articles:\n"
-        .$latestArticles
-            ->map(function (Article $article) {
-                return Str::limit($article->title, 160);
-            })->join("\n- ");
+            })
+            and $latestArticles->count()
+        ) {
+            $ideaBrainstormContext .= "\n---\n Below is the list of the latest articles:\n"
+            .$latestArticles
+                ->map(function (Article $article) {
+                    return Str::limit($article->title, 160);
+                })->join("\n- ");
+        }
 
         // 1) Collect advisor suggestions.
         // Each costly step checkpoints and exits for re-execution.

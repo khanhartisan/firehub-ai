@@ -15,6 +15,7 @@ use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriv
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\SynthesizerManager;
 use App\Services\Synthesizer\SynthesizerService;
@@ -93,7 +94,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIBriefBuilderDriver::class, $driver->getBriefBuilder());
     }
 
-    public function test_openai_driver_wires_openai_idea_advisor_and_auditor(): void
+    public function test_openai_driver_wires_openai_idea_advisor_auditor_and_picker(): void
     {
         Config::set('synthesizer.default', 'openai');
 
@@ -102,5 +103,6 @@ class SynthesizerManagerTest extends TestCase
 
         $this->assertInstanceOf(OpenAIIdeaAdvisorDriver::class, $ideaForge->getIdeaAdvisors()[0]);
         $this->assertInstanceOf(OpenAIIdeaAuditorDriver::class, $ideaForge->getIdeaAuditor());
+        $this->assertInstanceOf(OpenAIIdeaPickerDriver::class, $ideaForge->getIdeaPicker());
     }
 }

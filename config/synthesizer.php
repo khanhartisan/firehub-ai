@@ -8,6 +8,7 @@ use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriv
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\SynthesizerService;
 
@@ -76,7 +77,7 @@ return [
                     ],
                 ],
                 'auditor' => OpenAIIdeaAuditorDriver::class,
-                'picker' => BasicIdeaPickerDriver::class,
+                'picker' => OpenAIIdeaPickerDriver::class,
             ],
             'brief_builder' => [
                 'driver' => BasicBriefBuilderDriver::class,
@@ -119,6 +120,20 @@ return [
         'model' => env('SYNTHESIZER_OPENAI_IDEA_AUDITOR_MODEL', 'gpt-4o-mini'),
         'temperature_uniqueness' => 0.1,
         'temperature_audit' => 0.3,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI idea picker
+    |--------------------------------------------------------------------------
+    |
+    | Used by {@see OpenAIIdeaPickerDriver} (synthesizer driver "openai").
+    |
+    */
+
+    'openai_idea_picker' => [
+        'model' => env('SYNTHESIZER_OPENAI_IDEA_PICKER_MODEL', 'gpt-4o-mini'),
+        'temperature' => 0.2,
     ],
 
     /*

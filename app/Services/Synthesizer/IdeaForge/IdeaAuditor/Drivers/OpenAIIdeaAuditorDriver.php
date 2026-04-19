@@ -11,12 +11,13 @@ use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
 use App\Models\Article;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\IdeaAuditorService;
-use Illuminate\Support\Collection;
+use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Support\IdeaUniquenessFromVector;
+use JsonException;
 use RuntimeException;
 
 /**
- * Uses the OpenAI Responses API with structured JSON for uniqueness vs existing titles
- * and qualitative audit scores for {@see Idea}.
+ * Uniqueness: retrieve candidate articles via vector search, then OpenAI structured output
+ * for similarity score and redundancy judgment. Audit: OpenAI only.
  */
 class OpenAIIdeaAuditorDriver extends IdeaAuditorService
 {
@@ -34,26 +35,49 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
         $this->config = array_merge(config('synthesizer.openai_idea_auditor', []), $config);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function isIdeaUnique(string $clientId, Idea $idea): IdeaUniquenessReport
     {
-        $articles = $this->baselineArticles($clientId);
+        $identifier = trim((string) $idea->getIdentifier());
 
-        if ($articles->isEmpty()) {
+        $text = IdeaUniquenessFromVector::searchTextForIdea($idea);
+        if (trim($text) === '') {
             return (new IdeaUniquenessReport)
                 ->setClientId($clientId)
-                ->setIdeaIdentifier(trim((string) $idea->getIdentifier()))
+                ->setIdeaIdentifier($identifier)
                 ->setSimilarity(0.0)
                 ->setIsUnique(true)
                 ->setSimilarArticles([]);
         }
 
+        $limit = max(1, min(100, (int) (config('synthesizer.idea_uniqueness.vector_search_limit') ?? 20)));
+        $matches = IdeaUniquenessFromVector::candidateArticlesWithSimilarityScores($clientId, $text, $limit);
+
+        if ($matches === []) {
+            return (new IdeaUniquenessReport)
+                ->setClientId($clientId)
+                ->setIdeaIdentifier($identifier)
+                ->setSimilarity(0.0)
+                ->setIsUnique(true)
+                ->setSimilarArticles([]);
+        }
+
+        $candidates = [];
+        foreach ($matches as $row) {
+            $article = $row['article'];
+            $candidates[] = [
+                'id' => (string) $article->getKey(),
+                'title' => (string) $article->title,
+                'vector_similarity' => round($row['score'], 4),
+            ];
+        }
+
         $payload = [
             'client_id' => $clientId,
             'idea' => $idea->toArray(),
-            'existing_articles' => $articles->map(static fn (Article $a) => [
-                'id' => (string) $a->getKey(),
-                'title' => (string) $a->title,
-            ])->values()->all(),
+            'candidates_from_vector_search' => $candidates,
         ];
 
         $prompt = $this->buildUniquenessPrompt($payload);
@@ -68,13 +92,17 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
         $similarity = isset($data['similarity']) ? max(0.0, min(1.0, (float) $data['similarity'])) : 0.0;
         $isUnique = isset($data['is_unique']) ? (bool) $data['is_unique'] : true;
 
-        $allowedIds = $articles->pluck('id')->map(static fn ($id) => (string) $id)->all();
+        $allowedIds = [];
+        foreach ($candidates as $c) {
+            $allowedIds[(string) $c['id']] = true;
+        }
+
         $rawIds = $data['similar_article_ids'] ?? [];
         $similarIds = [];
         if (is_array($rawIds)) {
             foreach ($rawIds as $id) {
                 $sid = (string) $id;
-                if ($sid !== '' && in_array($sid, $allowedIds, true)) {
+                if ($sid !== '' && isset($allowedIds[$sid])) {
                     $similarIds[] = $sid;
                 }
             }
@@ -92,7 +120,7 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
 
         return (new IdeaUniquenessReport)
             ->setClientId($clientId)
-            ->setIdeaIdentifier(trim((string) $idea->getIdentifier()))
+            ->setIdeaIdentifier($identifier)
             ->setSimilarity($similarity)
             ->setIsUnique($isUnique)
             ->setSimilarArticles($similarArticles);
@@ -132,23 +160,6 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
         return new IdeaAuditReport($idea, $score, $highlights, $concerns);
     }
 
-    /**
-     * @return Collection<int, Article>
-     */
-    protected function baselineArticles(string $clientId): Collection
-    {
-        return Article::query()
-            ->where('client_id', $clientId)
-            ->select(['id', 'title'])
-            ->limit($this->getMaxBaselineArticles())
-            ->get();
-    }
-
-    protected function getMaxBaselineArticles(): int
-    {
-        return max(1, min(50, (int) ($this->config['max_baseline_articles'] ?? 20)));
-    }
-
     protected function getModel(): string
     {
         return (string) ($this->config['model'] ?? 'gpt-4o-mini');
@@ -166,17 +177,17 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
 
     /**
      * @param  array<string, mixed>  $payload
+     *
+     * @throws JsonException
      */
     protected function buildUniquenessPrompt(array $payload): string
     {
         $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         return <<<PROMPT
-You compare a proposed article idea against existing published/working titles for the same client.
+The field "candidates_from_vector_search" lists existing articles for this client that are nearest neighbors in embedding space to the proposed idea (each row includes a retrieval "vector_similarity" score in [0,1]). That score is only a coarse signal from vector search.
 
-Estimate how overlapping or redundant the new idea would be with any existing title (0 = completely distinct, 1 = essentially the same topic/angle).
-
-Only include article ids in "similar_article_ids" when the existing piece is meaningfully overlapping (would feel repetitive to publish both). Use an empty array when none are close.
+Your task: judge how editorially overlapping or redundant the proposed idea would be against those candidates for the same audience (0 = distinct enough to publish, 1 = essentially duplicate angle). Set "similarity" to your best estimate of maximum overlap with any existing piece. Set "is_unique" to true if the idea is sufficiently distinct to publish without meaningful redundancy. List only article ids that are truly overlapping in "similar_article_ids" (subset of candidate ids); use [] if none.
 
 Input JSON:
 {$json}
@@ -209,7 +220,7 @@ PROMPT;
                     'type' => 'number',
                     'minimum' => 0,
                     'maximum' => 1,
-                    'description' => 'Maximum conceptual overlap with any existing title.',
+                    'description' => 'Estimated maximum editorial overlap with any existing article (your judgment, not the raw vector score).',
                 ],
                 'is_unique' => [
                     'type' => 'boolean',
@@ -218,7 +229,7 @@ PROMPT;
                 'similar_article_ids' => [
                     'type' => 'array',
                     'items' => ['type' => 'string'],
-                    'description' => 'Subset of input existing_articles ids that overlap; empty if none.',
+                    'description' => 'Candidate article ids that meaningfully overlap; empty if none.',
                 ],
             ],
             'required' => array_keys($properties),

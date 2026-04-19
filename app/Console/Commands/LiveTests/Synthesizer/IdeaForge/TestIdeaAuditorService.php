@@ -98,7 +98,7 @@ class TestIdeaAuditorService extends Command
             $impl = $this->choice(
                 'Which implementation?',
                 [
-                    'BasicIdeaAuditorDriver — local titles / heuristics',
+                    'BasicIdeaAuditorDriver — stub uniqueness (tests / local; no vector)',
                     'OpenAIIdeaAuditorDriver — OpenAI Responses API (uses synthesizer.openai_idea_auditor config)',
                 ],
                 0

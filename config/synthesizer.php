@@ -119,6 +119,22 @@ return [
         'model' => env('SYNTHESIZER_OPENAI_IDEA_AUDITOR_MODEL', 'gpt-4o-mini'),
         'temperature_uniqueness' => 0.1,
         'temperature_audit' => 0.3,
-        'max_baseline_articles' => 20,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Idea uniqueness (vector similarity)
+    |--------------------------------------------------------------------------
+    |
+    | Used by {@see OpenAIIdeaAuditorDriver} for vector retrieval and scoring
+    | (limits / thresholds). {@see BasicIdeaAuditorDriver} does not use vector search;
+    | it returns a fixed stub report for tests and local wiring.
+    |
+    */
+
+    'idea_uniqueness' => [
+        'vector_search_limit' => 20,
+        'similarity_unique_cutoff' => 0.75,
+        'similar_article_min_score' => 0.5,
     ],
 ];

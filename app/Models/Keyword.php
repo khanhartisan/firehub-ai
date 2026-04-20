@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\KeywordSearchEngineDataCast;
 use App\Enums\Country;
 use App\Enums\KeywordStatus;
 use App\Enums\Language;
@@ -24,6 +25,7 @@ class Keyword extends Model implements ShouldCascade
         'difficulty' => 'float',
         'intents_count' => 'integer',
         'pages_count' => 'integer',
+        'search_engine_data' => KeywordSearchEngineDataCast::class,
         'deleted_at' => 'datetime',
         'researched_at' => 'datetime',
     ];

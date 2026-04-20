@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('keywords', function (Blueprint $table) {
             $table->ulid('id')->primary();
+            $table->string('language')->nullable();
+            $table->string('country')->nullable();
             $table->string('keyword');
             $table->char('hash', 40)->unique(); // sha1 hash from the keyword
 
-            $table->unsignedInteger('global_volume')->nullable();
-            $table->jsonb('volume_by_country')->nullable()->index();
+            $table->unsignedInteger('volume')->nullable();
 
             $table->unsignedInteger('difficulty')->nullable();
 

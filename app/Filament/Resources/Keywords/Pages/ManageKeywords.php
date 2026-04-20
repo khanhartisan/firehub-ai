@@ -26,7 +26,7 @@ class ManageKeywords extends ManageRecords
      */
     private const CSV_HEADER_ALIASES = [
         'keyword' => ['keyword', 'keywords', 'kw', 'query', 'search term', 'term'],
-        'global_volume' => ['global volume', 'search volume', 'volume', 'vol', 'avg search volume'],
+        'volume' => ['global volume', 'search volume', 'volume', 'vol', 'avg search volume'],
         'difficulty' => ['difficulty', 'keyword difficulty', 'kd', 'seo difficulty'],
     ];
 
@@ -59,7 +59,7 @@ class ManageKeywords extends ManageRecords
                     Textarea::make('csv_content')
                         ->label('CSV content')
                         ->rows(12)
-                        ->placeholder("keyword,global_volume,difficulty\nexample keyword,1200,35")
+                        ->placeholder("keyword,volume,difficulty\nexample keyword,1200,35")
                         ->required(fn (callable $get): bool => $get('input_method') === 'paste')
                         ->visible(fn (callable $get): bool => $get('input_method') === 'paste'),
                     Toggle::make('has_header')
@@ -155,9 +155,10 @@ class ManageKeywords extends ManageRecords
                             continue;
                         }
 
+                        // TODO: static makeHash() migrated to instance method ->generateHash()
                         $hash = Keyword::makeHash($keyword);
-                        $globalVolume = $this->parseNullableUnsignedInteger($hasHeader
-                            ? $this->extractColumnFromHeaderAliases($record, 'global_volume')
+                        $volume = $this->parseNullableUnsignedInteger($hasHeader
+                            ? $this->extractColumnFromHeaderAliases($record, 'volume')
                             : ($record[1] ?? null));
                         $difficulty = $this->parseNullableUnsignedInteger($hasHeader
                             ? $this->extractColumnFromHeaderAliases($record, 'difficulty')
@@ -166,7 +167,7 @@ class ManageKeywords extends ManageRecords
                         $rowsByHash[$hash] = [
                             'keyword' => $keyword,
                             'hash' => $hash,
-                            'global_volume' => $globalVolume,
+                            'volume' => $volume,
                             'difficulty' => $difficulty,
                             'updated_at' => $now,
                             'created_at' => $now,
@@ -203,7 +204,7 @@ class ManageKeywords extends ManageRecords
                         Keyword::query()->upsert(
                             $chunk,
                             ['hash'],
-                            ['keyword', 'global_volume', 'difficulty', 'updated_at', 'deleted_at']
+                            ['keyword', 'volume', 'difficulty', 'updated_at', 'deleted_at']
                         );
                     }
 

@@ -47,6 +47,6 @@ class SetHash extends ModelListener implements ModelListenerInterface
      */
     protected function _handle(Keyword $keyword, string $event): void
     {
-        $keyword->hash = Keyword::makeHash($keyword->keyword);
+        $keyword->hash = $keyword->generateHash();
     }
 }

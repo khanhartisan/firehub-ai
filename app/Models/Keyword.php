@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\Country;
 use App\Enums\KeywordStatus;
+use App\Enums\Language;
 use App\Utils\Str;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,9 +17,10 @@ class Keyword extends Model implements ShouldCascade
     use Cascades;
 
     protected $casts = [
+        'language' => Language::class,
+        'country' => Country::class,
         'status' => KeywordStatus::class,
-        'global_volume' => 'integer',
-        'volume_by_country' => 'integer',
+        'volume' => 'integer',
         'difficulty' => 'float',
         'intents_count' => 'integer',
         'pages_count' => 'integer',
@@ -25,9 +28,13 @@ class Keyword extends Model implements ShouldCascade
         'researched_at' => 'datetime',
     ];
 
-    public static function makeHash(string $keyword): string
+    public function generateHash(): string
     {
-        return sha1(Str::sanitizeKeyword($keyword));
+        return sha1(
+            Str::sanitizeKeyword($this->keyword)
+            .'@'.$this->language?->value
+            .'@'.$this->country?->value
+        );
     }
 
     public function getCascadeDetails(): CascadeDetails|array

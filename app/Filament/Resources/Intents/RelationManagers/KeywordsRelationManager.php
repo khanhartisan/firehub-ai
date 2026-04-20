@@ -20,7 +20,7 @@ class KeywordsRelationManager extends RelationManager
                 TextColumn::make('keyword')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('global_volume')
+                TextColumn::make('volume')
                     ->sortable(),
                 TextColumn::make('difficulty')
                     ->sortable(),

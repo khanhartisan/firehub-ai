@@ -40,7 +40,7 @@ class KeywordResource extends Resource
                 TextInput::make('keyword')
                     ->required()
                     ->maxLength(255),
-                TextInput::make('global_volume')
+                TextInput::make('volume')
                     ->numeric()
                     ->minValue(0),
                 TextInput::make('difficulty')
@@ -61,7 +61,7 @@ class KeywordResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(50),
-                TextColumn::make('global_volume')->sortable(),
+                TextColumn::make('volume')->sortable(),
                 TextColumn::make('difficulty')->sortable(),
                 TextColumn::make('intents_count')->sortable(),
                 TextColumn::make('updated_at')->dateTime()->sortable(),
@@ -89,8 +89,8 @@ class KeywordResource extends Resource
                     ->schema([
                         TextEntry::make('keyword'),
                         TextEntry::make('hash'),
-                        TextEntry::make('global_volume')
-                            ->label('Global volume'),
+                        TextEntry::make('volume')
+                            ->label('Volume'),
                         TextEntry::make('difficulty'),
                         TextEntry::make('intents_count')
                             ->label('Intents'),

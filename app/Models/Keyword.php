@@ -29,7 +29,8 @@ class Keyword extends Model implements ShouldCascade
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            new CascadeDetails($this->intentKeywords())
+            new CascadeDetails($this->hasMany(IntentKeyword::class)),
+            new CascadeDetails($this->hasMany(KeywordPage::class)),
         ];
     }
 
@@ -38,16 +39,21 @@ class Keyword extends Model implements ShouldCascade
         return true;
     }
 
-    public function intentKeywords(): HasMany
-    {
-        return $this->hasMany(IntentKeyword::class);
-    }
-
     public function intents(): BelongsToMany
     {
         return $this->belongsToMany(Intent::class)
             ->using(IntentKeyword::class)
             ->as('intent_keyword')
+            ->withPivot([
+                'relevance'
+            ]);
+    }
+
+    public function pages(): BelongsToMany
+    {
+        return $this->belongsToMany(Page::class)
+            ->using(KeywordPage::class)
+            ->as('keyword_page')
             ->withPivot([
                 'relevance'
             ]);

@@ -134,7 +134,8 @@ class Page extends EmbeddableModel implements ShouldCascade
             new CascadeDetails($this->snapshots()),
             new CascadeDetails($this->hasMany(PageVertical::class)),
             new CascadeDetails($this->hasMany(PageTag::class)),
-            new CascadeDetails($this->intentPages()),
+            new CascadeDetails($this->hasMany(IntentPage::class)),
+            new CascadeDetails($this->hasMany(KeywordPage::class)),
         ];
     }
 
@@ -228,16 +229,21 @@ class Page extends EmbeddableModel implements ShouldCascade
             ->as('page_tag');
     }
 
-    public function intentPages(): HasMany
-    {
-        return $this->hasMany(IntentPage::class);
-    }
-
     public function intents(): BelongsToMany
     {
         return $this->belongsToMany(Intent::class)
             ->using(IntentPage::class)
             ->as('intent_page')
+            ->withPivot([
+                'relevance'
+            ]);
+    }
+
+    public function keywords(): BelongsToMany
+    {
+        return $this->belongsToMany(Keyword::class)
+            ->using(KeywordPage::class)
+            ->as('keyword_page')
             ->withPivot([
                 'relevance'
             ]);

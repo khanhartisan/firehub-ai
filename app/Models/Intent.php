@@ -39,8 +39,8 @@ class Intent extends EmbeddableModel implements ShouldCascade
     {
         return [
             new CascadeDetails($this->articleIntents()),
-            new CascadeDetails($this->intentPages()),
-            new CascadeDetails($this->intentKeywords()),
+            new CascadeDetails($this->hasMany(IntentPage::class)),
+            new CascadeDetails($this->hasMany(IntentKeyword::class)),
         ];
     }
 
@@ -64,11 +64,6 @@ class Intent extends EmbeddableModel implements ShouldCascade
             ]);
     }
 
-    public function intentPages(): HasMany
-    {
-        return $this->hasMany(IntentPage::class);
-    }
-
     public function pages(): BelongsToMany
     {
         return $this->belongsToMany(Page::class)
@@ -77,11 +72,6 @@ class Intent extends EmbeddableModel implements ShouldCascade
             ->withPivot([
                 'relevance'
             ]);
-    }
-
-    public function intentKeywords(): HasMany
-    {
-        return $this->hasMany(IntentKeyword::class);
     }
 
     public function keywords(): BelongsToMany

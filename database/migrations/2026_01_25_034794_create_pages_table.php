@@ -44,6 +44,9 @@ return new class extends Migration
 
             $table->unsignedInteger('snapshots_count')->default(0);
 
+            // Keywords
+            $table->unsignedInteger('keywords_count')->default(0);
+
             $table->timestamps();
             $table->dateTime('source_published_at')->nullable();
             $table->dateTime('source_updated_at')->nullable();

@@ -15,7 +15,7 @@ class KeywordPage extends Pivot
         return $this->belongsTo(Keyword::class);
     }
 
-    public function Page(): BelongsTo
+    public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
     }

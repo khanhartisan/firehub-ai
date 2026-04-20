@@ -72,6 +72,7 @@ class Page extends EmbeddableModel implements ShouldCascade
         'is_embedded' => 'boolean',
         'version_index' => 'integer',
         'intents_count' => 'integer',
+        'keywords_count' => 'integer',
         'intent_resolved_at' => 'datetime',
     ];
 

@@ -23,6 +23,7 @@ use App\Models\Intent;
 use App\Models\IntentKeyword;
 use App\Models\IntentPage;
 use App\Models\Keyword;
+use App\Models\KeywordPage;
 use App\Models\Model;
 use App\Models\Page;
 use App\Models\PageCount;
@@ -112,6 +113,7 @@ class AppServiceProvider extends ServiceProvider
             IntentKeyword::class,
             IntentPage::class,
             Keyword::class,
+            KeywordPage::class,
             Page::class,
             PageCount::class,
             PageRelation::class,

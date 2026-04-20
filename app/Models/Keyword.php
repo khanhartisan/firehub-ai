@@ -18,6 +18,7 @@ class Keyword extends Model implements ShouldCascade
         'volume_by_country' => 'integer',
         'difficulty' => 'float',
         'intents_count' => 'integer',
+        'pages_count' => 'integer',
         'deleted_at' => 'datetime',
     ];
 

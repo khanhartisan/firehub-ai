@@ -22,6 +22,7 @@ return new class extends Migration
             $table->unsignedInteger('difficulty')->nullable();
 
             $table->unsignedInteger('intents_count')->default(0);
+            $table->unsignedInteger('pages_count')->default(0);
 
             $table->timestamps();
             $table->dateTime('intent_resolved_at')->nullable();

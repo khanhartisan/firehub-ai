@@ -16,32 +16,32 @@ final class IntentKeywords implements Serializable
     use HasIntent;
 
     /** @var list<IntentKeyword> */
-    protected array $keywords = [];
+    protected array $intentKeywords = [];
 
     /**
      * @return list<IntentKeyword>
      */
-    public function getKeywords(): array
+    public function getIntentKeywords(): array
     {
-        return $this->keywords;
+        return $this->intentKeywords;
     }
 
     /**
-     * @param  list<IntentKeyword>  $keywords
+     * @param  list<IntentKeyword>  $intentKeywords
      *
      * @throws \InvalidArgumentException When an element is not a {@see IntentKeyword} instance.
      */
-    public function setKeywords(array $keywords): static
+    public function setIntentKeywords(array $intentKeywords): static
     {
-        foreach ($keywords as $index => $keyword) {
+        foreach ($intentKeywords as $index => $keyword) {
             if (! $keyword instanceof IntentKeyword) {
                 throw new \InvalidArgumentException(
-                    sprintf('keywords[%s] must be an instance of %s, %s given.', $index, IntentKeyword::class, get_debug_type($keyword))
+                    sprintf('intentKeywords[%s] must be an instance of %s, %s given.', $index, IntentKeyword::class, get_debug_type($keyword))
                 );
             }
         }
 
-        $this->keywords = array_values($keywords);
+        $this->intentKeywords = array_values($intentKeywords);
 
         return $this;
     }
@@ -49,19 +49,19 @@ final class IntentKeywords implements Serializable
     /**
      * {@inheritdoc}
      *
-     * @return array{intent: array<string, mixed>, keywords: list<array{keyword: string, relevance: float|null}>}
+     * @return array{intent: array<string, mixed>, intent_keywords: list<array{keyword: string, relevance: float|null}>}
      */
     public function toArray(): array
     {
         return [
             'intent' => $this->intent->toArray(),
-            'keywords' => array_map(
+            'intent_keywords' => array_map(
                 function (IntentKeyword $k): array {
                     $data = $k->toArray();
                     unset($data['intent']);
                     return $data;
                 },
-                $this->keywords,
+                $this->intentKeywords,
             ),
         ];
     }
@@ -80,22 +80,30 @@ final class IntentKeywords implements Serializable
         $instance = new static;
         $instance->setIntent(Intent::fromArray($data['intent']));
 
-        $keywords = [];
-        if (isset($data['keywords']) && is_array($data['keywords'])) {
-            foreach ($data['keywords'] as $row) {
+        $intentKeywords = [];
+        $rows = null;
+        if (isset($data['intent_keywords']) && is_array($data['intent_keywords'])) {
+            $rows = $data['intent_keywords'];
+        } elseif (isset($data['keywords']) && is_array($data['keywords'])) {
+            // Backward compatibility for older payloads.
+            $rows = $data['keywords'];
+        }
+
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
                 if (! is_array($row)) {
                     continue;
                 }
                 try {
                     $row['intent'] = $data['intent'];
-                    $keywords[] = IntentKeyword::fromArray($row);
+                    $intentKeywords[] = IntentKeyword::fromArray($row);
                 } catch (\InvalidArgumentException) {
                     continue;
                 }
             }
         }
 
-        $instance->setKeywords($keywords);
+        $instance->setIntentKeywords($intentKeywords);
 
         return $instance;
     }

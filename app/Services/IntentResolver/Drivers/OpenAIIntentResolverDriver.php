@@ -342,7 +342,7 @@ You receive a list of search keywords. Group them into one or more distinct user
 
 # Each group must contain:
 - "intent": a full intent payload (title, description, language, temporal, types) as described in the schema. Follow the same tone and neutrality rules as for page-based intent analysis: no specific brand or website names in title/description.
-- "keywords": a non-empty subset of the input keywords with a relevance score (0–1) for how well each keyword fits that intent.
+- "intent_keywords": a non-empty subset of the input keywords with a relevance score (0–1) for how well each keyword fits that intent.
 
 Language consistency rule:
 - For each "intent", write both "title" and "description" in the same language as that intent's "language" field.
@@ -400,14 +400,14 @@ PROMPT;
                         'type' => 'object',
                         'properties' => [
                             'intent' => $intentObject,
-                            'keywords' => [
+                            'intent_keywords' => [
                                 'type' => 'array',
                                 'items' => $keywordItem,
                                 'minItems' => 1,
                                 'maxItems' => max(1, $keywordCount),
                             ],
                         ],
-                        'required' => ['intent', 'keywords'],
+                        'required' => ['intent', 'intent_keywords'],
                         'additionalProperties' => false,
                     ],
                     'minItems' => 1,

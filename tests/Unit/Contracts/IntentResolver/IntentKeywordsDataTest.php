@@ -26,14 +26,14 @@ class IntentKeywordsDataTest extends TestCase
 
         $bundle = (new IntentKeywords)
             ->setIntent($intent)
-            ->setKeywords([$kw]);
+            ->setIntentKeywords([$kw]);
 
         $roundTrip = IntentKeywords::fromArray($bundle->toArray());
 
         $this->assertEquals($bundle->toArray(), $roundTrip->toArray());
         $this->assertSame('Test intent', $roundTrip->getIntent()->getTitle());
-        $this->assertCount(1, $roundTrip->getKeywords());
-        $this->assertSame('running shoes', $roundTrip->getKeywords()[0]->getKeyword());
+        $this->assertCount(1, $roundTrip->getIntentKeywords());
+        $this->assertSame('running shoes', $roundTrip->getIntentKeywords()[0]->getKeyword());
     }
 
     public function test_set_keywords_rejects_invalid_type(): void
@@ -47,6 +47,6 @@ class IntentKeywordsDataTest extends TestCase
 
         (new IntentKeywords)
             ->setIntent($intent)
-            ->setKeywords(['not-keyword-data']);
+            ->setIntentKeywords(['not-keyword-data']);
     }
 }

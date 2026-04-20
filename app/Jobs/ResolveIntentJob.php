@@ -124,7 +124,7 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         foreach ($listIntentKeywords as $intentKeywords) {
             $intentModel = $this->getIntentModelByIntentData($intentKeywords->getIntent());
 
-            foreach ($intentKeywords->getKeywords() as $intentKeyword) {
+            foreach ($intentKeywords->getIntentKeywords() as $intentKeyword) {
                 $keywordModel = $keywords
                     ->firstWhere(
                         'keyword',

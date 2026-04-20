@@ -225,7 +225,7 @@ class TestIntentResolverService extends Command
                     $this->info('Group '.($i + 1));
                     $this->displayIntent($group->getIntent());
                     $rows = [];
-                    foreach ($group->getKeywords() as $j => $keyword) {
+                    foreach ($group->getIntentKeywords() as $j => $keyword) {
                         $relevance = $keyword->getRelevance();
                         $rows[] = [
                             (string) ($j + 1),

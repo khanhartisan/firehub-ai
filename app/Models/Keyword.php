@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\KeywordStatus;
 use App\Utils\Str;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,12 +15,14 @@ class Keyword extends Model implements ShouldCascade
     use Cascades;
 
     protected $casts = [
+        'status' => KeywordStatus::class,
         'global_volume' => 'integer',
         'volume_by_country' => 'integer',
         'difficulty' => 'float',
         'intents_count' => 'integer',
         'pages_count' => 'integer',
         'deleted_at' => 'datetime',
+        'researched_at' => 'datetime',
     ];
 
     public static function makeHash(string $keyword): string

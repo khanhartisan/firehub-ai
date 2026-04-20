@@ -8,6 +8,7 @@ enum Queue: string
 {
     case DEFAULT = 'default';
     case ARTICLE_BUILDING = 'article_building';
+    case KEYWORD_RESEARCHING = 'keyword_researching';
     case PAGE_SCRAPING = 'page_scraping';
     case FILE_SCRAPING = 'file_scraping';
 

@@ -24,6 +24,10 @@ return new class extends Migration
             $table->unsignedInteger('intents_count')->default(0);
             $table->unsignedInteger('pages_count')->default(0);
 
+            $table->unsignedTinyInteger('status')->default(\App\Enums\KeywordStatus::PENDING->value);
+            $table->dateTime('researched_at')->nullable();
+            $table->index(['status', 'researched_at']);
+
             $table->timestamps();
             $table->dateTime('intent_resolved_at')->nullable();
             $table->index(['intent_resolved_at', 'updated_at'], 'keywords_intent_resolved_at_index');

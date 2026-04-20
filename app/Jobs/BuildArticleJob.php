@@ -12,6 +12,7 @@ use App\Jobs\BuildArticleJobConcerns\HandleIdeaStage;
 use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSynthesizer;
+use App\Jobs\Concerns\HasManualLock;
 use App\Models\Article;
 use App\Models\Client;
 use Exception;
@@ -47,6 +48,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     use Queueable;
     use InteractsWithArticleStageData;
     use InteractsWithSynthesizer;
+    use HasManualLock;
     use HandleIdeaStage;
     use HandleBriefStage;
     use HandleDraftStage;
@@ -61,8 +63,6 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     protected Client $client;
 
     protected ?Article $article;
-
-    protected Lock $manualLock;
 
     /**
      * Create a new job instance.
@@ -158,11 +158,6 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         finally {
             $lock->release();
         }
-    }
-
-    protected function getManualLock(): Lock
-    {
-        return $this->manualLock ??= Cache::lock(sha1($this->uniqueId()), $this->uniqueFor);
     }
 
     /**

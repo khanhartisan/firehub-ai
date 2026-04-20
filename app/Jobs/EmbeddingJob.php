@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\Queue;
 use App\Facades\TextEmbedding;
+use App\Jobs\Concerns\HasManualLock;
 use App\Models\EmbeddableModel;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 class EmbeddingJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Queueable;
+    use HasManualLock;
 
     protected EmbeddableModel $embeddable;
 
@@ -26,8 +28,6 @@ class EmbeddingJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     public int $uniqueFor = 60;
 
     public const Queue EMBEDDING_QUEUE = Queue::DEFAULT;
-
-    protected Lock $manualLock;
 
     /**
      * Create a new job instance.
@@ -80,10 +80,5 @@ class EmbeddingJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         } finally {
             $lock->release();
         }
-    }
-
-    protected function getManualLock(): Lock
-    {
-        return $this->manualLock ??= Cache::lock(sha1(static::class.'@manual-lock@'.$this->uniqueId()), $this->uniqueFor);
     }
 }

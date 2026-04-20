@@ -8,6 +8,7 @@ use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
 use App\Facades\ScrapePolicyEngine;
+use App\Jobs\Concerns\HasManualLock;
 use App\Jobs\ScrapePageJobConcerns\DataParsingStage;
 use App\Jobs\ScrapePageJobConcerns\DataPreparingStage;
 use App\Jobs\ScrapePageJobConcerns\EnrichmentStage;
@@ -34,6 +35,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
+    use HasManualLock;
     use DataParsingStage;
     use DataPreparingStage;
     use Dispatchable;
@@ -71,8 +73,6 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
      * The page to scrape.
      */
     public Page $page;
-
-    protected Lock $manualLock;
 
     /**
      * Create a new job instance.
@@ -124,6 +124,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     /**
      * Execute the job.
+     * @throws \Exception
      */
     public function _handle(): void
     {
@@ -391,10 +392,5 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
 
         return PageData::fromJson($pageDataJson);
-    }
-
-    protected function getManualLock(): Lock
-    {
-        return $this->manualLock ??= Cache::lock(sha1(static::class.'@manual-lock@'.$this->uniqueId()), $this->uniqueFor);
     }
 }

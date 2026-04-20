@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStatus;
+use App\Jobs\Concerns\HasManualLock;
 use App\Models\File;
 use App\Models\Page;
 use Illuminate\Bus\Queueable;
@@ -23,17 +24,8 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
+    use HasManualLock;
     use SerializesModels;
-
-    /**
-     * Lock key: only one execution at a time, regardless of worker count.
-     */
-    private const string LOCK_KEY = 'schedule-scrape-due';
-
-    /**
-     * Max seconds to hold the lock (safety in case job crashes without releasing).
-     */
-    private const int LOCK_SECONDS = 300;
 
     /**
      * Number of seconds after which the unique lock will be released (e.g. if job fails).
@@ -61,10 +53,11 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
      * Execute the job: queue due pages, then re-dispatch self immediately.
      * ShouldBeUniqueUntilProcessing: only one job in queue at a time (no spam).
      * In-job Cache::lock: only one execution at a time (no race with multiple workers).
+     * @throws \Exception
      */
     public function handle(): void
     {
-        $lock = Cache::lock(self::LOCK_KEY, self::LOCK_SECONDS);
+        $lock = $this->getManualLock();
 
         if (!$lock->get()) {
             return;

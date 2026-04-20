@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
+use App\Jobs\Concerns\HasManualLock;
 use App\Jobs\ScrapeFileJobConcerns\DataPreparingStage;
 use App\Jobs\ScrapeFileJobConcerns\EnrichmentStage;
 use App\Jobs\ScrapeFileJobConcerns\FetchingStage;
@@ -26,14 +27,13 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
     use FetchingStage;
     use FinishingStage;
     use Queueable;
+    use HasManualLock;
 
     public int $timeout = 300;
 
     public int $uniqueFor = 300;
 
     protected File $file;
-
-    protected Lock $manualLock;
 
     /**
      * Create a new job instance.
@@ -174,10 +174,5 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         if (env('APP_DEBUG')) {
             dump('Update file scraping stage to: '.(!$stage ? 'null' : $stage->name));
         }
-    }
-
-    protected function getManualLock(): Lock
-    {
-        return $this->manualLock ??= Cache::lock(sha1(static::class.'@manual-lock@'.$this->uniqueId()), $this->uniqueFor);
     }
 }

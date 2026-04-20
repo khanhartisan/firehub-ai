@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\KeywordSearchEngineDataCast;
+use App\Contracts\CommonData\Keyword as KeywordData;
 use App\Enums\Country;
 use App\Enums\KeywordStatus;
 use App\Enums\Language;
@@ -29,6 +30,13 @@ class Keyword extends Model implements ShouldCascade
         'deleted_at' => 'datetime',
         'researched_at' => 'datetime',
     ];
+
+    public function toKeywordData(): KeywordData
+    {
+        return new KeywordData(Str::sanitizeKeyword($this->keyword))
+            ->setCountry($this->country)
+            ->setLanguage($this->language);
+    }
 
     public function generateHash(): string
     {

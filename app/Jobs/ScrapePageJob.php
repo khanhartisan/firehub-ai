@@ -21,6 +21,7 @@ use App\Jobs\ScrapePageJobConcerns\VerticalResolutionStage;
 use App\Models\Page;
 use App\Models\Snapshot;
 use Carbon\Carbon;
+use Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Cache\Lock;
@@ -97,7 +98,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
     {
         try {
             $this->_handle();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->markPageFailed();
 
             $logs = $this->page->logs ?? '';
@@ -124,7 +125,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
     /**
      * Execute the job.
-     * @throws \Exception
+     * @throws Exception
      */
     public function _handle(): void
     {
@@ -343,6 +344,9 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $lock->release();
     }
 
+    /**
+     * @throws Exception
+     */
     protected function markPageSuccess(): void
     {
         $page = $this->page;
@@ -355,18 +359,24 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $this->getManualLock()->release();
     }
 
+    /**
+     * @throws Exception
+     */
     protected function markPageFailed(): void
     {
         $page = $this->page;
         $this->updatePageScrapingStage(null, false);
-        $page->scraping_status = ScrapingStatus::FAILED;
         $page->attempts = $page->attempts + 1;
 
         // Stop scraping if too many attempts
         if ($page->attempts >= config('queue.max_scrape_attempts')) {
             $page->next_scrape_at = null;
+            $page->scraping_status = ScrapingStatus::FAILED;
         } else {
-            $page->next_scrape_at = ScrapePolicyEngine::calculateInitialScrapingTime($page);
+            $page->next_scrape_at = $page->ignore_scraping_budget
+                ? now()
+                : ScrapePolicyEngine::calculateInitialScrapingTime($page);
+            $page->scraping_status = ScrapingStatus::PENDING;
         }
 
         DB::transaction(fn () => $page->save());

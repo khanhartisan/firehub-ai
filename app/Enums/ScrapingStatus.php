@@ -28,4 +28,16 @@ enum ScrapingStatus: int implements HasLabel
             self::BLOCKED => 'Blocked',
         };
     }
+
+    public static function finalStatuses(): array
+    {
+        return [
+            self::SUCCESS, self::FAILED
+        ];
+    }
+
+    public function isFinal(): bool
+    {
+        return in_array($this, static::finalStatuses());
+    }
 }

@@ -224,7 +224,7 @@ class ScrapePageJobTest extends TestCase
         $job->exposeMarkPageFailed();
 
         $entity->refresh();
-        $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
+        $this->assertSame(ScrapingStatus::PENDING->value, $entity->scraping_status->value); // Max attempts are not exceeded, so the status changed to pending for retrying
         $this->assertSame(config('queue.max_scrape_attempts') - 1, $entity->attempts);
         $this->assertNotNull($entity->next_scrape_at);
         $this->assertEqualsWithDelta(

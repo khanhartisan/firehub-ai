@@ -2,11 +2,15 @@
 
 namespace App\Jobs;
 
+use App\Contracts\Model\Keyword\SearchEngineData;
 use App\Contracts\SearchEngine\SearchOptions;
 use App\Enums\KeywordStatus;
 use App\Enums\Queue;
+use App\Facades\SearchEngine;
 use App\Jobs\Concerns\HasManualLock;
 use App\Models\Keyword;
+use App\Models\Page;
+use Exception;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -29,7 +33,10 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     /**
      * Create a new job instance.
      */
-    public function __construct(Keyword $keyword, protected bool $forceResearch = false)
+    public function __construct(Keyword $keyword,
+                                protected array $searchEngineDrivers = [],
+                                protected int $limitPerDriver = 10,
+                                protected bool $forceResearch = false)
     {
         $this->keyword = $keyword->withoutRelations();
 
@@ -43,6 +50,7 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     /**
      * Execute the job.
+     * @throws Exception
      */
     public function handle(): void
     {
@@ -52,7 +60,7 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         $keyword = $this->keyword;
 
-        // Mark as researched
+        // Mark as researched if the last research remains valid
         if (!$this->forceResearch
             and $keyword->researched_at
             and abs(now()->diffInSeconds($keyword->researched_at)) <= $this->validityDuration
@@ -62,20 +70,126 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
-        // Mark keyword as researching
+        // Mark as researching
+        $keyword->researched_at = null;
         $keyword->status = KeywordStatus::RESEARCHING;
         $keyword->save();
 
-        // Build the search options
-        $searchOptions = new SearchOptions();
-        $searchOptions->setLanguage($keyword->language);
-        $searchOptions->setCountry($keyword->country);
-
-        // Perform search
         try {
-            // TODO: Continue implementing
+
+            // Perform search
+            foreach ($this->getSearchEngineDrivers() as $driver) {
+                $handleResult = $this->performSearch($driver);
+
+                // Just processed, re-dispatch signal
+                if (is_null($handleResult)) {
+                    $this->reDispatch();
+                    return;
+                }
+
+                // Failed
+                if (!$handleResult) {
+                    throw new Exception('Failed to perform search for keyword: '.$keyword->keyword.' (Language: '.($keyword->language?->value ?? 'null').' / Country: '.($keyword->country?->value ?? 'null').')');
+                }
+            }
+
+            // TODO: Got search results from all the drivers
+            // Now create pages corresponding to the search results,
+            // then attach the pages to the keywords using the KeywordPage model
+            // the pages created here will need ignore_scraping_budget = true
+
+            // Now wait for all the pages to be scraped
+            /** @var Page $page */
+            foreach ($keyword->pages()->get() as $page) {
+
+                // If the page isn't scraped, re-dispatch
+                if (!$page->scraping_status->isFinal()) {
+                    // We delay for 60 seconds because page scraping takes time
+                    $this->reDispatch(60);
+                    return;
+                }
+            }
+
+            // All good, mark the keyword as researched
+            $keyword->researched_at = now();
+            $keyword->status = KeywordStatus::RESEARCHED;
+            $keyword->save();
+
+        } catch (Exception $e) {
+            // TODO: Handle exception
         } finally {
             $lock->release();
         }
+    }
+
+    /**
+     * Perform search using a SearchEngine driver
+     *
+     * @param string $driver
+     * @return bool|null True if handled, false if failed, null if just processed and needs re-dispatch
+     */
+    protected function performSearch(string $driver): ?bool
+    {
+        $searchEngineData = $this->getKeywordSearchEngineData();
+
+        // Return true if we have recent search results
+        if ($driverData = $searchEngineData->getDriverData($driver)
+            and $searchResults = $driverData->getSearchResults()
+            and $searchResults->getUpdatedAt()
+            and abs($searchResults->getUpdatedAt()->diffInSeconds(now())) <= $this->validityDuration
+        ) {
+            return true;
+        }
+
+        // Perform search
+        $keyword = $this->keyword;
+        $searchEngine = SearchEngine::driver($driver);
+        $searchResults = $searchEngine->search(
+            $keyword->keyword,
+            new SearchOptions()
+                ->setLanguage($keyword->language)
+                ->setCountry($keyword->country)
+                ->setLimit($this->limitPerDriver)
+        );
+
+        // Save search results
+        $driverData->setSearchResults($searchResults);
+
+        // Save keyword
+        $keyword->touchQuietly();
+
+        // Return null for re-dispatch signal
+        // because we only want to perform one api call per job execution
+        return null;
+    }
+
+    protected function getKeywordSearchEngineData(): SearchEngineData
+    {
+        return $this->keyword->search_engine_data ??= new SearchEngineData();
+    }
+
+    protected function getSearchEngineDrivers(): array
+    {
+        return array_filter(
+            $this->searchEngineDrivers,
+            function ($driver) {
+                return !!config('search_engine.drivers.' . $driver);
+            }
+        ) ?: [config('search_engine.default')];
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function reDispatch(?int $delay = null): void
+    {
+        $this->getManualLock()->release();
+
+        static::dispatch(
+            $this->keyword,
+            $this->getSearchEngineDrivers(),
+            $this->limitPerDriver,
+            $this->forceResearch
+        )->delay($delay);
     }
 }

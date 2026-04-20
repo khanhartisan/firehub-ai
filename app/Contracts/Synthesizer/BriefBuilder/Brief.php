@@ -6,6 +6,7 @@ use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 use App\Enums\Temporal;
 use App\Models\Page;
+use App\Utils\Str;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -21,6 +22,11 @@ final class Brief implements Serializable
     protected ?string $title = null;
 
     protected ?string $description = null;
+
+    /**
+     * @var string[]
+     */
+    protected array $keywords = [];
 
     /**
      * @var string[]
@@ -64,6 +70,40 @@ final class Brief implements Serializable
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getKeywords(): array
+    {
+        return $this->keywords;
+    }
+
+    /**
+     * @param  string[]  $keywords
+     */
+    public function setKeywords(array $keywords): static
+    {
+        $this->keywords = [];
+        foreach ($keywords as $keyword) {
+            $this->addKeyword((string) $keyword);
+        }
+
+        return $this;
+    }
+
+    public function addKeyword(string $keyword): static
+    {
+        $normalizedKeyword = Str::sanitizeKeyword($keyword);
+
+        if ($normalizedKeyword === '' || in_array($normalizedKeyword, $this->keywords, true)) {
+            return $this;
+        }
+
+        $this->keywords[] = $normalizedKeyword;
 
         return $this;
     }
@@ -125,6 +165,7 @@ final class Brief implements Serializable
             'temporal' => $this->getTemporal()?->value ?? null,
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
+            'keywords' => $this->getKeywords(),
             'instructions' => $this->getInstructions(),
             'reference_page_ids' => $this->getReferencePageIds(),
         ];
@@ -152,6 +193,10 @@ final class Brief implements Serializable
 
         if (isset($data['description'])) {
             $brief->setDescription($data['description'] !== null ? (string) $data['description'] : null);
+        }
+
+        if (isset($data['keywords']) && is_array($data['keywords'])) {
+            $brief->setKeywords($data['keywords']);
         }
 
         if (isset($data['instructions']) && is_array($data['instructions'])) {

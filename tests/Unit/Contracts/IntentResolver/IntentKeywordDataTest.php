@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Contracts\IntentResolver;
 
+use App\Contracts\CommonData\Keyword;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\IntentResolver\IntentKeyword;
 use App\Enums\IntentType;
@@ -20,12 +21,12 @@ class IntentKeywordDataTest extends TestCase
 
         $data = (new IntentKeyword)
             ->setIntent($intent)
-            ->setKeyword('  best running shoes  ')
+            ->setKeyword(new Keyword('  best running shoes  '))
             ->setRelevance(0.85);
 
         $roundTrip = IntentKeyword::fromArray($data->toArray());
 
-        $this->assertSame('best running shoes', $roundTrip->getKeyword());
+        $this->assertSame('best running shoes', $roundTrip->getKeyword()->getKeyword());
         $this->assertSame(0.85, $roundTrip->getRelevance());
         $this->assertSame($data->toArray(), $roundTrip->toArray());
     }
@@ -44,14 +45,14 @@ class IntentKeywordDataTest extends TestCase
             'relevance' => null,
         ]);
 
-        $this->assertSame('buy shoes', $row->getKeyword());
+        $this->assertSame('buy shoes', $row->getKeyword()->getKeyword());
         $this->assertEquals(0, intval($row->getRelevance() * 100));
     }
 
     public function test_set_keyword_rejects_empty_string(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        (new IntentKeyword)->setKeyword('   ');
+        (new IntentKeyword)->setKeyword(new Keyword('   '));
     }
 
     public function test_from_array_requires_keyword(): void

@@ -12,6 +12,8 @@ use App\Contracts\IntentResolver\IntentResolver;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
+use App\Contracts\CommonData\Keyword as KeywordData;
+use App\Enums\Country;
 use App\Enums\IntentType;
 use App\Enums\Language;
 use App\Enums\Temporal;
@@ -150,7 +152,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
             );
         }
 
-        return $this->parseKeywordsResponse($responseText);
+        return $this->parseKeywordsResponse($responseText, $intentData);
     }
 
     /**
@@ -509,7 +511,7 @@ PROMPT;
             );
         }
 
-        return $this->parseScoreKeywordsResponse($responseText, $normalized);
+        return $this->parseScoreKeywordsResponse($responseText, $normalized, $intentData);
     }
 
     /**
@@ -523,7 +525,7 @@ PROMPT;
 
         foreach ($keywords as $k) {
             if ($k instanceof IntentKeyword) {
-                $s = $k->getKeyword();
+                $s = $k->getKeyword()->getKeyword();
             } elseif (is_string($k)) {
                 $s = trim($k);
             } else {
@@ -595,13 +597,13 @@ PROMPT;
      * @param  list<string>  $expectedOrder
      * @return list<IntentKeyword>
      */
-    protected function parseScoreKeywordsResponse(string $responseText, array $expectedOrder): array
+    protected function parseScoreKeywordsResponse(string $responseText, array $expectedOrder, Intent $intentData): array
     {
-        $parsed = $this->parseKeywordsResponse($responseText);
+        $parsed = $this->parseKeywordsResponse($responseText, $intentData);
 
         $byLower = [];
         foreach ($parsed as $row) {
-            $byLower[mb_strtolower($row->getKeyword())] = $row;
+            $byLower[mb_strtolower($row->getKeyword()->getKeyword())] = $row;
         }
 
         $out = [];
@@ -614,7 +616,10 @@ PROMPT;
             }
 
             $out[] = (new IntentKeyword)
-                ->setKeyword($kw)
+                ->setIntent($intentData)
+                ->setKeyword(
+                    KeywordData::fromArray($this->normalizeKeywordPayload($kw, $intentData))
+                )
                 ->setRelevance(null);
         }
 
@@ -786,12 +791,45 @@ PROMPT;
      */
     protected function keywordDataJsonSchemaItem(): array
     {
+        $languageEnum = array_merge(
+            [null],
+            array_map(
+                static fn (Language $language): string => $language->value,
+                Language::cases()
+            )
+        );
+
+        $countryEnum = array_merge(
+            [null],
+            array_map(
+                static fn (Country $country): string => $country->value,
+                Country::cases()
+            )
+        );
+
         return [
             'type' => 'object',
             'properties' => [
                 'keyword' => [
-                    'type' => 'string',
-                    'description' => 'Search query phrase',
+                    'type' => 'object',
+                    'properties' => [
+                        'keyword' => [
+                            'type' => 'string',
+                            'description' => 'Search query phrase',
+                        ],
+                        'language' => [
+                            'type' => ['string', 'null'],
+                            'description' => 'Keyword language as a BCP 47 tag when inferable',
+                            'enum' => $languageEnum,
+                        ],
+                        'country' => [
+                            'type' => ['string', 'null'],
+                            'description' => 'Country/market code (ISO 3166-1 alpha-2) when inferable',
+                            'enum' => $countryEnum,
+                        ],
+                    ],
+                    'required' => ['keyword', 'language', 'country'],
+                    'additionalProperties' => false,
                 ],
                 'relevance' => [
                     'type' => ['number', 'null'],
@@ -813,6 +851,10 @@ You suggest concise search keywords (queries) that a user might type into a sear
 Return distinct, non-redundant phrases. Prefer 2–5 words per keyword when reasonable. Avoid duplicates.
 
 For each item, set "relevance" to a number between 0 and 1 indicating how well the keyword matches the intent, or null if you cannot score it.
+For each keyword row, return "keyword" as an object containing:
+- "keyword": query text
+- "language": language tag or null
+- "country": market country code or null
 
 Resolved intent (JSON):
 {$payload}
@@ -907,7 +949,7 @@ PROMPT;
     /**
      * @return list<IntentKeyword>
      */
-    protected function parseKeywordsResponse(string $responseText): array
+    protected function parseKeywordsResponse(string $responseText, Intent $intentData): array
     {
         $data = json_decode($responseText, true);
 
@@ -932,12 +974,15 @@ PROMPT;
             }
 
             try {
-                $row = IntentKeyword::fromArray($item);
+                $payload = $item;
+                $payload['intent'] = $intentData->toArray();
+                $payload['keyword'] = $this->normalizeKeywordPayload($item['keyword'] ?? null, $intentData);
+                $row = IntentKeyword::fromArray($payload);
             } catch (\InvalidArgumentException) {
                 continue;
             }
 
-            $key = mb_strtolower($row->getKeyword());
+            $key = mb_strtolower(json_encode($row->getKeyword()->toArray()) ?: $row->getKeyword()->getKeyword());
             if (isset($seen[$key])) {
                 continue;
             }
@@ -946,5 +991,57 @@ PROMPT;
         }
 
         return $out;
+    }
+
+    /**
+     * @param  string|array<string, mixed>|null  $rawKeyword
+     * @return array{keyword: string, language: string|null, country: string|null}
+     */
+    protected function normalizeKeywordPayload(string|array|null $rawKeyword, Intent $intentData): array
+    {
+        $defaultLanguage = $intentData->getLanguage();
+        $defaultCountry = $this->inferCountryFromLanguage($defaultLanguage);
+
+        if (is_string($rawKeyword)) {
+            return [
+                'keyword' => $rawKeyword,
+                'language' => $defaultLanguage?->value,
+                'country' => $defaultCountry?->value,
+            ];
+        }
+
+        if (! is_array($rawKeyword) || ! isset($rawKeyword['keyword']) || ! is_string($rawKeyword['keyword'])) {
+            throw new \InvalidArgumentException('Keyword payload must contain string "keyword".');
+        }
+
+        $language = $defaultLanguage;
+        if (array_key_exists('language', $rawKeyword) && is_string($rawKeyword['language'])) {
+            $language = Language::tryFrom($rawKeyword['language']) ?? $defaultLanguage;
+        }
+
+        $country = $defaultCountry;
+        if (array_key_exists('country', $rawKeyword) && is_string($rawKeyword['country'])) {
+            $country = Country::tryFrom($rawKeyword['country']) ?? $defaultCountry;
+        } elseif ($country === null && $language !== null) {
+            $country = $this->inferCountryFromLanguage($language);
+        }
+
+        return [
+            'keyword' => $rawKeyword['keyword'],
+            'language' => $language?->value,
+            'country' => $country?->value,
+        ];
+    }
+
+    protected function inferCountryFromLanguage(?Language $language): ?Country
+    {
+        if (! $language instanceof Language || ! str_contains($language->value, '-')) {
+            return null;
+        }
+
+        $parts = explode('-', $language->value);
+        $countryCode = strtoupper((string) end($parts));
+
+        return Country::tryFrom($countryCode);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Contracts\IntentResolver;
 
+use App\Contracts\CommonData\Keyword as KeywordData;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 
@@ -11,23 +12,15 @@ final class IntentKeyword implements Serializable
     use HasIntent;
     use HasRelevance;
 
-    protected string $keyword = '';
+    protected KeywordData $keyword;
 
-    public function getKeyword(): string
+    public function getKeyword(): KeywordData
     {
         return $this->keyword;
     }
 
-    /**
-     * @throws \InvalidArgumentException When the trimmed keyword is empty.
-     */
-    public function setKeyword(string $keyword): static
+    public function setKeyword(KeywordData $keyword): static
     {
-        $keyword = trim($keyword);
-        if ($keyword === '') {
-            throw new \InvalidArgumentException('Keyword cannot be empty.');
-        }
-
         $this->keyword = $keyword;
 
         return $this;
@@ -36,13 +29,13 @@ final class IntentKeyword implements Serializable
     /**
      * {@inheritdoc}
      *
-     * @return array{keyword: string, relevance: float|null}
+     * @return array{intent: array<string, mixed>, keyword: array{keyword: string, language: string|null, country: string|null}, relevance: float|null}
      */
     public function toArray(): array
     {
         return [
             'intent' => $this->getIntent()->toArray(),
-            'keyword' => $this->getKeyword(),
+            'keyword' => $this->getKeyword()->toArray(),
             'relevance' => $this->getRelevance(),
         ];
     }
@@ -52,18 +45,26 @@ final class IntentKeyword implements Serializable
      *
      * @param  array<string, mixed>  $data
      *
-     * @throws \InvalidArgumentException When "keyword" is missing or not a non-empty string.
+     * @throws \InvalidArgumentException When "keyword" is missing or invalid.
      */
     public static function fromArray(array $data): static
     {
         $instance = new static;
 
-        if (! isset($data['keyword']) || ! is_string($data['keyword'])) {
-            throw new \InvalidArgumentException('IntentKeyword requires a non-empty string "keyword".');
+        if (! isset($data['keyword'])) {
+            throw new \InvalidArgumentException('IntentKeyword requires "keyword".');
         }
 
         $instance->setIntent(Intent::fromArray($data['intent']));
-        $instance->setKeyword($data['keyword']);
+
+        if (is_string($data['keyword'])) {
+            // Backward compatibility with string keyword payloads.
+            $instance->setKeyword(new KeywordData($data['keyword']));
+        } elseif (is_array($data['keyword'])) {
+            $instance->setKeyword(KeywordData::fromArray($data['keyword']));
+        } else {
+            throw new \InvalidArgumentException('IntentKeyword "keyword" must be a string or keyword object payload.');
+        }
 
         static::parseRelevance($instance, $data);
 

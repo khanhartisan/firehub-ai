@@ -33,15 +33,32 @@ final class IntentKeywords implements Serializable
      */
     public function setIntentKeywords(array $intentKeywords): static
     {
-        foreach ($intentKeywords as $index => $keyword) {
-            if (! $keyword instanceof IntentKeyword) {
+        $this->intentKeywords = [];
+        foreach ($intentKeywords as $index => $intentKeyword) {
+            if (! $intentKeyword instanceof IntentKeyword) {
                 throw new \InvalidArgumentException(
-                    sprintf('intentKeywords[%s] must be an instance of %s, %s given.', $index, IntentKeyword::class, get_debug_type($keyword))
+                    sprintf('intentKeywords[%s] must be an instance of %s, %s given.', $index, IntentKeyword::class, get_debug_type($intentKeyword))
                 );
+            }
+
+            $this->addIntentKeyword($intentKeyword);
+        }
+
+        return $this;
+    }
+
+    public function addIntentKeyword(IntentKeyword $intentKeyword): static
+    {
+        $incomingKeyword = $intentKeyword->getKeyword()->toArray();
+        foreach ($this->intentKeywords as $index => $existingKeyword) {
+            if ($existingKeyword->getKeyword()->toArray() === $incomingKeyword) {
+                $this->intentKeywords[$index] = $intentKeyword;
+
+                return $this;
             }
         }
 
-        $this->intentKeywords = array_values($intentKeywords);
+        $this->intentKeywords[] = $intentKeyword;
 
         return $this;
     }
@@ -49,7 +66,7 @@ final class IntentKeywords implements Serializable
     /**
      * {@inheritdoc}
      *
-     * @return array{intent: array<string, mixed>, intent_keywords: list<array{keyword: string, relevance: float|null}>}
+     * @return array{intent: array<string, mixed>, intent_keywords: list<array{keyword: array{keyword: string, language: string|null, country: string|null}, relevance: float|null}>}
      */
     public function toArray(): array
     {

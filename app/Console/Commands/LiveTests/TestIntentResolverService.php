@@ -189,7 +189,7 @@ class TestIntentResolverService extends Command
                     $relevance = $keyword->getRelevance();
                     $rows[] = [
                         (string) ($index + 1),
-                        $keyword->getKeyword(),
+                        $keyword->getKeyword()->getKeyword(),
                         $relevance !== null ? (string) $relevance : '',
                     ];
                 }
@@ -229,7 +229,7 @@ class TestIntentResolverService extends Command
                         $relevance = $keyword->getRelevance();
                         $rows[] = [
                             (string) ($j + 1),
-                            $keyword->getKeyword(),
+                            $keyword->getKeyword()->getKeyword(),
                             $relevance !== null ? (string) $relevance : '',
                         ];
                     }
@@ -267,7 +267,7 @@ class TestIntentResolverService extends Command
                 $relevance = $keyword->getRelevance();
                 $rows[] = [
                     (string) ($index + 1),
-                    $keyword->getKeyword(),
+                    $keyword->getKeyword()->getKeyword(),
                     $relevance !== null ? (string) $relevance : '',
                 ];
             }

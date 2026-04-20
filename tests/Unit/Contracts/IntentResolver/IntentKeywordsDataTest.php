@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Contracts\IntentResolver;
 
+use App\Contracts\CommonData\Keyword;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\IntentResolver\IntentKeyword;
 use App\Contracts\IntentResolver\IntentKeywords;
@@ -21,7 +22,7 @@ class IntentKeywordsDataTest extends TestCase
 
         $kw = (new IntentKeyword)
             ->setIntent($intent)
-            ->setKeyword('running shoes')
+            ->setKeyword(new Keyword('running shoes'))
             ->setRelevance(0.9);
 
         $bundle = (new IntentKeywords)
@@ -33,7 +34,7 @@ class IntentKeywordsDataTest extends TestCase
         $this->assertEquals($bundle->toArray(), $roundTrip->toArray());
         $this->assertSame('Test intent', $roundTrip->getIntent()->getTitle());
         $this->assertCount(1, $roundTrip->getIntentKeywords());
-        $this->assertSame('running shoes', $roundTrip->getIntentKeywords()[0]->getKeyword());
+        $this->assertSame('running shoes', $roundTrip->getIntentKeywords()[0]->getKeyword()->getKeyword());
     }
 
     public function test_set_keywords_rejects_invalid_type(): void

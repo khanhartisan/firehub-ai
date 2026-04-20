@@ -3,10 +3,10 @@
 namespace App\Contracts\Synthesizer\BriefBuilder;
 
 use App\Concerns\Serializable as SerializableTrait;
+use App\Contracts\CommonData\Keyword;
 use App\Contracts\Serializable;
 use App\Enums\Temporal;
 use App\Models\Page;
-use App\Utils\Str;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -24,7 +24,7 @@ final class Brief implements Serializable
     protected ?string $description = null;
 
     /**
-     * @var string[]
+     * @var Keyword[]
      */
     protected array $keywords = [];
 
@@ -75,7 +75,7 @@ final class Brief implements Serializable
     }
 
     /**
-     * @return string[]
+     * @return Keyword[]
      */
     public function getKeywords(): array
     {
@@ -83,27 +83,36 @@ final class Brief implements Serializable
     }
 
     /**
-     * @param  string[]  $keywords
+     * @param  Keyword[]  $keywords
      */
     public function setKeywords(array $keywords): static
     {
         $this->keywords = [];
-        foreach ($keywords as $keyword) {
-            $this->addKeyword((string) $keyword);
+        foreach ($keywords as $index => $keyword) {
+            if (! $keyword instanceof Keyword) {
+                throw new \InvalidArgumentException(
+                    sprintf('keywords[%s] must be an instance of %s, %s given.', $index, Keyword::class, get_debug_type($keyword))
+                );
+            }
+
+            $this->addKeyword($keyword);
         }
 
         return $this;
     }
 
-    public function addKeyword(string $keyword): static
+    public function addKeyword(Keyword $keyword): static
     {
-        $normalizedKeyword = Str::sanitizeKeyword($keyword);
+        $incoming = $keyword->toArray();
+        foreach ($this->keywords as $i => $existing) {
+            if ($existing->toArray() === $incoming) {
+                $this->keywords[$i] = $keyword;
 
-        if ($normalizedKeyword === '' || in_array($normalizedKeyword, $this->keywords, true)) {
-            return $this;
+                return $this;
+            }
         }
 
-        $this->keywords[] = $normalizedKeyword;
+        $this->keywords[] = $keyword;
 
         return $this;
     }
@@ -165,7 +174,10 @@ final class Brief implements Serializable
             'temporal' => $this->getTemporal()?->value ?? null,
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
-            'keywords' => $this->getKeywords(),
+            'keywords' => array_map(
+                static fn (Keyword $keyword): array => $keyword->toArray(),
+                $this->getKeywords()
+            ),
             'instructions' => $this->getInstructions(),
             'reference_page_ids' => $this->getReferencePageIds(),
         ];
@@ -196,7 +208,34 @@ final class Brief implements Serializable
         }
 
         if (isset($data['keywords']) && is_array($data['keywords'])) {
-            $brief->setKeywords($data['keywords']);
+            $keywords = [];
+            foreach ($data['keywords'] as $row) {
+                if ($row instanceof Keyword) {
+                    $keywords[] = $row;
+
+                    continue;
+                }
+
+                if (is_array($row)) {
+                    try {
+                        $keywords[] = Keyword::fromArray($row);
+                    } catch (\InvalidArgumentException) {
+                        continue;
+                    }
+
+                    continue;
+                }
+
+                if (is_string($row)) {
+                    try {
+                        $keywords[] = new Keyword($row);
+                    } catch (\InvalidArgumentException) {
+                        continue;
+                    }
+                }
+            }
+
+            $brief->setKeywords($keywords);
         }
 
         if (isset($data['instructions']) && is_array($data['instructions'])) {

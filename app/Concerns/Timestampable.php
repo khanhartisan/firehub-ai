@@ -12,7 +12,7 @@ trait Timestampable
 
     public function getCreatedAt(): ?CarbonInterface
     {
-        return $this->createdAt;
+        return $this->createdAt ??= now();
     }
 
     public function setCreatedAt(?CarbonInterface $carbon): static
@@ -23,7 +23,7 @@ trait Timestampable
 
     public function getUpdatedAt(): ?CarbonInterface
     {
-        return $this->updatedAt;
+        return $this->updatedAt ??= now();
     }
 
     public function setUpdatedAt(?CarbonInterface $carbon): static

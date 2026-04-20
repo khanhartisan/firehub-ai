@@ -4,7 +4,9 @@ namespace App\Contracts\SearchEngine;
 
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
+use App\Contracts\Timestampable;
 use ArrayIterator;
+use Carbon\Carbon;
 use Countable;
 use IteratorAggregate;
 use Traversable;
@@ -14,9 +16,10 @@ use Traversable;
  *
  * @implements IteratorAggregate<int, SearchResult>
  */
-final readonly class SearchResults implements Countable, IteratorAggregate, Serializable
+final class SearchResults implements Countable, IteratorAggregate, Serializable, Timestampable
 {
     use SerializableTrait;
+    use \App\Concerns\Timestampable;
 
     /**
      * @param  list<SearchResult>  $items
@@ -56,15 +59,25 @@ final readonly class SearchResults implements Countable, IteratorAggregate, Seri
             $totalEstimated = (int) $data['total_estimated'];
         }
 
-        return new self(
+        $results = new self(
             items: $items,
             query: $query,
             totalEstimated: $totalEstimated,
         );
+
+        if (isset($data['created_at'])) {
+            $results->setCreatedAt($data['created_at'] ? Carbon::parse($data['created_at']) : null);
+        }
+
+        if (isset($data['updated_at'])) {
+            $results->setUpdatedAt($data['updated_at'] ? Carbon::parse($data['updated_at']) : null);
+        }
+
+        return $results;
     }
 
     /**
-     * @return array{items: list<array<string, mixed>>, query: string|null, total_estimated: int|null}
+     * @return array{items: list<array<string, mixed>>, query: string|null, total_estimated: int|null, created_at: string|null, updated_at: string|null}
      */
     public function toArray(): array
     {
@@ -75,6 +88,8 @@ final readonly class SearchResults implements Countable, IteratorAggregate, Seri
             ),
             'query' => $this->query,
             'total_estimated' => $this->totalEstimated,
+            'created_at' => $this->createdAt?->toIso8601String(),
+            'updated_at' => $this->updatedAt?->toIso8601String(),
         ];
     }
 

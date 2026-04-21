@@ -9,14 +9,14 @@ use App\Utils\Str;
 /**
  * Getters are handled by the magic method
  *
- * @method null|string getName()
- * @method null|string getDescription()
- * @method null|string getToneOfVoice()
- * @method null|string getIndustry()
- * @method null|array getNiches()
- * @method null|string getCoreMission()
- * @method null|array getGuidelines()
- * @method null|array getMeta()
+ * @method null|string getNameValue()
+ * @method null|string getDescriptionValue()
+ * @method null|string getToneOfVoiceValue()
+ * @method null|string getIndustryValue()
+ * @method null|array getNichesValue()
+ * @method null|string getCoreMissionValue()
+ * @method null|array getGuidelinesValue()
+ * @method null|array getMetaValue()
  */
 class ClientGeneralContext extends SemanticContext
 {

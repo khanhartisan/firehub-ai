@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('reference_id')->nullable()->unique();
             $table->string('language')->nullable();
             $table->string('name')->nullable()->unique();
-            $table->longText('context')->nullable();
+            $table->jsonb('general_context')->nullable();
             $table->timestamps();
 
             $table->softDeletes();

@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Contracts\SemanticContexts;
+namespace App\Contracts\Model\Client;
 
 use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\SemanticContexts\Concerns\HasMeta;
+use App\Contracts\CommonData\SemanticContextConcerns\HasMeta;
 use App\Utils\Str;
 
 /**
@@ -18,7 +18,7 @@ use App\Utils\Str;
  * @method null|array getGuidelinesValue()
  * @method null|array getMetaValue()
  */
-class ClientGeneralContext extends SemanticContext
+class GeneralContext extends SemanticContext
 {
     use HasMeta;
 

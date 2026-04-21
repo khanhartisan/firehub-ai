@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\SemanticContexts\Concerns;
+namespace App\Contracts\CommonData\SemanticContextConcerns;
 
 trait HasMeta
 {

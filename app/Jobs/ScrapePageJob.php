@@ -101,7 +101,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         } catch (Exception $e) {
             $this->markPageFailed();
 
-            $logs = $this->page->logs ?? '';
+            $logs = $this->page->error_logs ?? '';
             $logs .= "\n---\n".$e->getMessage()."\n---\n";
             if ($e instanceof GuzzleException
                 and method_exists($e, 'getResponse')
@@ -118,7 +118,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
             // Log the exception for debugging
             Page::query()->where('id', $this->page->id)->update([
-                'logs' => $logs,
+                'error_logs' => $logs,
             ]);
         }
     }

@@ -56,7 +56,7 @@ return new class extends Migration
             $table->json('policy_result')->nullable();
             $table->dateTime('next_scrape_at')->nullable();
 
-            $table->longText('logs')->nullable();
+            $table->longText('error_logs')->nullable();
 
             $table->softDeletes();
             $table->cascades();

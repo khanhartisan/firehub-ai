@@ -77,7 +77,7 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // Mark as researching
         $keyword->researched_at = null;
         $keyword->status = KeywordStatus::RESEARCHING;
-        $keyword->save();
+        $keyword->touch();
 
         try {
 

@@ -4,7 +4,9 @@ namespace Tests\Unit\Contracts\Synthesizer;
 
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\Author\Draft;
+use App\Contracts\Synthesizer\BriefBuilder\Audience;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
+use App\Enums\Country;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
@@ -12,7 +14,11 @@ use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
+use App\Enums\ContentGoal;
+use App\Enums\ContentTone;
+use App\Enums\ContentVoice;
 use App\Enums\IntentType;
+use App\Enums\KnowledgeLevel;
 use App\Enums\Language;
 use App\Enums\Temporal;
 use App\Models\Article;
@@ -74,8 +80,16 @@ class SynthesizerDataObjectsTest extends TestCase
     {
         $brief = (new Brief)
             ->setTemporal(Temporal::TRENDING)
+            ->setAudiences([
+                (new Audience)
+                    ->setName('Engineering leaders')
+                    ->setLanguage(Language::EN),
+            ])
             ->setTitle('AI weekly roundup')
             ->setDescription('Top changes this week.')
+            ->setGoal(ContentGoal::INFORM)
+            ->setVoice(ContentVoice::AUTHORITATIVE)
+            ->setTone(ContentTone::OBJECTIVE)
             ->setInstructions(['Use concise bullets', 'Prioritize new developments'])
             ->setReferencePageIds([]);
 
@@ -84,7 +98,12 @@ class SynthesizerDataObjectsTest extends TestCase
 
         $restoredBrief = Brief::fromArray($briefPayload);
         $this->assertSame(Temporal::TRENDING, $restoredBrief->getTemporal());
+        $this->assertCount(1, $restoredBrief->getAudiences());
+        $this->assertSame('Engineering leaders', $restoredBrief->getAudiences()[0]->getName());
         $this->assertSame('AI weekly roundup', $restoredBrief->getTitle());
+        $this->assertSame(ContentGoal::INFORM, $restoredBrief->getGoal());
+        $this->assertSame(ContentVoice::AUTHORITATIVE, $restoredBrief->getVoice());
+        $this->assertSame(ContentTone::OBJECTIVE, $restoredBrief->getTone());
         $this->assertEmpty($restoredBrief->getReferencePages());
 
         $legacyPayload = $briefPayload;
@@ -142,6 +161,41 @@ class SynthesizerDataObjectsTest extends TestCase
         $this->assertFalse($payload['is_unique']);
         $this->assertSame(0.88, $payload['similarity']);
         $this->assertCount(1, $payload['similar_articles']);
+    }
+
+    public function test_audience_round_trip_serialization_and_normalization(): void
+    {
+        $audience = (new Audience)
+            ->setPriorityWeight(0.65)
+            ->setName('SMB Operations Leads')
+            ->setDescription('Leads juggling throughput and quality.')
+            ->setAgeFrom(28)
+            ->setAgeTo(45)
+            ->setKnowledgeLevel(KnowledgeLevel::INTERMEDIATE)
+            ->setLanguage(Language::EN)
+            ->setCountries([Country::US, Country::CA])
+            ->setPainPoints(['Manual reporting'])
+            ->setConcerns(['Migration risk'])
+            ->setAspirations(['Scale with lean team'])
+            ->setFears(['Losing stakeholders trust']);
+
+        $payload = $audience->toArray();
+        $this->assertSame(0.65, $payload['priority_weight']);
+        $this->assertSame('intermediate', $payload['knowledge_level']);
+        $this->assertSame('en', $payload['language']);
+        $this->assertSame(['US', 'CA'], $payload['countries']);
+
+        $restored = Audience::fromArray($payload);
+        $this->assertSame($payload, $restored->toArray());
+
+        $legacy = Audience::fromArray([
+            'countries' => ['us', 'XX', Country::GB],
+            'knowledge_level' => 'advanced',
+            'language' => Language::FR,
+        ]);
+        $this->assertSame(['US', 'GB'], $legacy->toArray()['countries']);
+        $this->assertSame('advanced', $legacy->toArray()['knowledge_level']);
+        $this->assertSame('fr', $legacy->toArray()['language']);
     }
 
     protected function makeIntent(): Intent

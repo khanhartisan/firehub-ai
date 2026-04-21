@@ -29,6 +29,7 @@ class Keyword extends Model implements ShouldCascade
         'search_engine_data' => KeywordSearchEngineDataCast::class,
         'deleted_at' => 'datetime',
         'researched_at' => 'datetime',
+        'attempts' => 'integer',
     ];
 
     public function toKeywordData(): KeywordData

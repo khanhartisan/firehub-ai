@@ -30,6 +30,8 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     protected Keyword $keyword;
 
+    protected int $maxResearchAttempts = 5;
+
     /**
      * Create a new job instance.
      */
@@ -111,12 +113,36 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
 
             // All good, mark the keyword as researched
+            $keyword->attempts = 0;
             $keyword->researched_at = now();
             $keyword->status = KeywordStatus::RESEARCHED;
             $keyword->save();
 
         } catch (Exception $e) {
-            // TODO: Handle exception
+
+            // Increase attempts count
+            $keyword->attempts = intval($keyword->attempts) + 1;
+            $keyword->researched_at = null;
+
+            // Set keyword status
+            if ($keyword->attempts >= $this->maxResearchAttempts) {
+                $keyword->status = KeywordStatus::ERROR;
+            } else {
+                $keyword->status = KeywordStatus::RESEARCHING;
+                $this->reDispatch(60);
+            }
+
+            // Save error logs
+            $errorLogs = $keyword->error_logs ?? '';
+            $errorLogs .= "\n".$e->getMessage()."\n".$e->getTraceAsString();
+            if (strlen($errorLogs) > 10000) {
+                $errorLogs = '...trimmed...'."\n".substr($errorLogs, -10000);
+            }
+            $keyword->error_logs = $errorLogs;
+
+            // Save keyword
+            $keyword->save();
+
         } finally {
             $lock->release();
         }

@@ -29,6 +29,9 @@ return new class extends Migration
             $table->dateTime('researched_at')->nullable();
             $table->index(['status', 'researched_at']);
 
+            $table->unsignedSmallInteger('attempts')->default(0);
+            $table->longText('error_logs')->nullable();
+
             $table->jsonb('search_engine_data')->nullable();
 
             $table->timestamps();

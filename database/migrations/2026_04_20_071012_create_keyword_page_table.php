@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('keyword_page', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->ulid('keyword_id');
-            $table->ulid('page_id');
-            $table->decimal('relevance', 3)->nullable();
+            $table->string('search_engine_driver');
+            $table->ulid('keyword_id')->index();
+            $table->ulid('page_id')->index();
+            $table->unsignedInteger('position')->nullable();
             $table->timestamps();
 
-            $table->unique(['keyword_id', 'page_id']);
-            $table->index(['page_id', 'relevance']);
+            $table->unique(['search_engine_driver', 'keyword_id', 'page_id'], 'keyword_page_search_engine_driver_index');
         });
     }
 

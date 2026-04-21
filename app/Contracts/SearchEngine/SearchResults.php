@@ -25,10 +25,10 @@ final class SearchResults implements Countable, IteratorAggregate, Serializable,
      * @param  list<SearchResult>  $items
      */
     public function __construct(
-        public array $items = [],
-        public ?string $query = null,
+        public readonly array $items = [],
+        public readonly ?string $query = null,
         /** Total hit count when the engine exposes it; otherwise null. */
-        public ?int $totalEstimated = null,
+        public readonly ?int $totalEstimated = null,
     ) {}
 
     /**
@@ -88,8 +88,8 @@ final class SearchResults implements Countable, IteratorAggregate, Serializable,
             ),
             'query' => $this->query,
             'total_estimated' => $this->totalEstimated,
-            'created_at' => $this->createdAt?->toIso8601String(),
-            'updated_at' => $this->updatedAt?->toIso8601String(),
+            'created_at' => $this->getCreatedAt()->toIso8601String(),
+            'updated_at' => $this->getUpdatedAt()->toIso8601String(),
         ];
     }
 

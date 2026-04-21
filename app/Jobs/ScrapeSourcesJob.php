@@ -80,7 +80,7 @@ class ScrapeSourcesJob implements ShouldQueue, ShouldBeUnique
 
         $page = Page::query()
             ->where('source_id', $source->id)
-            ->where('url_hash', sha1($baseUrl))
+            ->where('url_hash', Page::makeUrlHash($baseUrl))
             ->first();
 
         if ($page === null) {

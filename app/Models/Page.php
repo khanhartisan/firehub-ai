@@ -11,6 +11,7 @@ use App\Enums\ScrapableType;
 use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
 use App\Enums\Temporal;
+use App\Utils\UrlNormalizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -246,7 +247,8 @@ class Page extends EmbeddableModel implements ShouldCascade
             ->using(KeywordPage::class)
             ->as('keyword_page')
             ->withPivot([
-                'relevance'
+                'search_engine_driver',
+                'position'
             ]);
     }
 
@@ -260,5 +262,10 @@ class Page extends EmbeddableModel implements ShouldCascade
             ...$this->verticals,
             ...$this->tags,
         ];
+    }
+
+    public static function makeUrlHash(string $url): string
+    {
+        return sha1(UrlNormalizer::normalize($url));
     }
 }

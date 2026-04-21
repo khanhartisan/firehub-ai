@@ -77,7 +77,8 @@ class Keyword extends Model implements ShouldCascade
             ->using(KeywordPage::class)
             ->as('keyword_page')
             ->withPivot([
-                'relevance'
+                'search_engine_driver',
+                'position'
             ]);
     }
 }

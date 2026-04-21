@@ -3,10 +3,12 @@
 namespace App\ModelListeners\Page\Saving;
 
 use App\Models\Page;
+use App\Models\Source;
+use App\Utils\UrlNormalizer;
 use KhanhArtisan\LaravelBackbone\ModelListener\ModelListener;
 use KhanhArtisan\LaravelBackbone\ModelListener\ModelListenerInterface;
 
-class SetUrlHashListener extends ModelListener implements ModelListenerInterface
+class CreateSource extends ModelListener implements ModelListenerInterface
 {
     /**
      * Listeners with higher priority will run first.
@@ -47,10 +49,34 @@ class SetUrlHashListener extends ModelListener implements ModelListenerInterface
      */
     protected function _handle(Page $page, string $event): void
     {
-        if ($page->url === '' || $page->url === null) {
+        if ($page->source_id) {
             return;
         }
 
-        $page->url_hash = Page::makeUrlHash($page->url);
+        $url = trim((string) $page->url);
+        if ($url === '' || !str_starts_with($url, 'http')) {
+            return;
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts) || !isset($parts['scheme'], $parts['host'])) {
+            return;
+        }
+
+        $authority = $parts['host'];
+        if (isset($parts['port'])) {
+            $authority .= ':'.$parts['port'];
+        }
+
+        $baseUrl = UrlNormalizer::normalize($parts['scheme'].'://'.$authority);
+        if ($baseUrl === '' || !str_starts_with($baseUrl, 'http')) {
+            return;
+        }
+
+        $source = Source::query()->firstOrCreate([
+            'base_url' => $baseUrl,
+        ]);
+
+        $page->source_id = $source->id;
     }
 }

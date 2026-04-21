@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class KeywordPage extends Pivot
 {
     protected $casts = [
-        'relevance' => 'float',
+        'position' => 'integer',
     ];
 
     public function keyword(): BelongsTo

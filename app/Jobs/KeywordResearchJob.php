@@ -9,7 +9,9 @@ use App\Enums\Queue;
 use App\Facades\SearchEngine;
 use App\Jobs\Concerns\HasManualLock;
 use App\Models\Keyword;
+use App\Models\KeywordPage;
 use App\Models\Page;
+use App\Utils\UrlNormalizer;
 use Exception;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -95,10 +97,8 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 }
             }
 
-            // TODO: Got search results from all the drivers
-            // Now create pages corresponding to the search results,
-            // then attach the pages to the keywords using the KeywordPage model
-            // the pages created here will need ignore_scraping_budget = true
+            // Ensure related pages exist
+            $this->createRelatedPages();
 
             // Now wait for all the pages to be scraped
             /** @var Page $page */
@@ -187,6 +187,55 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // Return null for re-dispatch signal
         // because we only want to perform one api call per job execution
         return null;
+    }
+
+    protected function createRelatedPages(): void
+    {
+        $keyword = $this->keyword;
+
+        foreach ($this->getSearchEngineDrivers() as $driver) {
+            $searchResults = $this->getKeywordSearchEngineData()
+                ->getDriverData($driver)
+                ?->getSearchResults();
+
+            if (!$searchResults) {
+                continue;
+            }
+
+            foreach ($searchResults->items as $index => $searchResult) {
+                $normalizedUrl = UrlNormalizer::normalize($searchResult->url);
+                if ($normalizedUrl === '' || !str_starts_with($normalizedUrl, 'http')) {
+                    continue;
+                }
+
+                $position = $searchResult->position ?? ($index + 1);
+                if ($position <= 0) {
+                    $position = $index + 1;
+                }
+
+                $page = Page::query()->where('url_hash', Page::makeUrlHash($normalizedUrl))->first();
+                if (! $page) {
+                    $page = Page::query()->create([
+                        'url' => $normalizedUrl,
+                        'ignore_scraping_budget' => true,
+                    ]);
+                } elseif (! $page->ignore_scraping_budget) {
+                    $page->ignore_scraping_budget = true;
+                    $page->save();
+                }
+
+                KeywordPage::query()->updateOrCreate(
+                    [
+                        'search_engine_driver' => $driver,
+                        'keyword_id' => $keyword->id,
+                        'page_id' => $page->id,
+                    ],
+                    [
+                        'position' => $position,
+                    ]
+                );
+            }
+        }
     }
 
     protected function getKeywordSearchEngineData(): SearchEngineData

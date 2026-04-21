@@ -3,6 +3,7 @@
 namespace App\Contracts\Synthesizer\BriefBuilder;
 
 use App\Concerns\Serializable as SerializableTrait;
+use App\Contracts\CommonData\Audience;
 use App\Contracts\Serializable;
 use App\Enums\ContentGoal;
 use App\Enums\ContentTone;

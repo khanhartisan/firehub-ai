@@ -2,11 +2,10 @@
 
 namespace Tests\Unit\Contracts\Synthesizer;
 
+use App\Contracts\CommonData\Audience;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\Author\Draft;
-use App\Contracts\Synthesizer\BriefBuilder\Audience;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
-use App\Enums\Country;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
@@ -17,6 +16,7 @@ use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
 use App\Enums\ContentGoal;
 use App\Enums\ContentTone;
 use App\Enums\ContentVoice;
+use App\Enums\Country;
 use App\Enums\IntentType;
 use App\Enums\KnowledgeLevel;
 use App\Enums\Language;

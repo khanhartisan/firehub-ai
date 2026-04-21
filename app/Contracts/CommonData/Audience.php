@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Synthesizer\BriefBuilder;
+namespace App\Contracts\CommonData;
 
 use App\Contracts\Serializable;
 use App\Enums\Country;

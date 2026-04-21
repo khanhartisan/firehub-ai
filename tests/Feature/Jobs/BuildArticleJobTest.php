@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Jobs;
 
+use App\Contracts\Model\Client\GeneralContext;
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
@@ -412,7 +413,8 @@ class BuildArticleJobTest extends TestCase
     {
         $client = new Client;
         $client->name = 'client-'.str()->ulid();
-        $client->context = $context;
+        $client->general_context = (new GeneralContext)
+            ->setDescription($context);
         $client->save();
 
         return $client;

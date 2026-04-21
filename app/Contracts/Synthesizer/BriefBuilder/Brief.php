@@ -3,7 +3,6 @@
 namespace App\Contracts\Synthesizer\BriefBuilder;
 
 use App\Concerns\Serializable as SerializableTrait;
-use App\Contracts\CommonData\Keyword;
 use App\Contracts\Serializable;
 use App\Enums\Temporal;
 use App\Models\Page;
@@ -22,11 +21,6 @@ final class Brief implements Serializable
     protected ?string $title = null;
 
     protected ?string $description = null;
-
-    /**
-     * @var Keyword[]
-     */
-    protected array $keywords = [];
 
     /**
      * @var string[]
@@ -70,49 +64,6 @@ final class Brief implements Serializable
     public function setDescription(?string $description): static
     {
         $this->description = $description;
-
-        return $this;
-    }
-
-    /**
-     * @return Keyword[]
-     */
-    public function getKeywords(): array
-    {
-        return $this->keywords;
-    }
-
-    /**
-     * @param  Keyword[]  $keywords
-     */
-    public function setKeywords(array $keywords): static
-    {
-        $this->keywords = [];
-        foreach ($keywords as $index => $keyword) {
-            if (! $keyword instanceof Keyword) {
-                throw new \InvalidArgumentException(
-                    sprintf('keywords[%s] must be an instance of %s, %s given.', $index, Keyword::class, get_debug_type($keyword))
-                );
-            }
-
-            $this->addKeyword($keyword);
-        }
-
-        return $this;
-    }
-
-    public function addKeyword(Keyword $keyword): static
-    {
-        $incoming = $keyword->toArray();
-        foreach ($this->keywords as $i => $existing) {
-            if ($existing->toArray() === $incoming) {
-                $this->keywords[$i] = $keyword;
-
-                return $this;
-            }
-        }
-
-        $this->keywords[] = $keyword;
 
         return $this;
     }
@@ -174,10 +125,6 @@ final class Brief implements Serializable
             'temporal' => $this->getTemporal()?->value ?? null,
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
-            'keywords' => array_map(
-                static fn (Keyword $keyword): array => $keyword->toArray(),
-                $this->getKeywords()
-            ),
             'instructions' => $this->getInstructions(),
             'reference_page_ids' => $this->getReferencePageIds(),
         ];
@@ -205,37 +152,6 @@ final class Brief implements Serializable
 
         if (isset($data['description'])) {
             $brief->setDescription($data['description'] !== null ? (string) $data['description'] : null);
-        }
-
-        if (isset($data['keywords']) && is_array($data['keywords'])) {
-            $keywords = [];
-            foreach ($data['keywords'] as $row) {
-                if ($row instanceof Keyword) {
-                    $keywords[] = $row;
-
-                    continue;
-                }
-
-                if (is_array($row)) {
-                    try {
-                        $keywords[] = Keyword::fromArray($row);
-                    } catch (\InvalidArgumentException) {
-                        continue;
-                    }
-
-                    continue;
-                }
-
-                if (is_string($row)) {
-                    try {
-                        $keywords[] = new Keyword($row);
-                    } catch (\InvalidArgumentException) {
-                        continue;
-                    }
-                }
-            }
-
-            $brief->setKeywords($keywords);
         }
 
         if (isset($data['instructions']) && is_array($data['instructions'])) {

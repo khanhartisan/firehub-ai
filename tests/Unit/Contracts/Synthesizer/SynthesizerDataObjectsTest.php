@@ -79,10 +79,18 @@ class SynthesizerDataObjectsTest extends TestCase
             ->setInstructions(['Use concise bullets', 'Prioritize new developments'])
             ->setReferencePageIds([]);
 
-        $restoredBrief = Brief::fromArray($brief->toArray());
+        $briefPayload = $brief->toArray();
+        $this->assertArrayNotHasKey('keywords', $briefPayload);
+
+        $restoredBrief = Brief::fromArray($briefPayload);
         $this->assertSame(Temporal::TRENDING, $restoredBrief->getTemporal());
         $this->assertSame('AI weekly roundup', $restoredBrief->getTitle());
         $this->assertEmpty($restoredBrief->getReferencePages());
+
+        $legacyPayload = $briefPayload;
+        $legacyPayload['keywords'] = ['ai coding'];
+        $legacyRestoredBrief = Brief::fromArray($legacyPayload);
+        $this->assertSame($restoredBrief->toArray(), $legacyRestoredBrief->toArray());
 
         $outlineItem = (new OutlineItem)
             ->setHeading('Key updates')

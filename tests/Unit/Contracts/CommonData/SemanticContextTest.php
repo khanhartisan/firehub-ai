@@ -148,6 +148,7 @@ class SemanticContextTest extends TestCase
         ], $context->getSampleKey());
 
         $this->assertSame('sample value', $context->getSampleKeyValue());
+        $this->assertSame('Sample description', $context->getSampleKeyDescription());
         $this->assertSame([
             'keyword' => [
                 'keyword' => 'ai agent',
@@ -163,6 +164,7 @@ class SemanticContextTest extends TestCase
 
         $this->assertNull($context->getMissingKey());
         $this->assertNull($context->getMissingKeyValue());
+        $this->assertNull($context->getMissingKeyDescription());
     }
 
     public function test_magic_call_throws_for_non_getter_methods(): void

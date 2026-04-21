@@ -75,6 +75,15 @@ class SemanticContext implements Serializable
         return $this->normalizeValue($this->data[$key]['value']);
     }
 
+    public function getDescription(string $key): ?string
+    {
+        if (! $this->has($key)) {
+            return null;
+        }
+
+        return $this->data[$key]['description'];
+    }
+
     public function set(
         string $key,
         string $description,
@@ -141,10 +150,13 @@ class SemanticContext implements Serializable
         }
 
         $suffix = substr($name, 3);
-        $returnValueOnly = false;
+        $returnType = 'entry';
         if (str_ends_with($suffix, 'Value') && strlen($suffix) > 5) {
-            $returnValueOnly = true;
+            $returnType = 'value';
             $suffix = substr($suffix, 0, -5);
+        } elseif (str_ends_with($suffix, 'Description') && strlen($suffix) > 11) {
+            $returnType = 'description';
+            $suffix = substr($suffix, 0, -11);
         }
 
         $key = ltrim(strtolower((string) preg_replace('/(?<!^)[A-Z]/', '_$0', $suffix)), '_');
@@ -152,7 +164,11 @@ class SemanticContext implements Serializable
             return null;
         }
 
-        return $returnValueOnly ? $this->getValue($key) : $this->get($key);
+        return match ($returnType) {
+            'value' => $this->getValue($key),
+            'description' => $this->getDescription($key),
+            default => $this->get($key),
+        };
     }
 
     protected static function isSerializableValue(mixed $value): bool

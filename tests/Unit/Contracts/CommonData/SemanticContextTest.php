@@ -133,5 +133,73 @@ class SemanticContextTest extends TestCase
         $this->assertTrue($context->has('valid'));
         $this->assertFalse($context->has('invalid'));
     }
+
+    public function test_magic_getters_resolve_get_and_get_value_by_method_name(): void
+    {
+        $context = (new SemanticContext)
+            ->set('sample_key', 'Sample description', 'sample value')
+            ->set('nested_key', 'Nested description', [
+                'keyword' => (new Keyword('ai agent'))->setLanguage(Language::EN),
+            ]);
+
+        $this->assertSame([
+            'description' => 'Sample description',
+            'value' => 'sample value',
+        ], $context->getSampleKey());
+
+        $this->assertSame('sample value', $context->getSampleKeyValue());
+        $this->assertSame([
+            'keyword' => [
+                'keyword' => 'ai agent',
+                'language' => 'en',
+                'country' => null,
+            ],
+        ], $context->getNestedKeyValue());
+    }
+
+    public function test_magic_getters_return_null_for_missing_keys(): void
+    {
+        $context = new SemanticContext;
+
+        $this->assertNull($context->getMissingKey());
+        $this->assertNull($context->getMissingKeyValue());
+    }
+
+    public function test_magic_call_throws_for_non_getter_methods(): void
+    {
+        $this->expectException(\BadMethodCallException::class);
+
+        (new SemanticContext)->setSampleKey('desc', 'value');
+    }
+
+    public function test_constructor_executes_all_boot_methods_before_loading_data(): void
+    {
+        $context = new class() extends SemanticContext {
+            public int $bootCount = 0;
+
+            protected function bootAllowedKeys(): void
+            {
+                $this->keys = ['allowed_key'];
+                $this->bootCount++;
+            }
+
+            private function bootHiddenFlag(): void
+            {
+                $this->bootCount++;
+            }
+        };
+
+        $context->loadFromArray([
+            'allowed_key' => [
+                'description' => 'Allowed by boot configuration',
+                'value' => 'ok',
+            ],
+        ]);
+
+        $this->assertSame(2, $context->bootCount);
+        $this->assertTrue($context->isKeyAllowed('allowed_key'));
+        $this->assertFalse($context->isKeyAllowed('not_allowed_key'));
+        $this->assertSame('ok', $context->getAllowedKeyValue());
+    }
 }
 

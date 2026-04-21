@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Contracts\SemanticContexts;
+
+use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\SemanticContexts\Concerns\HasMeta;
+use App\Utils\Str;
+
+/**
+ * Getters are handled by the magic method
+ *
+ * @method null|string getName()
+ * @method null|string getDescription()
+ * @method null|string getToneOfVoice()
+ * @method null|string getIndustry()
+ * @method null|array getNiches()
+ * @method null|string getCoreMission()
+ * @method null|array getGuidelines()
+ * @method null|array getMeta()
+ */
+class ClientGeneralContext extends SemanticContext
+{
+    use HasMeta;
+
+    public function setName(string $name): static
+    {
+        return $this->set(
+            'name',
+            'Brand name of the website',
+            $name
+        );
+    }
+
+    public function setDescription(string $description): static
+    {
+        return $this->set('description',
+            'A high-level overview of the website\'s purpose',
+            $description
+        );
+    }
+
+    public function setToneOfVoice(string $toneOfVoice): static
+    {
+        return $this->set(
+            'tone_of_voice',
+            'This describes the general tone and voice of the brand',
+            $toneOfVoice
+        );
+    }
+
+    public function setIndustry(string $industry): static
+    {
+        return $this->set(
+            'industry',
+            'Broad industrial category (e.g., "Technology", "Fashion"). Use for high-level terminology and industry standards.',
+            $industry
+        );
+    }
+
+    public function setNiches(array $niches): static
+    {
+        $niches = array_filter($niches, fn (mixed $niche) => is_string($niche));
+        $niches = array_map(function (string $niche) {
+            return Str::sanitizeKeyword($niche);
+        }, $niches);
+        $niches = array_unique($niches);
+
+        return $this->set(
+            'niches',
+            'Highly specific market segments under the industry. Use these to narrow down expertise and target specific concerns.',
+            $niches
+        );
+    }
+
+    public function setGuidelines(array $guidelines): static
+    {
+        return $this->set(
+            'guidelines',
+            'A collection of brand guidelines and constraints',
+            array_filter($guidelines, fn ($guideline) => is_string($guideline))
+        );
+    }
+
+    public function setCoreMission(string $coreMission): static
+    {
+        return $this->set(
+            'core_mission',
+            'The fundamental purpose and long-term objective of the brand.',
+            $coreMission
+        );
+    }
+}

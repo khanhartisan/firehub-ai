@@ -26,7 +26,9 @@ trait HandleBriefStage
         if ($this->client->context) {
             $context->set('client_context', 'Client context DTO payload.', $this->client->context->toArray());
         }
-        $context->set('article_context', 'Article-specific context provided by the user.', (string) $article->context);
+        if ($article->context) {
+            $context->set('article_context', 'Article-specific context DTO payload.', $article->context->toArray());
+        }
 
         $brief = $this->synthesizer()
             ->getBriefBuilder()

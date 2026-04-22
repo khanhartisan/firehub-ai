@@ -3,6 +3,7 @@
 namespace Tests\Feature\Jobs;
 
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\Model\Article\Context as ArticleContext;
 use App\Contracts\Model\Client\Context;
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
@@ -425,7 +426,7 @@ class BuildArticleJobTest extends TestCase
     {
         $article = new Article;
         $article->client()->associate($client);
-        $article->context = $context;
+        $article->context = (new ArticleContext)->setMeta(['raw_text' => $context]);
         $article->status = ArticleStatus::UNREADY;
         $article->stage = ArticleStage::IDEA;
         $article->stage_status = ArticleStageStatus::PENDING;

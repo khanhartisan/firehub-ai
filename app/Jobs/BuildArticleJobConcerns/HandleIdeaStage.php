@@ -151,10 +151,23 @@ trait HandleIdeaStage
             }
         }
 
-        $articleContext = trim((string) ($this->article?->context ?? ''));
-        if ($articleContext !== '') {
-            $context->set('article_context', 'Article-specific context provided by the user.', $articleContext);
-            $hasAny = true;
+        if ($this->article?->context) {
+            $articleContextPayload = $this->article->context->toArray();
+            $hasArticleContextValue = false;
+            foreach ($articleContextPayload as $entry) {
+                if (is_array($entry)
+                    && array_key_exists('value', $entry)
+                    && $this->contextPayloadHasContent($entry['value'])
+                ) {
+                    $hasArticleContextValue = true;
+                    break;
+                }
+            }
+
+            if ($hasArticleContextValue) {
+                $context->set('article_context', 'Article-specific context DTO payload.', $articleContextPayload);
+                $hasAny = true;
+            }
         }
 
         return $hasAny ? $context : null;

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\ArticleContextCast;
 use App\Casts\ArticleStageDataCast;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
@@ -20,6 +21,7 @@ class Article extends EmbeddableModel implements ShouldCascade
     use Cascades;
 
     protected $casts = [
+        'context' => ArticleContextCast::class,
         'status' => ArticleStatus::class,
         'language' => Language::class,
         'temporal' => Temporal::class,

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Models;
 
 use App\Contracts\Model\Article\StageData;
+use App\Contracts\Model\Article\Context as ArticleContext;
 use App\Contracts\Model\Client\Context;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Enums\ArticleStage;
@@ -68,7 +69,7 @@ class ArticleStageDataSelfReferenceTest extends TestCase
     {
         $article = new Article;
         $article->client()->associate($client);
-        $article->context = 'Article context.';
+        $article->context = (new ArticleContext)->setMeta(['raw_text' => 'Article context.']);
         $article->status = ArticleStatus::UNREADY;
         $article->stage = ArticleStage::IDEA;
         $article->stage_status = ArticleStageStatus::PENDING;

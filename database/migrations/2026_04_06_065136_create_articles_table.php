@@ -34,7 +34,7 @@ return new class extends Migration
                 ->default(\App\Enums\ArticleStageStatus::PENDING->value);
             $table->jsonb('stage_data')->nullable();
 
-            $table->text('context')->nullable();
+            $table->jsonb('context')->nullable();
 
             $table->string('title')->nullable();
             $table->text('excerpt')->nullable();

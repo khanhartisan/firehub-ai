@@ -139,23 +139,33 @@ PROMPT;
                     'type' => 'array',
                     'minItems' => 1,
                     'maxItems' => $maxPoints,
+                    'description' => 'Ranked list of extracted research points relevant to the provided idea. Most relevant items should come first.',
                     'items' => [
                         'type' => 'object',
                         'properties' => [
-                            'headline' => ['type' => 'string'],
-                            'description' => ['type' => 'string'],
+                            'headline' => [
+                                'type' => 'string',
+                                'description' => 'A concise, punchy summary sentence of the key insight.',
+                            ],
+                            'description' => [
+                                'type' => 'string',
+                                'description' => 'A short explanation of the insight, including important context from the source.',
+                            ],
                             'evidences' => [
                                 'type' => 'array',
                                 'items' => ['type' => 'string'],
+                                'description' => 'Concrete supporting evidence snippets (facts, figures, quotes, or observations) taken from the source content.',
                             ],
                             'relevance' => [
                                 'type' => 'number',
                                 'minimum' => 0,
                                 'maximum' => 1,
+                                'description' => 'How strongly this point relates to the provided idea, where 0 is weakly related and 1 is highly relevant.',
                             ],
                         ],
                         'required' => ['headline', 'description', 'evidences', 'relevance'],
                         'additionalProperties' => false,
+                        'description' => 'One extracted point with its explanation, supporting evidences, and relevance score.',
                     ],
                 ],
             ],

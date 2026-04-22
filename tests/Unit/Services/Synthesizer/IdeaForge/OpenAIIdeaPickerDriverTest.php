@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Synthesizer\IdeaForge;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
@@ -24,7 +25,7 @@ class OpenAIIdeaPickerDriverTest extends TestCase
         $driver = new OpenAIIdeaPickerDriver($client, ['model' => 'gpt-4o-mini']);
         $report = $this->makeAuditReport('Only', 0.5);
 
-        $picked = $driver->pick([$report], 'context', 1);
+        $picked = $driver->pick([$report], (new SemanticContext)->set('article_context', 'Article context', 'context'), 1);
 
         $this->assertNotNull($picked);
         $this->assertCount(1, $picked);
@@ -65,7 +66,7 @@ class OpenAIIdeaPickerDriverTest extends TestCase
         $client->shouldReceive('createResponse')->once()->andReturn($response);
 
         $driver = new OpenAIIdeaPickerDriver($client, ['model' => 'gpt-4o-mini']);
-        $picked = $driver->pick([$low, $high], 'editorial context', 2);
+        $picked = $driver->pick([$low, $high], (new SemanticContext)->set('article_context', 'Article context', 'editorial context'), 2);
 
         $this->assertNotNull($picked);
         $this->assertCount(2, $picked);
@@ -104,7 +105,7 @@ class OpenAIIdeaPickerDriverTest extends TestCase
         $client->shouldReceive('createResponse')->once()->andReturn($response);
 
         $driver = new OpenAIIdeaPickerDriver($client, ['model' => 'gpt-4o-mini']);
-        $picked = $driver->pick([$low, $high], 'context', 1);
+        $picked = $driver->pick([$low, $high], (new SemanticContext)->set('article_context', 'Article context', 'context'), 1);
 
         $this->assertNotNull($picked);
         $this->assertCount(1, $picked);

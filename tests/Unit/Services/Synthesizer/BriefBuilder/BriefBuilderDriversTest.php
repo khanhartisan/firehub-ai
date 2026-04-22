@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Synthesizer\BriefBuilder;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Enums\IntentType;
@@ -18,7 +19,10 @@ class BriefBuilderDriversTest extends TestCase
         $driver = new BasicBriefBuilderDriver;
         $idea = new Idea($this->makeIntent(), 0.8, 'Use practical examples.');
 
-        $brief = $driver->conceive($idea, 'fallback context');
+        $brief = $driver->conceive(
+            $idea,
+            (new SemanticContext)->set('article_context', 'Article context', 'fallback context')
+        );
 
         $this->assertSame(Temporal::EVERGREEN, $brief->getTemporal());
         $this->assertSame('AI productivity playbook', $brief->getTitle());
@@ -32,7 +36,10 @@ class BriefBuilderDriversTest extends TestCase
         $driver = new OpenAIBriefBuilderDriver;
         $idea = new Idea($this->makeIntent(description: ''), 0.6, null);
 
-        $brief = $driver->conceive($idea, 'context fallback');
+        $brief = $driver->conceive(
+            $idea,
+            (new SemanticContext)->set('article_context', 'Article context', 'context fallback')
+        );
 
         $this->assertSame('context fallback', $brief->getDescription());
         $this->assertCount(2, $brief->getInstructions());

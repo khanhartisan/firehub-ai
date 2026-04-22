@@ -2,18 +2,22 @@
 
 namespace App\Services\Synthesizer\BriefBuilder\Drivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Services\Synthesizer\BriefBuilder\BriefBuilderService;
 
 class OpenAIBriefBuilderDriver extends BriefBuilderService
 {
-    public function conceive(Idea $idea, string $context): Brief
+    public function conceive(Idea $idea, SemanticContext $context): Brief
     {
+        // TODO: Need improvement to make the best use of the AI
+        $fallbackDescription = trim((string) ($context->getArticleContextValue() ?? $context->getDescriptionValue() ?? ''));
+
         return (new Brief)
             ->setTemporal($idea->getIntent()->getTemporal())
             ->setTitle($idea->getIntent()->getTitle())
-            ->setDescription($idea->getIntent()->getDescription() ?: $context)
+            ->setDescription($idea->getIntent()->getDescription() ?: $fallbackDescription)
             ->setInstructions([
                 'Draft with a strong narrative arc and concrete examples.',
                 'Use clear, concise language tailored to the target audience.',

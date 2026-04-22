@@ -2,6 +2,7 @@
 
 namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
@@ -32,7 +33,7 @@ trait HandleIdeaStageBrainstorm
         return null;
     }
 
-    protected function processBrainstormCollection(string $context): ?bool
+    protected function processBrainstormCollection(SemanticContext $context): ?bool
     {
         $ideaData = $this->getIdeaStageData();
         $temporalSuggestion = $ideaData->getSelectedTemporalSuggestion();

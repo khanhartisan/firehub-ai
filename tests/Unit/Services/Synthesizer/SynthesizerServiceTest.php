@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Synthesizer;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\Author\Author;
 use App\Contracts\Synthesizer\Author\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
@@ -100,7 +101,7 @@ class SynthesizerServiceTest extends TestCase
             {
                 return new class implements IdeaPicker
                 {
-                    public function pick(array $ideaAuditReports, string $context, int $limit = 1): ?array
+                    public function pick(array $ideaAuditReports, SemanticContext $context, int $limit = 1): ?array
                     {
                         return [];
                     }
@@ -118,7 +119,7 @@ class SynthesizerServiceTest extends TestCase
     {
         return new class implements BriefBuilder
         {
-            public function conceive(Idea $idea, string $context): Brief
+            public function conceive(Idea $idea, SemanticContext $context): Brief
             {
                 return new Brief;
             }

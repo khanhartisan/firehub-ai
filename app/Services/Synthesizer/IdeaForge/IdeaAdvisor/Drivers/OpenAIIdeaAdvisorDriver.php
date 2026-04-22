@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
@@ -39,7 +40,7 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
         $this->setDescription((string) ($this->config['description'] ?? 'OpenAI-backed advisor for temporal, intent-type, and idea suggestions.'));
     }
 
-    public function suggestTemporal(string $clientId, string $context): array
+    public function suggestTemporal(string $clientId, SemanticContext $context): array
     {
         $prompt = $this->buildSuggestTemporalPrompt($clientId, $context);
         $schema = $this->buildSuggestTemporalJsonSchema();
@@ -81,7 +82,7 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
         return $suggestions;
     }
 
-    public function suggestIntentTypes(string $clientId, string $context): array
+    public function suggestIntentTypes(string $clientId, SemanticContext $context): array
     {
         $prompt = $this->buildSuggestIntentTypesPrompt($clientId, $context);
         $schema = $this->buildSuggestIntentTypesJsonSchema();
@@ -126,7 +127,7 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
     public function brainstorm(
         array $temporalSuggestions,
         array $intentTypeSuggestions,
-        string $context,
+        SemanticContext $context,
         int $limit = 5
     ): array {
         $limit = max(1, min(20, $limit));
@@ -264,8 +265,9 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
         }
     }
 
-    protected function buildSuggestTemporalPrompt(string $clientId, string $context): string
+    protected function buildSuggestTemporalPrompt(string $clientId, SemanticContext $context): string
     {
+        $contextJson = $this->encodeContext($context);
         $lines = [];
         foreach (Temporal::cases() as $case) {
             $lines[] = sprintf('- %s: %s', $case->value, Temporal::describe($case));
@@ -281,14 +283,15 @@ Allowed temporal values (use these exact strings in output):
 Client id: {$clientId}
 
 Context:
-{$context}
+{$contextJson}
 
 Return JSON only (via schema). Order suggestions by usefulness; confidence is 0–1; reason is one short sentence.
 PROMPT;
     }
 
-    protected function buildSuggestIntentTypesPrompt(string $clientId, string $context): string
+    protected function buildSuggestIntentTypesPrompt(string $clientId, SemanticContext $context): string
     {
+        $contextJson = $this->encodeContext($context);
         $lines = [];
         foreach (IntentType::cases() as $case) {
             $lines[] = sprintf('- %d: %s', $case->value, IntentType::describe($case));
@@ -304,7 +307,7 @@ Allowed intent_type integers (use these exact numbers in output):
 Client id: {$clientId}
 
 Context:
-{$context}
+{$contextJson}
 
 Return JSON only (via schema). Order by relevance; confidence is 0–1; reason is one short sentence.
 PROMPT;
@@ -314,13 +317,15 @@ PROMPT;
      * @param  list<TemporalSuggestion>  $temporals
      * @param  list<IntentTypeSuggestion>  $intentTypes
      */
-    protected function buildBrainstormPrompt(array $temporals, array $intentTypes, string $context, int $limit): string
+    protected function buildBrainstormPrompt(array $temporals, array $intentTypes, SemanticContext $context, int $limit): string
     {
         $temporalPayload = array_map(static fn (TemporalSuggestion $t) => $t->toArray(), $temporals);
         $intentPayload = array_map(static fn (IntentTypeSuggestion $t) => $t->toArray(), $intentTypes);
 
         $temporalJson = json_encode($temporalPayload, JSON_THROW_ON_ERROR);
         $intentJson = json_encode($intentPayload, JSON_THROW_ON_ERROR);
+
+        $contextJson = $this->encodeContext($context);
 
         return <<<PROMPT
 You propose concrete article ideas for a content pipeline. Use the ranked temporal and intent-type suggestions below as guidance. Each idea must pick one temporal and one intent_type from those suggestions (or their enum values) and include a compelling title and short description aligned with the context.
@@ -332,10 +337,15 @@ Intent type suggestions (JSON):
 {$intentJson}
 
 Editorial / business context:
-{$context}
+{$contextJson}
 
 Return up to {$limit} distinct ideas as JSON (via schema). Confidence is 0–1 for how strong the idea is given the inputs.
 PROMPT;
+    }
+
+    protected function encodeContext(SemanticContext $context): string
+    {
+        return json_encode($context->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 
     /**

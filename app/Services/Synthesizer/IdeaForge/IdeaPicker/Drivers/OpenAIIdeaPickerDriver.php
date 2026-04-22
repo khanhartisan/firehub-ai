@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
@@ -35,7 +36,7 @@ class OpenAIIdeaPickerDriver extends IdeaPickerService
      * @return IdeaAuditReport[]|null
      * @throws \JsonException
      */
-    public function pick(array $ideaAuditReports, string $context, int $limit = 1): ?array
+    public function pick(array $ideaAuditReports, SemanticContext $context, int $limit = 1): ?array
     {
         $reports = array_values(array_filter(
             $ideaAuditReports,
@@ -66,7 +67,7 @@ class OpenAIIdeaPickerDriver extends IdeaPickerService
         }
 
         $payload = [
-            'context' => $context,
+            'context' => $context->toArray(),
             'pick_at_most' => min($limit, count($reports)),
             'candidates' => $candidates,
         ];

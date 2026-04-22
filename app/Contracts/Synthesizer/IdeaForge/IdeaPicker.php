@@ -2,6 +2,8 @@
 
 namespace App\Contracts\Synthesizer\IdeaForge;
 
+use App\Contracts\CommonData\SemanticContext;
+
 interface IdeaPicker
 {
     /**
@@ -9,9 +11,9 @@ interface IdeaPicker
      * Return null if we can't pick any.
      *
      * @param IdeaAuditReport[] $ideaAuditReports
-     * @param string $context
+     * @param SemanticContext $context
      * @param int $limit
      * @return IdeaAuditReport[]|null
      */
-    public function pick(array $ideaAuditReports, string $context, int $limit = 1): ?array;
+    public function pick(array $ideaAuditReports, SemanticContext $context, int $limit = 1): ?array;
 }

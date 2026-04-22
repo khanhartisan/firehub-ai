@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands\LiveTests\Synthesizer\IdeaForge;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
+use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Facades\Synthesizer;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriver;
@@ -42,7 +44,11 @@ class TestIdeaAdvisorService extends Command
         $defaultContext = <<<'CTX'
 A weekly B2B newsletter for SaaS operators: product launches, pricing moves, hiring signals, and one tactical takeaway. Audience prefers concise analysis and links to primary sources.
 CTX;
-        $context = (string) $this->ask('Editorial / business context', $defaultContext);
+        $context = (new SemanticContext)->set(
+            'article_context',
+            'Editorial / business context',
+            (string) $this->ask('Editorial / business context', $defaultContext)
+        );
 
         $action = $this->choice(
             'What to run',
@@ -189,7 +195,7 @@ CTX;
         ];
     }
 
-    private function runSuggestTemporal(IdeaAdvisor $advisor, string $clientId, string $context): int
+    private function runSuggestTemporal(IdeaAdvisor $advisor, string $clientId, SemanticContext $context): int
     {
         $temporal = $this->timedCall('suggestTemporal', fn () => $advisor->suggestTemporal($clientId, $context));
         $this->displayTemporalSuggestions($temporal);
@@ -197,7 +203,7 @@ CTX;
         return self::SUCCESS;
     }
 
-    private function runSuggestIntentTypes(IdeaAdvisor $advisor, string $clientId, string $context): int
+    private function runSuggestIntentTypes(IdeaAdvisor $advisor, string $clientId, SemanticContext $context): int
     {
         $intentTypes = $this->timedCall('suggestIntentTypes', fn () => $advisor->suggestIntentTypes($clientId, $context));
         $this->displayIntentTypeSuggestions($intentTypes);

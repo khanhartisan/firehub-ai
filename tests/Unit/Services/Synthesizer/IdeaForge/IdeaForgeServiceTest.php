@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Synthesizer\IdeaForge;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
@@ -105,17 +106,17 @@ class IdeaForgeServiceTest extends TestCase
                 return $this;
             }
 
-            public function suggestTemporal(string $clientId, string $context): array
+            public function suggestTemporal(string $clientId, SemanticContext $context): array
             {
                 return [];
             }
 
-            public function suggestIntentTypes(string $clientId, string $context): array
+            public function suggestIntentTypes(string $clientId, SemanticContext $context): array
             {
                 return [];
             }
 
-            public function brainstorm(array $temporalSuggestions, array $intentTypeSuggestions, string $context, int $limit = 5): array
+            public function brainstorm(array $temporalSuggestions, array $intentTypeSuggestions, SemanticContext $context, int $limit = 5): array
             {
                 return [];
             }
@@ -144,7 +145,7 @@ class IdeaForgeServiceTest extends TestCase
     {
         return new class implements IdeaPicker
         {
-            public function pick(array $ideaAuditReports, string $context, int $limit = 1): ?array
+            public function pick(array $ideaAuditReports, SemanticContext $context, int $limit = 1): ?array
             {
                 return [];
             }

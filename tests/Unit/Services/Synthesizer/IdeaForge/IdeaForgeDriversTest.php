@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Synthesizer\IdeaForge;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
@@ -20,7 +21,7 @@ class IdeaForgeDriversTest extends TestCase
     public function test_idea_advisor_returns_sorted_suggestions_and_brainstorms_with_limit(): void
     {
         $advisor = new BasicIdeaAdvisorDriver;
-        $context = 'latest pricing updates today near me';
+        $context = (new SemanticContext)->set('article_context', 'Article context', 'latest pricing updates today near me');
 
         $temporal = $advisor->suggestTemporal('client-1', $context);
         $intentTypes = $advisor->suggestIntentTypes('client-1', $context);
@@ -55,8 +56,9 @@ class IdeaForgeDriversTest extends TestCase
         $low = new IdeaAuditReport(new Idea($this->makeIntent('Low'), 0.2), 0.2);
         $high = new IdeaAuditReport(new Idea($this->makeIntent('High'), 0.9), 0.9);
 
-        $picked = $picker->pick([$low, $high], 'context', 1);
-        $none = $picker->pick([], 'context', 1);
+        $pickerContext = (new SemanticContext)->set('article_context', 'Article context', 'context');
+        $picked = $picker->pick([$low, $high], $pickerContext, 1);
+        $none = $picker->pick([], $pickerContext, 1);
 
         $this->assertNotNull($picked);
         $this->assertCount(1, $picked);

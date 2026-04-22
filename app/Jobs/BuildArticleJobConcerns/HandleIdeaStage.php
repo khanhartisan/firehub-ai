@@ -2,6 +2,7 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageBrainstorm;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageContext;
@@ -37,16 +38,13 @@ trait HandleIdeaStage
             return false;
         }
 
-        // Common context
-        $clientContext = trim($this->client->context);
-        $articleContext = trim($this->article->context);
-        $context = $clientContext."\n---\n".$articleContext;
-        if (! $clientContext && ! $articleContext) {
+        $context = $this->buildSemanticContext();
+        if ($context === null) {
             return false;
         }
 
         // Idea brainstorm context, appending the latest articles
-        $ideaBrainstormContext = $context;
+        $ideaBrainstormContext = clone $context;
         if ($latestArticles = $this->client
             ->articles()
             ->take(1000)
@@ -57,13 +55,12 @@ trait HandleIdeaStage
             })
             and $latestArticles->count()
         ) {
-            $ideaBrainstormContext .= "\n---\n Below is the list of the latest articles:\n"
-            .$latestArticles
+            $ideaBrainstormContext->set('latest_article_titles', 'Latest article titles for ideation context.', $latestArticles
                 ->map(function (Article $article) {
                     return Str::limit($article->title, 160);
-                })->join("\n- ");
+                })->values()->toArray());
         } else {
-            $ideaBrainstormContext .= "\n---\n This will be the first article.";
+            $ideaBrainstormContext->set('latest_article_titles', 'Latest article titles for ideation context.', ['No existing articles. This will be the first article.']);
         }
 
         // 1) Collect advisor suggestions.
@@ -128,5 +125,65 @@ trait HandleIdeaStage
         $this->touchArticleQuietly();
 
         return true;
+    }
+
+    protected function buildSemanticContext(): ?SemanticContext
+    {
+        $context = new SemanticContext;
+        $hasAny = false;
+
+        if ($this->client->general_context) {
+            $clientContextPayload = $this->client->general_context->toArray();
+            $hasClientContextValue = false;
+            foreach ($clientContextPayload as $entry) {
+                if (is_array($entry)
+                    && array_key_exists('value', $entry)
+                    && $this->contextPayloadHasContent($entry['value'])
+                ) {
+                    $hasClientContextValue = true;
+                    break;
+                }
+            }
+
+            if ($hasClientContextValue) {
+                $context->set('client_general_context', 'Client general context DTO payload.', $clientContextPayload);
+                $hasAny = true;
+            }
+        }
+
+        $articleContext = trim((string) ($this->article?->context ?? ''));
+        if ($articleContext !== '') {
+            $context->set('article_context', 'Article-specific context provided by the user.', $articleContext);
+            $hasAny = true;
+        }
+
+        return $hasAny ? $context : null;
+    }
+
+    protected function contextPayloadHasContent(mixed $payload): bool
+    {
+        if ($payload === null) {
+            return false;
+        }
+
+        if (is_string($payload)) {
+            return trim($payload) !== '';
+        }
+
+        if (is_int($payload) || is_float($payload) || is_bool($payload)) {
+            return true;
+        }
+
+        if (! is_array($payload)) {
+            return false;
+        }
+
+        foreach ($payload as $value) {
+            if ($this->contextPayloadHasContent($value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

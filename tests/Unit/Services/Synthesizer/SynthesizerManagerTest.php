@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Synthesizer;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\Author\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
@@ -59,7 +60,7 @@ class SynthesizerManagerTest extends TestCase
         /** @var BasicIdeaAdvisorDriver $advisor */
         $advisor = $ideaForge->getIdeaAdvisors()[0];
 
-        $context = 'Latest AI coding tools pricing and adoption trends';
+        $context = (new SemanticContext)->set('article_context', 'Article context', 'Latest AI coding tools pricing and adoption trends');
         $temporalSuggestions = $advisor->suggestTemporal('client-1', $context);
         $intentTypeSuggestions = $advisor->suggestIntentTypes('client-1', $context);
         $ideas = $advisor->brainstorm($temporalSuggestions, $intentTypeSuggestions, $context, 3);

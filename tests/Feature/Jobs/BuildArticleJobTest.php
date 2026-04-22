@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Jobs;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Model\Client\GeneralContext;
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
@@ -512,12 +513,12 @@ final class WeightedStubIdeaAdvisor extends \App\Services\Synthesizer\IdeaForge\
         $this->setWeight($weight);
     }
 
-    public function suggestTemporal(string $clientId, string $context): array
+    public function suggestTemporal(string $clientId, SemanticContext $context): array
     {
         return [];
     }
 
-    public function suggestIntentTypes(string $clientId, string $context): array
+    public function suggestIntentTypes(string $clientId, SemanticContext $context): array
     {
         return [];
     }
@@ -525,7 +526,7 @@ final class WeightedStubIdeaAdvisor extends \App\Services\Synthesizer\IdeaForge\
     public function brainstorm(
         array $temporalSuggestions,
         array $intentTypeSuggestions,
-        string $context,
+        SemanticContext $context,
         int $limit = 5
     ): array {
         return [];

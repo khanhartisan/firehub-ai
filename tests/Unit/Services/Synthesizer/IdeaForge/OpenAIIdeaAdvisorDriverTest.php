@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Synthesizer\IdeaForge;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
@@ -49,7 +50,10 @@ class OpenAIIdeaAdvisorDriverTest extends TestCase
         $client->shouldReceive('createResponse')->once()->andReturn($response);
 
         $driver = new OpenAIIdeaAdvisorDriver($client, ['model' => 'gpt-4o-mini']);
-        $suggestions = $driver->suggestTemporal('client-a', 'Latest market moves this week');
+        $suggestions = $driver->suggestTemporal(
+            'client-a',
+            (new SemanticContext)->set('article_context', 'Article context', 'Latest market moves this week')
+        );
 
         $this->assertCount(1, $suggestions);
         $this->assertInstanceOf(TemporalSuggestion::class, $suggestions[0]);
@@ -98,7 +102,12 @@ class OpenAIIdeaAdvisorDriverTest extends TestCase
         $temporal = [new TemporalSuggestion(Temporal::TOPICAL, 0.7, 'test')];
         $intentTypes = [new IntentTypeSuggestion(IntentType::INFORMATIONAL, 0.8, 'test')];
 
-        $ideas = $driver->brainstorm($temporal, $intentTypes, 'Newsletter context', 3);
+        $ideas = $driver->brainstorm(
+            $temporal,
+            $intentTypes,
+            (new SemanticContext)->set('article_context', 'Article context', 'Newsletter context'),
+            3
+        );
 
         $this->assertCount(1, $ideas);
         $this->assertInstanceOf(Idea::class, $ideas[0]);

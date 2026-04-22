@@ -2,12 +2,13 @@
 
 namespace App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\IdeaPickerService;
 
 class BasicIdeaPickerDriver extends IdeaPickerService
 {
-    public function pick(array $ideaAuditReports, string $context, int $limit = 1): ?array
+    public function pick(array $ideaAuditReports, SemanticContext $context, int $limit = 1): ?array
     {
         $reports = array_values(array_filter(
             $ideaAuditReports,

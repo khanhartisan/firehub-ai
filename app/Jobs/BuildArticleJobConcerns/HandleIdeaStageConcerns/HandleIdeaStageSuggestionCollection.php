@@ -2,6 +2,7 @@
 
 namespace App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 
@@ -14,7 +15,7 @@ trait HandleIdeaStageSuggestionCollection
     /**
      * @return ?true when every advisor has temporal + intent suggestions; null after one advisor was just filled (checkpoint); false on invalid advisor.
      */
-    protected function processSuggestionCollection(string $context): ?bool
+    protected function processSuggestionCollection(SemanticContext $context): ?bool
     {
         $stageData = $this->getStageData();
         $ideaData = $stageData->getIdeaStageData();
@@ -48,7 +49,7 @@ trait HandleIdeaStageSuggestionCollection
 
     protected function processAdvisorTemporalSuggestions(
         IdeaAdvisor $advisor,
-        string $context
+        SemanticContext $context
     ): bool {
         $stageData = $this->getStageData();
         $ideaData = $stageData->getIdeaStageData();
@@ -71,7 +72,7 @@ trait HandleIdeaStageSuggestionCollection
 
     protected function processAdvisorIntentTypeSuggestions(
         IdeaAdvisor $advisor,
-        string $context
+        SemanticContext $context
     ): bool {
         $stageData = $this->getStageData();
         $ideaData = $stageData->getIdeaStageData();

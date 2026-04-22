@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
@@ -21,9 +22,9 @@ class BasicIdeaAdvisorDriver extends IdeaAdvisorService
         $this->setDescription($description);
     }
 
-    public function suggestTemporal(string $clientId, string $context): array
+    public function suggestTemporal(string $clientId, SemanticContext $context): array
     {
-        $context = mb_strtolower(trim($context));
+        $contextText = mb_strtolower(trim($this->contextToText($context)));
 
         $weighted = [
             ['temporal' => Temporal::EVERGREEN, 'confidence' => 0.55],
@@ -31,12 +32,12 @@ class BasicIdeaAdvisorDriver extends IdeaAdvisorService
             ['temporal' => Temporal::TRENDING, 'confidence' => 0.40],
         ];
 
-        if (str_contains($context, 'today') || str_contains($context, 'now') || str_contains($context, 'latest')) {
+        if (str_contains($contextText, 'today') || str_contains($contextText, 'now') || str_contains($contextText, 'latest')) {
             $weighted[] = ['temporal' => Temporal::BREAKING, 'confidence' => 0.85];
             $weighted[] = ['temporal' => Temporal::TRENDING, 'confidence' => 0.70];
         }
 
-        if (str_contains($context, 'season') || str_contains($context, 'holiday') || str_contains($context, 'summer')) {
+        if (str_contains($contextText, 'season') || str_contains($contextText, 'holiday') || str_contains($contextText, 'summer')) {
             $weighted[] = ['temporal' => Temporal::SEASONAL, 'confidence' => 0.80];
         }
 
@@ -55,9 +56,9 @@ class BasicIdeaAdvisorDriver extends IdeaAdvisorService
         );
     }
 
-    public function suggestIntentTypes(string $clientId, string $context): array
+    public function suggestIntentTypes(string $clientId, SemanticContext $context): array
     {
-        $context = mb_strtolower(trim($context));
+        $contextText = mb_strtolower(trim($this->contextToText($context)));
 
         $weighted = [
             ['intent_type' => IntentType::INFORMATIONAL, 'confidence' => 0.70],
@@ -67,12 +68,12 @@ class BasicIdeaAdvisorDriver extends IdeaAdvisorService
             ['intent_type' => IntentType::LOCAL, 'confidence' => 0.25],
         ];
 
-        if (str_contains($context, 'buy') || str_contains($context, 'price') || str_contains($context, 'cost')) {
+        if (str_contains($contextText, 'buy') || str_contains($contextText, 'price') || str_contains($contextText, 'cost')) {
             $weighted[] = ['intent_type' => IntentType::TRANSACTIONAL, 'confidence' => 0.85];
             $weighted[] = ['intent_type' => IntentType::COMMERCIAL, 'confidence' => 0.70];
         }
 
-        if (str_contains($context, 'near me') || str_contains($context, 'in ') || str_contains($context, 'local')) {
+        if (str_contains($contextText, 'near me') || str_contains($contextText, 'in ') || str_contains($contextText, 'local')) {
             $weighted[] = ['intent_type' => IntentType::LOCAL, 'confidence' => 0.80];
         }
 
@@ -94,7 +95,7 @@ class BasicIdeaAdvisorDriver extends IdeaAdvisorService
     public function brainstorm(
         array $temporalSuggestions,
         array $intentTypeSuggestions,
-        string $context,
+        SemanticContext $context,
         int $limit = 5
     ): array {
         $temporals = array_values(array_filter($temporalSuggestions, static fn ($item) => $item instanceof TemporalSuggestion));
@@ -103,6 +104,8 @@ class BasicIdeaAdvisorDriver extends IdeaAdvisorService
         if ($temporals === [] || $intentTypes === []) {
             return [];
         }
+
+        $contextText = trim($this->contextToText($context));
 
         $ideas = [];
         foreach ($temporals as $temporalSuggestion) {
@@ -113,7 +116,7 @@ class BasicIdeaAdvisorDriver extends IdeaAdvisorService
 
                 $intent = (new Intent)
                     ->setTitle(sprintf('%s angle for %s', ucfirst($temporalSuggestion->getTemporal()->value), $intentTypeSuggestion->getIntentType()->name))
-                    ->setDescription($context)
+                    ->setDescription($contextText)
                     ->setTemporal($temporalSuggestion->getTemporal())
                     ->setLanguage(Language::EN)
                     ->setTypes([$intentTypeSuggestion->getIntentType()]);
@@ -135,5 +138,10 @@ class BasicIdeaAdvisorDriver extends IdeaAdvisorService
         }
 
         return $ideas;
+    }
+
+    protected function contextToText(SemanticContext $context): string
+    {
+        return json_encode($context->toArray(), JSON_UNESCAPED_UNICODE) ?: '';
     }
 }

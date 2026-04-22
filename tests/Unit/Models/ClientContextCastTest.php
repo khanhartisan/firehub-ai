@@ -2,15 +2,15 @@
 
 namespace Tests\Unit\Models;
 
-use App\Contracts\Model\Client\GeneralContext;
+use App\Contracts\Model\Client\Context;
 use App\Models\Client;
 use Tests\TestCase;
 
-class ClientGeneralContextCastTest extends TestCase
+class ClientContextCastTest extends TestCase
 {
-    public function test_it_dehydrates_and_hydrates_general_context_perfectly(): void
+    public function test_it_dehydrates_and_hydrates_context_perfectly(): void
     {
-        $context = (new GeneralContext)
+        $context = (new Context)
             ->setName('Acme AI')
             ->setDescription('AI automation consulting platform.')
             ->setToneOfVoice('Clear and practical')
@@ -25,21 +25,21 @@ class ClientGeneralContextCastTest extends TestCase
             ]);
 
         $client = new Client;
-        $client->general_context = $context;
+        $client->context = $context;
 
-        $this->assertIsString($client->getAttributes()['general_context']);
-        $this->assertSame($context->toArray(), json_decode($client->getAttributes()['general_context'], true));
+        $this->assertIsString($client->getAttributes()['context']);
+        $this->assertSame($context->toArray(), json_decode($client->getAttributes()['context'], true));
 
         $rehydrated = new Client;
         $rehydrated->setRawAttributes([
-            'general_context' => $client->getAttributes()['general_context'],
+            'context' => $client->getAttributes()['context'],
         ], true);
 
-        $this->assertInstanceOf(GeneralContext::class, $rehydrated->general_context);
-        $this->assertSame($context->toArray(), $rehydrated->general_context->toArray());
+        $this->assertInstanceOf(Context::class, $rehydrated->context);
+        $this->assertSame($context->toArray(), $rehydrated->context->toArray());
     }
 
-    public function test_it_accepts_array_payload_and_casts_to_general_context(): void
+    public function test_it_accepts_array_payload_and_casts_to_context(): void
     {
         $payload = [
             'name' => [
@@ -55,10 +55,10 @@ class ClientGeneralContextCastTest extends TestCase
         ];
 
         $client = new Client;
-        $client->general_context = $payload;
+        $client->context = $payload;
 
-        $this->assertInstanceOf(GeneralContext::class, $client->general_context);
-        $this->assertSame($payload, $client->general_context->toArray());
+        $this->assertInstanceOf(Context::class, $client->context);
+        $this->assertSame($payload, $client->context->toArray());
     }
 }
 

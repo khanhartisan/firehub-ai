@@ -2,30 +2,30 @@
 
 namespace App\Casts;
 
-use App\Contracts\Model\Client\GeneralContext;
+use App\Contracts\Model\Client\Context;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 
-class ClientGeneralContextCast implements CastsAttributes
+class ClientContextCast implements CastsAttributes
 {
-    public function get(Model $model, string $key, mixed $value, array $attributes): GeneralContext
+    public function get(Model $model, string $key, mixed $value, array $attributes): Context
     {
-        if ($value instanceof GeneralContext) {
+        if ($value instanceof Context) {
             return $value;
         }
 
         if (is_array($value)) {
-            return GeneralContext::fromArray($value);
+            return Context::fromArray($value);
         }
 
         if (is_string($value) && $value !== '') {
             $decoded = json_decode($value, true);
             if (is_array($decoded)) {
-                return GeneralContext::fromArray($decoded);
+                return Context::fromArray($decoded);
             }
         }
 
-        return GeneralContext::fromArray([]);
+        return Context::fromArray([]);
     }
 
     public function set(Model $model, string $key, mixed $value, array $attributes): ?string
@@ -34,19 +34,19 @@ class ClientGeneralContextCast implements CastsAttributes
             return null;
         }
 
-        if ($value instanceof GeneralContext) {
+        if ($value instanceof Context) {
             return $value->toJson();
         }
 
         if (is_array($value)) {
-            return GeneralContext::fromArray($value)->toJson();
+            return Context::fromArray($value)->toJson();
         }
 
         if (is_string($value)) {
             return $value;
         }
 
-        return GeneralContext::fromArray([])->toJson();
+        return Context::fromArray([])->toJson();
     }
 }
 

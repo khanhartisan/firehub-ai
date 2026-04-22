@@ -18,7 +18,7 @@ use App\Utils\Str;
  * @method null|array getGuidelinesValue()
  * @method null|array getMetaValue()
  */
-class GeneralContext extends SemanticContext
+class Context extends SemanticContext
 {
     use HasMeta;
 
@@ -90,3 +90,4 @@ class GeneralContext extends SemanticContext
         );
     }
 }
+

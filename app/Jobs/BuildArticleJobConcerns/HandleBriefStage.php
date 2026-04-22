@@ -23,8 +23,8 @@ trait HandleBriefStage
         }
 
         $context = new SemanticContext;
-        if ($this->client->general_context) {
-            $context->set('client_general_context', 'Client general context DTO payload.', $this->client->general_context->toArray());
+        if ($this->client->context) {
+            $context->set('client_context', 'Client context DTO payload.', $this->client->context->toArray());
         }
         $context->set('article_context', 'Article-specific context provided by the user.', (string) $article->context);
 

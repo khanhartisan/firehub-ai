@@ -132,8 +132,8 @@ trait HandleIdeaStage
         $context = new SemanticContext;
         $hasAny = false;
 
-        if ($this->client->general_context) {
-            $clientContextPayload = $this->client->general_context->toArray();
+        if ($this->client->context) {
+            $clientContextPayload = $this->client->context->toArray();
             $hasClientContextValue = false;
             foreach ($clientContextPayload as $entry) {
                 if (is_array($entry)
@@ -146,7 +146,7 @@ trait HandleIdeaStage
             }
 
             if ($hasClientContextValue) {
-                $context->set('client_general_context', 'Client general context DTO payload.', $clientContextPayload);
+                $context->set('client_context', 'Client context DTO payload.', $clientContextPayload);
                 $hasAny = true;
             }
         }

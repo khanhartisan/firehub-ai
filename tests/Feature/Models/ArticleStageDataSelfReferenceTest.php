@@ -3,7 +3,7 @@
 namespace Tests\Feature\Models;
 
 use App\Contracts\Model\Article\StageData;
-use App\Contracts\Model\Client\GeneralContext;
+use App\Contracts\Model\Client\Context;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
@@ -57,7 +57,7 @@ class ArticleStageDataSelfReferenceTest extends TestCase
     {
         $client = new Client;
         $client->name = 'client-'.str()->ulid();
-        $client->general_context = (new GeneralContext)
+        $client->context = (new Context)
             ->setDescription('Test context for StageData reference.');
         $client->save();
 

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Casts\ClientGeneralContextCast;
+use App\Casts\ClientContextCast;
 use App\Enums\Language;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
@@ -15,7 +15,7 @@ class Client extends Model implements ShouldCascade
 
     protected $casts = [
         'language' => Language::class,
-        'general_context' => ClientGeneralContextCast::class,
+        'context' => ClientContextCast::class,
     ];
 
     public function getCascadeDetails(): CascadeDetails|array

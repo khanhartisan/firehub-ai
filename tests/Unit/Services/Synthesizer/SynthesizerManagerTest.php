@@ -18,6 +18,8 @@ use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriv
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
+use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
+use App\Services\Synthesizer\Researcher\Drivers\OpenAIResearcherDriver;
 use App\Services\Synthesizer\SynthesizerManager;
 use App\Services\Synthesizer\SynthesizerService;
 use Illuminate\Support\Facades\Config;
@@ -41,6 +43,7 @@ class SynthesizerManagerTest extends TestCase
 
         $this->assertInstanceOf(SynthesizerService::class, $driver);
         $this->assertInstanceOf(BasicIdeaForgeDriver::class, $driver->getIdeaForge());
+        $this->assertInstanceOf(BasicResearcherDriver::class, $driver->getResearcher());
         $this->assertInstanceOf(BasicBriefBuilderDriver::class, $driver->getBriefBuilder());
         $this->assertInstanceOf(BasicOutlineBuilderDriver::class, $driver->getOutlineBuilder());
         $this->assertInstanceOf(BasicAuthorDriver::class, $driver->getAuthor());
@@ -105,5 +108,6 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIIdeaAdvisorDriver::class, $ideaForge->getIdeaAdvisors()[0]);
         $this->assertInstanceOf(OpenAIIdeaAuditorDriver::class, $ideaForge->getIdeaAuditor());
         $this->assertInstanceOf(OpenAIIdeaPickerDriver::class, $ideaForge->getIdeaPicker());
+        $this->assertInstanceOf(OpenAIResearcherDriver::class, $driver->getResearcher());
     }
 }

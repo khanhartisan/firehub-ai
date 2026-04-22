@@ -15,6 +15,8 @@ use App\Contracts\Synthesizer\IdeaForge\IdeaPicker;
 use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
+use App\Contracts\Synthesizer\Researcher\IdeaPoints;
+use App\Contracts\Synthesizer\Researcher\Researcher;
 use App\Services\Synthesizer\SynthesizerService;
 use Tests\TestCase;
 
@@ -23,33 +25,39 @@ class SynthesizerServiceTest extends TestCase
     public function test_it_gets_and_sets_all_sub_services(): void
     {
         $ideaForgeA = $this->makeIdeaForge();
+        $researcherA = $this->makeResearcher();
         $briefBuilderA = $this->makeBriefBuilder();
         $outlineBuilderA = $this->makeOutlineBuilder();
         $authorA = $this->makeAuthor();
 
         $service = new SynthesizerService(
             ideaForge: $ideaForgeA,
+            researcher: $researcherA,
             briefBuilder: $briefBuilderA,
             outlineBuilder: $outlineBuilderA,
             author: $authorA,
         );
 
         $this->assertSame($ideaForgeA, $service->getIdeaForge());
+        $this->assertSame($researcherA, $service->getResearcher());
         $this->assertSame($briefBuilderA, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderA, $service->getOutlineBuilder());
         $this->assertSame($authorA, $service->getAuthor());
 
         $ideaForgeB = $this->makeIdeaForge();
+        $researcherB = $this->makeResearcher();
         $briefBuilderB = $this->makeBriefBuilder();
         $outlineBuilderB = $this->makeOutlineBuilder();
         $authorB = $this->makeAuthor();
 
         $this->assertSame($service, $service->setIdeaForge($ideaForgeB));
+        $this->assertSame($service, $service->setResearcher($researcherB));
         $this->assertSame($service, $service->setBriefBuilder($briefBuilderB));
         $this->assertSame($service, $service->setOutlineBuilder($outlineBuilderB));
         $this->assertSame($service, $service->setAuthor($authorB));
 
         $this->assertSame($ideaForgeB, $service->getIdeaForge());
+        $this->assertSame($researcherB, $service->getResearcher());
         $this->assertSame($briefBuilderB, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderB, $service->getOutlineBuilder());
         $this->assertSame($authorB, $service->getAuthor());
@@ -122,6 +130,17 @@ class SynthesizerServiceTest extends TestCase
             public function conceive(Idea $idea, SemanticContext $context): Brief
             {
                 return new Brief;
+            }
+        };
+    }
+
+    protected function makeResearcher(): Researcher
+    {
+        return new class implements Researcher
+        {
+            public function extractPoints(Idea $idea, string $content): IdeaPoints
+            {
+                return new IdeaPoints($idea);
             }
         };
     }

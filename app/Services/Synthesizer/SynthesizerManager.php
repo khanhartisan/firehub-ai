@@ -11,6 +11,7 @@ use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDrive
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
+use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
 use Illuminate\Support\Manager;
 
 class SynthesizerManager extends Manager
@@ -54,6 +55,10 @@ class SynthesizerManager extends Manager
             $driverConfig['brief_builder']['driver'] ?? BasicBriefBuilderDriver::class
         );
 
+        $researcher = $this->container->make(
+            $driverConfig['researcher']['driver'] ?? BasicResearcherDriver::class
+        );
+
         $outlineBuilder = $this->container->make(
             $driverConfig['outline_builder']['driver'] ?? BasicOutlineBuilderDriver::class
         );
@@ -67,6 +72,7 @@ class SynthesizerManager extends Manager
             $driverConfig['service'] ?? SynthesizerService::class,
             [
                 'ideaForge' => $ideaForge,
+                'researcher' => $researcher,
                 'briefBuilder' => $briefBuilder,
                 'outlineBuilder' => $outlineBuilder,
                 'author' => $author,

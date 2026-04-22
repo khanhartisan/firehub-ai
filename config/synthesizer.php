@@ -10,6 +10,8 @@ use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriv
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
+use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
+use App\Services\Synthesizer\Researcher\Drivers\OpenAIResearcherDriver;
 use App\Services\Synthesizer\SynthesizerService;
 
 return [
@@ -55,6 +57,9 @@ return [
                 'auditor' => BasicIdeaAuditorDriver::class,
                 'picker' => BasicIdeaPickerDriver::class,
             ],
+            'researcher' => [
+                'driver' => BasicResearcherDriver::class,
+            ],
             'brief_builder' => [
                 'driver' => BasicBriefBuilderDriver::class,
             ],
@@ -78,6 +83,9 @@ return [
                 ],
                 'auditor' => OpenAIIdeaAuditorDriver::class,
                 'picker' => OpenAIIdeaPickerDriver::class,
+            ],
+            'researcher' => [
+                'driver' => OpenAIResearcherDriver::class,
             ],
             'brief_builder' => [
                 'driver' => BasicBriefBuilderDriver::class,
@@ -134,6 +142,21 @@ return [
     'openai_idea_picker' => [
         'model' => env('SYNTHESIZER_OPENAI_IDEA_PICKER_MODEL', 'gpt-4o-mini'),
         'temperature' => 0.2,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI researcher
+    |--------------------------------------------------------------------------
+    |
+    | Used by {@see OpenAIResearcherDriver} (synthesizer driver "openai").
+    |
+    */
+
+    'openai_researcher' => [
+        'model' => env('SYNTHESIZER_OPENAI_RESEARCHER_MODEL', 'gpt-4o-mini'),
+        'temperature' => 0.2,
+        'max_points' => 8,
     ],
 
     /*

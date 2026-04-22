@@ -11,6 +11,7 @@ use App\Jobs\BuildArticleJobConcerns\HandleDraftStage;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStage;
 use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
+use App\Jobs\BuildArticleJobConcerns\InteractsWithSemanticContext;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSynthesizer;
 use App\Jobs\Concerns\HasManualLock;
 use App\Models\Article;
@@ -47,6 +48,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Queueable;
     use InteractsWithArticleStageData;
+    use InteractsWithSemanticContext;
     use InteractsWithSynthesizer;
     use HasManualLock;
     use HandleIdeaStage;

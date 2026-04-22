@@ -2,7 +2,6 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
-use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Models\Article;
@@ -22,12 +21,9 @@ trait HandleBriefStage
             return false;
         }
 
-        $context = new SemanticContext;
-        if ($this->client->context) {
-            $context->set('client_context', 'Client context DTO payload.', $this->client->context->toArray());
-        }
-        if ($article->context) {
-            $context->set('article_context', 'Article-specific context DTO payload.', $article->context->toArray());
+        $context = $this->buildSemanticContext();
+        if ($context === null) {
+            return false;
         }
 
         $brief = $this->synthesizer()

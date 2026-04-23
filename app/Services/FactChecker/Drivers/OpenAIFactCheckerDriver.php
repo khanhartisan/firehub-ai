@@ -74,7 +74,7 @@ Assess whether the provided point is supported by its evidence and optional sema
 
 Rules:
 - "is_valid" should be true only when the claim is sufficiently supported by the evidences.
-- "confidence" must be a number between 0 and 1.
+- "confidence" must be a number between 0.00 and 1.00
 - "reasoning" should be concise and specific (1-3 sentences).
 - Do not invent external facts. Base your judgment on the provided payload only.
 
@@ -100,7 +100,7 @@ PROMPT;
                 ],
                 'confidence' => [
                     'type' => ['number', 'null'],
-                    'description' => 'Confidence score between 0 and 1',
+                    'description' => 'Confidence score between 0.00 and 1.00',
                 ],
                 'reasoning' => [
                     'type' => ['string', 'null'],

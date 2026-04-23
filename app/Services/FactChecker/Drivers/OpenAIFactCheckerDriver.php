@@ -2,6 +2,8 @@
 
 namespace App\Services\FactChecker\Drivers;
 
+use App\Contracts\CommonData\Conflict;
+use App\Contracts\CommonData\Fact;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\CommonData\Verification;
 use App\Contracts\FactChecker\FactCheckable;
@@ -59,6 +61,16 @@ class OpenAIFactCheckerDriver extends FactCheckerService
         }
 
         return $this->parseVerificationResponse($responseText);
+    }
+
+    /**
+     * @return Fact[]
+     */
+    public function resolveConflict(Conflict $conflict): array
+    {
+        return array_map(function (Fact $fact): Fact {
+            return $fact->setVerification($this->verify($fact));
+        }, $conflict->getFacts());
     }
 
     protected function buildVerificationPrompt(FactCheckable $factCheckable, ?SemanticContext $context = null): string

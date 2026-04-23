@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Services\FactChecker\Drivers;
 
+use App\Contracts\CommonData\Conflict;
+use App\Contracts\CommonData\Fact;
 use App\Contracts\CommonData\Point;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\CommonData\Verification;
@@ -156,5 +158,49 @@ class OpenAIFactCheckerDriverTest extends TestCase
         $this->expectExceptionMessage('OpenAI refused the fact-check request');
 
         $driver->verify((new Point)->setHeadline('Claim')->setEvidences(['Evidence']));
+    }
+
+    public function test_it_resolves_conflict_by_verifying_each_fact(): void
+    {
+        $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
+        $mockResponse = ResponseObject::fromArray([
+            'id' => 'resp_resolve_conflict',
+            'status' => 'completed',
+            'output' => [
+                [
+                    'type' => 'message',
+                    'content' => [
+                        [
+                            'type' => 'output_text',
+                            'text' => json_encode([
+                                'is_valid' => true,
+                                'confidence' => 0.85,
+                                'reasoning' => 'Supported by the available evidence.',
+                            ]),
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $mockOpenAIClient->shouldReceive('createResponse')
+            ->twice()
+            ->andReturn($mockResponse);
+
+        $driver = new OpenAIFactCheckerDriver($mockOpenAIClient);
+        $conflict = (new Conflict)
+            ->setFacts([
+                new Fact('Claim A'),
+                new Fact('Claim B'),
+            ])
+            ->setRationale('Two claims disagree');
+
+        $resolvedFacts = $driver->resolveConflict($conflict);
+
+        $this->assertCount(2, $resolvedFacts);
+        $this->assertNotNull($resolvedFacts[0]->getVerification());
+        $this->assertTrue($resolvedFacts[0]->getVerification()->getIsValid());
+        $this->assertSame(0.85, $resolvedFacts[0]->getVerification()->getConfidence());
+        $this->assertNotNull($resolvedFacts[1]->getVerification());
     }
 }

@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Services\FactChecker;
 
+use App\Contracts\CommonData\Conflict;
+use App\Contracts\CommonData\Fact;
 use App\Contracts\CommonData\Point;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\FactChecker;
@@ -64,6 +66,22 @@ class FactCheckerManagerTest extends TestCase
         $this->assertTrue($verification->getIsValid());
         $this->assertNotNull($verification->getConfidence());
         $this->assertNotNull($verification->getReasoning());
+    }
+
+    public function test_basic_driver_resolves_conflict_by_returning_facts(): void
+    {
+        $conflict = (new Conflict)
+            ->setFacts([
+                new Fact('Claim A'),
+                new Fact('Claim B'),
+            ])
+            ->setRationale('Conflicting sources');
+
+        $resolvedFacts = $this->manager()->driver('basic')->resolveConflict($conflict);
+
+        $this->assertCount(2, $resolvedFacts);
+        $this->assertSame('Claim A', $resolvedFacts[0]->getFact());
+        $this->assertSame('Claim B', $resolvedFacts[1]->getFact());
     }
 
     public function test_facade_root_is_fact_checker_manager(): void

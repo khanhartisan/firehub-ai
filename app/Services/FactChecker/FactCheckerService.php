@@ -2,6 +2,8 @@
 
 namespace App\Services\FactChecker;
 
+use App\Contracts\CommonData\Conflict;
+use App\Contracts\CommonData\Fact;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\CommonData\Verification;
 use App\Contracts\FactChecker\FactCheckable;
@@ -17,4 +19,9 @@ abstract class FactCheckerService implements FactCheckerContract
     }
 
     abstract public function verify(FactCheckable $factCheckable, ?SemanticContext $context = null): Verification;
+
+    /**
+     * @return Fact[]
+     */
+    abstract public function resolveConflict(Conflict $conflict): array;
 }

@@ -2,6 +2,8 @@
 
 namespace App\Services\FactChecker\Drivers;
 
+use App\Contracts\CommonData\Conflict;
+use App\Contracts\CommonData\Fact;
 use App\Contracts\CommonData\Point;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\CommonData\Verification;
@@ -56,5 +58,13 @@ class BasicFactCheckerDriver extends FactCheckerService
             ->setIsValid($isValid)
             ->setConfidence($confidence)
             ->setReasoning($reasoning);
+    }
+
+    /**
+     * @return Fact[]
+     */
+    public function resolveConflict(Conflict $conflict): array
+    {
+        return $conflict->getFacts();
     }
 }

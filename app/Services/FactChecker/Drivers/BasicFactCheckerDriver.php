@@ -63,7 +63,7 @@ class BasicFactCheckerDriver extends FactCheckerService
     /**
      * @return Fact[]
      */
-    public function resolveConflict(Conflict $conflict): array
+    public function resolveConflict(Conflict $conflict, ?SemanticContext $context = null): array
     {
         return $conflict->getFacts();
     }

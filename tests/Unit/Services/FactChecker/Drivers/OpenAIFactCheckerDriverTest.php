@@ -210,7 +210,7 @@ class OpenAIFactCheckerDriverTest extends TestCase
             ])
             ->setRationale('Two claims disagree');
 
-        $resolvedFacts = $driver->resolveConflict($conflict);
+        $resolvedFacts = $driver->resolveConflict($conflict, new SemanticContext());
 
         $this->assertCount(2, $resolvedFacts);
         $this->assertSame('Claim A', $resolvedFacts[0]->getFact());

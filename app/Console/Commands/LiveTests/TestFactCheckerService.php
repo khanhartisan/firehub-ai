@@ -74,7 +74,7 @@ class TestFactCheckerService extends Command
                 $verifyElapsed = round(microtime(true) - $verifyStart, 3);
             } else {
                 $resolveStart = microtime(true);
-                $resolvedFacts = $factChecker->resolveConflict($conflict);
+                $resolvedFacts = $factChecker->resolveConflict($conflict, $context);
                 $resolveElapsed = round(microtime(true) - $resolveStart, 3);
             }
         } catch (Throwable $e) {

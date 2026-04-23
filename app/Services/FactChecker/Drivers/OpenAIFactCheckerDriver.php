@@ -66,9 +66,9 @@ class OpenAIFactCheckerDriver extends FactCheckerService
     /**
      * @return Fact[]
      */
-    public function resolveConflict(Conflict $conflict): array
+    public function resolveConflict(Conflict $conflict, ?SemanticContext $context = null): array
     {
-        $prompt = $this->buildConflictResolutionPrompt($conflict);
+        $prompt = $this->buildConflictResolutionPrompt($conflict, $context);
 
         $input = ResponseInput::text($prompt);
         $options = ResponseOptions::create()
@@ -133,12 +133,15 @@ Semantic context payload:
 PROMPT;
     }
 
-    protected function buildConflictResolutionPrompt(Conflict $conflict): string
+    protected function buildConflictResolutionPrompt(Conflict $conflict, ?SemanticContext $context = null): string
     {
         $conflictPayload = json_encode(
             $conflict->toArray(),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         ) ?: '{}';
+        $contextPayload = $context
+            ? (json_encode($context->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}')
+            : 'null';
 
         return <<<PROMPT
 You are a factual conflict resolution assistant.
@@ -156,6 +159,9 @@ Rules:
 
 Conflict payload:
 {$conflictPayload}
+
+Semantic context payload:
+{$contextPayload}
 PROMPT;
     }
 

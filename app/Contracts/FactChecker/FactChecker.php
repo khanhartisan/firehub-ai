@@ -15,7 +15,8 @@ interface FactChecker
      * Resolve a conflict and return an array of facts
      *
      * @param Conflict $conflict
+     * @param SemanticContext|null $context
      * @return Fact[]
      */
-    public function resolveConflict(Conflict $conflict): array;
+    public function resolveConflict(Conflict $conflict, ?SemanticContext $context = null): array;
 }

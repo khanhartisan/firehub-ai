@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\FactChecker;
 use App\Contracts\CommonData\Conflict;
 use App\Contracts\CommonData\Fact;
 use App\Contracts\CommonData\Point;
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\FactChecker;
 use App\Services\FactChecker\Drivers\BasicFactCheckerDriver;
@@ -77,7 +78,7 @@ class FactCheckerManagerTest extends TestCase
             ])
             ->setRationale('Conflicting sources');
 
-        $resolvedFacts = $this->manager()->driver('basic')->resolveConflict($conflict);
+        $resolvedFacts = $this->manager()->driver('basic')->resolveConflict($conflict, new SemanticContext());
 
         $this->assertCount(2, $resolvedFacts);
         $this->assertSame('Claim A', $resolvedFacts[0]->getFact());

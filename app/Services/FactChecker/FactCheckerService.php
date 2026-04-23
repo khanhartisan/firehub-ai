@@ -23,5 +23,5 @@ abstract class FactCheckerService implements FactCheckerContract
     /**
      * @return Fact[]
      */
-    abstract public function resolveConflict(Conflict $conflict): array;
+    abstract public function resolveConflict(Conflict $conflict, ?SemanticContext $context = null): array;
 }

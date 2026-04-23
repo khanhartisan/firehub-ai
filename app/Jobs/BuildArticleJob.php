@@ -10,6 +10,7 @@ use App\Jobs\BuildArticleJobConcerns\HandleBriefStage;
 use App\Jobs\BuildArticleJobConcerns\HandleDraftStage;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStage;
 use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
+use App\Jobs\BuildArticleJobConcerns\HandleResearchStage;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSemanticContext;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSynthesizer;
@@ -52,6 +53,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     use InteractsWithSynthesizer;
     use HasManualLock;
     use HandleIdeaStage;
+    use HandleResearchStage;
     use HandleBriefStage;
     use HandleDraftStage;
     use HandleOutlineStage;
@@ -176,6 +178,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         return match ($article->stage) {
             ArticleStage::IDEA => $this->handleIdeaStage(),
+            ArticleStage::RESEARCH => $this->handleResearchStage(),
             ArticleStage::BRIEF => $this->handleBriefStage(),
             ArticleStage::OUTLINE => $this->handleOutlineStage(),
             ArticleStage::DRAFT => $this->handleDraftStage(),
@@ -186,7 +189,8 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     protected function getNextStage(ArticleStage $currentStage): ArticleStage
     {
         return match ($currentStage) {
-            ArticleStage::IDEA => ArticleStage::BRIEF,
+            ArticleStage::IDEA => ArticleStage::RESEARCH,
+            ArticleStage::RESEARCH => ArticleStage::BRIEF,
             ArticleStage::BRIEF => ArticleStage::OUTLINE,
             ArticleStage::OUTLINE => ArticleStage::DRAFT,
             ArticleStage::DRAFT, ArticleStage::FINAL => ArticleStage::FINAL,

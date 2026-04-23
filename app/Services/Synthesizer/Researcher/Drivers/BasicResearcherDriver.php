@@ -23,7 +23,8 @@ class BasicResearcherDriver extends ResearcherService
                     ->setHeadline($this->makeHeadline($segment))
                     ->setDescription($segment)
                     ->setEvidences($this->extractEvidenceCandidates($segment)),
-                relevance: $this->calculateRelevance($index, $segmentCount)
+                relevance: $this->calculateRelevance($index, $segmentCount),
+                rationale: $this->buildRationale($segment)
             );
         }
 
@@ -80,5 +81,12 @@ class BasicResearcherDriver extends ResearcherService
         $score = 1.0 - ($index * $step);
 
         return max(0.6, round($score, 2));
+    }
+
+    protected function buildRationale(string $segment): string
+    {
+        $snippet = mb_substr(trim($segment), 0, 180);
+
+        return "This segment contains direct evidence tied to the idea context: {$snippet}";
     }
 }

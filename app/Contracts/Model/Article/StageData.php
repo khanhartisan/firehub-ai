@@ -4,6 +4,7 @@ namespace App\Contracts\Model\Article;
 
 use App\Concerns\Serializable;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
+use App\Contracts\Model\Article\StageData\ResearchStageData;
 use App\Contracts\Synthesizer\Author\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
@@ -13,6 +14,7 @@ final class StageData implements \App\Contracts\Serializable
     use Serializable;
 
     protected ?IdeaStageData $idea = null;
+    protected ?ResearchStageData $research = null;
     protected ?Brief $brief = null;
     protected ?Outline $outline = null;
     protected ?Draft $draft = null;
@@ -35,6 +37,7 @@ final class StageData implements \App\Contracts\Serializable
     {
         return array_filter([
             'idea' => $this->idea?->toArray(),
+            'research' => $this->research?->toArray(),
             'brief' => $this->brief?->toArray(),
             'outline' => $this->outline?->toArray(),
             'draft' => $this->draft?->toArray(),
@@ -97,6 +100,18 @@ final class StageData implements \App\Contracts\Serializable
         return $this;
     }
 
+    public function getResearchStageData(): ResearchStageData
+    {
+        return $this->research ??= new ResearchStageData;
+    }
+
+    public function setResearchStageData(ResearchStageData $research): static
+    {
+        $this->research = $research;
+
+        return $this;
+    }
+
     public function getPickedIdea(): ?\App\Contracts\Synthesizer\IdeaForge\Idea
     {
         return $this->getIdeaStageData()->getPickedIdea();
@@ -109,6 +124,10 @@ final class StageData implements \App\Contracts\Serializable
     {
         if (isset($data['idea']) && is_array($data['idea'])) {
             $this->setIdeaStageData(IdeaStageData::fromArray($data['idea']));
+        }
+
+        if (isset($data['research']) && is_array($data['research'])) {
+            $this->setResearchStageData(ResearchStageData::fromArray($data['research']));
         }
 
         if (isset($data['brief']) && is_array($data['brief'])) {

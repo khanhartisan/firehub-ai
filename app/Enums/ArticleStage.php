@@ -5,8 +5,9 @@ namespace App\Enums;
 enum ArticleStage: int
 {
     case IDEA = 1;
-    case BRIEF = 2;
-    case OUTLINE = 3;
-    case DRAFT = 4;
-    case FINAL = 5;
+    case RESEARCH = 2;
+    case BRIEF = 3;
+    case OUTLINE = 4;
+    case DRAFT = 5;
+    case FINAL = 6;
 }

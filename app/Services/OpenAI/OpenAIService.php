@@ -57,7 +57,7 @@ class OpenAIService implements OpenAIClient
             if (env('APP_DEBUG')
                 and app()->runningInConsole()
             ) {
-                dump('-- Sending request to OpenAI (compatible) API: '.$this->baseUrl.'. Payload length: '.strlen(json_encode($payload)));
+                dump('-- Sending request to OpenAI (compatible) API: '.$this->baseUrl.' / Model: '.($options?->getModel() ?? $this->defaultModel).'. Payload length: '.strlen(json_encode($payload)));
             }
 
             $response = $this->client->post('responses', [

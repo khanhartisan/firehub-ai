@@ -72,6 +72,11 @@ class OpenAIResearcherDriver extends ResearcherService
                 }
             }
 
+            $rationale = isset($row['rationale']) ? trim((string) $row['rationale']) : null;
+            if ($rationale === '') {
+                $rationale = null;
+            }
+
             $relevance = isset($row['relevance']) ? max(0.0, min(1.0, (float) $row['relevance'])) : null;
 
             $ideaPoints[] = new IdeaPoint(
@@ -80,7 +85,8 @@ class OpenAIResearcherDriver extends ResearcherService
                     ->setHeadline($headline)
                     ->setDescription($description)
                     ->setEvidences($evidences),
-                $relevance
+                $relevance,
+                $rationale
             );
         }
 
@@ -107,13 +113,18 @@ class OpenAIResearcherDriver extends ResearcherService
         $ideaJson = json_encode($idea->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         return <<<PROMPT
-You are a research analyst for editorial planning. Extract concise, high-signal evidence-based points from the source content that support or challenge the provided idea.
+You are a research analyst for editorial planning. You will be provided an idea of the new article, and a source content that may contain related information for the article.
+ 
+Your job is to extract concise, high-signal evidence-based points from the source content that is related to the provided idea.
+
+You should not include the points that are not related, non-relevant to the provided idea.
 
 Each point should include:
 - headline: short and punchy
 - description: concise explanation
 - evidences: concrete facts/quotes/snippets from source content
-- relevance: 0..1 relevance to the idea
+- rationale: why this point is strategically relevant to the provided idea
+- relevance: 0..1 relevance to the idea, 0 is not relevant, 1 is extremely relevant.
 
 Idea JSON:
 {$ideaJson}
@@ -137,7 +148,7 @@ PROMPT;
             'properties' => $properties = [
                 'points' => [
                     'type' => 'array',
-                    'minItems' => 1,
+                    'minItems' => 0,
                     'maxItems' => $maxPoints,
                     'description' => 'Ranked list of extracted research points relevant to the provided idea. Most relevant items should come first.',
                     'items' => [
@@ -156,6 +167,10 @@ PROMPT;
                                 'items' => ['type' => 'string'],
                                 'description' => 'Concrete supporting evidence snippets (facts, figures, quotes, or observations) taken from the source content.',
                             ],
+                            'rationale' => [
+                                'type' => 'string',
+                                'description' => 'A short strategic explanation describing why this point supports the provided idea.',
+                            ],
                             'relevance' => [
                                 'type' => 'number',
                                 'minimum' => 0,
@@ -163,7 +178,7 @@ PROMPT;
                                 'description' => 'How strongly this point relates to the provided idea, where 0 is weakly related and 1 is highly relevant.',
                             ],
                         ],
-                        'required' => ['headline', 'description', 'evidences', 'relevance'],
+                        'required' => ['headline', 'description', 'evidences', 'rationale', 'relevance'],
                         'additionalProperties' => false,
                         'description' => 'One extracted point with its explanation, supporting evidences, and relevance score.',
                     ],

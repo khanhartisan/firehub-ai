@@ -23,7 +23,8 @@ class ResearcherDataObjectsTest extends TestCase
             ->setEvidences(['Survey reports 28% YoY growth']);
 
         $ideaPoints = new IdeaPoints($idea, [
-            new IdeaPoint($idea, $point, 0.94),
+            (new IdeaPoint($idea, $point, 0.94))
+                ->setRationale('Growth data aligns with the idea direction.'),
         ]);
 
         $payload = $ideaPoints->toArray();
@@ -33,6 +34,7 @@ class ResearcherDataObjectsTest extends TestCase
         $this->assertCount(1, $payload['idea_points']);
         $this->assertArrayNotHasKey('idea', $payload['idea_points'][0]);
         $this->assertSame(0.94, $payload['idea_points'][0]['relevance']);
+        $this->assertSame('Growth data aligns with the idea direction.', $payload['idea_points'][0]['rationale']);
         $this->assertSame('High demand from practitioners', $payload['idea_points'][0]['point']['headline']);
     }
 
@@ -48,6 +50,7 @@ class ResearcherDataObjectsTest extends TestCase
                         'description' => 'Teams increase spend for automation tools.',
                         'evidences' => ['Budget line items increased in annual reports'],
                     ],
+                    'rationale' => 'Budget growth indicates stronger investment confidence.',
                     'relevance' => 0.88,
                 ],
             ],
@@ -59,6 +62,7 @@ class ResearcherDataObjectsTest extends TestCase
         $this->assertCount(1, $restored->getIdeaPoints());
         $this->assertSame($idea->getIdentifier(), $restored->getIdeaPoints()[0]->getIdea()->getIdentifier());
         $this->assertSame(0.88, $restored->getIdeaPoints()[0]->getRelevance());
+        $this->assertSame('Budget growth indicates stronger investment confidence.', $restored->getIdeaPoints()[0]->getRationale());
         $this->assertSame('Growing budget allocation', $restored->getIdeaPoints()[0]->getPoint()->getHeadline());
     }
 

@@ -33,6 +33,7 @@ TEXT;
         $this->assertSame($idea, $rows[0]->getIdea());
         $this->assertNotNull($rows[0]->getPoint()->getHeadline());
         $this->assertNotEmpty($rows[0]->getPoint()->getEvidences());
+        $this->assertNotNull($rows[0]->getRationale());
         $this->assertGreaterThanOrEqual(0.6, (float) $rows[2]->getRelevance());
     }
 

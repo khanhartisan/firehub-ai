@@ -13,13 +13,22 @@ final class IdeaPoint implements Serializable
 
     protected Point $point;
 
+    /**
+     * The underlying logic or strategic reason
+     * why this point supports the idea.
+     *
+     * @var string|null
+     */
+    protected ?string $rationale = null;
+
     protected ?float $relevance = null;
 
-    public function __construct(Idea $idea, Point $point, ?float $relevance = null)
+    public function __construct(Idea $idea, Point $point, ?float $relevance = null, ?string $rationale = null)
     {
         $this->idea = $idea;
         $this->point = $point;
         $this->relevance = $relevance;
+        $this->rationale = $rationale;
     }
 
     public function getIdea(): Idea
@@ -58,11 +67,24 @@ final class IdeaPoint implements Serializable
         return $this;
     }
 
+    public function getRationale(): ?string
+    {
+        return $this->rationale;
+    }
+
+    public function setRationale(?string $rationale): static
+    {
+        $this->rationale = $rationale;
+
+        return $this;
+    }
+
     public function toArray(): array
     {
         return [
             'idea' => $this->getIdea()->toArray(),
             'point' => $this->getPoint()->toArray(),
+            'rationale' => $this->getRationale(),
             'relevance' => $this->getRelevance(),
         ];
     }
@@ -105,6 +127,10 @@ final class IdeaPoint implements Serializable
 
         if (array_key_exists('relevance', $data)) {
             $ideaPoint->setRelevance($data['relevance'] !== null ? (float) $data['relevance'] : null);
+        }
+
+        if (array_key_exists('rationale', $data)) {
+            $ideaPoint->setRationale($data['rationale'] !== null ? (string) $data['rationale'] : null);
         }
 
         return $ideaPoint;

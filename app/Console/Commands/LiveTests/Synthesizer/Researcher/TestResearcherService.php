@@ -190,6 +190,7 @@ TEXT;
             $this->newLine();
             $this->comment('Point '.($index + 1).': '.($item->getPoint()->getHeadline() ?? '(no headline)'));
             $this->line(Str::limit((string) ($item->getPoint()->getDescription() ?? ''), 800));
+            $this->line('Rationale: '.$item->getRationale());
 
             foreach ($item->getPoint()->getEvidences() as $i => $evidence) {
                 $this->line('- Evidence '.($i+1).': '.$evidence);

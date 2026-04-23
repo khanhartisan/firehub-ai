@@ -26,6 +26,7 @@ class OpenAIResearcherDriverTest extends TestCase
                         'Survey shows increased weekly usage.',
                         'Interviewed teams cite shorter iteration loops.',
                     ],
+                    'rationale' => 'These outcomes directly support the proposed adoption-focused idea angle.',
                     'relevance' => 0.91,
                 ],
             ],
@@ -59,6 +60,7 @@ class OpenAIResearcherDriverTest extends TestCase
         $this->assertCount(1, $result->getIdeaPoints());
         $this->assertSame($idea, $result->getIdeaPoints()[0]->getIdea());
         $this->assertSame('Adoption is accelerating', $result->getIdeaPoints()[0]->getPoint()->getHeadline());
+        $this->assertSame('These outcomes directly support the proposed adoption-focused idea angle.', $result->getIdeaPoints()[0]->getRationale());
         $this->assertSame(0.91, $result->getIdeaPoints()[0]->getRelevance());
     }
 

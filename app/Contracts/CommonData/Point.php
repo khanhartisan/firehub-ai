@@ -23,21 +23,7 @@ final class Point implements Serializable
      */
     protected array $evidences = [];
 
-    /**
-     * A score from 0.00 to 1.00 representing
-     * the semantic reliability of the data.
-     *
-     * @var float|null
-     */
-    protected ?float $confidence = null;
-
-    /**
-     * A definitive flag indicating whether
-     * this point has passed the final quality
-     *
-     * @var bool
-     */
-    protected bool $isVerified = false;
+    protected ?Verification $verification = null;
 
     public function getHeadline(): ?string
     {
@@ -81,26 +67,14 @@ final class Point implements Serializable
         return $this;
     }
 
-    public function getConfidence(): ?float
+    public function getVerification(): ?Verification
     {
-        return $this->confidence;
+        return $this->verification;
     }
 
-    public function setConfidence(?float $confidence): static
+    public function setVerification(?Verification $verification): static
     {
-        $this->confidence = $confidence;
-
-        return $this;
-    }
-
-    public function isVerified(): bool
-    {
-        return $this->isVerified;
-    }
-
-    public function setIsVerified(bool $isVerified): static
-    {
-        $this->isVerified = $isVerified;
+        $this->verification = $verification;
 
         return $this;
     }
@@ -111,8 +85,7 @@ final class Point implements Serializable
             'headline' => $this->getHeadline(),
             'description' => $this->getDescription(),
             'evidences' => $this->getEvidences(),
-            'confidence' => $this->getConfidence(),
-            'is_verified' => $this->isVerified(),
+            'verification' => $this->getVerification()?->toArray(),
         ];
     }
 
@@ -132,12 +105,14 @@ final class Point implements Serializable
             $point->setEvidences($data['evidences']);
         }
 
-        if (array_key_exists('confidence', $data)) {
-            $point->setConfidence($data['confidence'] !== null ? (float) $data['confidence'] : null);
-        }
-
-        if (array_key_exists('is_verified', $data)) {
-            $point->setIsVerified((bool) $data['is_verified']);
+        if (array_key_exists('verification', $data)) {
+            if ($data['verification'] instanceof Verification) {
+                $point->setVerification($data['verification']);
+            } elseif (is_array($data['verification'])) {
+                $point->setVerification(Verification::fromArray($data['verification']));
+            } elseif ($data['verification'] === null) {
+                $point->setVerification(null);
+            }
         }
 
         return $point;

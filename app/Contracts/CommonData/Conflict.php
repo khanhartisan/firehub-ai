@@ -6,7 +6,7 @@ use App\Contracts\CommonData\Concerns\HasFacts;
 use App\Contracts\CommonData\Concerns\HasRationale;
 use App\Contracts\Serializable;
 
-final class Conflict implements Serializable
+class Conflict implements Serializable
 {
     use \App\Concerns\Serializable;
     use HasRationale;

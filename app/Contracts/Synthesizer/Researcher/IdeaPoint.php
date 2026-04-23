@@ -6,13 +6,13 @@ use App\Contracts\CommonData\Concerns\HasRationale;
 use App\Contracts\CommonData\Point;
 use App\Contracts\Serializable;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\Concerns\HasIdea;
 
 class IdeaPoint implements Serializable
 {
+    use HasIdea;
     use HasRationale;
     use \App\Concerns\Serializable;
-
-    protected Idea $idea;
 
     protected Point $point;
 
@@ -20,22 +20,10 @@ class IdeaPoint implements Serializable
 
     public function __construct(Idea $idea, Point $point, ?float $relevance = null, ?string $rationale = null)
     {
-        $this->idea = $idea;
-        $this->point = $point;
-        $this->relevance = $relevance;
-        $this->rationale = $rationale;
-    }
-
-    public function getIdea(): Idea
-    {
-        return $this->idea;
-    }
-
-    public function setIdea(Idea $idea): static
-    {
-        $this->idea = $idea;
-
-        return $this;
+        $this->setIdea($idea);
+        $this->setPoint($point);
+        $this->setRelevance($relevance);
+        $this->setRationale($rationale);
     }
 
     public function getPoint(): Point

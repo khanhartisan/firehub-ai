@@ -68,9 +68,37 @@ class OpenAIFactCheckerDriver extends FactCheckerService
      */
     public function resolveConflict(Conflict $conflict): array
     {
-        return array_map(function (Fact $fact): Fact {
-            return $fact->setVerification($this->verify($fact));
-        }, $conflict->getFacts());
+        $prompt = $this->buildConflictResolutionPrompt($conflict);
+
+        $input = ResponseInput::text($prompt);
+        $options = ResponseOptions::create()
+            ->model($this->defaultModel)
+            ->temperature(0)
+            ->responseFormat([
+                'type' => 'json_schema',
+                'name' => 'fact_checker_conflict_resolution',
+                'schema' => $this->buildConflictResolutionJsonSchema(),
+                'strict' => true,
+            ]);
+
+        try {
+            $response = $this->openAIClient->createResponse($input, $options);
+        } catch (\Exception $e) {
+            throw new RuntimeException(
+                "Failed to resolve conflict with OpenAI: {$e->getMessage()}",
+                0,
+                $e
+            );
+        }
+
+        $this->checkForRefusal($response);
+
+        $responseText = $response->getFirstOutputText();
+        if ($responseText === null || $responseText === '') {
+            throw new RuntimeException('OpenAI returned empty conflict resolution response');
+        }
+
+        return $this->parseConflictResolutionResponse($responseText);
     }
 
     protected function buildVerificationPrompt(FactCheckable $factCheckable, ?SemanticContext $context = null): string
@@ -105,6 +133,32 @@ Semantic context payload:
 PROMPT;
     }
 
+    protected function buildConflictResolutionPrompt(Conflict $conflict): string
+    {
+        $conflictPayload = json_encode(
+            $conflict->toArray(),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ) ?: '{}';
+
+        return <<<PROMPT
+You are a factual conflict resolution assistant.
+
+Given a conflict payload with multiple candidate facts and rationale, return a normalized list of facts.
+
+Rules:
+- Return only facts that are supported by the provided conflict payload.
+- Merge duplicate claims that differ only by numeric figure (for example percentages) into a single resolved fact.
+- When duplicate claims conflict on a figure, choose the most defensible figure using the provided rationale/context and explain why in verification.reasoning.
+- Each fact must include:
+  - "fact": non-empty concise statement.
+  - "verification": object with "is_valid", "confidence" (0.00-1.00), and "reasoning" (1-3 sentences).
+- Do not invent external facts.
+
+Conflict payload:
+{$conflictPayload}
+PROMPT;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -131,6 +185,50 @@ PROMPT;
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildConflictResolutionJsonSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'facts' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'fact' => [
+                                'type' => 'string',
+                                'description' => 'Resolved fact statement',
+                            ],
+                            'verification' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'is_valid' => [
+                                        'type' => ['boolean', 'null'],
+                                    ],
+                                    'confidence' => [
+                                        'type' => ['number', 'null'],
+                                    ],
+                                    'reasoning' => [
+                                        'type' => ['string', 'null'],
+                                    ],
+                                ],
+                                'required' => ['is_valid', 'confidence', 'reasoning'],
+                                'additionalProperties' => false,
+                            ],
+                        ],
+                        'required' => ['fact', 'verification'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            'required' => ['facts'],
+            'additionalProperties' => false,
+        ];
+    }
+
     protected function parseVerificationResponse(string $responseText): Verification
     {
         $data = json_decode($responseText, true);
@@ -146,6 +244,29 @@ PROMPT;
         }
 
         return Verification::fromArray($data);
+    }
+
+    /**
+     * @return Fact[]
+     */
+    protected function parseConflictResolutionResponse(string $responseText): array
+    {
+        $data = json_decode($responseText, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException(
+                'Failed to parse conflict resolution response as JSON: '.json_last_error_msg()
+            );
+        }
+
+        if (! is_array($data) || ! isset($data['facts']) || ! is_array($data['facts'])) {
+            throw new RuntimeException('Conflict resolution response JSON did not contain a valid facts array');
+        }
+
+        return array_values(array_map(
+            static fn (array $factData): Fact => Fact::fromArray($factData),
+            $data['facts']
+        ));
     }
 
     protected function checkForRefusal($response): void

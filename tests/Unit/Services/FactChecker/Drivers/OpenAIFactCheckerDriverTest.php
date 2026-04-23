@@ -160,7 +160,7 @@ class OpenAIFactCheckerDriverTest extends TestCase
         $driver->verify((new Point)->setHeadline('Claim')->setEvidences(['Evidence']));
     }
 
-    public function test_it_resolves_conflict_by_verifying_each_fact(): void
+    public function test_it_resolves_conflict_via_openai_and_returns_facts(): void
     {
         $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
         $mockResponse = ResponseObject::fromArray([
@@ -173,9 +173,24 @@ class OpenAIFactCheckerDriverTest extends TestCase
                         [
                             'type' => 'output_text',
                             'text' => json_encode([
-                                'is_valid' => true,
-                                'confidence' => 0.85,
-                                'reasoning' => 'Supported by the available evidence.',
+                                'facts' => [
+                                    [
+                                        'fact' => 'Claim A',
+                                        'verification' => [
+                                            'is_valid' => true,
+                                            'confidence' => 0.85,
+                                            'reasoning' => 'Supported by source A.',
+                                        ],
+                                    ],
+                                    [
+                                        'fact' => 'Claim B',
+                                        'verification' => [
+                                            'is_valid' => false,
+                                            'confidence' => 0.32,
+                                            'reasoning' => 'Not sufficiently supported.',
+                                        ],
+                                    ],
+                                ],
                             ]),
                         ],
                     ],
@@ -184,7 +199,7 @@ class OpenAIFactCheckerDriverTest extends TestCase
         ]);
 
         $mockOpenAIClient->shouldReceive('createResponse')
-            ->twice()
+            ->once()
             ->andReturn($mockResponse);
 
         $driver = new OpenAIFactCheckerDriver($mockOpenAIClient);
@@ -198,9 +213,11 @@ class OpenAIFactCheckerDriverTest extends TestCase
         $resolvedFacts = $driver->resolveConflict($conflict);
 
         $this->assertCount(2, $resolvedFacts);
+        $this->assertSame('Claim A', $resolvedFacts[0]->getFact());
         $this->assertNotNull($resolvedFacts[0]->getVerification());
         $this->assertTrue($resolvedFacts[0]->getVerification()->getIsValid());
         $this->assertSame(0.85, $resolvedFacts[0]->getVerification()->getConfidence());
-        $this->assertNotNull($resolvedFacts[1]->getVerification());
+        $this->assertSame('Claim B', $resolvedFacts[1]->getFact());
+        $this->assertFalse($resolvedFacts[1]->getVerification()->getIsValid());
     }
 }

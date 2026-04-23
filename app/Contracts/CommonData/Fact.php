@@ -47,18 +47,7 @@ final class Fact implements FactCheckable, Serializable
             throw new \InvalidArgumentException('Fact requires a string "fact".');
         }
 
-        $fact = new static($data['fact']);
-
-        if (array_key_exists('verification', $data)) {
-            if ($data['verification'] instanceof Verification) {
-                $fact->setVerification($data['verification']);
-            } elseif (is_array($data['verification'])) {
-                $fact->setVerification(Verification::fromArray($data['verification']));
-            } elseif ($data['verification'] === null) {
-                $fact->setVerification(null);
-            }
-        }
-
-        return $fact;
+        return new static($data['fact'])
+            ->hydrateVerification($data);
     }
 }

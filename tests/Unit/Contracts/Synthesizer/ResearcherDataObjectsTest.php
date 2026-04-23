@@ -5,6 +5,7 @@ namespace Tests\Unit\Contracts\Synthesizer;
 use App\Contracts\CommonData\Point;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\ConsolidatedIdeaPoint;
 use App\Contracts\Synthesizer\Researcher\IdeaPoint;
 use App\Contracts\Synthesizer\Researcher\IdeaPoints;
 use App\Enums\IntentType;
@@ -64,6 +65,40 @@ class ResearcherDataObjectsTest extends TestCase
         $this->assertSame(0.88, $restored->getIdeaPoints()[0]->getRelevance());
         $this->assertSame('Budget growth indicates stronger investment confidence.', $restored->getIdeaPoints()[0]->getRationale());
         $this->assertSame('Growing budget allocation', $restored->getIdeaPoints()[0]->getPoint()->getHeadline());
+    }
+
+    public function test_consolidated_idea_point_hydrates_and_serializes_conflicts(): void
+    {
+        $idea = new Idea($this->makeIntent(), 0.6, 'Consolidated insight');
+        $payload = [
+            'idea' => $idea->toArray(),
+            'point' => [
+                'headline' => 'Headline',
+                'description' => 'Description',
+                'evidences' => ['Evidence'],
+            ],
+            'relevance' => 0.77,
+            'rationale' => 'Consolidated rationale',
+            'conflicts' => [
+                [
+                    'facts' => [
+                        ['fact' => 'Claim A'],
+                        ['fact' => 'Claim B'],
+                    ],
+                    'rationale' => 'Claims disagree on totals.',
+                ],
+            ],
+        ];
+
+        $consolidated = ConsolidatedIdeaPoint::fromArray($payload);
+
+        $this->assertCount(1, $consolidated->getConflicts());
+        $this->assertSame('Claim A', $consolidated->getConflicts()[0]->getFacts()[0]->getFact());
+        $this->assertSame('Claims disagree on totals.', $consolidated->getConflicts()[0]->getRationale());
+
+        $serialized = $consolidated->toArray();
+        $this->assertArrayHasKey('conflicts', $serialized);
+        $this->assertSame('Claim B', $serialized['conflicts'][0]['facts'][1]['fact']);
     }
 
     protected function makeIntent(): Intent

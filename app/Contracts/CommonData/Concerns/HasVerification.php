@@ -19,4 +19,19 @@ trait HasVerification
 
         return $this;
     }
+
+    public function hydrateVerification(array $data): static
+    {
+        if (array_key_exists('verification', $data)) {
+            if ($data['verification'] instanceof Verification) {
+                $this->setVerification($data['verification']);
+            } elseif (is_array($data['verification'])) {
+                $this->setVerification(Verification::fromArray($data['verification']));
+            } elseif ($data['verification'] === null) {
+                $this->setVerification(null);
+            }
+        }
+
+        return $this;
+    }
 }

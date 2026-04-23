@@ -112,10 +112,6 @@ class IdeaPoint implements Serializable
             $ideaPoint->setRelevance($data['relevance'] !== null ? (float) $data['relevance'] : null);
         }
 
-        if (array_key_exists('rationale', $data)) {
-            $ideaPoint->setRationale($data['rationale'] !== null ? (string) $data['rationale'] : null);
-        }
-
-        return $ideaPoint;
+        return $ideaPoint->hydrateRationale($data);
     }
 }

@@ -22,4 +22,13 @@ trait HasRationale
 
         return $this;
     }
+
+    public function hydrateRationale(array $data): static
+    {
+        if (array_key_exists('rationale', $data)) {
+            $this->setRationale($data['rationale'] !== null ? (string) $data['rationale'] : null);
+        }
+
+        return $this;
+    }
 }

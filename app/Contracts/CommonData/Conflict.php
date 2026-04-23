@@ -22,18 +22,8 @@ final class Conflict implements Serializable
 
     public static function fromArray(array $data): static
     {
-        $conflict = new static;
-
-        if (isset($data['facts']) && is_array($data['facts'])) {
-            foreach ($data['facts'] as $factData) {
-                $conflict->addFact(Fact::fromArray($factData));
-            }
-        }
-
-        if (array_key_exists('rationale', $data)) {
-            $conflict->setRationale($data['rationale'] !== null ? (string) $data['rationale'] : null);
-        }
-
-        return $conflict;
+        return (new static)
+            ->hydrateFacts($data)
+            ->hydrateRationale($data);
     }
 }

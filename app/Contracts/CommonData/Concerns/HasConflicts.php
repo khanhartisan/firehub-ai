@@ -30,4 +30,16 @@ trait HasConflicts
         }
         return $this;
     }
+
+    public function hydrateConflicts(array $data): static
+    {
+        if (isset($data['conflicts']) && is_array($data['conflicts'])) {
+            $this->setConflicts(array_values(array_map(
+                static fn (Conflict|array $conflict): Conflict => $conflict instanceof Conflict ? $conflict : Conflict::fromArray($conflict),
+                $data['conflicts']
+            )));
+        }
+
+        return $this;
+    }
 }

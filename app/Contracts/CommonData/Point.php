@@ -116,16 +116,6 @@ final class Point implements FactCheckable, Serializable
             $point->setEvidences($data['evidences']);
         }
 
-        if (array_key_exists('verification', $data)) {
-            if ($data['verification'] instanceof Verification) {
-                $point->setVerification($data['verification']);
-            } elseif (is_array($data['verification'])) {
-                $point->setVerification(Verification::fromArray($data['verification']));
-            } elseif ($data['verification'] === null) {
-                $point->setVerification(null);
-            }
-        }
-
-        return $point;
+        return $point->hydrateVerification($data);
     }
 }

@@ -30,4 +30,16 @@ trait HasFacts
         }
         return $this;
     }
+
+    public function hydrateFacts(array $data): static
+    {
+        if (isset($data['facts']) && is_array($data['facts'])) {
+            $this->setFacts(array_values(array_map(
+                static fn (Fact|array $fact): Fact => $fact instanceof Fact ? $fact : Fact::fromArray($fact),
+                $data['facts']
+            )));
+        }
+
+        return $this;
+    }
 }

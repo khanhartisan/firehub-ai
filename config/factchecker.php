@@ -29,6 +29,10 @@ return [
             'min_confidence' => (float) env('FACTCHECKER_BASIC_MIN_CONFIDENCE', 0.6),
         ],
 
+        'openai' => [
+            'model' => env('FACTCHECKER_OPENAI_MODEL', 'gpt-4o-mini'),
+        ],
+
     ],
 
 ];

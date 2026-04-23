@@ -19,7 +19,7 @@ class TestResearcherService extends Command
 {
     protected $signature = 'live-test:synthesizer:test-researcher-service';
 
-    protected $description = 'Run a Researcher in isolation (extractPoints) or load the researcher from a synthesizer driver.';
+    protected $description = 'Run a Researcher in isolation (extractIdeaPoints) or load the researcher from a synthesizer driver.';
 
     public function handle(): int
     {
@@ -44,7 +44,7 @@ class TestResearcherService extends Command
         $this->line('-----');
 
         try {
-            $points = $this->timedCall('extractPoints', fn () => $researcher->extractPoints($idea, $content));
+            $points = $this->timedCall('extractIdeaPoints', fn () => $researcher->extractIdeaPoints($idea, $content));
             $this->displayIdeaPoints($points->getIdeaPoints());
 
             return self::SUCCESS;

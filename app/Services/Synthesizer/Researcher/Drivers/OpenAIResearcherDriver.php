@@ -29,7 +29,7 @@ class OpenAIResearcherDriver extends ResearcherService
         $this->config = array_merge(config('synthesizer.openai_researcher', []), $config);
     }
 
-    public function extractPoints(Idea $idea, string $content): IdeaPoints
+    public function extractIdeaPoints(Idea $idea, string $content): IdeaPoints
     {
         $content = trim($content);
         if ($content === '') {

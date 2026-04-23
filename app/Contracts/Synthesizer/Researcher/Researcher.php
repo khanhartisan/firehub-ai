@@ -13,5 +13,5 @@ interface Researcher
      * @param string $content
      * @return IdeaPoints
      */
-    public function extractPoints(Idea $idea, string $content): IdeaPoints;
+    public function extractIdeaPoints(Idea $idea, string $content): IdeaPoints;
 }

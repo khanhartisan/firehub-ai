@@ -10,7 +10,7 @@ use App\Services\Synthesizer\Researcher\ResearcherService;
 
 class BasicResearcherDriver extends ResearcherService
 {
-    public function extractPoints(Idea $idea, string $content): IdeaPoints
+    public function extractIdeaPoints(Idea $idea, string $content): IdeaPoints
     {
         $segments = $this->splitContentIntoSegments($content);
         $ideaPoints = [];

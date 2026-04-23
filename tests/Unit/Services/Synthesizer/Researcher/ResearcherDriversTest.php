@@ -25,7 +25,7 @@ Costs remain a concern for scale deployments. Leaders are introducing usage caps
 Security review now appears earlier in procurement checklists. Buyers ask for clearer data handling and retention controls before rollout.
 TEXT;
 
-        $result = $driver->extractPoints($idea, $content);
+        $result = $driver->extractIdeaPoints($idea, $content);
         $rows = $result->getIdeaPoints();
 
         $this->assertSame($idea, $result->getIdea());
@@ -42,7 +42,7 @@ TEXT;
         $driver = new BasicResearcherDriver;
         $idea = new Idea($this->makeIntent(), 0.61, 'Test');
 
-        $result = $driver->extractPoints($idea, " \n\t ");
+        $result = $driver->extractIdeaPoints($idea, " \n\t ");
 
         $this->assertSame($idea, $result->getIdea());
         $this->assertSame([], $result->getIdeaPoints());

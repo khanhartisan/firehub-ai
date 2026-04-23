@@ -55,7 +55,7 @@ class OpenAIResearcherDriverTest extends TestCase
 
         $driver = new OpenAIResearcherDriver($client, ['model' => 'gpt-4o-mini']);
         $idea = new Idea($this->makeIntent(), 0.7, 'fit');
-        $result = $driver->extractPoints($idea, 'Source text');
+        $result = $driver->extractIdeaPoints($idea, 'Source text');
 
         $this->assertCount(1, $result->getIdeaPoints());
         $this->assertSame($idea, $result->getIdeaPoints()[0]->getIdea());
@@ -71,7 +71,7 @@ class OpenAIResearcherDriverTest extends TestCase
 
         $driver = new OpenAIResearcherDriver($client, []);
         $idea = new Idea($this->makeIntent(), 0.7, 'fit');
-        $result = $driver->extractPoints($idea, " \n\t ");
+        $result = $driver->extractIdeaPoints($idea, " \n\t ");
 
         $this->assertSame([], $result->getIdeaPoints());
     }

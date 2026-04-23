@@ -185,7 +185,7 @@ trait HandleResearchStage
 
             $researcher = $this->synthesizer()->getResearcher();
             try {
-                $ideaPoints = $researcher->extractPoints($pickedIdea, $content);
+                $ideaPoints = $researcher->extractIdeaPoints($pickedIdea, $content);
             } catch (\Throwable) {
                 continue;
             }

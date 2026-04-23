@@ -138,7 +138,7 @@ class SynthesizerServiceTest extends TestCase
     {
         return new class implements Researcher
         {
-            public function extractPoints(Idea $idea, string $content): IdeaPoints
+            public function extractIdeaPoints(Idea $idea, string $content): IdeaPoints
             {
                 return new IdeaPoints($idea);
             }

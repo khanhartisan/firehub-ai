@@ -1,0 +1,34 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default FactChecker Driver
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default FactChecker driver that will be used
+    | whenever no explicit driver is selected.
+    |
+    */
+
+    'default' => env('FACTCHECKER_DRIVER', 'basic'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | FactChecker Drivers
+    |--------------------------------------------------------------------------
+    |
+    | Configure each available fact-checking driver here.
+    |
+    */
+
+    'drivers' => [
+
+        'basic' => [
+            'min_confidence' => (float) env('FACTCHECKER_BASIC_MIN_CONFIDENCE', 0.6),
+        ],
+
+    ],
+
+];

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\FileVision\FileVision;
+use App\Contracts\FactChecker\FactChecker as FactCheckerContract;
 use App\Contracts\IntentResolver\IntentResolver;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\PageClassifier\Classifier;
@@ -37,6 +38,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Models\Vertical;
 use App\Services\FileVision\FileVisionManager;
+use App\Services\FactChecker\FactCheckerManager;
 use App\Services\IntentResolver\IntentResolverManager;
 use App\Services\OpenAI\OpenAIManager;
 use App\Services\PageClassifier\PageClassifierManager;
@@ -63,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('openai.manager', OpenAIManager::class);
         $this->app->singleton('scraper.manager', ScraperManager::class);
         $this->app->singleton('filevision.manager', FileVisionManager::class);
+        $this->app->singleton('factchecker.manager', FactCheckerManager::class);
         $this->app->singleton('page_classifier.manager', PageClassifierManager::class);
         $this->app->singleton('page_parser.manager', PageParserManager::class);
         $this->app->singleton('scrape_policy_engine.manager', ScrapePolicyEngineManager::class);
@@ -77,6 +80,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(OpenAIClient::class, fn ($app) => $app['openai.manager']->driver());
         $this->app->singleton(Scraper::class, fn ($app) => $app['scraper.manager']->driver());
         $this->app->singleton(FileVision::class, fn ($app) => $app['filevision.manager']->driver());
+        $this->app->singleton(FactCheckerContract::class, fn ($app) => $app['factchecker.manager']->driver());
         $this->app->singleton(Classifier::class, fn ($app) => $app['page_classifier.manager']->driver());
         $this->app->singleton(Parser::class, fn ($app) => $app['page_parser.manager']->driver());
         $this->app->singleton(ScrapePolicyEngine::class, fn ($app) => $app['scrape_policy_engine.manager']->driver());

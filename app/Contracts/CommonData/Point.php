@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Synthesizer\Researcher;
+namespace App\Contracts\CommonData;
 
 use App\Contracts\Serializable;
 

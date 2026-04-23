@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Contracts\Synthesizer;
 
+use App\Contracts\CommonData\Point;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\Researcher\IdeaPoint;
 use App\Contracts\Synthesizer\Researcher\IdeaPoints;
-use App\Contracts\Synthesizer\Researcher\Point;
 use App\Enums\IntentType;
 use App\Enums\Language;
 use App\Enums\Temporal;

@@ -2,10 +2,10 @@
 
 namespace App\Services\Synthesizer\Researcher\Drivers;
 
+use App\Contracts\CommonData\Point;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\Researcher\IdeaPoint;
 use App\Contracts\Synthesizer\Researcher\IdeaPoints;
-use App\Contracts\Synthesizer\Researcher\Point;
 use App\Services\Synthesizer\Researcher\ResearcherService;
 
 class BasicResearcherDriver extends ResearcherService

@@ -3,12 +3,12 @@
 namespace Tests\Unit\Contracts\Model\Article;
 
 use App\Contracts\CommonData\Keyword as KeywordData;
+use App\Contracts\CommonData\Point;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\Researcher\IdeaPoint;
 use App\Contracts\Synthesizer\Researcher\IdeaPoints;
-use App\Contracts\Synthesizer\Researcher\Point;
 use App\Enums\IntentType;
 use App\Enums\Language;
 use App\Enums\Temporal;

@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Synthesizer\Researcher;
 
+use App\Contracts\CommonData\Point;
 use App\Contracts\Serializable;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 

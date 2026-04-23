@@ -54,7 +54,7 @@ class FactCheckerManagerTest extends TestCase
     {
         Config::set('factchecker.drivers.basic.min_confidence', 0.6);
 
-        $verification = $this->manager()->driver('basic')->verifyPoint(
+        $verification = $this->manager()->driver('basic')->verify(
             (new Point)
                 ->setHeadline('A test claim')
                 ->setDescription('Claim details')

@@ -2,9 +2,9 @@
 
 namespace App\Services\FactChecker;
 
-use App\Contracts\CommonData\Point;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\CommonData\Verification;
+use App\Contracts\FactChecker\FactCheckable;
 use App\Contracts\FactChecker\FactChecker as FactCheckerContract;
 
 abstract class FactCheckerService implements FactCheckerContract
@@ -16,5 +16,5 @@ abstract class FactCheckerService implements FactCheckerContract
         $this->config = $config;
     }
 
-    abstract public function verifyPoint(Point $point, ?SemanticContext $context = null): Verification;
+    abstract public function verify(FactCheckable $factCheckable, ?SemanticContext $context = null): Verification;
 }

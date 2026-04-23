@@ -54,7 +54,7 @@ class OpenAIFactCheckerDriverTest extends TestCase
             ->setDescription('Claim details')
             ->setEvidences(['Evidence 1', 'Evidence 2']);
 
-        $result = $driver->verifyPoint($point);
+        $result = $driver->verify($point);
 
         $this->assertInstanceOf(Verification::class, $result);
         $this->assertTrue($result->getIsValid());
@@ -101,7 +101,7 @@ class OpenAIFactCheckerDriverTest extends TestCase
             ->setHeadline('Claim headline')
             ->setEvidences(['Evidence 1']);
 
-        $result = $driver->verifyPoint($point, new SemanticContext());
+        $result = $driver->verify($point, new SemanticContext());
 
         $this->assertFalse($result->getIsValid());
     }
@@ -124,7 +124,7 @@ class OpenAIFactCheckerDriverTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('OpenAI returned empty fact-check response');
 
-        $driver->verifyPoint((new Point)->setHeadline('Claim')->setEvidences(['Evidence']));
+        $driver->verify((new Point)->setHeadline('Claim')->setEvidences(['Evidence']));
     }
 
     public function test_it_throws_exception_when_response_contains_refusal(): void
@@ -155,6 +155,6 @@ class OpenAIFactCheckerDriverTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('OpenAI refused the fact-check request');
 
-        $driver->verifyPoint((new Point)->setHeadline('Claim')->setEvidences(['Evidence']));
+        $driver->verify((new Point)->setHeadline('Claim')->setEvidences(['Evidence']));
     }
 }

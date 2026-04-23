@@ -2,10 +2,13 @@
 
 namespace App\Contracts\CommonData;
 
+use App\Contracts\CommonData\Concerns\HasVerification;
+use App\Contracts\FactChecker\FactCheckable;
 use App\Contracts\Serializable;
 
-final class Point implements Serializable
+final class Point implements FactCheckable, Serializable
 {
+    use HasVerification;
     use \App\Concerns\Serializable;
 
     /**
@@ -23,7 +26,27 @@ final class Point implements Serializable
      */
     protected array $evidences = [];
 
-    protected ?Verification $verification = null;
+    public function getFactClaim(): string
+    {
+        $factClaim = '';
+
+        if ($headline = $this->getHeadline()) {
+            $factClaim .= $headline."\n";
+        }
+
+        if ($description = $this->getDescription()) {
+            $factClaim .= $description."\n";
+        }
+
+        if ($evidences = $this->getEvidences()) {
+            $factClaim .= "\nEvidences:\n";
+            foreach ($evidences as $evidence) {
+                $factClaim .= '- '.$evidence."\n";
+            }
+        }
+
+        return $factClaim;
+    }
 
     public function getHeadline(): ?string
     {
@@ -63,18 +86,6 @@ final class Point implements Serializable
     public function setEvidences(array $evidences): static
     {
         $this->evidences = array_values(array_map(static fn ($evidence) => (string) $evidence, $evidences));
-
-        return $this;
-    }
-
-    public function getVerification(): ?Verification
-    {
-        return $this->verification;
-    }
-
-    public function setVerification(?Verification $verification): static
-    {
-        $this->verification = $verification;
 
         return $this;
     }

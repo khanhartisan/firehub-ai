@@ -5,21 +5,27 @@ namespace App\Services\FactChecker\Drivers;
 use App\Contracts\CommonData\Point;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\CommonData\Verification;
+use App\Contracts\FactChecker\FactCheckable;
 use App\Services\FactChecker\FactCheckerService;
 
 class BasicFactCheckerDriver extends FactCheckerService
 {
-    public function verifyPoint(Point $point, ?SemanticContext $context = null): Verification
+    public function verify(FactCheckable $factCheckable, ?SemanticContext $context = null): Verification
     {
-        $headline = trim((string) $point->getHeadline());
-        $description = trim((string) $point->getDescription());
-        $evidences = array_values(array_filter(
-            $point->getEvidences(),
-            static fn (string $evidence): bool => trim($evidence) !== ''
-        ));
-
-        $hasClaim = $headline !== '' || $description !== '';
-        $evidenceCount = count($evidences);
+        $factClaim = trim($factCheckable->getFactClaim());
+        $hasClaim = $factClaim !== '';
+        $evidenceCount = 0;
+        $headline = '';
+        $description = '';
+        if ($factCheckable instanceof Point) {
+            $headline = trim((string) $factCheckable->getHeadline());
+            $description = trim((string) $factCheckable->getDescription());
+            $evidenceCount = count(array_values(array_filter(
+                $factCheckable->getEvidences(),
+                static fn (string $evidence): bool => trim($evidence) !== ''
+            )));
+            $hasClaim = $hasClaim || $headline !== '' || $description !== '';
+        }
 
         $score = 0.2;
         if ($headline !== '') {

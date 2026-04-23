@@ -43,13 +43,13 @@ class TestFactCheckerService extends Command
         $point = $this->buildPointFromInput();
         $context = $this->buildContextFromInput();
 
-        $this->info('Calling FactChecker::verifyPoint() / Driver: '.$driver);
+        $this->info('Calling FactChecker::verify() / Driver: '.$driver);
         $this->line('-----');
 
         $start = microtime(true);
 
         try {
-            $verification = FactChecker::driver($driver)->verifyPoint($point, $context);
+            $verification = FactChecker::driver($driver)->verify($point, $context);
         } catch (Throwable $e) {
             $this->error($e->getMessage());
             if ($this->output->isVerbose()) {

@@ -2,12 +2,13 @@
 
 namespace App\Services\FactChecker\Drivers;
 
-use App\Contracts\CommonData\Point;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\CommonData\Verification;
+use App\Contracts\FactChecker\FactCheckable;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
+use App\Contracts\Serializable;
 use App\Services\FactChecker\FactCheckerService;
 use RuntimeException;
 
@@ -25,9 +26,9 @@ class OpenAIFactCheckerDriver extends FactCheckerService
         $this->defaultModel = $config['model'] ?? 'gpt-4o-mini';
     }
 
-    public function verifyPoint(Point $point, ?SemanticContext $context = null): Verification
+    public function verify(FactCheckable $factCheckable, ?SemanticContext $context = null): Verification
     {
-        $prompt = $this->buildVerificationPrompt($point, $context);
+        $prompt = $this->buildVerificationPrompt($factCheckable, $context);
 
         $input = ResponseInput::text($prompt);
         $options = ResponseOptions::create()
@@ -60,9 +61,12 @@ class OpenAIFactCheckerDriver extends FactCheckerService
         return $this->parseVerificationResponse($responseText);
     }
 
-    protected function buildVerificationPrompt(Point $point, ?SemanticContext $context = null): string
+    protected function buildVerificationPrompt(FactCheckable $factCheckable, ?SemanticContext $context = null): string
     {
-        $pointPayload = json_encode($point->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+        $factPayload = $factCheckable instanceof Serializable
+            ? (json_encode($factCheckable->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}')
+            : 'null';
+        $factClaim = $factCheckable->getFactClaim();
         $contextPayload = $context
             ? (json_encode($context->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}')
             : 'null';
@@ -70,7 +74,7 @@ class OpenAIFactCheckerDriver extends FactCheckerService
         return <<<PROMPT
 You are a factual verification assistant.
 
-Assess whether the provided point is supported by its evidence and optional semantic context.
+Assess whether the provided fact claim is supported by its evidence/details and optional semantic context.
 
 Rules:
 - "is_valid" should be true only when the claim is sufficiently supported by the evidences.
@@ -78,8 +82,11 @@ Rules:
 - "reasoning" should be concise and specific (1-3 sentences).
 - Do not invent external facts. Base your judgment on the provided payload only.
 
-Point payload:
-{$pointPayload}
+Fact claim:
+{$factClaim}
+
+Fact payload:
+{$factPayload}
 
 Semantic context payload:
 {$contextPayload}

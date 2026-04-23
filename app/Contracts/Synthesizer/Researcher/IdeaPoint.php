@@ -2,25 +2,19 @@
 
 namespace App\Contracts\Synthesizer\Researcher;
 
+use App\Contracts\CommonData\Concerns\HasRationale;
 use App\Contracts\CommonData\Point;
 use App\Contracts\Serializable;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 
-final class IdeaPoint implements Serializable
+class IdeaPoint implements Serializable
 {
+    use HasRationale;
     use \App\Concerns\Serializable;
 
     protected Idea $idea;
 
     protected Point $point;
-
-    /**
-     * The underlying logic or strategic reason
-     * why this point supports the idea.
-     *
-     * @var string|null
-     */
-    protected ?string $rationale = null;
 
     protected ?float $relevance = null;
 
@@ -64,18 +58,6 @@ final class IdeaPoint implements Serializable
     public function setRelevance(?float $relevance): static
     {
         $this->relevance = round($relevance, 2);
-
-        return $this;
-    }
-
-    public function getRationale(): ?string
-    {
-        return $this->rationale;
-    }
-
-    public function setRationale(?string $rationale): static
-    {
-        $this->rationale = $rationale;
 
         return $this;
     }

@@ -5,7 +5,7 @@ namespace App\Contracts\Synthesizer\Researcher;
 use App\Contracts\Serializable;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 
-final class IdeaPoints implements Serializable
+class IdeaPoints implements Serializable
 {
     use \App\Concerns\Serializable;
 

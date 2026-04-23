@@ -66,7 +66,7 @@ final class FileInformation implements Describable, Serializable
 
     public function setConfidence(float $confidence): static
     {
-        $this->confidence = $confidence;
+        $this->confidence = round($confidence, 2);
         return $this;
     }
 

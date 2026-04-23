@@ -79,7 +79,7 @@ final class Audience implements Serializable
             throw new \InvalidArgumentException('priorityWeight must be between 0 and 1.');
         }
 
-        $this->priorityWeight = $priorityWeight;
+        $this->priorityWeight = round($priorityWeight, 2);
 
         return $this;
     }

@@ -63,7 +63,7 @@ final class IdeaPoint implements Serializable
 
     public function setRelevance(?float $relevance): static
     {
-        $this->relevance = $relevance;
+        $this->relevance = round($relevance, 2);
 
         return $this;
     }

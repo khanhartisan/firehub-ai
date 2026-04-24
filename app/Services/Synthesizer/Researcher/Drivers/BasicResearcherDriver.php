@@ -2,7 +2,9 @@
 
 namespace App\Services\Synthesizer\Researcher\Drivers;
 
+use App\Contracts\CommonData\Fact;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
 use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Services\Synthesizer\Researcher\ResearcherService;
@@ -31,6 +33,48 @@ class BasicResearcherDriver extends ResearcherService
     {
         return (new ConsolidationResult)
             ->setPoints($points);
+    }
+
+    public function resolveIdeaConflictedPoints(
+        Idea $idea,
+        ConflictedPoints $conflictedPoints,
+        array $facts
+    ): RelevantPoint {
+        $fallbackPoint = $conflictedPoints->getPoints()[0] ?? new RelevantPoint;
+
+        $evidences = [];
+        foreach ($facts as $fact) {
+            if ($fact instanceof Fact) {
+                $evidences[] = $fact->getFact();
+                continue;
+            }
+
+            if (is_array($fact) && isset($fact['fact']) && is_string($fact['fact'])) {
+                $line = trim($fact['fact']);
+                if ($line !== '') {
+                    $evidences[] = $line;
+                }
+                continue;
+            }
+
+            if (is_string($fact)) {
+                $line = trim($fact);
+                if ($line !== '') {
+                    $evidences[] = $line;
+                }
+            }
+        }
+
+        if ($evidences === []) {
+            $evidences = $fallbackPoint->getEvidences();
+        }
+
+        return (new RelevantPoint)
+            ->setHeadline($fallbackPoint->getHeadline())
+            ->setDescription($fallbackPoint->getDescription())
+            ->setEvidences($evidences)
+            ->setRelevance($fallbackPoint->getRelevance())
+            ->setRationale('Resolved from conflicted points using provided verified facts.');
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Tests\Unit\Services\Synthesizer\Researcher;
 
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
 use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
@@ -74,6 +75,30 @@ TEXT;
         $this->assertSame('Point A', $result->getPoints()[0]->getHeadline());
         $this->assertSame('Point B', $result->getPoints()[1]->getHeadline());
         $this->assertSame([], $result->getConflicts());
+    }
+
+    public function test_basic_researcher_resolve_conflicted_points_uses_provided_facts(): void
+    {
+        $driver = new BasicResearcherDriver;
+        $idea = new Idea($this->makeIntent(), 0.8, 'Resolve conflict test');
+        $conflictedPoints = (new ConflictedPoints)
+            ->setRationale('Claims conflict on growth rate.')
+            ->setPoints([
+                (new RelevantPoint)
+                    ->setHeadline('Growth is 20%')
+                    ->setDescription('Source A indicates 20% growth.')
+                    ->setEvidences(['Source A'])
+                    ->setRationale('Based on Source A')
+                    ->setRelevance(0.7),
+            ]);
+
+        $resolved = $driver->resolveIdeaConflictedPoints($idea, $conflictedPoints, [
+            ['fact' => 'Verified growth is 12% YoY.'],
+        ]);
+
+        $this->assertInstanceOf(RelevantPoint::class, $resolved);
+        $this->assertSame(['Verified growth is 12% YoY.'], $resolved->getEvidences());
+        $this->assertSame('Resolved from conflicted points using provided verified facts.', $resolved->getRationale());
     }
 
     protected function makeIntent(): Intent

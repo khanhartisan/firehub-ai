@@ -159,6 +159,63 @@ class OpenAIResearcherDriverTest extends TestCase
         $this->assertCount(2, $result->getConflicts()[0]->getPoints());
     }
 
+    public function test_resolve_conflicted_points_uses_openai_and_maps_result(): void
+    {
+        $payload = json_encode([
+            'point' => [
+                'headline' => 'Verified ROI is 1.3x',
+                'description' => 'Reconciled estimate after fact verification.',
+                'evidences' => ['Verified benchmark dataset'],
+                'rationale' => 'Prioritize independently verified source.',
+                'relevance' => 0.82,
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_research_resolve_1',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $driver = new OpenAIResearcherDriver($client, ['model' => 'gpt-4o-mini']);
+        $idea = new Idea($this->makeIntent(), 0.7, 'fit');
+        $conflicted = (new ConflictedPoints)
+            ->setRationale('Sources disagree on ROI.')
+            ->setPoints([
+                (new RelevantPoint)
+                    ->setHeadline('ROI is 2x')
+                    ->setDescription('Vendor survey estimate.')
+                    ->setEvidences(['Vendor survey'])
+                    ->setRationale('Vendor benchmark')
+                    ->setRelevance(0.7),
+                (new RelevantPoint)
+                    ->setHeadline('ROI is 1.2x')
+                    ->setDescription('Independent benchmark estimate.')
+                    ->setEvidences(['Independent report'])
+                    ->setRationale('Independent benchmark')
+                    ->setRelevance(0.68),
+            ]);
+
+        $result = $driver->resolveIdeaConflictedPoints($idea, $conflicted, [
+            ['fact' => 'Verified benchmark dataset'],
+        ]);
+
+        $this->assertInstanceOf(RelevantPoint::class, $result);
+        $this->assertSame('Verified ROI is 1.3x', $result->getHeadline());
+        $this->assertSame(['Verified benchmark dataset'], $result->getEvidences());
+    }
+
     protected function makeIntent(): Intent
     {
         return (new Intent)

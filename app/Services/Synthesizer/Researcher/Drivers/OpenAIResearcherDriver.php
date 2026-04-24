@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer\Researcher\Drivers;
 
+use App\Contracts\CommonData\Fact;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
@@ -143,6 +144,30 @@ class OpenAIResearcherDriver extends ResearcherService
         return $result;
     }
 
+    /**
+     * @throws \JsonException
+     */
+    public function resolveIdeaConflictedPoints(
+        Idea $idea,
+        ConflictedPoints $conflictedPoints,
+        array $facts
+    ): RelevantPoint {
+        $prompt = $this->buildResolveConflictedPointsPrompt($idea, $conflictedPoints, $facts);
+        $schema = $this->buildResolveConflictedPointsJsonSchema();
+        $data = $this->requestStructuredJson(
+            $prompt,
+            'research_resolve_conflicted_points',
+            $schema,
+            'Failed to resolve conflicted points with OpenAI'
+        );
+
+        if (! isset($data['point']) || ! is_array($data['point'])) {
+            throw new RuntimeException('Failed to resolve conflicted points with OpenAI: missing point output.');
+        }
+
+        return RelevantPoint::fromArray($data['point']);
+    }
+
     protected function getModel(): string
     {
         return (string) ($this->config['model'] ?? 'gpt-4o-mini');
@@ -183,6 +208,45 @@ Source content:
 {$content}
 
 Return JSON only (via schema), ordered by relevance descending.
+PROMPT;
+    }
+
+    /**
+     * @throws \JsonException
+     */
+    protected function buildResolveConflictedPointsPrompt(
+        Idea $idea,
+        ConflictedPoints $conflictedPoints,
+        array $facts
+    ): string {
+        $ideaJson = json_encode($idea->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $conflictsJson = json_encode($conflictedPoints->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $factsJson = json_encode($this->normalizeFacts($facts), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        return <<<PROMPT
+You are a research resolver.
+
+Given:
+- one editorial idea
+- one conflicted points group
+- verified facts (source of truth)
+
+Return exactly one resolved relevant point that:
+- aligns with verified facts
+- keeps only evidence supported by verified facts
+- has concise rationale
+- includes relevance (to the given idea) in [0,1]
+
+Idea JSON:
+{$ideaJson}
+
+Conflicted points JSON:
+{$conflictsJson}
+
+Verified facts JSON:
+{$factsJson}
+
+Return JSON only using the provided schema.
 PROMPT;
     }
 
@@ -318,6 +382,21 @@ PROMPT;
     /**
      * @return array<string, mixed>
      */
+    protected function buildResolveConflictedPointsJsonSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => $properties = [
+                'point' => $this->buildRelevantPointSchema(),
+            ],
+            'required' => array_keys($properties),
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     protected function buildRelevantPointSchema(): array
     {
         return [
@@ -339,6 +418,38 @@ PROMPT;
             'required' => ['headline', 'description', 'evidences', 'rationale', 'relevance'],
             'additionalProperties' => false,
         ];
+    }
+
+    /**
+     * @param  array<int, mixed>  $facts
+     * @return list<string>
+     */
+    protected function normalizeFacts(array $facts): array
+    {
+        $normalized = [];
+        foreach ($facts as $fact) {
+            if ($fact instanceof Fact) {
+                $normalized[] = $fact->getFact();
+                continue;
+            }
+
+            if (is_array($fact) && isset($fact['fact']) && is_string($fact['fact'])) {
+                $line = trim($fact['fact']);
+                if ($line !== '') {
+                    $normalized[] = $line;
+                }
+                continue;
+            }
+
+            if (is_string($fact)) {
+                $line = trim($fact);
+                if ($line !== '') {
+                    $normalized[] = $line;
+                }
+            }
+        }
+
+        return array_values($normalized);
     }
 
     /**

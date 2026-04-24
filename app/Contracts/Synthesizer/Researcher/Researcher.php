@@ -23,4 +23,18 @@ interface Researcher
      * @return ConsolidationResult
      */
     public function consolidateIdeaPoints(Idea $idea, array $points): ConsolidationResult;
+
+    /**
+     * Be given a list of verified facts,
+     * base on the facts provided to return a new RelevantPoint
+     * for the given idea from the ConflictedPoints
+     *
+     * @param Idea $idea
+     * @param ConflictedPoints $conflictedPoints
+     * @param array $facts
+     * @return RelevantPoint
+     */
+    public function resolveIdeaConflictedPoints(Idea $idea,
+                                                ConflictedPoints $conflictedPoints,
+                                                array $facts): RelevantPoint;
 }

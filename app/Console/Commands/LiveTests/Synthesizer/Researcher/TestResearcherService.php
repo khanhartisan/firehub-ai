@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\LiveTests\Synthesizer\Researcher;
 
+use App\Contracts\CommonData\Fact;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
@@ -36,6 +37,7 @@ class TestResearcherService extends Command
             [
                 'extractIdeaPoints',
                 'consolidateIdeaPoints (simulated input)',
+                'resolveIdeaConflictedPoints (simulated conflict + facts)',
             ],
             0
         );
@@ -57,7 +59,7 @@ class TestResearcherService extends Command
                 $content = (string) $this->ask('Input content', $this->defaultContent());
                 $points = $this->timedCall('extractIdeaPoints', fn () => $researcher->extractIdeaPoints($idea, $content));
                 $this->displayPoints($points);
-            } else {
+            } elseif (str_starts_with($mode, 'consolidateIdeaPoints')) {
                 $simulatedPoints = $this->makeSimulatedRelevantPoints();
                 $this->info(sprintf('Using %d simulated relevant points for consolidation.', count($simulatedPoints)));
                 $this->displayPoints($simulatedPoints);
@@ -66,6 +68,30 @@ class TestResearcherService extends Command
                     fn () => $researcher->consolidateIdeaPoints($idea, $simulatedPoints)
                 );
                 $this->displayConsolidationResult($consolidation);
+            } else {
+                $conflicted = $this->makeSimulatedConflictedPoints();
+                $facts = $this->makeSimulatedResolvedFacts();
+
+                $this->info('Using simulated conflicted points and verified facts.');
+                $this->newLine();
+                $this->comment('Conflicted points input');
+                $this->line('Conflict rationale: '.($conflicted->getRationale() ?? '—'));
+                $this->displayPoints($conflicted->getPoints());
+                $this->newLine();
+                $this->comment('Verified facts');
+                foreach ($facts as $index => $fact) {
+                    if ($fact instanceof Fact) {
+                        $this->line('- Fact '.($index + 1).': '.$fact->getFact());
+                    }
+                }
+
+                $resolvedPoint = $this->timedCall(
+                    'resolveIdeaConflictedPoints',
+                    fn () => $researcher->resolveIdeaConflictedPoints($idea, $conflicted, $facts)
+                );
+                $this->newLine();
+                $this->info('Resolved point');
+                $this->displayPoints([$resolvedPoint]);
             }
 
             return self::SUCCESS;
@@ -299,6 +325,37 @@ TEXT;
                 ->setEvidences(['72% required data retention and regional-processing terms pre-pilot'])
                 ->setRationale('Highlights risk/compliance gatekeeping as part of adoption strategy.')
                 ->setRelevance(0.81),
+        ];
+    }
+
+    private function makeSimulatedConflictedPoints(): ConflictedPoints
+    {
+        return (new ConflictedPoints)
+            ->setRationale('ROI estimates conflict across sources.')
+            ->setPoints([
+                (new RelevantPoint)
+                    ->setHeadline('ROI is around 2x')
+                    ->setDescription('Vendor benchmark reports nearly 2x productivity uplift.')
+                    ->setEvidences(['Vendor benchmark report'])
+                    ->setRationale('Vendor sample highlights best-performing teams.')
+                    ->setRelevance(0.76),
+                (new RelevantPoint)
+                    ->setHeadline('ROI is around 1.2x')
+                    ->setDescription('Independent benchmark reports more modest gains.')
+                    ->setEvidences(['Independent benchmark'])
+                    ->setRationale('Broader sample includes enterprise friction.')
+                    ->setRelevance(0.74),
+            ]);
+    }
+
+    /**
+     * @return list<Fact>
+     */
+    private function makeSimulatedResolvedFacts(): array
+    {
+        return [
+            new Fact('Verified multi-source median ROI is approximately 1.3x over 2 quarters.'),
+            new Fact('Performance variance is strongly correlated with team size and process maturity.'),
         ];
     }
 }

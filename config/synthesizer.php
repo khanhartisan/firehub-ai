@@ -161,6 +161,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Research stage extraction
+    |--------------------------------------------------------------------------
+    |
+    | Controls how many source pages are considered for point extraction during
+    | the article research stage. Pages are prioritized by best (lowest)
+    | keyword ranking position first.
+    |
+    */
+    'research' => [
+        'max_pages' => (int) env('SYNTHESIZER_RESEARCH_MAX_PAGES', 20),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Idea uniqueness (vector similarity)
     |--------------------------------------------------------------------------
     |

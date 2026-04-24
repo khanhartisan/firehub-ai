@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands\LiveTests\Synthesizer\Researcher;
 
+use App\Contracts\CommonData\Point;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
-use App\Contracts\Synthesizer\Researcher\IdeaPoint;
 use App\Contracts\Synthesizer\Researcher\Researcher;
 use App\Enums\IntentType;
 use App\Enums\Language;
@@ -45,7 +45,7 @@ class TestResearcherService extends Command
 
         try {
             $points = $this->timedCall('extractIdeaPoints', fn () => $researcher->extractIdeaPoints($idea, $content));
-            $this->displayIdeaPoints($points->getIdeaPoints());
+            $this->displayPoints($points);
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
@@ -162,11 +162,11 @@ TEXT;
     }
 
     /**
-     * @param  list<IdeaPoint>  $ideaPoints
+     * @param  list<Point>  $points
      */
-    private function displayIdeaPoints(array $ideaPoints): void
+    private function displayPoints(array $points): void
     {
-        if ($ideaPoints === []) {
+        if ($points === []) {
             $this->warn('No idea points returned.');
 
             return;
@@ -175,24 +175,23 @@ TEXT;
         $this->table(
             ['#', 'headline', 'relevance', 'evidences'],
             array_map(
-                static fn (IdeaPoint $item, int $index): array => [
+                static fn (Point $item, int $index): array => [
                     (string) ($index + 1),
-                    Str::limit((string) ($item->getPoint()->getHeadline() ?? ''), 72),
-                    $item->getRelevance() !== null ? (string) $item->getRelevance() : '—',
-                    (string) count($item->getPoint()->getEvidences()),
+                    Str::limit((string) ($item->getHeadline() ?? ''), 72),
+                    '—',
+                    (string) count($item->getEvidences()),
                 ],
-                $ideaPoints,
-                array_keys($ideaPoints)
+                $points,
+                array_keys($points)
             )
         );
 
-        foreach ($ideaPoints as $index => $item) {
+        foreach ($points as $index => $item) {
             $this->newLine();
-            $this->comment('Point '.($index + 1).': '.($item->getPoint()->getHeadline() ?? '(no headline)'));
-            $this->line(Str::limit((string) ($item->getPoint()->getDescription() ?? ''), 800));
-            $this->line('Rationale: '.$item->getRationale());
+            $this->comment('Point '.($index + 1).': '.($item->getHeadline() ?? '(no headline)'));
+            $this->line(Str::limit((string) ($item->getDescription() ?? ''), 800));
 
-            foreach ($item->getPoint()->getEvidences() as $i => $evidence) {
+            foreach ($item->getEvidences() as $i => $evidence) {
                 $this->line('- Evidence '.($i+1).': '.$evidence);
             }
         }

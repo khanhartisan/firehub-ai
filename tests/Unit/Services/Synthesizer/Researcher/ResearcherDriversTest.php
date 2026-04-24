@@ -26,15 +26,11 @@ Security review now appears earlier in procurement checklists. Buyers ask for cl
 TEXT;
 
         $result = $driver->extractIdeaPoints($idea, $content);
-        $rows = $result->getIdeaPoints();
+        $rows = $result;
 
-        $this->assertSame($idea, $result->getIdea());
         $this->assertCount(3, $rows);
-        $this->assertSame($idea, $rows[0]->getIdea());
-        $this->assertNotNull($rows[0]->getPoint()->getHeadline());
-        $this->assertNotEmpty($rows[0]->getPoint()->getEvidences());
-        $this->assertNotNull($rows[0]->getRationale());
-        $this->assertGreaterThanOrEqual(0.6, (float) $rows[2]->getRelevance());
+        $this->assertNotNull($rows[0]->getHeadline());
+        $this->assertNotEmpty($rows[0]->getEvidences());
     }
 
     public function test_basic_researcher_returns_empty_collection_for_blank_content(): void
@@ -44,8 +40,7 @@ TEXT;
 
         $result = $driver->extractIdeaPoints($idea, " \n\t ");
 
-        $this->assertSame($idea, $result->getIdea());
-        $this->assertSame([], $result->getIdeaPoints());
+        $this->assertSame([], $result);
     }
 
     protected function makeIntent(): Intent

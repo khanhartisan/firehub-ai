@@ -7,8 +7,6 @@ use App\Contracts\CommonData\Point;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
-use App\Contracts\Synthesizer\Researcher\IdeaPoint;
-use App\Contracts\Synthesizer\Researcher\IdeaPoints;
 use App\Enums\IntentType;
 use App\Enums\Language;
 use App\Enums\Temporal;
@@ -18,17 +16,12 @@ class ResearchStageDataTest extends TestCase
 {
     public function test_stage_data_round_trip_keeps_research_points_grouped_by_page(): void
     {
-        $idea = new Idea($this->makeIntent(), 0.8, 'Strong fit');
-        $ideaPoints = new IdeaPoints($idea, [
-            new IdeaPoint(
-                $idea,
-                (new Point)
-                    ->setHeadline('Adoption is increasing')
-                    ->setDescription('Survey trends show sustained growth.')
-                    ->setEvidences(['68% weekly usage in surveyed teams']),
-                0.92
-            ),
-        ]);
+        $points = [
+            (new Point)
+                ->setHeadline('Adoption is increasing')
+                ->setDescription('Survey trends show sustained growth.')
+                ->setEvidences(['68% weekly usage in surveyed teams']),
+        ];
 
         $stageData = new StageData;
         $stageData->getResearchStageData()
@@ -36,7 +29,7 @@ class ResearchStageDataTest extends TestCase
                 (new KeywordData('ai copilots'))->setLanguage(Language::EN),
                 (new KeywordData('developer productivity'))->setLanguage(Language::EN),
             ])
-            ->setPageIdeaPoints('https://example.com/page-1/', $ideaPoints);
+            ->setPagePoints('https://example.com/page-1/', $points);
 
         $restored = StageData::fromArray($stageData->toArray());
         $research = $restored->getResearchStageData();
@@ -46,7 +39,7 @@ class ResearchStageDataTest extends TestCase
         $this->assertArrayHasKey('https://example.com/page-1', $research->getPointsByPageUrl());
         $this->assertSame(
             'Adoption is increasing',
-            $research->getPointsByPageUrl()['https://example.com/page-1']->getIdeaPoints()[0]->getPoint()->getHeadline()
+            $research->getPointsByPageUrl()['https://example.com/page-1'][0]->getHeadline()
         );
     }
 

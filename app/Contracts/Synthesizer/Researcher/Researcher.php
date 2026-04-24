@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Synthesizer\Researcher;
 
+use App\Contracts\CommonData\Point;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 
 interface Researcher
@@ -11,7 +12,7 @@ interface Researcher
      *
      * @param Idea $idea
      * @param string $content
-     * @return IdeaPoints
+     * @return Point[]
      */
-    public function extractIdeaPoints(Idea $idea, string $content): IdeaPoints;
+    public function extractIdeaPoints(Idea $idea, string $content): array;
 }

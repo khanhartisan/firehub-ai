@@ -3,7 +3,6 @@
 namespace App\Jobs\BuildArticleJobConcerns;
 
 use App\Contracts\CommonData\Keyword as KeywordData;
-use App\Contracts\Model\Article\StageData\ResearchStageData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Enums\KeywordStatus;
 use App\Facades\IntentResolver;
@@ -11,7 +10,9 @@ use App\Jobs\KeywordResearchJob;
 use App\Models\Keyword;
 use App\Models\Page;
 use App\Utils\Str;
+use App\Utils\UrlNormalizer;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 trait HandleResearchStage
 {
@@ -22,14 +23,12 @@ trait HandleResearchStage
             return false;
         }
 
-        $researchData = $this->getStageData()->getResearchStageData();
-
-        $bootstrapResult = $this->bootstrapResearchKeywords($pickedIdea, $researchData);
+        $bootstrapResult = $this->bootstrapResearchKeywords($pickedIdea);
         if ($bootstrapResult !== null) {
             return $bootstrapResult;
         }
 
-        $keywords = $this->getTrackedResearchKeywords($researchData);
+        $keywords = $this->getTrackedResearchKeywords();
         if ($keywords->isEmpty()) {
             return true;
         }
@@ -38,13 +37,11 @@ trait HandleResearchStage
             return null;
         }
 
-        if ($researchData->hasPointsByPageUrl()) {
-            return true;
+        $didExtractOnePage = $this->extractAndStorePointsByPage($pickedIdea, $keywords);
+        if ($didExtractOnePage) {
+            // Enforce one external extraction call per job run.
+            return null;
         }
-
-        $this->extractAndStorePointsByPage($pickedIdea, $researchData, $keywords);
-
-        $this->touchArticleQuietly();
 
         return true;
     }
@@ -57,8 +54,10 @@ trait HandleResearchStage
      * - true  => no keywords inferred; stage can complete early
      * - false => hard failure (unused currently, kept for symmetry)
      */
-    protected function bootstrapResearchKeywords(Idea $pickedIdea, ResearchStageData $researchData): ?bool
+    protected function bootstrapResearchKeywords(Idea $pickedIdea): ?bool
     {
+        $researchData = $this->getStageData()->getResearchStageData();
+
         if ($researchData->hasKeywords()) {
             return null;
         }
@@ -72,12 +71,14 @@ trait HandleResearchStage
             }
             $keywords[] = $keywordData;
 
-            try {
-                $keyword = $this->resolveOrCreateKeywordFromData($keywordData);
-            } catch (\Throwable) {
-                continue;
-            }
-            if (! $keyword->status->isFinal()) {
+            $keyword = $this->resolveOrCreateKeywordFromData($keywordData);
+
+            if (! $keyword->status->isFinal()
+                or $keyword->researched_at?->lt(now()->subDay())
+            ) {
+                $keyword->status = KeywordStatus::RESEARCHING;
+                $keyword->save();
+
                 KeywordResearchJob::dispatch($keyword);
             }
         }
@@ -126,8 +127,9 @@ trait HandleResearchStage
     /**
      * @return Collection<int, Keyword>
      */
-    protected function getTrackedResearchKeywords(ResearchStageData $researchData): Collection
+    protected function getTrackedResearchKeywords(): Collection
     {
+        $researchData = $this->getStageData()->getResearchStageData();
         $models = [];
         foreach ($researchData->getKeywords() as $keywordData) {
             $models[] = $this->resolveOrCreateKeywordFromData($keywordData);
@@ -160,41 +162,77 @@ trait HandleResearchStage
     /**
      * @param  Collection<int, Keyword>  $keywords
      */
-    protected function extractAndStorePointsByPage(Idea $pickedIdea, ResearchStageData $researchData, Collection $keywords): void
+    protected function extractAndStorePointsByPage(Idea $pickedIdea, Collection $keywords): bool
     {
+        $researchData = $this->getStageData()->getResearchStageData();
         $researchedKeywords = $keywords
             ->where('status', KeywordStatus::RESEARCHED)
             ->pluck('id')
             ->all();
 
         if ($researchedKeywords === []) {
-            return;
+            return false;
         }
 
-        $pages = Page::query()
-            ->whereHas('keywords', function ($query) use ($researchedKeywords): void {
-                $query->whereIn('keywords.id', $researchedKeywords);
-            })
-            ->get();
+        $orderedPageIds = DB::table('keyword_page')
+            ->selectRaw('page_id, MIN(COALESCE(position, 2147483647)) as best_position')
+            ->whereIn('keyword_id', $researchedKeywords)
+            ->groupBy('page_id')
+            ->orderBy('best_position')
+            ->limit($this->getResearchExtractionPageLimit())
+            ->pluck('page_id')
+            ->all();
 
-        foreach ($pages as $page) {
+        if ($orderedPageIds === []) {
+            return false;
+        }
+
+        $pagesById = Page::query()
+            ->whereIn('id', $orderedPageIds)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($orderedPageIds as $pageId) {
+            $page = $pagesById->get($pageId);
+            if (! $page instanceof Page) {
+                continue;
+            }
+
+            $canonicalUrl = UrlNormalizer::normalize((string) $page->url);
+            if ($canonicalUrl === '') {
+                continue;
+            }
+
+            if (array_key_exists($canonicalUrl, $researchData->getPointsByPageUrl())) {
+                continue;
+            }
+
             $content = $this->buildResearchContentFromPage($page);
             if ($content === '') {
+                $researchData->setPagePoints((string) $page->url, []);
+                $this->touchArticleQuietly();
                 continue;
             }
 
             $researcher = $this->synthesizer()->getResearcher();
-            try {
-                $ideaPoints = $researcher->extractIdeaPoints($pickedIdea, $content);
-            } catch (\Throwable) {
-                continue;
-            }
+            $points = $researcher->extractIdeaPoints($pickedIdea, $content);
 
-            $researchData->setPageIdeaPoints(
+            $researchData->setPagePoints(
                 (string) $page->url,
-                $ideaPoints
+                $points
             );
+
+            $this->touchArticleQuietly();
+
+            return true;
         }
+
+        return false;
+    }
+
+    protected function getResearchExtractionPageLimit(): int
+    {
+        return max(1, (int) config('synthesizer.research.max_pages', 20));
     }
 
     protected function buildResearchContentFromPage(Page $page): string

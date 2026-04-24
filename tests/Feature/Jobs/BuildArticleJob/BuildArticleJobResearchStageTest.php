@@ -149,10 +149,10 @@ class BuildArticleJobResearchStageTest extends TestCase
         $result = $job->runResearchStage();
         $article->refresh();
 
-        $this->assertTrue($result);
+        $this->assertNull($result);
         $pointsByUrl = $article->stage_data->getResearchStageData()->getPointsByPageUrl();
         $this->assertArrayHasKey('https://example.com/ai-copilots', $pointsByUrl);
-        $this->assertNotEmpty($pointsByUrl['https://example.com/ai-copilots']->getIdeaPoints());
+        $this->assertNotEmpty($pointsByUrl['https://example.com/ai-copilots']);
     }
 
     /**

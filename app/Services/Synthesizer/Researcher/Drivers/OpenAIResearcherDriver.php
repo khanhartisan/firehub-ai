@@ -8,8 +8,6 @@ use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
-use App\Contracts\Synthesizer\Researcher\IdeaPoint;
-use App\Contracts\Synthesizer\Researcher\IdeaPoints;
 use App\Services\Synthesizer\Researcher\ResearcherService;
 use RuntimeException;
 
@@ -29,11 +27,11 @@ class OpenAIResearcherDriver extends ResearcherService
         $this->config = array_merge(config('synthesizer.openai_researcher', []), $config);
     }
 
-    public function extractIdeaPoints(Idea $idea, string $content): IdeaPoints
+    public function extractIdeaPoints(Idea $idea, string $content): array
     {
         $content = trim($content);
         if ($content === '') {
-            return new IdeaPoints($idea);
+            return [];
         }
 
         $prompt = $this->buildExtractPointsPrompt($idea, $content);
@@ -47,10 +45,10 @@ class OpenAIResearcherDriver extends ResearcherService
 
         $rows = $data['points'] ?? [];
         if (! is_array($rows) || $rows === []) {
-            return new IdeaPoints($idea);
+            return [];
         }
 
-        $ideaPoints = [];
+        $points = [];
         foreach ($rows as $row) {
             if (! is_array($row)) {
                 continue;
@@ -72,25 +70,13 @@ class OpenAIResearcherDriver extends ResearcherService
                 }
             }
 
-            $rationale = isset($row['rationale']) ? trim((string) $row['rationale']) : null;
-            if ($rationale === '') {
-                $rationale = null;
-            }
-
-            $relevance = isset($row['relevance']) ? max(0.0, min(1.0, (float) $row['relevance'])) : null;
-
-            $ideaPoints[] = new IdeaPoint(
-                $idea,
-                (new Point)
-                    ->setHeadline($headline)
-                    ->setDescription($description)
-                    ->setEvidences($evidences),
-                $relevance,
-                $rationale
-            );
+            $points[] = (new Point)
+                ->setHeadline($headline)
+                ->setDescription($description)
+                ->setEvidences($evidences);
         }
 
-        return new IdeaPoints($idea, $ideaPoints);
+        return $points;
     }
 
     protected function getModel(): string

@@ -4,7 +4,7 @@ namespace App\Contracts\Model\Article\StageData;
 
 use App\Concerns\Serializable;
 use App\Contracts\CommonData\Keyword;
-use App\Contracts\Synthesizer\Researcher\IdeaPoints;
+use App\Contracts\CommonData\Point;
 use App\Utils\UrlNormalizer;
 
 final class ResearchStageData implements \App\Contracts\Serializable
@@ -18,7 +18,7 @@ final class ResearchStageData implements \App\Contracts\Serializable
     /**
      * Extracted researcher output grouped by canonical normalized page URL.
      *
-     * @var array<string, IdeaPoints>
+     * @var array<string, Point[]>
      */
     protected array $pointsByPageUrl = [];
 
@@ -62,7 +62,7 @@ final class ResearchStageData implements \App\Contracts\Serializable
         return $this->keywords !== [];
     }
 
-    /** @return array<string, IdeaPoints> */
+    /** @return array<string, Point[]> */
     public function getPointsByPageUrl(): array
     {
         return $this->pointsByPageUrl;
@@ -73,14 +73,24 @@ final class ResearchStageData implements \App\Contracts\Serializable
         return $this->pointsByPageUrl !== [];
     }
 
-    public function setPageIdeaPoints(string $url, IdeaPoints $ideaPoints): static
+    /**
+     * @param  Point[]  $points
+     */
+    public function setPagePoints(string $url, array $points): static
     {
         $canonicalUrl = UrlNormalizer::normalize($url);
         if ($canonicalUrl === '') {
             return $this;
         }
 
-        $this->pointsByPageUrl[$canonicalUrl] = $ideaPoints;
+        $normalizedPoints = [];
+        foreach ($points as $point) {
+            if ($point instanceof Point) {
+                $normalizedPoints[] = $point;
+            }
+        }
+
+        $this->pointsByPageUrl[$canonicalUrl] = array_values($normalizedPoints);
 
         return $this;
     }
@@ -90,7 +100,10 @@ final class ResearchStageData implements \App\Contracts\Serializable
         return [
             'keywords' => array_map(static fn (Keyword $keyword): array => $keyword->toArray(), $this->getKeywords()),
             'points_by_page_url' => array_map(
-                static fn (IdeaPoints $ideaPoints): array => $ideaPoints->toArray(),
+                static fn (array $points): array => array_map(
+                    static fn (Point $point): array => $point->toArray(),
+                    $points
+                ),
                 $this->getPointsByPageUrl()
             ),
         ];
@@ -125,9 +138,18 @@ final class ResearchStageData implements \App\Contracts\Serializable
                     continue;
                 }
 
-                if (isset($item['idea']) && is_array($item)) {
-                    $dto->setPageIdeaPoints((string) $url, IdeaPoints::fromArray($item));
+                $points = [];
+                foreach ($item as $pointRow) {
+                    if ($pointRow instanceof Point) {
+                        $points[] = $pointRow;
+                        continue;
+                    }
+
+                    if (is_array($pointRow)) {
+                        $points[] = Point::fromArray($pointRow);
+                    }
                 }
+                $dto->setPagePoints((string) $url, $points);
             }
         }
 

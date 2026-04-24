@@ -57,11 +57,16 @@ class OpenAIResearcherDriverTest extends TestCase
         $idea = new Idea($this->makeIntent(), 0.7, 'fit');
         $result = $driver->extractIdeaPoints($idea, 'Source text');
 
-        $this->assertCount(1, $result->getIdeaPoints());
-        $this->assertSame($idea, $result->getIdeaPoints()[0]->getIdea());
-        $this->assertSame('Adoption is accelerating', $result->getIdeaPoints()[0]->getPoint()->getHeadline());
-        $this->assertSame('These outcomes directly support the proposed adoption-focused idea angle.', $result->getIdeaPoints()[0]->getRationale());
-        $this->assertSame(0.91, $result->getIdeaPoints()[0]->getRelevance());
+        $this->assertCount(1, $result);
+        $this->assertSame('Adoption is accelerating', $result[0]->getHeadline());
+        $this->assertSame(
+            'Teams report faster prototyping and delivery cycles.',
+            $result[0]->getDescription()
+        );
+        $this->assertSame(
+            ['Survey shows increased weekly usage.', 'Interviewed teams cite shorter iteration loops.'],
+            $result[0]->getEvidences()
+        );
     }
 
     public function test_extract_points_skips_openai_for_blank_content(): void
@@ -73,7 +78,7 @@ class OpenAIResearcherDriverTest extends TestCase
         $idea = new Idea($this->makeIntent(), 0.7, 'fit');
         $result = $driver->extractIdeaPoints($idea, " \n\t ");
 
-        $this->assertSame([], $result->getIdeaPoints());
+        $this->assertSame([], $result);
     }
 
     protected function makeIntent(): Intent

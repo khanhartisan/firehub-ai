@@ -3,10 +3,11 @@
 namespace Tests\Unit\Contracts\Model\Article;
 
 use App\Contracts\CommonData\Keyword as KeywordData;
-use App\Contracts\CommonData\Point;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Enums\IntentType;
 use App\Enums\Language;
 use App\Enums\Temporal;
@@ -17,11 +18,30 @@ class ResearchStageDataTest extends TestCase
     public function test_stage_data_round_trip_keeps_research_points_grouped_by_page(): void
     {
         $points = [
-            (new Point)
+            (new RelevantPoint)
                 ->setHeadline('Adoption is increasing')
                 ->setDescription('Survey trends show sustained growth.')
-                ->setEvidences(['68% weekly usage in surveyed teams']),
+                ->setEvidences(['68% weekly usage in surveyed teams'])
+                ->setRationale('Adoption trend is clearly positive.')
+                ->setRelevance(0.91),
         ];
+
+        $conflict = (new ConflictedPoints)
+            ->setRationale('ROI magnitude differs across sources.')
+            ->setPoints([
+                (new RelevantPoint)
+                    ->setHeadline('ROI is ~2x')
+                    ->setDescription('Vendor benchmark reports 2x gain.')
+                    ->setEvidences(['Vendor report'])
+                    ->setRationale('Aggressive estimate')
+                    ->setRelevance(0.72),
+                (new RelevantPoint)
+                    ->setHeadline('ROI is ~1.2x')
+                    ->setDescription('Independent study reports lower gain.')
+                    ->setEvidences(['Independent study'])
+                    ->setRationale('Conservative estimate')
+                    ->setRelevance(0.69),
+            ]);
 
         $stageData = new StageData;
         $stageData->getResearchStageData()
@@ -29,7 +49,9 @@ class ResearchStageDataTest extends TestCase
                 (new KeywordData('ai copilots'))->setLanguage(Language::EN),
                 (new KeywordData('developer productivity'))->setLanguage(Language::EN),
             ])
-            ->setPagePoints('https://example.com/page-1/', $points);
+            ->setPagePoints('https://example.com/page-1/', $points)
+            ->setPoints($points)
+            ->setConflicts([$conflict]);
 
         $restored = StageData::fromArray($stageData->toArray());
         $research = $restored->getResearchStageData();
@@ -41,6 +63,9 @@ class ResearchStageDataTest extends TestCase
             'Adoption is increasing',
             $research->getPointsByPageUrl()['https://example.com/page-1'][0]->getHeadline()
         );
+        $this->assertCount(1, $research->getPoints());
+        $this->assertCount(1, $research->getConflicts());
+        $this->assertSame('ROI magnitude differs across sources.', $research->getConflicts()[0]->getRationale());
     }
 
     protected function makeIntent(): Intent

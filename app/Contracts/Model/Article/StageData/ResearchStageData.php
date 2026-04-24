@@ -4,7 +4,8 @@ namespace App\Contracts\Model\Article\StageData;
 
 use App\Concerns\Serializable;
 use App\Contracts\CommonData\Keyword;
-use App\Contracts\CommonData\Point;
+use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Utils\UrlNormalizer;
 
 final class ResearchStageData implements \App\Contracts\Serializable
@@ -18,9 +19,24 @@ final class ResearchStageData implements \App\Contracts\Serializable
     /**
      * Extracted researcher output grouped by canonical normalized page URL.
      *
-     * @var array<string, Point[]>
+     * @var array<string, RelevantPoint[]>
      */
     protected array $pointsByPageUrl = [];
+
+    /**
+     * Consolidated central points across all researched pages.
+     *
+     * @var RelevantPoint[]
+     */
+    protected array $points = [];
+
+    /**
+     * Conflicts discovered while consolidating points.
+     *
+     * @var ConflictedPoints[]
+     */
+    protected array $conflicts = [];
+
 
     /**
      * @return Keyword[]
@@ -62,7 +78,7 @@ final class ResearchStageData implements \App\Contracts\Serializable
         return $this->keywords !== [];
     }
 
-    /** @return array<string, Point[]> */
+    /** @return array<string, RelevantPoint[]> */
     public function getPointsByPageUrl(): array
     {
         return $this->pointsByPageUrl;
@@ -74,7 +90,7 @@ final class ResearchStageData implements \App\Contracts\Serializable
     }
 
     /**
-     * @param  Point[]  $points
+     * @param  RelevantPoint[]  $points
      */
     public function setPagePoints(string $url, array $points): static
     {
@@ -85,12 +101,84 @@ final class ResearchStageData implements \App\Contracts\Serializable
 
         $normalizedPoints = [];
         foreach ($points as $point) {
-            if ($point instanceof Point) {
+            if ($point instanceof RelevantPoint) {
                 $normalizedPoints[] = $point;
+                continue;
+            }
+
+            if ($point instanceof \App\Contracts\CommonData\Point) {
+                $normalizedPoints[] = RelevantPoint::fromArray($point->toArray());
             }
         }
 
         $this->pointsByPageUrl[$canonicalUrl] = array_values($normalizedPoints);
+
+        return $this;
+    }
+
+    /**
+     * @return RelevantPoint[]
+     */
+    public function getPoints(): array
+    {
+        return $this->points;
+    }
+
+    /**
+     * @param  RelevantPoint[]  $points
+     */
+    public function setPoints(array $points): static
+    {
+        $normalizedPoints = [];
+        foreach ($points as $point) {
+            if ($point instanceof RelevantPoint) {
+                $normalizedPoints[] = $point;
+                continue;
+            }
+
+            if ($point instanceof \App\Contracts\CommonData\Point) {
+                $normalizedPoints[] = RelevantPoint::fromArray($point->toArray());
+            }
+        }
+
+        $this->points = array_values($normalizedPoints);
+
+        return $this;
+    }
+
+    /**
+     * @return ConflictedPoints[]
+     */
+    public function getConflicts(): array
+    {
+        return $this->conflicts;
+    }
+
+    /**
+     * @param  ConflictedPoints[]  $conflicts
+     */
+    public function setConflicts(array $conflicts): static
+    {
+        $normalizedConflicts = [];
+        foreach ($conflicts as $conflict) {
+            if ($conflict instanceof ConflictedPoints) {
+                $normalizedConflicts[] = $conflict;
+            }
+        }
+
+        $this->conflicts = array_values($normalizedConflicts);
+
+        return $this;
+    }
+
+    public function removePagePoints(string $url): static
+    {
+        $canonicalUrl = UrlNormalizer::normalize($url);
+        if ($canonicalUrl === '') {
+            return $this;
+        }
+
+        unset($this->pointsByPageUrl[$canonicalUrl]);
 
         return $this;
     }
@@ -101,10 +189,18 @@ final class ResearchStageData implements \App\Contracts\Serializable
             'keywords' => array_map(static fn (Keyword $keyword): array => $keyword->toArray(), $this->getKeywords()),
             'points_by_page_url' => array_map(
                 static fn (array $points): array => array_map(
-                    static fn (Point $point): array => $point->toArray(),
+                    static fn (RelevantPoint $point): array => $point->toArray(),
                     $points
                 ),
                 $this->getPointsByPageUrl()
+            ),
+            'points' => array_map(
+                static fn (RelevantPoint $point): array => $point->toArray(),
+                $this->getPoints()
+            ),
+            'conflicts' => array_map(
+                static fn (ConflictedPoints $conflict): array => $conflict->toArray(),
+                $this->getConflicts()
             ),
         ];
     }
@@ -140,17 +236,47 @@ final class ResearchStageData implements \App\Contracts\Serializable
 
                 $points = [];
                 foreach ($item as $pointRow) {
-                    if ($pointRow instanceof Point) {
+                    if ($pointRow instanceof RelevantPoint) {
                         $points[] = $pointRow;
                         continue;
                     }
 
                     if (is_array($pointRow)) {
-                        $points[] = Point::fromArray($pointRow);
+                        $points[] = RelevantPoint::fromArray($pointRow);
                     }
                 }
                 $dto->setPagePoints((string) $url, $points);
             }
+        }
+
+        if (isset($data['points']) && is_array($data['points'])) {
+            $points = [];
+            foreach ($data['points'] as $row) {
+                if ($row instanceof RelevantPoint) {
+                    $points[] = $row;
+                    continue;
+                }
+
+                if (is_array($row)) {
+                    $points[] = RelevantPoint::fromArray($row);
+                }
+            }
+            $dto->setPoints($points);
+        }
+
+        if (isset($data['conflicts']) && is_array($data['conflicts'])) {
+            $conflicts = [];
+            foreach ($data['conflicts'] as $row) {
+                if ($row instanceof ConflictedPoints) {
+                    $conflicts[] = $row;
+                    continue;
+                }
+
+                if (is_array($row)) {
+                    $conflicts[] = ConflictedPoints::fromArray($row);
+                }
+            }
+            $dto->setConflicts($conflicts);
         }
 
         return $dto;

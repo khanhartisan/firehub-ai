@@ -2,8 +2,9 @@
 
 namespace App\Contracts\IntentResolver;
 
-use App\Contracts\CommonData\Keyword as KeywordData;
 use App\Concerns\Serializable as SerializableTrait;
+use App\Contracts\CommonData\Concerns\HasRelevance;
+use App\Contracts\CommonData\Keyword as KeywordData;
 use App\Contracts\Serializable;
 
 final class IntentKeyword implements Serializable
@@ -66,8 +67,6 @@ final class IntentKeyword implements Serializable
             throw new \InvalidArgumentException('IntentKeyword "keyword" must be a string or keyword object payload.');
         }
 
-        static::parseRelevance($instance, $data);
-
-        return $instance;
+        return $instance->hydrateRelevance($data);
     }
 }

@@ -2,12 +2,14 @@
 
 namespace App\Services\Synthesizer\Researcher\Drivers;
 
-use App\Contracts\CommonData\Point;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
+use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Services\Synthesizer\Researcher\ResearcherService;
 use RuntimeException;
 
@@ -70,13 +72,75 @@ class OpenAIResearcherDriver extends ResearcherService
                 }
             }
 
-            $points[] = (new Point)
+            $rationale = isset($row['rationale']) ? trim((string) $row['rationale']) : null;
+            if ($rationale === '') {
+                $rationale = null;
+            }
+
+            $relevance = isset($row['relevance']) ? (float) $row['relevance'] : null;
+
+            $points[] = (new RelevantPoint)
                 ->setHeadline($headline)
                 ->setDescription($description)
-                ->setEvidences($evidences);
+                ->setEvidences($evidences)
+                ->setRationale($rationale)
+                ->setRelevance($relevance);
         }
 
         return $points;
+    }
+
+    /**
+     * @throws \JsonException
+     */
+    public function consolidateIdeaPoints(Idea $idea, array $points): ConsolidationResult
+    {
+        $relevantPoints = array_values(array_filter(
+            $points,
+            static fn (mixed $point): bool => $point instanceof RelevantPoint
+        ));
+        if ($relevantPoints === []) {
+            return new ConsolidationResult;
+        }
+
+        $prompt = $this->buildConsolidatePointsPrompt($idea, $relevantPoints);
+        $schema = $this->buildConsolidatePointsJsonSchema();
+        $data = $this->requestStructuredJson(
+            $prompt,
+            'research_consolidate_points',
+            $schema,
+            'Failed to consolidate research points with OpenAI'
+        );
+
+        $result = new ConsolidationResult;
+
+        $resolvedRows = $data['points'] ?? [];
+        if (is_array($resolvedRows)) {
+            $resolvedPoints = [];
+            foreach ($resolvedRows as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $resolvedPoints[] = RelevantPoint::fromArray($row);
+            }
+            $result->setPoints($resolvedPoints);
+        }
+
+        $conflictRows = $data['conflicts'] ?? [];
+        if (is_array($conflictRows)) {
+            $conflicts = [];
+            foreach ($conflictRows as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $conflicts[] = ConflictedPoints::fromArray($row);
+            }
+            $result->setConflicts($conflicts);
+        }
+
+        return $result;
     }
 
     protected function getModel(): string
@@ -119,6 +183,41 @@ Source content:
 {$content}
 
 Return JSON only (via schema), ordered by relevance descending.
+PROMPT;
+    }
+
+    /**
+     * @param  array<int, RelevantPoint>  $points
+     */
+    protected function buildConsolidatePointsPrompt(Idea $idea, array $points): string
+    {
+        $ideaJson = json_encode($idea->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $pointsJson = json_encode(array_map(
+            static fn (RelevantPoint $point): array => $point->toArray(),
+            $points
+        ), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        return <<<PROMPT
+You are a research synthesis analyst.
+
+Given an editorial idea and a set of relevant points:
+- Merge overlapping points into cleaner, non-duplicated points.
+- Preserve high-signal evidence.
+- Keep rationale concise and strategic.
+- Keep relevance scores between 0 and 1.
+- If points materially disagree, place those groups in "conflicts".
+
+A conflict should include:
+- rationale: why these points conflict
+- points: the conflicting points (do not rewrite into one statement)
+
+Idea JSON:
+{$ideaJson}
+
+Relevant points JSON:
+{$pointsJson}
+
+Return JSON only using the provided schema.
 PROMPT;
     }
 
@@ -171,6 +270,73 @@ PROMPT;
                 ],
             ],
             'required' => array_keys($properties),
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildConsolidatePointsJsonSchema(): array
+    {
+        $maxPoints = $this->getMaxPoints();
+
+        return [
+            'type' => 'object',
+            'properties' => $properties = [
+                'points' => [
+                    'type' => 'array',
+                    'minItems' => 0,
+                    'maxItems' => $maxPoints,
+                    'items' => $this->buildRelevantPointSchema(),
+                ],
+                'conflicts' => [
+                    'type' => 'array',
+                    'minItems' => 0,
+                    'maxItems' => $maxPoints,
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'rationale' => ['type' => 'string'],
+                            'points' => [
+                                'type' => 'array',
+                                'minItems' => 2,
+                                'maxItems' => $maxPoints,
+                                'items' => $this->buildRelevantPointSchema(),
+                            ],
+                        ],
+                        'required' => ['rationale', 'points'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            'required' => array_keys($properties),
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildRelevantPointSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'headline' => ['type' => 'string'],
+                'description' => ['type' => 'string'],
+                'evidences' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string'],
+                ],
+                'rationale' => ['type' => 'string'],
+                'relevance' => [
+                    'type' => 'number',
+                    'minimum' => 0,
+                    'maximum' => 1,
+                ],
+            ],
+            'required' => ['headline', 'description', 'evidences', 'rationale', 'relevance'],
             'additionalProperties' => false,
         ];
     }

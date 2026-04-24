@@ -3,31 +3,27 @@
 namespace App\Contracts\Synthesizer\Researcher;
 
 use App\Contracts\CommonData\Fact;
-use App\Contracts\CommonData\Point;
 use App\Contracts\Serializable;
 use App\Contracts\CommonData\Conflict;
-use App\Contracts\Synthesizer\IdeaForge\Idea;
-use App\Contracts\Synthesizer\Researcher\Concerns\HasIdea;
 
-final class ConflictedIdeaPoints extends Conflict implements Serializable
+final class ConflictedPoints extends Conflict implements Serializable
 {
-    use HasIdea;
     use \App\Concerns\Serializable;
 
     /**
-     * @var Point[]
+     * @var RelevantPoint[]
      */
     protected array $points = [];
 
     /**
-     * @return Point[]
+     * @return RelevantPoint[]
      */
     public function getPoints(): array
     {
         return $this->points;
     }
 
-    public function addPoint(Point $point): static
+    public function addPoint(RelevantPoint $point): static
     {
         $this->points[] = $point;
 
@@ -35,15 +31,15 @@ final class ConflictedIdeaPoints extends Conflict implements Serializable
     }
 
     /**
-     * @param  Point[]  $points
+     * @param  RelevantPoint[]  $points
      */
     public function setPoints(array $points): static
     {
         $this->points = [];
         foreach ($points as $index => $point) {
-            if (! $point instanceof Point) {
+            if (! $point instanceof RelevantPoint) {
                 throw new \InvalidArgumentException(
-                    sprintf('points[%s] must be an instance of %s, %s given.', $index, Point::class, get_debug_type($point))
+                    sprintf('points[%s] must be an instance of %s, %s given.', $index, RelevantPoint::class, get_debug_type($point))
                 );
             }
 
@@ -58,13 +54,13 @@ final class ConflictedIdeaPoints extends Conflict implements Serializable
         if (isset($data['points']) && is_array($data['points'])) {
             $hydratedPoints = [];
             foreach ($data['points'] as $row) {
-                if ($row instanceof Point) {
+                if ($row instanceof RelevantPoint) {
                     $hydratedPoints[] = $row;
                     continue;
                 }
 
                 if (is_array($row)) {
-                    $hydratedPoints[] = Point::fromArray($row);
+                    $hydratedPoints[] = RelevantPoint::fromArray($row);
                 }
             }
 
@@ -76,7 +72,7 @@ final class ConflictedIdeaPoints extends Conflict implements Serializable
 
     public function getFacts(): array
     {
-        return array_map(function (Point $point) {
+        return array_map(function (RelevantPoint $point) {
             return new Fact($point->getFactClaim());
         }, $this->getPoints());
     }
@@ -100,9 +96,8 @@ final class ConflictedIdeaPoints extends Conflict implements Serializable
     {
         return [
             'rationale' => $this->getRationale(),
-            'idea' => $this->getIdea()->toArray(),
             'points' => array_map(
-                static fn (Point $point): array => $point->toArray(),
+                static fn (RelevantPoint $point): array => $point->toArray(),
                 $this->getPoints()
             ),
         ];
@@ -110,24 +105,7 @@ final class ConflictedIdeaPoints extends Conflict implements Serializable
 
     public static function fromArray(array $data): static
     {
-        if (! array_key_exists('idea', $data)) {
-            throw new \Exception('idea must be set');
-        }
-
-        $rawIdea = $data['idea'];
-        $idea = null;
-        if ($rawIdea instanceof Idea) {
-            $idea = $rawIdea;
-        } elseif (is_array($rawIdea)) {
-            $idea = Idea::fromArray($rawIdea);
-        }
-
-        if (! $idea instanceof Idea) {
-            throw new \Exception('idea is invalid');
-        }
-
         return (new static)
-            ->setIdea($idea)
             ->hydratePoints($data)
             ->hydrateRationale($data);
     }

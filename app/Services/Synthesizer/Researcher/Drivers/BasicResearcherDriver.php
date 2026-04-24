@@ -2,8 +2,9 @@
 
 namespace App\Services\Synthesizer\Researcher\Drivers;
 
-use App\Contracts\CommonData\Point;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Services\Synthesizer\Researcher\ResearcherService;
 
 class BasicResearcherDriver extends ResearcherService
@@ -12,15 +13,24 @@ class BasicResearcherDriver extends ResearcherService
     {
         $segments = $this->splitContentIntoSegments($content);
         $points = [];
+        $segmentCount = count($segments);
 
-        foreach ($segments as $segment) {
-            $points[] = (new Point)
+        foreach ($segments as $index => $segment) {
+            $points[] = (new RelevantPoint)
                 ->setHeadline($this->makeHeadline($segment))
                 ->setDescription($segment)
-                ->setEvidences($this->extractEvidenceCandidates($segment));
+                ->setEvidences($this->extractEvidenceCandidates($segment))
+                ->setRelevance($this->calculateRelevance($index, $segmentCount))
+                ->setRationale($this->buildRationale($segment));
         }
 
         return $points;
+    }
+
+    public function consolidateIdeaPoints(Idea $idea, array $points): ConsolidationResult
+    {
+        return (new ConsolidationResult)
+            ->setPoints($points);
     }
 
     /**
@@ -63,4 +73,22 @@ class BasicResearcherDriver extends ResearcherService
         return array_slice($sentences, 0, 3);
     }
 
+    protected function calculateRelevance(int $index, int $segmentCount): float
+    {
+        if ($segmentCount <= 1) {
+            return 1.0;
+        }
+
+        $step = 0.4 / max(1, $segmentCount - 1);
+        $score = 1.0 - ($index * $step);
+
+        return max(0.6, round($score, 2));
+    }
+
+    protected function buildRationale(string $segment): string
+    {
+        $snippet = mb_substr(trim($segment), 0, 180);
+
+        return "This segment contains direct evidence tied to the idea context: {$snippet}";
+    }
 }

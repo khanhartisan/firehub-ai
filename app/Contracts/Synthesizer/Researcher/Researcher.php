@@ -2,7 +2,6 @@
 
 namespace App\Contracts\Synthesizer\Researcher;
 
-use App\Contracts\CommonData\Point;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 
 interface Researcher
@@ -12,7 +11,16 @@ interface Researcher
      *
      * @param Idea $idea
      * @param string $content
-     * @return Point[]
+     * @return RelevantPoint[]
      */
     public function extractIdeaPoints(Idea $idea, string $content): array;
+
+    /**
+     * Merge points or spot ones with conflicts
+     *
+     * @param Idea $idea
+     * @param RelevantPoint[] $points
+     * @return ConsolidationResult
+     */
+    public function consolidateIdeaPoints(Idea $idea, array $points): ConsolidationResult;
 }

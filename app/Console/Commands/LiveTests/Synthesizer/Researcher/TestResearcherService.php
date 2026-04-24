@@ -2,9 +2,11 @@
 
 namespace App\Console\Commands\LiveTests\Synthesizer\Researcher;
 
-use App\Contracts\CommonData\Point;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
+use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Contracts\Synthesizer\Researcher\Researcher;
 use App\Enums\IntentType;
 use App\Enums\Language;
@@ -29,13 +31,20 @@ class TestResearcherService extends Command
         }
 
         [$researcher, $sourceLabel] = $resolution;
+        $mode = $this->choice(
+            'Which researcher function do you want to test?',
+            [
+                'extractIdeaPoints',
+                'consolidateIdeaPoints (simulated input)',
+            ],
+            0
+        );
 
         $title = (string) $this->ask('Idea title', 'AI copilots: adoption patterns in product teams');
         $description = (string) $this->ask(
             'Idea description',
             'Practical analysis of adoption, governance, and ROI trade-offs.'
         );
-        $content = (string) $this->ask('Input content', $this->defaultContent());
 
         $idea = $this->makeIdea($title, $description);
 
@@ -44,8 +53,20 @@ class TestResearcherService extends Command
         $this->line('-----');
 
         try {
-            $points = $this->timedCall('extractIdeaPoints', fn () => $researcher->extractIdeaPoints($idea, $content));
-            $this->displayPoints($points);
+            if (str_starts_with($mode, 'extractIdeaPoints')) {
+                $content = (string) $this->ask('Input content', $this->defaultContent());
+                $points = $this->timedCall('extractIdeaPoints', fn () => $researcher->extractIdeaPoints($idea, $content));
+                $this->displayPoints($points);
+            } else {
+                $simulatedPoints = $this->makeSimulatedRelevantPoints();
+                $this->info(sprintf('Using %d simulated relevant points for consolidation.', count($simulatedPoints)));
+                $this->displayPoints($simulatedPoints);
+                $consolidation = $this->timedCall(
+                    'consolidateIdeaPoints',
+                    fn () => $researcher->consolidateIdeaPoints($idea, $simulatedPoints)
+                );
+                $this->displayConsolidationResult($consolidation);
+            }
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
@@ -162,12 +183,12 @@ TEXT;
     }
 
     /**
-     * @param  list<Point>  $points
+     * @param  list<RelevantPoint>  $points
      */
     private function displayPoints(array $points): void
     {
         if ($points === []) {
-            $this->warn('No idea points returned.');
+            $this->warn('No relevant points returned.');
 
             return;
         }
@@ -175,10 +196,10 @@ TEXT;
         $this->table(
             ['#', 'headline', 'relevance', 'evidences'],
             array_map(
-                static fn (Point $item, int $index): array => [
+                static fn (RelevantPoint $item, int $index): array => [
                     (string) ($index + 1),
                     Str::limit((string) ($item->getHeadline() ?? ''), 72),
-                    '—',
+                    (string) ($item->getRelevance() ?? '—'),
                     (string) count($item->getEvidences()),
                 ],
                 $points,
@@ -190,10 +211,94 @@ TEXT;
             $this->newLine();
             $this->comment('Point '.($index + 1).': '.($item->getHeadline() ?? '(no headline)'));
             $this->line(Str::limit((string) ($item->getDescription() ?? ''), 800));
+            $this->line('Rationale: '.($item->getRationale() ?? '—'));
 
             foreach ($item->getEvidences() as $i => $evidence) {
                 $this->line('- Evidence '.($i+1).': '.$evidence);
             }
         }
+    }
+
+    private function displayConsolidationResult(ConsolidationResult $result): void
+    {
+        $this->newLine();
+        $this->info('Consolidation result');
+        $this->line('-----');
+
+        $points = $result->getPoints();
+        $conflicts = $result->getConflicts();
+
+        $this->info(sprintf('Resolved points: %d | Conflicts: %d', count($points), count($conflicts)));
+
+        if ($points !== []) {
+            $this->newLine();
+            $this->comment('Resolved points');
+            $this->displayPoints($points);
+        }
+
+        if ($conflicts !== []) {
+            $this->newLine();
+            $this->comment('Conflicts');
+            foreach ($conflicts as $index => $conflict) {
+                if (! $conflict instanceof ConflictedPoints) {
+                    continue;
+                }
+
+                $this->newLine();
+                $this->line('Conflict '.($index + 1).': '.($conflict->getRationale() ?? 'No rationale'));
+                $this->displayPoints($conflict->getPoints());
+            }
+        }
+    }
+
+    /**
+     * @return list<RelevantPoint>
+     */
+    private function makeSimulatedRelevantPoints(): array
+    {
+        return [
+            (new RelevantPoint)
+                ->setHeadline('AI copilot adoption is accelerating')
+                ->setDescription('Weekly usage grew substantially year-over-year across surveyed teams.')
+                ->setEvidences(['68% weekly usage in 2026 vs 41% in Q2 2025'])
+                ->setRationale('Indicates strong market pull and mainstream adoption momentum.')
+                ->setRelevance(0.92),
+            (new RelevantPoint)
+                ->setHeadline('Productivity gains vary by team size')
+                ->setDescription('Smaller teams report larger gains than enterprise-size teams.')
+                ->setEvidences(['<20 engineers: 1.9x gain', '>100 engineers: 1.2x gain'])
+                ->setRationale('Shows ROI heterogeneity and implementation constraints.')
+                ->setRelevance(0.86),
+            (new RelevantPoint)
+                ->setHeadline('Reported ROI is consistently above 1.8x')
+                ->setDescription('Some reports claim nearly 2x overall productivity improvements.')
+                ->setEvidences(['Vendor benchmark estimates near 2x ROI'])
+                ->setRationale('Supports a strong-value narrative for broad rollout.')
+                ->setRelevance(0.73),
+            (new RelevantPoint)
+                ->setHeadline('Large enterprises see only modest gains')
+                ->setDescription('Independent studies report overall gains closer to 1.1x in large organizations.')
+                ->setEvidences(['Independent benchmark: median gain ~1.1x in large enterprises'])
+                ->setRationale('Directly challenges optimistic ROI assumptions and suggests context dependence.')
+                ->setRelevance(0.74),
+            (new RelevantPoint)
+                ->setHeadline('Cost controls are becoming mandatory')
+                ->setDescription('Finance teams often enforce caps and approval workflows for model usage.')
+                ->setEvidences(['Monthly spend increased from $18k to $46k', '57% introduced usage caps'])
+                ->setRationale('Cost pressure is a primary blocker despite rising adoption.')
+                ->setRelevance(0.84),
+            (new RelevantPoint)
+                ->setHeadline('Unit economics improve after broad rollout')
+                ->setDescription('Several case studies show per-user cost declining after wider internal adoption.')
+                ->setEvidences(['Case studies show lower cost per active user after scaling'])
+                ->setRationale('Potentially conflicts with pure cost-pressure narratives depending on measurement window.')
+                ->setRelevance(0.72),
+            (new RelevantPoint)
+                ->setHeadline('Governance requirements moved earlier in buying cycle')
+                ->setDescription('Security and legal checks are now required before pilot approval in many orgs.')
+                ->setEvidences(['72% required data retention and regional-processing terms pre-pilot'])
+                ->setRationale('Highlights risk/compliance gatekeeping as part of adoption strategy.')
+                ->setRelevance(0.81),
+        ];
     }
 }

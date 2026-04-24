@@ -15,6 +15,7 @@ use App\Contracts\Synthesizer\IdeaForge\IdeaPicker;
 use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
+use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
 use App\Contracts\Synthesizer\Researcher\Researcher;
 use App\Services\Synthesizer\SynthesizerService;
 use Tests\TestCase;
@@ -140,6 +141,11 @@ class SynthesizerServiceTest extends TestCase
             public function extractIdeaPoints(Idea $idea, string $content): array
             {
                 return [];
+            }
+
+            public function consolidateIdeaPoints(Idea $idea, array $points): ConsolidationResult
+            {
+                return new ConsolidationResult;
             }
         };
     }

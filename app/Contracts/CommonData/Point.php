@@ -6,7 +6,7 @@ use App\Contracts\CommonData\Concerns\HasVerification;
 use App\Contracts\FactChecker\FactCheckable;
 use App\Contracts\Serializable;
 
-final class Point implements FactCheckable, Serializable
+class Point implements FactCheckable, Serializable
 {
     use HasVerification;
     use \App\Concerns\Serializable;

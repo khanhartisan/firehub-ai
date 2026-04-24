@@ -4,6 +4,8 @@ namespace Tests\Unit\Services\Synthesizer\Researcher;
 
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
 use App\Enums\IntentType;
 use App\Enums\Language;
@@ -29,8 +31,11 @@ TEXT;
         $rows = $result;
 
         $this->assertCount(3, $rows);
+        $this->assertInstanceOf(RelevantPoint::class, $rows[0]);
         $this->assertNotNull($rows[0]->getHeadline());
         $this->assertNotEmpty($rows[0]->getEvidences());
+        $this->assertNotNull($rows[0]->getRationale());
+        $this->assertGreaterThanOrEqual(0.6, (float) $rows[2]->getRelevance());
     }
 
     public function test_basic_researcher_returns_empty_collection_for_blank_content(): void
@@ -41,6 +46,34 @@ TEXT;
         $result = $driver->extractIdeaPoints($idea, " \n\t ");
 
         $this->assertSame([], $result);
+    }
+
+    public function test_basic_researcher_consolidate_returns_result_with_same_points_and_no_conflicts(): void
+    {
+        $driver = new BasicResearcherDriver;
+        $idea = new Idea($this->makeIntent(), 0.8, 'Consolidation test');
+        $input = [
+            (new RelevantPoint)
+                ->setHeadline('Point A')
+                ->setDescription('Description A')
+                ->setEvidences(['Evidence A'])
+                ->setRationale('Rationale A')
+                ->setRelevance(0.9),
+            (new RelevantPoint)
+                ->setHeadline('Point B')
+                ->setDescription('Description B')
+                ->setEvidences(['Evidence B'])
+                ->setRationale('Rationale B')
+                ->setRelevance(0.7),
+        ];
+
+        $result = $driver->consolidateIdeaPoints($idea, $input);
+
+        $this->assertInstanceOf(ConsolidationResult::class, $result);
+        $this->assertCount(2, $result->getPoints());
+        $this->assertSame('Point A', $result->getPoints()[0]->getHeadline());
+        $this->assertSame('Point B', $result->getPoints()[1]->getHeadline());
+        $this->assertSame([], $result->getConflicts());
     }
 
     protected function makeIntent(): Intent

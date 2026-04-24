@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\IntentResolver;
+namespace App\Contracts\CommonData\Concerns;
 
 trait HasRelevance
 {
@@ -21,17 +21,19 @@ trait HasRelevance
         return $this;
     }
 
-    protected static function parseRelevance(self $instance, array $data): void
+    protected function hydrateRelevance(array $data): static
     {
         if (array_key_exists('relevance', $data)) {
             $relevance = $data['relevance'];
             if ($relevance === null) {
-                $instance->setRelevance(null);
+                $this->setRelevance(null);
             } elseif (is_int($relevance) || is_float($relevance)) {
-                $instance->setRelevance((float) $relevance);
+                $this->setRelevance((float) $relevance);
             } elseif (is_string($relevance) && is_numeric($relevance)) {
-                $instance->setRelevance((float) $relevance);
+                $this->setRelevance((float) $relevance);
             }
         }
+
+        return $this;
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Contracts\Synthesizer\Researcher;
 
-use App\Contracts\CommonData\Point;
 use App\Contracts\Serializable;
 
 final class ConsolidationResult implements Serializable
@@ -10,24 +9,24 @@ final class ConsolidationResult implements Serializable
     use \App\Concerns\Serializable;
 
     /**
-     * @var Point[]
+     * @var RelevantPoint[]
      */
     protected array $points = [];
 
     /**
-     * @var ConflictedIdeaPoints[]
+     * @var ConflictedPoints[]
      */
     protected array $conflicts = [];
 
     /**
-     * @return Point[]
+     * @return RelevantPoint[]
      */
     public function getPoints(): array
     {
         return $this->points;
     }
 
-    public function addPoint(Point $point): static
+    public function addPoint(RelevantPoint $point): static
     {
         $this->points[] = $point;
 
@@ -35,18 +34,18 @@ final class ConsolidationResult implements Serializable
     }
 
     /**
-     * @param  Point[]  $points
+     * @param  RelevantPoint[]  $points
      */
     public function setPoints(array $points): static
     {
         $this->points = [];
         foreach ($points as $index => $point) {
-            if (! $point instanceof Point) {
+            if (! $point instanceof RelevantPoint) {
                 throw new \InvalidArgumentException(
                     sprintf(
                         'points[%s] must be an instance of %s, %s given.',
                         $index,
-                        Point::class,
+                        RelevantPoint::class,
                         get_debug_type($point)
                     )
                 );
@@ -63,14 +62,14 @@ final class ConsolidationResult implements Serializable
         if (isset($data['points']) && is_array($data['points'])) {
             $hydratedPoints = [];
             foreach ($data['points'] as $row) {
-                if ($row instanceof Point) {
+                if ($row instanceof RelevantPoint) {
                     $hydratedPoints[] = $row;
 
                     continue;
                 }
 
                 if (is_array($row)) {
-                    $hydratedPoints[] = Point::fromArray($row);
+                    $hydratedPoints[] = RelevantPoint::fromArray($row);
                 }
             }
 
@@ -81,14 +80,14 @@ final class ConsolidationResult implements Serializable
     }
 
     /**
-     * @return ConflictedIdeaPoints[]
+     * @return ConflictedPoints[]
      */
     public function getConflicts(): array
     {
         return $this->conflicts;
     }
 
-    public function addConflict(ConflictedIdeaPoints $conflict): static
+    public function addConflict(ConflictedPoints $conflict): static
     {
         $this->conflicts[] = $conflict;
 
@@ -96,18 +95,18 @@ final class ConsolidationResult implements Serializable
     }
 
     /**
-     * @param  ConflictedIdeaPoints[]  $conflicts
+     * @param  ConflictedPoints[]  $conflicts
      */
     public function setConflicts(array $conflicts): static
     {
         $this->conflicts = [];
         foreach ($conflicts as $index => $conflict) {
-            if (! $conflict instanceof ConflictedIdeaPoints) {
+            if (! $conflict instanceof ConflictedPoints) {
                 throw new \InvalidArgumentException(
                     sprintf(
                         'conflicts[%s] must be an instance of %s, %s given.',
                         $index,
-                        ConflictedIdeaPoints::class,
+                        ConflictedPoints::class,
                         get_debug_type($conflict)
                     )
                 );
@@ -119,19 +118,22 @@ final class ConsolidationResult implements Serializable
         return $this;
     }
 
+    /**
+     * @throws \Exception
+     */
     public function hydrateConflicts(array $data): static
     {
         if (isset($data['conflicts']) && is_array($data['conflicts'])) {
             $hydratedConflicts = [];
             foreach ($data['conflicts'] as $row) {
-                if ($row instanceof ConflictedIdeaPoints) {
+                if ($row instanceof ConflictedPoints) {
                     $hydratedConflicts[] = $row;
 
                     continue;
                 }
 
                 if (is_array($row)) {
-                    $hydratedConflicts[] = ConflictedIdeaPoints::fromArray($row);
+                    $hydratedConflicts[] = ConflictedPoints::fromArray($row);
                 }
             }
 
@@ -145,11 +147,11 @@ final class ConsolidationResult implements Serializable
     {
         return [
             'points' => array_map(
-                static fn (Point $point): array => $point->toArray(),
+                static fn (RelevantPoint $point): array => $point->toArray(),
                 $this->getPoints()
             ),
             'conflicts' => array_map(
-                static fn (ConflictedIdeaPoints $conflict): array => $conflict->toArray(),
+                static fn (ConflictedPoints $conflict): array => $conflict->toArray(),
                 $this->getConflicts()
             ),
         ];

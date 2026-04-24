@@ -3,6 +3,7 @@
 namespace App\Contracts\IntentResolver;
 
 use App\Concerns\Serializable as SerializableTrait;
+use App\Contracts\CommonData\Concerns\HasRelevance;
 use App\Contracts\Serializable;
 
 /**
@@ -63,8 +64,6 @@ final class IntentableIntent implements Serializable
             $instance->setIntentable(Intentable::fromArray($data['intentable']));
         }
 
-        static::parseRelevance($instance, $data);
-
-        return $instance;
+        return $instance->hydrateRelevance($data);
     }
 }

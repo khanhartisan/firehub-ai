@@ -65,7 +65,7 @@ class OpenAIOutlineBuilderDriver extends OutlineBuilderService
 
     protected function getMaxDepth(): int
     {
-        return max(1, min(4, (int) ($this->config['max_depth'] ?? 2)));
+        return max(1, min(6, (int) ($this->config['max_depth'] ?? 6)));
     }
 
     /**
@@ -95,9 +95,10 @@ class OpenAIOutlineBuilderDriver extends OutlineBuilderService
 You are an editorial outline planner.
 
 Given a writing brief and optional semantic context, generate a clear hierarchical article outline:
-- Use concise section headings.
-- Provide short brief descriptions for each section.
-- Add actionable instructions for each section.
+- Use concise section headings in point.headline.
+- Provide short section summaries in point.description.
+- Keep supporting facts/snippets in point.evidences.
+- Put writing directives in guidelines (not in evidences).
 - Keep structure logical and avoid duplication.
 - Ground key section instructions in "semantic_context" when present.
 - If "semantic_context.researched_points" is provided, use it as the primary evidence base:
@@ -119,18 +120,32 @@ PROMPT;
     {
         $itemSchema = [
             'type' => 'object',
+            'description' => 'One outline section containing a core point, writing guidelines, and optional nested sub-points.',
             'properties' => [
                 'point' => $this->buildRelevantPointSchema(),
+                'guidelines' => [
+                    'type' => 'array',
+                    'description' => 'Actionable writing directives for this section (style, emphasis, structure, caveats).',
+                    'items' => ['type' => 'string'],
+                ],
                 'sub_points' => [
                     'type' => 'array',
+                    'description' => 'Supporting child points that should appear under this section.',
                     'maxItems' => $this->getMaxItems(),
                     'items' => $depth >= $this->getMaxDepth()
                         ? [
                             'type' => 'object',
+                            'description' => 'Leaf-level outline section where no additional nesting is allowed.',
                             'properties' => [
                                 'point' => $this->buildRelevantPointSchema(),
+                                'guidelines' => [
+                                    'type' => 'array',
+                                    'description' => 'Actionable writing directives for this leaf section.',
+                                    'items' => ['type' => 'string'],
+                                ],
                                 'sub_points' => [
                                     'type' => 'array',
+                                    'description' => 'Must be empty at leaf depth.',
                                     'maxItems' => 0,
                                     'items' => [
                                         'type' => 'object',
@@ -140,24 +155,28 @@ PROMPT;
                                     ],
                                 ],
                             ],
-                            'required' => ['point', 'sub_points'],
+                            'required' => ['point', 'guidelines', 'sub_points'],
                             'additionalProperties' => false,
                         ]
                         : $this->buildItemSchema($depth + 1),
                 ],
             ],
-            'required' => ['point', 'sub_points'],
+            'required' => ['point', 'guidelines', 'sub_points'],
             'additionalProperties' => false,
         ];
 
         return [
             'type' => 'object',
             'properties' => $properties = [
-                'title' => ['type' => 'string'],
+                'title' => [
+                    'type' => 'string',
+                    'description' => 'Article outline title. Prefer concise, publication-ready phrasing.',
+                ],
                 'items' => [
                     'type' => 'array',
                     'minItems' => 1,
                     'maxItems' => $this->getMaxItems(),
+                    'description' => 'Top-level ordered outline sections.',
                     'items' => $itemSchema,
                 ],
             ],
@@ -173,18 +192,32 @@ PROMPT;
     {
         $schema = [
             'type' => 'object',
+            'description' => 'One nested outline section.',
             'properties' => [
                 'point' => $this->buildRelevantPointSchema(),
+                'guidelines' => [
+                    'type' => 'array',
+                    'description' => 'Actionable writing directives for this section.',
+                    'items' => ['type' => 'string'],
+                ],
                 'sub_points' => [
                     'type' => 'array',
+                    'description' => 'Supporting child points for this section.',
                     'maxItems' => $this->getMaxItems(),
                     'items' => $depth >= $this->getMaxDepth()
                         ? [
                             'type' => 'object',
+                            'description' => 'Leaf-level nested section where no additional nesting is allowed.',
                             'properties' => [
                                 'point' => $this->buildRelevantPointSchema(),
+                                'guidelines' => [
+                                    'type' => 'array',
+                                    'description' => 'Actionable writing directives for this leaf section.',
+                                    'items' => ['type' => 'string'],
+                                ],
                                 'sub_points' => [
                                     'type' => 'array',
+                                    'description' => 'Must be empty at leaf depth.',
                                     'maxItems' => 0,
                                     'items' => [
                                         'type' => 'object',
@@ -194,13 +227,13 @@ PROMPT;
                                     ],
                                 ],
                             ],
-                            'required' => ['point', 'sub_points'],
+                            'required' => ['point', 'guidelines', 'sub_points'],
                             'additionalProperties' => false,
                         ]
                         : $this->buildItemSchema($depth + 1),
                 ],
             ],
-            'required' => ['point', 'sub_points'],
+            'required' => ['point', 'guidelines', 'sub_points'],
             'additionalProperties' => false,
         ];
 
@@ -235,6 +268,7 @@ PROMPT;
 
             $item = (new OutlineItem)
                 ->setPoint($point)
+                ->setGuidelines($this->normalizeGuidelines($row['guidelines'] ?? []))
                 ->setSubPoints($this->hydrateSubPoints($row['sub_points'] ?? []));
 
             $items[] = $item;
@@ -273,25 +307,58 @@ PROMPT;
     }
 
     /**
+     * @param  mixed  $rawGuidelines
+     * @return list<string>
+     */
+    protected function normalizeGuidelines(mixed $rawGuidelines): array
+    {
+        if (! is_array($rawGuidelines)) {
+            return [];
+        }
+
+        $guidelines = [];
+        foreach ($rawGuidelines as $line) {
+            $text = trim((string) $line);
+            if ($text !== '') {
+                $guidelines[] = $text;
+            }
+        }
+
+        return array_values(array_unique($guidelines));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function buildRelevantPointSchema(): array
     {
         return [
             'type' => 'object',
+            'description' => 'Core point data for an outline section.',
             'properties' => [
-                'headline' => ['type' => 'string'],
-                'description' => ['type' => ['string', 'null']],
+                'headline' => [
+                    'type' => 'string',
+                    'description' => 'Short, clear section heading that states the key idea.',
+                ],
+                'description' => [
+                    'type' => ['string', 'null'],
+                    'description' => 'Brief summary of what the section should cover.',
+                ],
                 'evidences' => [
                     'type' => 'array',
+                    'description' => 'Facts, supporting details, or source-grounded snippets to include in this section.',
                     'items' => ['type' => 'string'],
                 ],
                 'relevance' => [
                     'type' => ['number', 'null'],
                     'minimum' => 0,
                     'maximum' => 1,
+                    'description' => 'Optional relevance score for this point relative to the brief/context (0..1).',
                 ],
-                'rationale' => ['type' => ['string', 'null']],
+                'rationale' => [
+                    'type' => ['string', 'null'],
+                    'description' => 'Optional short reason why this point is strategically useful.',
+                ],
             ],
             'required' => ['headline', 'description', 'evidences', 'relevance', 'rationale'],
             'additionalProperties' => false,

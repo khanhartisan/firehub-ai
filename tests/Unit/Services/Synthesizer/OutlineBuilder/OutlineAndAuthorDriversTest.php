@@ -34,7 +34,7 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertSame('Main insights', $outline->getItems()[1]->getPoint()->getHeadline());
         $this->assertContains(
             'Use context "editorial_angle": "Add trade-offs section"',
-            $outline->getItems()[1]->getPoint()->getEvidences()
+            $outline->getItems()[1]->getGuidelines()
         );
     }
 
@@ -84,6 +84,7 @@ class OutlineAndAuthorDriversTest extends TestCase
                         'relevance' => 0.9,
                         'rationale' => 'High value context for the audience.',
                     ],
+                    'guidelines' => ['Keep sections concise', 'Lead with practical implications'],
                     'sub_points' => [
                         [
                             'headline' => 'Product launches',
@@ -127,6 +128,7 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertSame('AI weekly deep dive', $outline->getTitle());
         $this->assertCount(1, $outline->getItems());
         $this->assertSame('Market snapshot', $outline->getItems()[0]->getPoint()->getHeadline());
+        $this->assertContains('Keep sections concise', $outline->getItems()[0]->getGuidelines());
         $this->assertCount(1, $outline->getItems()[0]->getSubPoints());
         $this->assertSame('Product launches', $outline->getItems()[0]->getSubPoints()[0]->getHeadline());
     }

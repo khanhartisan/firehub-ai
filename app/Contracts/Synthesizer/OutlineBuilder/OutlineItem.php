@@ -20,6 +20,11 @@ final class OutlineItem implements Serializable
      */
     protected array $subPoints = [];
 
+    /**
+     * @var string[]
+     */
+    protected array $guidelines = [];
+
     public function __construct()
     {
         $this->point = new RelevantPoint;
@@ -68,6 +73,39 @@ final class OutlineItem implements Serializable
     }
 
     /**
+     * @return string[]
+     */
+    public function getGuidelines(): array
+    {
+        return $this->guidelines;
+    }
+
+    /**
+     * @param  string[]  $guidelines
+     */
+    public function setGuidelines(array $guidelines): static
+    {
+        $this->guidelines = [];
+        foreach ($guidelines as $line) {
+            $this->addGuideline((string) $line);
+        }
+
+        return $this;
+    }
+
+    public function addGuideline(string $guideline): static
+    {
+        $guideline = trim($guideline);
+        if ($guideline === '') {
+            return $this;
+        }
+
+        $this->guidelines[] = $guideline;
+
+        return $this;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -75,6 +113,7 @@ final class OutlineItem implements Serializable
         return [
             'point' => $this->getPoint()->toArray(),
             'sub_points' => array_map(static fn (RelevantPoint $point) => $point->toArray(), $this->getSubPoints()),
+            'guidelines' => $this->getGuidelines(),
         ];
     }
 
@@ -97,6 +136,10 @@ final class OutlineItem implements Serializable
                 }
             }
             $item->setSubPoints($subPoints);
+        }
+
+        if (isset($data['guidelines']) && is_array($data['guidelines'])) {
+            $item->setGuidelines($data['guidelines']);
         }
 
         return $item;

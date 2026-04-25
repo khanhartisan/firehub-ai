@@ -267,12 +267,22 @@ CTX;
                 $this->line($indent.'   Brief: '.Str::limit($brief, 240));
             }
 
-            foreach ($point->getEvidences() as $instructionIndex => $instruction) {
+            $guidelines = $item->getGuidelines();
+            foreach ($guidelines as $instructionIndex => $instruction) {
                 $this->line(sprintf(
-                    '%s   - Instruction %d: %s',
+                    '%s   - Guideline %d: %s',
                     $indent,
                     $instructionIndex + 1,
                     Str::limit($instruction, 260)
+                ));
+            }
+
+            foreach ($point->getEvidences() as $evidenceIndex => $evidence) {
+                $this->line(sprintf(
+                    '%s   - Evidence %d: %s',
+                    $indent,
+                    $evidenceIndex + 1,
+                    Str::limit($evidence, 260)
                 ));
             }
 

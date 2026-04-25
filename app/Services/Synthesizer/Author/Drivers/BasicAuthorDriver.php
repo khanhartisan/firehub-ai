@@ -15,7 +15,10 @@ class BasicAuthorDriver extends AuthorService
         foreach ($outline->getItems() as $item) {
             $point = $item->getPoint();
             $body = trim((string) $point->getDescription());
-            $instructions = $point->getEvidences();
+            $instructions = $item->getGuidelines();
+            if ($instructions === []) {
+                $instructions = $point->getEvidences();
+            }
             if ($instructions !== []) {
                 $body .= "\n\n".'- '.implode("\n- ", $instructions);
             }

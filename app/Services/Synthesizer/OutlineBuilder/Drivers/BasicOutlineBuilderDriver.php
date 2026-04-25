@@ -18,27 +18,30 @@ class BasicOutlineBuilderDriver extends OutlineBuilderService
         $introPoint = (new RelevantPoint)
             ->setHeadline('Introduction')
             ->setDescription('Set context and define the key problem.')
-            ->setEvidences(['Use 1-2 short paragraphs.']);
+            ->setEvidences([]);
         $intro = (new OutlineItem)
-            ->setPoint($introPoint);
+            ->setPoint($introPoint)
+            ->setGuidelines(['Use 1-2 short paragraphs.']);
 
         $bodyPoint = (new RelevantPoint)
             ->setHeadline('Main insights')
             ->setDescription($brief->getDescription())
-            ->setEvidences(array_merge(
+            ->setEvidences([]);
+        $body = (new OutlineItem)
+            ->setPoint($bodyPoint)
+            ->setGuidelines(array_merge(
                 ['Prioritize practical takeaways.'],
                 $brief->getInstructions(),
                 $this->contextToInstructions($context)
             ));
-        $body = (new OutlineItem)
-            ->setPoint($bodyPoint);
 
         $conclusionPoint = (new RelevantPoint)
             ->setHeadline('Conclusion')
             ->setDescription('Summarize and recommend next steps.')
-            ->setEvidences(['Close with a concrete action.']);
+            ->setEvidences([]);
         $conclusion = (new OutlineItem)
-            ->setPoint($conclusionPoint);
+            ->setPoint($conclusionPoint)
+            ->setGuidelines(['Close with a concrete action.']);
 
         return (new Outline)
             ->setTitle($title)

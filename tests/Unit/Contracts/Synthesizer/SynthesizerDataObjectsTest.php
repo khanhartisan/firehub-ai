@@ -118,7 +118,8 @@ class SynthesizerDataObjectsTest extends TestCase
                     ->setHeadline('Key updates')
                     ->setDescription('Major model and pricing updates.')
                     ->setEvidences(['Keep to five bullets'])
-            );
+            )
+            ->setGuidelines(['Keep to five bullets']);
 
         $outline = (new Outline)
             ->setTitle('Weekly structure')
@@ -128,6 +129,7 @@ class SynthesizerDataObjectsTest extends TestCase
         $this->assertSame('Weekly structure', $restoredOutline->getTitle());
         $this->assertCount(1, $restoredOutline->getItems());
         $this->assertSame('Key updates', $restoredOutline->getItems()[0]->getPoint()->getHeadline());
+        $this->assertSame(['Keep to five bullets'], $restoredOutline->getItems()[0]->getGuidelines());
 
         $draft = (new Draft)
             ->setTitle('Draft title')

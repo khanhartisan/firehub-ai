@@ -37,6 +37,20 @@ final class ResearchStageData implements \App\Contracts\Serializable
      */
     protected array $conflicts = [];
 
+    /**
+     * Points resolved from conflicts and waiting for final consolidation pass.
+     *
+     * @var RelevantPoint[]
+     */
+    protected array $resolvedConflictedPoints = [];
+
+    /**
+     * Conflicts that could not be resolved with high-confidence facts.
+     *
+     * @var ConflictedPoints[]
+     */
+    protected array $unresolvableConflicts = [];
+
 
     /**
      * @return Keyword[]
@@ -171,6 +185,77 @@ final class ResearchStageData implements \App\Contracts\Serializable
         return $this;
     }
 
+    public function shiftConflict(): ?ConflictedPoints
+    {
+        return array_shift($this->conflicts);
+    }
+
+    /**
+     * @return RelevantPoint[]
+     */
+    public function getResolvedConflictedPoints(): array
+    {
+        return $this->resolvedConflictedPoints;
+    }
+
+    /**
+     * @param  RelevantPoint[]  $points
+     */
+    public function setResolvedConflictedPoints(array $points): static
+    {
+        $normalizedPoints = [];
+        foreach ($points as $point) {
+            if ($point instanceof RelevantPoint) {
+                $normalizedPoints[] = $point;
+            }
+        }
+
+        $this->resolvedConflictedPoints = array_values($normalizedPoints);
+
+        return $this;
+    }
+
+    public function addResolvedConflictedPoint(RelevantPoint $point): static
+    {
+        $points = $this->getResolvedConflictedPoints();
+        $points[] = $point;
+
+        return $this->setResolvedConflictedPoints($points);
+    }
+
+    /**
+     * @return ConflictedPoints[]
+     */
+    public function getUnresolvableConflicts(): array
+    {
+        return $this->unresolvableConflicts;
+    }
+
+    /**
+     * @param  ConflictedPoints[]  $conflicts
+     */
+    public function setUnresolvableConflicts(array $conflicts): static
+    {
+        $normalizedConflicts = [];
+        foreach ($conflicts as $conflict) {
+            if ($conflict instanceof ConflictedPoints) {
+                $normalizedConflicts[] = $conflict;
+            }
+        }
+
+        $this->unresolvableConflicts = array_values($normalizedConflicts);
+
+        return $this;
+    }
+
+    public function addUnresolvableConflict(ConflictedPoints $conflict): static
+    {
+        $conflicts = $this->getUnresolvableConflicts();
+        $conflicts[] = $conflict;
+
+        return $this->setUnresolvableConflicts($conflicts);
+    }
+
     public function removePagePoints(string $url): static
     {
         $canonicalUrl = UrlNormalizer::normalize($url);
@@ -201,6 +286,14 @@ final class ResearchStageData implements \App\Contracts\Serializable
             'conflicts' => array_map(
                 static fn (ConflictedPoints $conflict): array => $conflict->toArray(),
                 $this->getConflicts()
+            ),
+            'resolved_conflicted_points' => array_map(
+                static fn (RelevantPoint $point): array => $point->toArray(),
+                $this->getResolvedConflictedPoints()
+            ),
+            'unresolvable_conflicts' => array_map(
+                static fn (ConflictedPoints $conflict): array => $conflict->toArray(),
+                $this->getUnresolvableConflicts()
             ),
         ];
     }
@@ -277,6 +370,36 @@ final class ResearchStageData implements \App\Contracts\Serializable
                 }
             }
             $dto->setConflicts($conflicts);
+        }
+
+        if (isset($data['resolved_conflicted_points']) && is_array($data['resolved_conflicted_points'])) {
+            $resolvedPoints = [];
+            foreach ($data['resolved_conflicted_points'] as $row) {
+                if ($row instanceof RelevantPoint) {
+                    $resolvedPoints[] = $row;
+                    continue;
+                }
+
+                if (is_array($row)) {
+                    $resolvedPoints[] = RelevantPoint::fromArray($row);
+                }
+            }
+            $dto->setResolvedConflictedPoints($resolvedPoints);
+        }
+
+        if (isset($data['unresolvable_conflicts']) && is_array($data['unresolvable_conflicts'])) {
+            $unresolvableConflicts = [];
+            foreach ($data['unresolvable_conflicts'] as $row) {
+                if ($row instanceof ConflictedPoints) {
+                    $unresolvableConflicts[] = $row;
+                    continue;
+                }
+
+                if (is_array($row)) {
+                    $unresolvableConflicts[] = ConflictedPoints::fromArray($row);
+                }
+            }
+            $dto->setUnresolvableConflicts($unresolvableConflicts);
         }
 
         return $dto;

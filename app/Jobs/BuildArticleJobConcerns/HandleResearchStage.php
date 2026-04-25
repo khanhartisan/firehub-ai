@@ -3,6 +3,7 @@
 namespace App\Jobs\BuildArticleJobConcerns;
 
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchStageConflictResolution;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchStageConsolidation;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchStageKeywordBootstrap;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchStageKeywordTracking;
@@ -15,6 +16,7 @@ trait HandleResearchStage
     use HandleResearchStageKeywordTracking;
     use HandleResearchStagePointExtraction;
     use HandleResearchStageConsolidation;
+    use HandleResearchStageConflictResolution;
 
     protected function handleResearchStage(): ?bool
     {
@@ -46,6 +48,18 @@ trait HandleResearchStage
         $didConsolidateOnePage = $this->consolidateAccumulatedPoints($pickedIdea);
         if ($didConsolidateOnePage) {
             // Consolidate incrementally so each run stays bounded.
+            return null;
+        }
+
+        $didResolveOneConflict = $this->resolveOneConflict($pickedIdea);
+        if ($didResolveOneConflict) {
+            // Resolve conflicts incrementally after consolidation completes.
+            return null;
+        }
+
+        $didConsolidateResolvedConflicts = $this->consolidateResolvedConflictPoints($pickedIdea);
+        if ($didConsolidateResolvedConflicts) {
+            // Re-merge newly resolved points into central points/conflicts.
             return null;
         }
 

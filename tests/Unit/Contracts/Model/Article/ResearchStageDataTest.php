@@ -51,7 +51,9 @@ class ResearchStageDataTest extends TestCase
             ])
             ->setPagePoints('https://example.com/page-1/', $points)
             ->setPoints($points)
-            ->setConflicts([$conflict]);
+            ->setConflicts([$conflict])
+            ->setResolvedConflictedPoints($points)
+            ->setUnresolvableConflicts([$conflict]);
 
         $restored = StageData::fromArray($stageData->toArray());
         $research = $restored->getResearchStageData();
@@ -66,6 +68,8 @@ class ResearchStageDataTest extends TestCase
         $this->assertCount(1, $research->getPoints());
         $this->assertCount(1, $research->getConflicts());
         $this->assertSame('ROI magnitude differs across sources.', $research->getConflicts()[0]->getRationale());
+        $this->assertCount(1, $research->getResolvedConflictedPoints());
+        $this->assertCount(1, $research->getUnresolvableConflicts());
     }
 
     protected function makeIntent(): Intent

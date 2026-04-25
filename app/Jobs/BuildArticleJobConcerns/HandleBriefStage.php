@@ -26,6 +26,13 @@ trait HandleBriefStage
             return false;
         }
 
+        // Add researched points to the context
+        $context->set(
+            'researched_points',
+            'A list of researched points that related to the given idea',
+            $this->getStageData()->getResearchStageData()->getPoints()
+        );
+
         $brief = $this->synthesizer()
             ->getBriefBuilder()
             ->conceive($idea, $context);

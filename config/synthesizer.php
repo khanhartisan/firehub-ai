@@ -2,6 +2,7 @@
 
 use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
+use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriver;
@@ -88,7 +89,7 @@ return [
                 'driver' => OpenAIResearcherDriver::class,
             ],
             'brief_builder' => [
-                'driver' => BasicBriefBuilderDriver::class,
+                'driver' => OpenAIBriefBuilderDriver::class,
             ],
             'outline_builder' => [
                 'driver' => BasicOutlineBuilderDriver::class,
@@ -157,6 +158,21 @@ return [
         'model' => env('SYNTHESIZER_OPENAI_RESEARCHER_MODEL', 'gpt-4o-mini'),
         'temperature' => 0.2,
         'max_points' => 8,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI brief builder
+    |--------------------------------------------------------------------------
+    |
+    | Used by {@see OpenAIBriefBuilderDriver} (synthesizer driver "openai").
+    |
+    */
+
+    'openai_brief_builder' => [
+        'model' => env('SYNTHESIZER_OPENAI_BRIEF_BUILDER_MODEL', 'gpt-4o-mini'),
+        'temperature' => 0.2,
+        'max_instructions' => 6,
     ],
 
     /*

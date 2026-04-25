@@ -8,6 +8,7 @@ use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchS
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchStageKeywordBootstrap;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchStageKeywordTracking;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchStagePointExtraction;
+use App\Jobs\BuildArticleJobConcerns\HandleResearchStageConcerns\HandleResearchStagePointVerification;
 use Illuminate\Support\Collection;
 
 trait HandleResearchStage
@@ -17,6 +18,7 @@ trait HandleResearchStage
     use HandleResearchStagePointExtraction;
     use HandleResearchStageConsolidation;
     use HandleResearchStageConflictResolution;
+    use HandleResearchStagePointVerification;
 
     protected function handleResearchStage(): ?bool
     {
@@ -60,6 +62,18 @@ trait HandleResearchStage
         $didConsolidateResolvedConflicts = $this->consolidateResolvedConflictPoints($pickedIdea);
         if ($didConsolidateResolvedConflicts) {
             // Re-merge newly resolved points into central points/conflicts.
+            return null;
+        }
+
+        $didVerifyOnePoint = $this->verifyOnePendingPoint($pickedIdea);
+        if ($didVerifyOnePoint) {
+            // Verify central points incrementally.
+            return null;
+        }
+
+        $didRemoveLowConfidencePoints = $this->removeLowConfidencePoints();
+        if ($didRemoveLowConfidencePoints) {
+            // Prune low-confidence points after verification.
             return null;
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Contracts\CommonData;
 
+use App\Contracts\CommonData\Concerns\HasMeta;
 use App\Contracts\CommonData\Concerns\HasVerification;
 use App\Contracts\FactChecker\FactCheckable;
 use App\Contracts\Serializable;
@@ -9,6 +10,7 @@ use App\Contracts\Serializable;
 class Point implements FactCheckable, Serializable
 {
     use HasVerification;
+    use HasMeta;
     use \App\Concerns\Serializable;
 
     /**
@@ -97,6 +99,7 @@ class Point implements FactCheckable, Serializable
             'description' => $this->getDescription(),
             'evidences' => $this->getEvidences(),
             'verification' => $this->getVerification()?->toArray(),
+            'meta' => $this->getMeta(),
         ];
     }
 
@@ -116,6 +119,8 @@ class Point implements FactCheckable, Serializable
             $point->setEvidences($data['evidences']);
         }
 
-        return $point->hydrateVerification($data);
+        return $point
+            ->hydrateMeta($data)
+            ->hydrateVerification($data);
     }
 }

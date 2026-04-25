@@ -19,7 +19,7 @@ class PointTest extends TestCase
                     ->setIsValid(true)
                     ->setConfidence(0.86)
                     ->setReasoning('Cross-checked against primary sources.')
-            );
+            )->addMeta('source', 'test-source');
 
         $payload = $point->toArray();
 
@@ -31,6 +31,9 @@ class PointTest extends TestCase
                 'is_valid' => true,
                 'confidence' => 0.86,
                 'reasoning' => 'Cross-checked against primary sources.',
+            ],
+            'meta' => [
+                'source' => 'test-source',
             ],
         ], $payload);
     }

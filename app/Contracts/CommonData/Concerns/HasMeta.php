@@ -39,6 +39,12 @@ trait HasMeta
         return $this;
     }
 
+    public function flushMeta(): static
+    {
+        $this->meta = [];
+        return $this;
+    }
+
     public function hydrateMeta(array $data): static
     {
         if (isset($data['meta']) and is_array($data['meta'])) {

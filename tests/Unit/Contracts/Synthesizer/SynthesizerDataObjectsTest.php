@@ -13,6 +13,7 @@ use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Enums\ContentGoal;
 use App\Enums\ContentTone;
 use App\Enums\ContentVoice;
@@ -112,9 +113,12 @@ class SynthesizerDataObjectsTest extends TestCase
         $this->assertSame($restoredBrief->toArray(), $legacyRestoredBrief->toArray());
 
         $outlineItem = (new OutlineItem)
-            ->setHeading('Key updates')
-            ->setBrief('Major model and pricing updates.')
-            ->setInstructions(['Keep to five bullets']);
+            ->setPoint(
+                (new RelevantPoint)
+                    ->setHeadline('Key updates')
+                    ->setDescription('Major model and pricing updates.')
+                    ->setEvidences(['Keep to five bullets'])
+            );
 
         $outline = (new Outline)
             ->setTitle('Weekly structure')
@@ -123,7 +127,7 @@ class SynthesizerDataObjectsTest extends TestCase
         $restoredOutline = Outline::fromArray($outline->toArray());
         $this->assertSame('Weekly structure', $restoredOutline->getTitle());
         $this->assertCount(1, $restoredOutline->getItems());
-        $this->assertSame('Key updates', $restoredOutline->getItems()[0]->getHeading());
+        $this->assertSame('Key updates', $restoredOutline->getItems()[0]->getPoint()->getHeadline());
 
         $draft = (new Draft)
             ->setTitle('Draft title')

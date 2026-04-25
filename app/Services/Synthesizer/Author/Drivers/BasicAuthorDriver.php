@@ -13,13 +13,15 @@ class BasicAuthorDriver extends AuthorService
     {
         $sections = [];
         foreach ($outline->getItems() as $item) {
-            $body = trim((string) $item->getBrief());
-            $instructions = $item->getInstructions();
+            $point = $item->getPoint();
+            $body = trim((string) $point->getDescription());
+            $instructions = $point->getEvidences();
             if ($instructions !== []) {
                 $body .= "\n\n".'- '.implode("\n- ", $instructions);
             }
 
-            $sections[] = sprintf("## %s\n\n%s", $item->getHeading(), trim($body));
+            $heading = trim((string) ($point->getHeadline() ?? ''));
+            $sections[] = sprintf("## %s\n\n%s", $heading, trim($body));
         }
 
         if ($prompt) {

@@ -18,6 +18,7 @@ use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriv
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
+use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
 use App\Services\Synthesizer\Researcher\Drivers\OpenAIResearcherDriver;
 use App\Services\Synthesizer\SynthesizerManager;
@@ -78,7 +79,12 @@ class SynthesizerManagerTest extends TestCase
 
         $idea = $pickedReports[0]->getIdea();
         $brief = $driver->getBriefBuilder()->conceive($idea, $context);
-        $outline = $driver->getOutlineBuilder()->outline($brief, 'Include a section about trade-offs');
+        $outlineContext = (new SemanticContext)->set(
+            'outline_focus',
+            'Additional outline focus.',
+            'Include a section about trade-offs'
+        );
+        $outline = $driver->getOutlineBuilder()->outline($brief, $outlineContext);
         $draft = $driver->getAuthor()->draft($brief, $outline, 'Keep tone practical and concise.');
 
         $this->assertInstanceOf(Brief::class, $brief);
@@ -109,5 +115,6 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIIdeaAuditorDriver::class, $ideaForge->getIdeaAuditor());
         $this->assertInstanceOf(OpenAIIdeaPickerDriver::class, $ideaForge->getIdeaPicker());
         $this->assertInstanceOf(OpenAIResearcherDriver::class, $driver->getResearcher());
+        $this->assertInstanceOf(OpenAIOutlineBuilderDriver::class, $driver->getOutlineBuilder());
     }
 }

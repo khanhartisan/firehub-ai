@@ -2,6 +2,8 @@
 
 namespace App\Services\Synthesizer\OutlineBuilder\Drivers;
 
+use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
@@ -9,34 +11,63 @@ use App\Services\Synthesizer\OutlineBuilder\OutlineBuilderService;
 
 class BasicOutlineBuilderDriver extends OutlineBuilderService
 {
-    public function outline(Brief $brief, ?string $prompt): Outline
+    public function outline(Brief $brief, ?SemanticContext $context): Outline
     {
         $title = $brief->getTitle() ?: 'Untitled draft';
 
+        $introPoint = (new RelevantPoint)
+            ->setHeadline('Introduction')
+            ->setDescription('Set context and define the key problem.')
+            ->setEvidences(['Use 1-2 short paragraphs.']);
         $intro = (new OutlineItem)
-            ->setHeading('Introduction')
-            ->setBrief('Set context and define the key problem.')
-            ->setInstructions(['Use 1-2 short paragraphs.']);
+            ->setPoint($introPoint);
 
-        $body = (new OutlineItem)
-            ->setHeading('Main insights')
-            ->setBrief($brief->getDescription())
-            ->setInstructions(array_merge(
+        $bodyPoint = (new RelevantPoint)
+            ->setHeadline('Main insights')
+            ->setDescription($brief->getDescription())
+            ->setEvidences(array_merge(
                 ['Prioritize practical takeaways.'],
-                $brief->getInstructions()
+                $brief->getInstructions(),
+                $this->contextToInstructions($context)
             ));
+        $body = (new OutlineItem)
+            ->setPoint($bodyPoint);
 
+        $conclusionPoint = (new RelevantPoint)
+            ->setHeadline('Conclusion')
+            ->setDescription('Summarize and recommend next steps.')
+            ->setEvidences(['Close with a concrete action.']);
         $conclusion = (new OutlineItem)
-            ->setHeading('Conclusion')
-            ->setBrief('Summarize and recommend next steps.')
-            ->setInstructions(['Close with a concrete action.']);
-
-        if ($prompt) {
-            $body->setInstructions(array_merge($body->getInstructions(), [$prompt]));
-        }
+            ->setPoint($conclusionPoint);
 
         return (new Outline)
             ->setTitle($title)
             ->setItems([$intro, $body, $conclusion]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function contextToInstructions(?SemanticContext $context): array
+    {
+        if (! $context instanceof SemanticContext) {
+            return [];
+        }
+
+        $lines = [];
+        foreach ($context->toArray() as $key => $entry) {
+            if (! is_array($entry) || ! isset($entry['value'])) {
+                continue;
+            }
+
+            $value = trim((string) json_encode($entry['value'], JSON_UNESCAPED_UNICODE));
+            if ($value === '' || $value === 'null') {
+                continue;
+            }
+
+            $lines[] = sprintf('Use context "%s": %s', (string) $key, $value);
+        }
+
+        return $lines;
     }
 }

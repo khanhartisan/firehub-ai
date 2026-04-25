@@ -2,6 +2,7 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Models\Article;
 
@@ -20,9 +21,16 @@ trait HandleOutlineStage
             return null;
         }
 
+        $context = $this->buildSemanticContext() ?? new SemanticContext;
+        $context->set(
+            'researched_points',
+            'A list of researched points that related to the given idea',
+            $this->getStageData()->getResearchStageData()->getPoints()
+        );
+
         $outline = $this->synthesizer()
             ->getOutlineBuilder()
-            ->outline($brief, null);
+            ->outline($brief, $context);
 
         $this->getStageData()->setOutline($outline);
         $this->touchArticleQuietly();

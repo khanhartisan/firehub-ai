@@ -161,7 +161,7 @@ class SynthesizerServiceTest extends TestCase
     {
         return new class implements OutlineBuilder
         {
-            public function outline(Brief $brief, ?string $prompt): Outline
+            public function outline(Brief $brief, ?SemanticContext $context): Outline
             {
                 return new Outline;
             }

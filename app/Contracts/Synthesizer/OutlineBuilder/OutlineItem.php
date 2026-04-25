@@ -4,93 +4,64 @@ namespace App\Contracts\Synthesizer\OutlineBuilder;
 
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 
 /**
- * One node in a synthesizer outline: heading, optional brief, instructions, and nested items.
+ * One node in a synthesizer outline backed by a primary point and optional sub-points.
  */
 final class OutlineItem implements Serializable
 {
     use SerializableTrait;
 
-    protected string $heading = '';
-
-    protected ?string $brief = null;
+    protected RelevantPoint $point;
 
     /**
-     * @var string[]
+     * @var RelevantPoint[]
      */
-    protected array $instructions = [];
+    protected array $subPoints = [];
 
-    /**
-     * @var static[]
-     */
-    protected array $subItems = [];
-
-    public function getHeading(): string
+    public function __construct()
     {
-        return $this->heading;
+        $this->point = new RelevantPoint;
     }
 
-    public function setHeading(string $heading): static
+    public function getPoint(): RelevantPoint
     {
-        $this->heading = $heading;
-
-        return $this;
+        return $this->point;
     }
 
-    public function getBrief(): ?string
+    public function setPoint(RelevantPoint $point): static
     {
-        return $this->brief;
-    }
-
-    public function setBrief(?string $brief): static
-    {
-        $this->brief = $brief;
+        $this->point = $point;
 
         return $this;
     }
 
     /**
-     * @return string[]
+     * @return RelevantPoint[]
      */
-    public function getInstructions(): array
+    public function getSubPoints(): array
     {
-        return $this->instructions;
+        return $this->subPoints;
     }
 
-    /**
-     * @param  string[]  $instructions
-     */
-    public function setInstructions(array $instructions): static
+    public function addSubPoint(RelevantPoint $point): static
     {
-        $this->instructions = array_values(array_map(static fn ($line) => (string) $line, $instructions));
+        $this->subPoints[] = $point;
 
         return $this;
     }
 
     /**
-     * @return static[]
+     * @param  RelevantPoint[]  $subPoints
      */
-    public function getSubItems(): array
+    public function setSubPoints(array $subPoints): static
     {
-        return $this->subItems;
-    }
-
-    public function addItem(self $item): static
-    {
-        $this->subItems[] = $item;
-
-        return $this;
-    }
-
-    /**
-     * @param  static[]  $subItems
-     */
-    public function setSubItems(array $subItems): static
-    {
-        $this->subItems = [];
-        foreach ($subItems as $item) {
-            $this->addItem($item);
+        $this->subPoints = [];
+        foreach ($subPoints as $point) {
+            if ($point instanceof RelevantPoint) {
+                $this->addSubPoint($point);
+            }
         }
 
         return $this;
@@ -102,10 +73,8 @@ final class OutlineItem implements Serializable
     public function toArray(): array
     {
         return [
-            'heading' => $this->heading,
-            'brief' => $this->brief,
-            'instructions' => $this->instructions,
-            'sub_items' => array_map(static fn (self $item) => $item->toArray(), $this->subItems),
+            'point' => $this->getPoint()->toArray(),
+            'sub_points' => array_map(static fn (RelevantPoint $point) => $point->toArray(), $this->getSubPoints()),
         ];
     }
 
@@ -116,26 +85,18 @@ final class OutlineItem implements Serializable
     {
         $item = new static;
 
-        if (isset($data['heading'])) {
-            $item->setHeading((string) $data['heading']);
+        if (isset($data['point']) && is_array($data['point'])) {
+            $item->setPoint(RelevantPoint::fromArray($data['point']));
         }
 
-        if (isset($data['brief'])) {
-            $item->setBrief($data['brief'] !== null ? (string) $data['brief'] : null);
-        }
-
-        if (isset($data['instructions']) && is_array($data['instructions'])) {
-            $item->setInstructions($data['instructions']);
-        }
-
-        if (isset($data['sub_items']) && is_array($data['sub_items'])) {
-            $subItems = [];
-            foreach ($data['sub_items'] as $row) {
+        if (isset($data['sub_points']) && is_array($data['sub_points'])) {
+            $subPoints = [];
+            foreach ($data['sub_points'] as $row) {
                 if (is_array($row)) {
-                    $subItems[] = static::fromArray($row);
+                    $subPoints[] = RelevantPoint::fromArray($row);
                 }
             }
-            $item->setSubItems($subItems);
+            $item->setSubPoints($subPoints);
         }
 
         return $item;

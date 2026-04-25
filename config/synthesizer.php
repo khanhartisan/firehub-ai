@@ -11,6 +11,7 @@ use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriv
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
+use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
 use App\Services\Synthesizer\Researcher\Drivers\OpenAIResearcherDriver;
 use App\Services\Synthesizer\SynthesizerService;
@@ -92,7 +93,7 @@ return [
                 'driver' => OpenAIBriefBuilderDriver::class,
             ],
             'outline_builder' => [
-                'driver' => BasicOutlineBuilderDriver::class,
+                'driver' => OpenAIOutlineBuilderDriver::class,
             ],
             'author' => [
                 'driver' => BasicAuthorDriver::class,
@@ -173,6 +174,22 @@ return [
         'model' => env('SYNTHESIZER_OPENAI_BRIEF_BUILDER_MODEL', 'gpt-4o-mini'),
         'temperature' => 0.2,
         'max_instructions' => 6,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI outline builder
+    |--------------------------------------------------------------------------
+    |
+    | Used by {@see OpenAIOutlineBuilderDriver} (synthesizer driver "openai").
+    |
+    */
+
+    'openai_outline_builder' => [
+        'model' => env('SYNTHESIZER_OPENAI_OUTLINE_BUILDER_MODEL', 'gpt-4o-mini'),
+        'temperature' => 0.2,
+        'max_items' => 6,
+        'max_depth' => 2,
     ],
 
     /*

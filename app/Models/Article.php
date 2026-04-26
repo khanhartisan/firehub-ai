@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Casts\ArticleArticleCast;
 use App\Casts\ArticleContextCast;
 use App\Casts\ArticleStageDataCast;
+use App\Contracts\DOM\Article as DOMArticle;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
@@ -21,6 +23,7 @@ class Article extends EmbeddableModel implements ShouldCascade
     use Cascades;
 
     protected $casts = [
+        'article' => ArticleArticleCast::class,
         'context' => ArticleContextCast::class,
         'status' => ArticleStatus::class,
         'language' => Language::class,
@@ -72,7 +75,7 @@ class Article extends EmbeddableModel implements ShouldCascade
             and $this->stage_status === ArticleStageStatus::APPROVED
             and ($this->title
                 or $this->excerpt
-                or $this->body_markdown
+                or $this->article?->toHtml()
             );
     }
 
@@ -84,7 +87,7 @@ class Article extends EmbeddableModel implements ShouldCascade
 
         if ($this->isDirty('title')
             or $this->isDirty('excerpt')
-            or $this->isDirty('body_markdown')
+            or $this->isDirty('article')
         ) {
             return false;
         }
@@ -94,6 +97,8 @@ class Article extends EmbeddableModel implements ShouldCascade
 
     public function getTextForEmbedding(): ?string
     {
-        return '# '.$this->title."\n\n".$this->excerpt."\n\n".$this->body_markdown;
+        $body = $this->article instanceof DOMArticle ? $this->article->toHtml() : '';
+
+        return '# '.$this->title."\n\n".$this->excerpt."\n\n".$body;
     }
 }

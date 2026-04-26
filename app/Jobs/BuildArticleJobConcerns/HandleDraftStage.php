@@ -30,7 +30,7 @@ trait HandleDraftStage
 
         $article->title = $draft->getTitle();
         $article->excerpt = $draft->getExcerpt();
-        $article->body_markdown = $draft->getArticle()?->toHtml();
+        $article->article = $draft->getArticle();
         $this->touchArticleQuietly();
 
         return true;

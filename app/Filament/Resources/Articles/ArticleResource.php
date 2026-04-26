@@ -85,9 +85,35 @@ class ArticleResource extends Resource
                         Textarea::make('context')
                             ->rows(8)
                             ->columnSpanFull(),
-                        Textarea::make('body_markdown')
+                        Textarea::make('article')
                             ->rows(14)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->formatStateUsing(static function ($state): string {
+                                if (is_string($state)) {
+                                    return $state;
+                                }
+
+                                if (is_array($state)) {
+                                    return (string) json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                                }
+
+                                if (is_object($state) && method_exists($state, 'toArray')) {
+                                    return (string) json_encode($state->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                                }
+
+                                return '';
+                            })
+                            ->dehydrateStateUsing(static function (?string $state): ?array {
+                                $state = trim((string) $state);
+                                if ($state === '') {
+                                    return null;
+                                }
+
+                                $decoded = json_decode($state, true);
+
+                                return is_array($decoded) ? $decoded : null;
+                            })
+                            ->helperText('JSON DOM payload for the article body.'),
                     ])
                     ->columns(2),
             ]);

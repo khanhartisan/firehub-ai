@@ -3,6 +3,7 @@
 namespace Tests\Feature\Jobs;
 
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\DOM\Article as DOMArticle;
 use App\Contracts\Model\Article\Context as ArticleContext;
 use App\Contracts\Model\Client\Context;
 use App\Contracts\Model\Article\StageData;
@@ -58,7 +59,8 @@ class BuildArticleJobTest extends TestCase
         $this->assertNotNull($article->temporal);
         $this->assertNotEmpty($article->title);
         $this->assertNotEmpty($article->excerpt);
-        $this->assertNotEmpty($article->body_markdown);
+        $this->assertInstanceOf(DOMArticle::class, $article->article);
+        $this->assertNotEmpty($article->article->toHtml());
         $this->assertInstanceOf(StageData::class, $article->stage_data);
         $stageData = $article->stage_data->toArray();
         $this->assertArrayHasKey('idea', $stageData);
@@ -90,7 +92,8 @@ class BuildArticleJobTest extends TestCase
         $this->assertSame(ArticleStatus::READY, $article->status);
         $this->assertSame(ArticleStage::FINAL, $article->stage);
         $this->assertSame(ArticleStageStatus::APPROVED, $article->stage_status);
-        $this->assertNotEmpty($article->body_markdown);
+        $this->assertInstanceOf(DOMArticle::class, $article->article);
+        $this->assertNotEmpty($article->article->toHtml());
     }
 
     public function test_builds_article_when_intent_resolver_mixes_merge_and_no_merge(): void

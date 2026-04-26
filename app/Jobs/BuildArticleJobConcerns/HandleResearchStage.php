@@ -38,6 +38,7 @@ trait HandleResearchStage
         }
 
         if ($this->hasPendingKeywords($keywords)) {
+            $this->reDispatchDelay = 10;
             return null;
         }
 

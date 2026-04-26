@@ -33,7 +33,7 @@ return [
         'openai' => [
             'api_key' => env('OPENAI_API_KEY'),
             'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1/'),
-            'default_model' => env('OPENAI_DEFAULT_MODEL', 'gpt-5-mini'),
+            'default_model' => env('OPENAI_DEFAULT_MODEL', 'gpt-4o'),
             'timeout' => env('OPENAI_TIMEOUT', 60),
             'beta_header' => env('OPENAI_BETA_HEADER', 'responses=v1'),
         ],

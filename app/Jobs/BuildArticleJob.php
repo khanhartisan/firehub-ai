@@ -68,6 +68,8 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
     protected ?Article $article;
 
+    protected int $reDispatchDelay = 0;
+
     /**
      * Create a new job instance.
      */
@@ -121,7 +123,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
             // Stage asked to pause (e.g. IDEA checkpoint): re-queue same stage, do not advance.
             if (is_null($stageResult)) {
-                static::dispatch($this->client, $this->articleId);
+                $this->reDispatch();
                 return;
             }
 
@@ -143,7 +145,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $article->stage_status = ArticleStageStatus::PENDING;
             $article->save();
 
-            static::dispatch($this->client, $this->articleId);
+            $this->reDispatch();
         } catch (\Throwable $e) {
             $this->recordError($e);
 
@@ -157,7 +159,8 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $article->status = ArticleStatus::UNREADY;
             $article->stage_status = ArticleStageStatus::PENDING;
             $article->save();
-            static::dispatch($this->client, $this->articleId);
+
+            $this->reDispatch();
         }
         finally {
             $lock->release();
@@ -259,5 +262,14 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         $this->article->updated_at = now();
         $this->article->saveQuietly();
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function reDispatch(): void
+    {
+        $this->getManualLock()->release();
+        static::dispatch($this->client, $this->articleId)->delay($this->reDispatchDelay);
     }
 }

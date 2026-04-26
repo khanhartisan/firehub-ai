@@ -159,7 +159,7 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $searchEngineData = $this->getKeywordSearchEngineData();
 
         // Return true if we have recent search results
-        if ($driverData = $searchEngineData->getDriverData($driver)
+        if ($driverData = $searchEngineData->getDriverData($driver, true)
             and $searchResults = $driverData->getSearchResults()
             and $searchResults->getUpdatedAt()
             and abs($searchResults->getUpdatedAt()->diffInSeconds(now())) <= $this->validityDuration

@@ -77,11 +77,11 @@ final class SearchEngineData implements Serializable
     /**
      * @return SearchEngineDriverData|null
      */
-    public function getDriverData(string $driver): ?SearchEngineDriverData
+    public function getDriverData(string $driver, bool $autoCreate = false): ?SearchEngineDriverData
     {
         $key = $this->normalizeDriver($driver);
 
-        return $this->drivers[$key] ?? null;
+        return $this->drivers[$key] ??= ($autoCreate ? new SearchEngineDriverData() : null);
     }
 
     /**

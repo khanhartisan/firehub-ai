@@ -84,8 +84,13 @@ class SynthesizerManagerTest extends TestCase
             'Additional outline focus.',
             'Include a section about trade-offs'
         );
+        $authorContext = (new SemanticContext)->set(
+            'tone',
+            'Preferred writing tone.',
+            'Keep tone practical and concise.'
+        );
         $outline = $driver->getOutlineBuilder()->outline($brief, $outlineContext);
-        $draft = $driver->getAuthor()->draft($brief, $outline, 'Keep tone practical and concise.');
+        $draft = $driver->getAuthor()->draft($brief, $outline, $authorContext);
 
         $this->assertInstanceOf(Brief::class, $brief);
         $this->assertInstanceOf(Outline::class, $outline);

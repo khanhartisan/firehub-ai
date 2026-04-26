@@ -172,7 +172,7 @@ class SynthesizerServiceTest extends TestCase
     {
         return new class implements Author
         {
-            public function draft(Brief $brief, Outline $outline, ?string $prompt = null): Draft
+            public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft
             {
                 return new Draft;
             }

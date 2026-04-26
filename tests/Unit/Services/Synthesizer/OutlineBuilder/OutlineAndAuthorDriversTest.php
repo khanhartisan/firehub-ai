@@ -60,15 +60,17 @@ class OutlineAndAuthorDriversTest extends TestCase
                         ->setEvidences(['Use bullets'])
                 ),
             ]);
+        $context = (new SemanticContext)
+            ->set('tone', 'Preferred writing tone.', 'Be practical');
 
-        $draft = $author->draft($brief, $outline, 'Be practical');
+        $draft = $author->draft($brief, $outline, $context);
         $markdown = (string) $draft->getBodyMarkdown();
 
         $this->assertSame('AI weekly', $draft->getTitle());
         $this->assertStringContainsString('## Intro', $markdown);
         $this->assertStringContainsString('## Body', $markdown);
-        $this->assertStringContainsString('## Additional prompt', $markdown);
-        $this->assertStringContainsString('Be practical', $markdown);
+        $this->assertStringContainsString('## Additional context', $markdown);
+        $this->assertStringContainsString('Use context "tone": "Be practical"', $markdown);
     }
 
     public function test_openai_outline_builder_hydrates_outline_from_structured_response(): void

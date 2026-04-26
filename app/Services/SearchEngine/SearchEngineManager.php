@@ -31,4 +31,20 @@ class SearchEngineManager extends Manager
 
         return new Drivers\SearchapiGoogleDriver($config);
     }
+
+    /**
+     * Perplexity-native web search.
+     */
+    protected function createPerplexityDriver(): SearchEngine
+    {
+        $driverConfig = $this->config->get('search_engine.drivers.perplexity', []);
+        $provider = $driverConfig['provider'] ?? 'perplexity';
+        unset($driverConfig['provider']);
+
+        $providerConfig = $this->config->get('search_engine.providers.'.$provider, []);
+
+        $config = array_merge($providerConfig, $driverConfig);
+
+        return new Drivers\PerplexitySearchDriver($config);
+    }
 }

@@ -34,6 +34,14 @@ return [
             'connect_timeout' => (int) env('SEARCHAPI_CONNECT_TIMEOUT', 15),
         ],
 
+        'perplexity' => [
+            'api_key' => env('PERPLEXITY_API_KEY'),
+            'base_url' => env('PERPLEXITY_BASE_URL', 'https://api.perplexity.ai'),
+            'model' => env('PERPLEXITY_MODEL', 'sonar'),
+            'timeout' => (int) env('PERPLEXITY_TIMEOUT', 90),
+            'connect_timeout' => (int) env('PERPLEXITY_CONNECT_TIMEOUT', 15),
+        ],
+
     ],
 
     /*
@@ -51,6 +59,10 @@ return [
 
         'google' => [
             'provider' => env('SEARCH_ENGINE_GOOGLE_PROVIDER', 'searchapi'),
+        ],
+
+        'perplexity' => [
+            'provider' => env('SEARCH_ENGINE_PERPLEXITY_PROVIDER', 'perplexity'),
         ],
 
     ],

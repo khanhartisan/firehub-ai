@@ -3,6 +3,9 @@
 namespace Tests\Unit\Contracts\Synthesizer;
 
 use App\Contracts\CommonData\Audience;
+use App\Contracts\DOM\Article as DOMArticle;
+use App\Contracts\DOM\Element;
+use App\Contracts\DOM\ElementType;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\Author\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
@@ -134,13 +137,18 @@ class SynthesizerDataObjectsTest extends TestCase
         $draft = (new Draft)
             ->setTitle('Draft title')
             ->setExcerpt('Draft excerpt')
-            ->setBodyMarkdown('## Key updates')
+            ->setArticle(
+                (new DOMArticle)->setChildren([
+                    (new Element)->setType(ElementType::H2)->addChild('Key updates'),
+                ])
+            )
             ->setReferenceFileIds([]);
 
         $restoredDraft = Draft::fromArray($draft->toArray());
         $this->assertSame('Draft title', $restoredDraft->getTitle());
         $this->assertSame('Draft excerpt', $restoredDraft->getExcerpt());
-        $this->assertSame('## Key updates', $restoredDraft->getBodyMarkdown());
+        $this->assertNotNull($restoredDraft->getArticle());
+        $this->assertStringContainsString('<h2>Key updates</h2>', $restoredDraft->getArticle()->toHtml());
         $this->assertEmpty($restoredDraft->getReferenceFiles());
     }
 

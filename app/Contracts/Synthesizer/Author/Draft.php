@@ -3,12 +3,13 @@
 namespace App\Contracts\Synthesizer\Author;
 
 use App\Concerns\Serializable as SerializableTrait;
+use App\Contracts\DOM\Article;
 use App\Contracts\Serializable;
 use App\Models\File;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Synthesizer draft output: title, excerpt, markdown body, and referenced file IDs.
+ * Synthesizer draft output: title, excerpt, article DOM, and referenced file IDs.
  */
 final class Draft implements Serializable
 {
@@ -18,7 +19,7 @@ final class Draft implements Serializable
 
     protected ?string $excerpt = null;
 
-    protected ?string $bodyMarkdown = null;
+    protected ?Article $article = null;
 
     /**
      * @var string[]
@@ -49,14 +50,14 @@ final class Draft implements Serializable
         return $this;
     }
 
-    public function getBodyMarkdown(): ?string
+    public function getArticle(): ?Article
     {
-        return $this->bodyMarkdown;
+        return $this->article;
     }
 
-    public function setBodyMarkdown(?string $bodyMarkdown): static
+    public function setArticle(?Article $article): static
     {
-        $this->bodyMarkdown = $bodyMarkdown;
+        $this->article = $article;
 
         return $this;
     }
@@ -99,7 +100,7 @@ final class Draft implements Serializable
         return [
             'title' => $this->getTitle(),
             'excerpt' => $this->getExcerpt(),
-            'body_markdown' => $this->getBodyMarkdown(),
+            'article' => $this->getArticle()?->toArray(),
             'reference_file_ids' => $this->getReferenceFileIds(),
         ];
     }
@@ -119,8 +120,8 @@ final class Draft implements Serializable
             $draft->setExcerpt($data['excerpt'] !== null ? (string) $data['excerpt'] : null);
         }
 
-        if (isset($data['body_markdown'])) {
-            $draft->setBodyMarkdown($data['body_markdown'] !== null ? (string) $data['body_markdown'] : null);
+        if (isset($data['article']) && is_array($data['article'])) {
+            $draft->setArticle(Article::fromArray($data['article']));
         }
 
         if (isset($data['reference_file_ids']) && is_array($data['reference_file_ids'])) {

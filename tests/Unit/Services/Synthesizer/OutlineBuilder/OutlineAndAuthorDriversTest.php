@@ -3,12 +3,13 @@
 namespace Tests\Unit\Services\Synthesizer\OutlineBuilder;
 
 use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
+use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
+use App\Services\Synthesizer\Author\Drivers\OpenAIAuthorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use Mockery;
@@ -64,13 +65,92 @@ class OutlineAndAuthorDriversTest extends TestCase
             ->set('tone', 'Preferred writing tone.', 'Be practical');
 
         $draft = $author->draft($brief, $outline, $context);
-        $markdown = (string) $draft->getBodyMarkdown();
+        $articleHtml = (string) $draft->getArticle()?->toHtml();
 
         $this->assertSame('AI weekly', $draft->getTitle());
-        $this->assertStringContainsString('## Intro', $markdown);
-        $this->assertStringContainsString('## Body', $markdown);
-        $this->assertStringContainsString('## Additional context', $markdown);
-        $this->assertStringContainsString('Use context "tone": "Be practical"', $markdown);
+        $this->assertStringContainsString('<h2>Intro</h2>', $articleHtml);
+        $this->assertStringContainsString('<h2>Body</h2>', $articleHtml);
+        $this->assertStringContainsString('<h2>Additional context</h2>', $articleHtml);
+        $this->assertStringContainsString('Use context &quot;tone&quot;: &quot;Be practical&quot;', $articleHtml);
+    }
+
+    public function test_openai_author_driver_hydrates_article_from_structured_response(): void
+    {
+        $payload = json_encode([
+            'title' => 'AI weekly',
+            'excerpt' => 'Top developments this week.',
+            'article' => [
+                'type' => 'article',
+                'props' => [],
+                'children' => [
+                    [
+                        'type' => 'h2',
+                        'props' => [],
+                        'children' => ['Intro'],
+                    ],
+                    [
+                        'type' => 'p',
+                        'props' => [],
+                        'children' => ['Opening paragraph'],
+                    ],
+                    [
+                        'type' => 'ul',
+                        'props' => [],
+                        'children' => [
+                            [
+                                'type' => 'li',
+                                'props' => [],
+                                'children' => ['First signal'],
+                            ],
+                            [
+                                'type' => 'li',
+                                'props' => [],
+                                'children' => ['Second signal'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_author_1',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $author = new OpenAIAuthorDriver($client, ['model' => 'gpt-4o-mini']);
+        $brief = (new Brief)
+            ->setTitle('Fallback title')
+            ->setDescription('Fallback excerpt');
+        $outline = (new \App\Contracts\Synthesizer\OutlineBuilder\Outline)
+            ->setItems([
+                (new OutlineItem)->setPoint(
+                    (new RelevantPoint)
+                        ->setHeadline('Intro')
+                        ->setDescription('Opening')
+                ),
+            ]);
+
+        $draft = $author->draft($brief, $outline);
+
+        $this->assertSame('AI weekly', $draft->getTitle());
+        $this->assertSame('Top developments this week.', $draft->getExcerpt());
+        $this->assertNotNull($draft->getArticle());
+        $this->assertStringContainsString('<h2>Intro</h2>', $draft->getArticle()->toHtml());
+        $this->assertStringContainsString('<p>Opening paragraph</p>', $draft->getArticle()->toHtml());
+        $this->assertStringContainsString('<li>First signal</li>', $draft->getArticle()->toHtml());
     }
 
     public function test_openai_outline_builder_hydrates_outline_from_structured_response(): void

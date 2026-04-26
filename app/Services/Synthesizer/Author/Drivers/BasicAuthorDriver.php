@@ -2,7 +2,10 @@
 
 namespace App\Services\Synthesizer\Author\Drivers;
 
+use App\Contracts\DOM\Article;
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\DOM\Element;
+use App\Contracts\DOM\ElementType;
 use App\Contracts\Synthesizer\Author\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
@@ -12,33 +15,84 @@ class BasicAuthorDriver extends AuthorService
 {
     public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft
     {
-        $sections = [];
+        $article = new Article;
         foreach ($outline->getItems() as $item) {
             $point = $item->getPoint();
+            $section = (new Element)->setType(ElementType::DIV);
+            $heading = trim((string) ($point->getHeadline() ?? ''));
+            if ($heading !== '') {
+                $section->addChild(
+                    (new Element)
+                        ->setType(ElementType::H2)
+                        ->addChild($heading)
+                );
+            }
+
             $body = trim((string) $point->getDescription());
+            if ($body !== '') {
+                $section->addChild(
+                    (new Element)
+                        ->setType(ElementType::P)
+                        ->addChild($body)
+                );
+            }
+
             $instructions = $item->getGuidelines();
             if ($instructions === []) {
                 $instructions = $point->getEvidences();
             }
             if ($instructions !== []) {
-                $body .= "\n\n".'- '.implode("\n- ", $instructions);
+                $instructionList = (new Element)->setType(ElementType::UL);
+                foreach ($instructions as $instruction) {
+                    $line = trim((string) $instruction);
+                    if ($line === '') {
+                        continue;
+                    }
+
+                    $instructionList->addChild(
+                        (new Element)
+                            ->setType(ElementType::LI)
+                            ->addChild($line)
+                    );
+                }
+
+                if ($instructionList->getChildren() !== []) {
+                    $section->addChild($instructionList);
+                }
             }
 
-            $heading = trim((string) ($point->getHeadline() ?? ''));
-            $sections[] = sprintf("## %s\n\n%s", $heading, trim($body));
+            if ($section->getChildren() !== []) {
+                $article->addChild($section);
+            }
         }
 
         $contextLines = $this->contextToLines($context);
         if ($contextLines !== []) {
-            $sections[] = "## Additional context\n\n- ".implode("\n- ", $contextLines);
-        }
+            $contextSection = (new Element)
+                ->setType(ElementType::DIV)
+                ->addChild(
+                    (new Element)
+                        ->setType(ElementType::H2)
+                        ->addChild('Additional context')
+                );
 
-        $bodyMarkdown = implode("\n\n", $sections);
+            $contextList = (new Element)->setType(ElementType::UL);
+            foreach ($contextLines as $line) {
+                $contextList->addChild(
+                    (new Element)
+                        ->setType(ElementType::LI)
+                        ->addChild($line)
+                );
+            }
+
+            $contextSection->addChild($contextList);
+            $article->addChild($contextSection);
+        }
 
         return (new Draft)
             ->setTitle($brief->getTitle())
             ->setExcerpt($brief->getDescription())
-            ->setBodyMarkdown($bodyMarkdown);
+            ->setArticle($article);
     }
 
     /**

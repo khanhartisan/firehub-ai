@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
+use App\Services\Synthesizer\Author\Drivers\OpenAIAuthorDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
@@ -96,7 +97,7 @@ return [
                 'driver' => OpenAIOutlineBuilderDriver::class,
             ],
             'author' => [
-                'driver' => BasicAuthorDriver::class,
+                'driver' => OpenAIAuthorDriver::class,
             ],
         ],
     ],
@@ -190,6 +191,22 @@ return [
         'temperature' => 0.2,
         'max_items' => 6,
         'max_depth' => 2,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI author
+    |--------------------------------------------------------------------------
+    |
+    | Used by {@see OpenAIAuthorDriver} (synthesizer driver "openai").
+    |
+    */
+
+    'openai_author' => [
+        'model' => env('SYNTHESIZER_OPENAI_AUTHOR_MODEL', 'gpt-4o-mini'),
+        'temperature' => 0.2,
+        'max_children' => 12,
+        'max_depth' => 4,
     ],
 
     /*

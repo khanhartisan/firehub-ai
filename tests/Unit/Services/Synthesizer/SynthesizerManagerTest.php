@@ -8,6 +8,7 @@ use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Facades\Synthesizer as SynthesizerFacade;
 use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
+use App\Services\Synthesizer\Author\Drivers\OpenAIAuthorDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
@@ -97,7 +98,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(Draft::class, $draft);
         $this->assertNotEmpty($brief->getTitle());
         $this->assertNotEmpty($outline->getItems());
-        $this->assertStringContainsString('## Introduction', (string) $draft->getBodyMarkdown());
+        $this->assertStringContainsString('<h2>Introduction</h2>', (string) $draft->getArticle()?->toHtml());
     }
 
     public function test_it_selects_sub_service_driver_from_configuration(): void
@@ -121,5 +122,6 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIIdeaPickerDriver::class, $ideaForge->getIdeaPicker());
         $this->assertInstanceOf(OpenAIResearcherDriver::class, $driver->getResearcher());
         $this->assertInstanceOf(OpenAIOutlineBuilderDriver::class, $driver->getOutlineBuilder());
+        $this->assertInstanceOf(OpenAIAuthorDriver::class, $driver->getAuthor());
     }
 }

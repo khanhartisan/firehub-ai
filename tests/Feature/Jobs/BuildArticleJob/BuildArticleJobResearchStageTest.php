@@ -155,6 +155,63 @@ class BuildArticleJobResearchStageTest extends TestCase
         $this->assertNotEmpty($pointsByUrl['https://example.com/ai-copilots']);
     }
 
+    public function test_research_stage_completes_within_bounded_runs_after_extraction_starts(): void
+    {
+        Bus::fake();
+        IntentResolver::shouldReceive('guessIntentKeywords')->never();
+
+        [$article, $job] = $this->makeArticleAndJobAtResearchStage();
+        $keyword = Keyword::query()->create([
+            'keyword' => 'ai copilots',
+            'language' => Language::EN,
+            'status' => KeywordStatus::RESEARCHED,
+        ]);
+
+        $page = Page::query()->create([
+            'url' => 'https://example.com/ai-copilots',
+            'title' => 'AI copilots adoption',
+            'description' => 'Teams report measurable improvements.',
+            'type' => ScrapableType::TEXT,
+            'scraping_stage' => ScrapingStage::FINISHING,
+            'scraping_status' => ScrapingStatus::SUCCESS,
+            'ignore_scraping_budget' => true,
+        ]);
+
+        $keyword->pages()->attach($page->id, [
+            'search_engine_driver' => 'test-driver',
+            'position' => 1,
+        ]);
+
+        $article->stage_data->getResearchStageData()
+            ->setKeywords([
+                $this->makeKeywordData('ai copilots'),
+            ]);
+        $article->save();
+        $article->refresh();
+        $job = new class($article->client, $article->id) extends BuildArticleJob
+        {
+            public function runResearchStage(): ?bool
+            {
+                return $this->handleResearchStage();
+            }
+        };
+
+        $result = null;
+        for ($i = 0; $i < 12; $i++) {
+            $result = $job->runResearchStage();
+            $article->refresh();
+
+            if ($result === true) {
+                break;
+            }
+        }
+
+        $this->assertTrue(
+            $result === true,
+            'Research stage should complete after a bounded number of runs once extraction has started.'
+        );
+    }
+
     /**
      * @return array{0: Article, 1: BuildArticleJob}
      */

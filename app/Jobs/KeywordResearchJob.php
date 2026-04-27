@@ -219,7 +219,9 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                         'url' => $normalizedUrl,
                         'ignore_scraping_budget' => true,
                     ]);
-                } elseif (! $page->ignore_scraping_budget) {
+                } elseif (! $page->ignore_scraping_budget
+                    and !$page->scraping_status?->isFinal()
+                ) {
                     $page->ignore_scraping_budget = true;
                     $page->save();
                 }

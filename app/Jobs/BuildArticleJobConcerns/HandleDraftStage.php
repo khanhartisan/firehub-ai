@@ -2,6 +2,7 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Models\Article;
 
 /**
@@ -24,7 +25,7 @@ trait HandleDraftStage
 
         $draft = $this->synthesizer()
             ->getAuthor()
-            ->draft($brief, $outline);
+            ->draft($brief, $outline, $this->buildSemanticContext());
 
         $this->getStageData()->setDraft($draft);
 

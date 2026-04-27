@@ -24,6 +24,11 @@ final class ResearchStageData implements \App\Contracts\Serializable
     protected array $pointsByPageUrl = [];
 
     /**
+     * True when extraction has scanned all candidate pages for current keywords.
+     */
+    protected bool $isPagePointExtractionCompleted = false;
+
+    /**
      * Consolidated central points across all researched pages.
      *
      * @var RelevantPoint[]
@@ -65,6 +70,10 @@ final class ResearchStageData implements \App\Contracts\Serializable
      */
     public function setKeywords(iterable $keywords): static
     {
+        $previous = json_encode(array_map(
+            static fn (Keyword $keyword): array => $keyword->toArray(),
+            $this->keywords
+        ), JSON_UNESCAPED_UNICODE);
         $normalized = [];
         $seen = [];
 
@@ -83,6 +92,14 @@ final class ResearchStageData implements \App\Contracts\Serializable
         }
 
         $this->keywords = array_values($normalized);
+        $current = json_encode(array_map(
+            static fn (Keyword $keyword): array => $keyword->toArray(),
+            $this->keywords
+        ), JSON_UNESCAPED_UNICODE);
+
+        if ($previous !== $current) {
+            $this->isPagePointExtractionCompleted = false;
+        }
 
         return $this;
     }
@@ -101,6 +118,18 @@ final class ResearchStageData implements \App\Contracts\Serializable
     public function hasPointsByPageUrl(): bool
     {
         return $this->pointsByPageUrl !== [];
+    }
+
+    public function isPagePointExtractionCompleted(): bool
+    {
+        return $this->isPagePointExtractionCompleted;
+    }
+
+    public function setPagePointExtractionCompleted(bool $isCompleted): static
+    {
+        $this->isPagePointExtractionCompleted = $isCompleted;
+
+        return $this;
     }
 
     /**
@@ -272,6 +301,7 @@ final class ResearchStageData implements \App\Contracts\Serializable
     {
         return [
             'keywords' => array_map(static fn (Keyword $keyword): array => $keyword->toArray(), $this->getKeywords()),
+            'is_page_point_extraction_completed' => $this->isPagePointExtractionCompleted(),
             'points_by_page_url' => array_map(
                 static fn (array $points): array => array_map(
                     static fn (RelevantPoint $point): array => $point->toArray(),
@@ -319,6 +349,10 @@ final class ResearchStageData implements \App\Contracts\Serializable
                 }
             }
             $dto->setKeywords($keywords);
+        }
+
+        if (array_key_exists('is_page_point_extraction_completed', $data)) {
+            $dto->setPagePointExtractionCompleted((bool) $data['is_page_point_extraction_completed']);
         }
 
         if (isset($data['points_by_page_url']) && is_array($data['points_by_page_url'])) {

@@ -49,6 +49,7 @@ class ResearchStageDataTest extends TestCase
                 (new KeywordData('ai copilots'))->setLanguage(Language::EN),
                 (new KeywordData('developer productivity'))->setLanguage(Language::EN),
             ])
+            ->setPagePointExtractionCompleted(true)
             ->setPagePoints('https://example.com/page-1/', $points)
             ->setPoints($points)
             ->setConflicts([$conflict])
@@ -60,6 +61,7 @@ class ResearchStageDataTest extends TestCase
 
         $this->assertCount(2, $research->getKeywords());
         $this->assertSame('ai copilots', $research->getKeywords()[0]->getKeyword());
+        $this->assertTrue($research->isPagePointExtractionCompleted());
         $this->assertArrayHasKey('https://example.com/page-1', $research->getPointsByPageUrl());
         $this->assertSame(
             'Adoption is increasing',

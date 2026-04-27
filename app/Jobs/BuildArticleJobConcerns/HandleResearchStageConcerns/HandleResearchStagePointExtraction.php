@@ -18,12 +18,18 @@ trait HandleResearchStagePointExtraction
     protected function extractAndStorePointsByPage(Idea $pickedIdea, Collection $keywords): bool
     {
         $researchData = $this->getStageData()->getResearchStageData();
+        if ($researchData->isPagePointExtractionCompleted()) {
+            return false;
+        }
+
         $researchedKeywords = $keywords
             ->where('status', KeywordStatus::RESEARCHED)
             ->pluck('id')
             ->all();
 
         if ($researchedKeywords === []) {
+            $researchData->setPagePointExtractionCompleted(true);
+            $this->touchArticleQuietly();
             return false;
         }
 
@@ -37,6 +43,8 @@ trait HandleResearchStagePointExtraction
             ->all();
 
         if ($orderedPageIds === []) {
+            $researchData->setPagePointExtractionCompleted(true);
+            $this->touchArticleQuietly();
             return false;
         }
 
@@ -79,6 +87,9 @@ trait HandleResearchStagePointExtraction
 
             return true;
         }
+
+        $researchData->setPagePointExtractionCompleted(true);
+        $this->touchArticleQuietly();
 
         return false;
     }

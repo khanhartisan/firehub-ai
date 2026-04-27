@@ -79,8 +79,8 @@ class ScheduleScrapeDueJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         // Dispatch scrape file jobs
         foreach (ScrapingStatus::cases() as $scrapingStatus) {
 
-            // Ignore success
-            if ($scrapingStatus === ScrapingStatus::SUCCESS) {
+            // Ignore final
+            if ($scrapingStatus->isFinal()) {
                 continue;
             }
 

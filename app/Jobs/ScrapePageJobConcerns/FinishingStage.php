@@ -23,11 +23,16 @@ trait FinishingStage
 
         $initialScrapeAt = ScrapePolicyEngine::calculateInitialScrapingTime($page);
 
+        $page->ignore_scraping_budget = false;
         $page->next_scrape_at = (
             $nextScrapeAt = $policy->getNextScrapeAt()
             and $nextScrapeAt->gt($initialScrapeAt)
         ) ? $nextScrapeAt
         : $initialScrapeAt;
+
+        if (env('APP_DEBUG')) {
+            dump('Next scrape at, page '.$page->id.': '.$page->next_scrape_at->diffForHumans());
+        }
 
         DB::transaction(fn () => $page->save());
         return true;

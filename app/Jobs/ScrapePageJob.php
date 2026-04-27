@@ -20,6 +20,7 @@ use App\Jobs\ScrapePageJobConcerns\PolicyEvaluationStage;
 use App\Jobs\ScrapePageJobConcerns\VerticalResolutionStage;
 use App\Models\Page;
 use App\Models\Snapshot;
+use App\Utils\Debugger;
 use Carbon\Carbon;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
@@ -135,9 +136,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
         // Manual job unique lock
         if (! $lock = $this->getManualLock() or ! $lock->get()) {
-            if (env('APP_DEBUG')) {
-                dump('Could not acquire lock for '.$this->uniqueId());
-            }
+            Debugger::devConsoleDump('Could not acquire lock for '.$this->uniqueId());
 
             return;
         }
@@ -159,9 +158,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             DB::transaction(fn () => $page->save());
             $lock->release();
 
-            if (env('APP_DEBUG')) {
-                dump('Budget exceeded (Page '.$page->id.'). Pushed to '.$initialScrapingTime->diffForHumans());
-            }
+            Debugger::devConsoleDump('Budget exceeded (Page '.$page->id.'). Pushed to '.$initialScrapingTime->diffForHumans());
 
             return;
         }
@@ -267,9 +264,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             if (is_null($fileEnrichmentResult)) {
                 $lock->release();
                 ScrapePageJob::dispatch($page)->delay(10);
-                if (env('APP_DEBUG')) {
-                    dump('Awaiting file enrichment...');
-                }
+                Debugger::devConsoleDump('Awaiting file enrichment...');
                 return;
             }
 
@@ -371,9 +366,7 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         // Stop scraping if too many attempts
         $maxAttempts = config('queue.max_scrape_attempts');
         if ($page->attempts >= $maxAttempts) {
-            if (env('APP_DEBUG')) {
-                dump('Page '.$page->id.'. Too many attempts: '.$page->attempts.'/'.$maxAttempts);
-            }
+            Debugger::devConsoleDump('Page '.$page->id.'. Too many attempts: '.$page->attempts.'/'.$maxAttempts);
 
             $page->ignore_scraping_budget = false;
             $page->next_scrape_at = null;

@@ -5,6 +5,7 @@ namespace App\Jobs\ScrapePageJobConcerns;
 use App\Facades\PageParser;
 use App\Models\Page;
 use App\Models\Snapshot;
+use App\Utils\Debugger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -12,9 +13,7 @@ trait DataParsingStage
 {
     protected function handleDataParsingStage(Page $page): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Parse data, page '.$page->id);
-        }
+        Debugger::devConsoleDump('Parse data, page '.$page->id);
 
         if (!$snapshot = $page->currentSnapshot
             or !in_array($snapshot->file_extension, ['html', 'txt'])

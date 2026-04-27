@@ -11,6 +11,7 @@ use App\Jobs\ScrapeFileJobConcerns\EnrichmentStage;
 use App\Jobs\ScrapeFileJobConcerns\FetchingStage;
 use App\Jobs\ScrapeFileJobConcerns\FinishingStage;
 use App\Models\File;
+use App\Utils\Debugger;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -66,9 +67,7 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
         // Manual job unique lock
         if (! $lock = $this->getManualLock() or ! $lock->get()) {
-            if (env('APP_DEBUG')) {
-                dump('Could not acquire lock for file '.$this->uniqueId());
-            }
+            Debugger::devConsoleDump('Could not acquire lock for file '.$this->uniqueId());
 
             return;
         }
@@ -171,8 +170,6 @@ class ScrapeFileJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             $this->file->saveQuietly();
         }
 
-        if (env('APP_DEBUG')) {
-            dump('Update file scraping stage to: '.(!$stage ? 'null' : $stage->name));
-        }
+        Debugger::devConsoleDump('Update file scraping stage to: '.(!$stage ? 'null' : $stage->name));
     }
 }

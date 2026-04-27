@@ -6,6 +6,7 @@ use App\Contracts\ScrapePolicyEngine\PolicyResult;
 use App\Enums\ScrapingStatus;
 use App\Facades\ScrapePolicyEngine;
 use App\Models\Page;
+use App\Utils\Debugger;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -13,9 +14,7 @@ trait FinishingStage
 {
     protected function handleFinishingStage(Page $page): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Finishing, page '.$page->id);
-        }
+        Debugger::devConsoleDump('Finishing, page '.$page->id);
 
         // Apply the next scrape at from policy
         $policy = $page->policy_result ?? [];
@@ -30,9 +29,7 @@ trait FinishingStage
         ) ? $nextScrapeAt
         : $initialScrapeAt;
 
-        if (env('APP_DEBUG')) {
-            dump('Next scrape at, page '.$page->id.': '.$page->next_scrape_at->diffForHumans());
-        }
+        Debugger::devConsoleDump('Next scrape at, page '.$page->id.': '.$page->next_scrape_at->diffForHumans());
 
         DB::transaction(fn () => $page->save());
         return true;

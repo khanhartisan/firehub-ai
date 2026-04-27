@@ -5,6 +5,7 @@ namespace App\Jobs\ScrapeFileJobConcerns;
 use App\Enums\ScrapingStatus;
 use App\Facades\Scraper;
 use App\Models\File;
+use App\Utils\Debugger;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\DB;
@@ -21,9 +22,7 @@ trait FetchingStage
      */
     protected function handleFileFetchingStage(File $file): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Fetching file '.$file->id);
-        }
+        Debugger::devConsoleDump('Fetching file '.$file->id);
 
         $file->scraping_status = ScrapingStatus::FETCHING;
         DB::transaction(fn () => $file->save());

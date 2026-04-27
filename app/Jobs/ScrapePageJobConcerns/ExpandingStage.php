@@ -6,6 +6,7 @@ use App\Contracts\PageParser\PageData;
 use App\Enums\ScrapableType;
 use App\Models\Page;
 use App\Models\Source;
+use App\Utils\Debugger;
 use App\Utils\UrlNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -14,9 +15,7 @@ trait ExpandingStage
 {
     protected function handleExpandingStage(Page $page): void
     {
-        if (env('APP_DEBUG')) {
-            dump('Expanding, page '.$page->id);
-        }
+        Debugger::devConsoleDump('Expanding, page '.$page->id);
 
         // Skip if the source isn't auto scheduled
         if (!$page->source?->schedule_scraping) {

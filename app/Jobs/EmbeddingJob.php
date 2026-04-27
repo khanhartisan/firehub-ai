@@ -6,6 +6,7 @@ use App\Enums\Queue;
 use App\Facades\TextEmbedding;
 use App\Jobs\Concerns\HasManualLock;
 use App\Models\EmbeddableModel;
+use App\Utils\Debugger;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -57,9 +58,7 @@ class EmbeddingJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
         $embeddable = $this->embeddable;
 
-        if (env('APP_DEBUG')) {
-            dump('Embedding '.$embeddable->getMorphClass().': '.$embeddable->getKey());
-        }
+        Debugger::devConsoleDump('Embedding '.$embeddable->getMorphClass().': '.$embeddable->getKey());
 
         try {
 
@@ -67,9 +66,11 @@ class EmbeddingJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 or $embeddable->isEmbedded()
                 or !$textForEmbedding = $embeddable->getTextForEmbedding()
             ) {
-                if (env('APP_DEBUG')) {
-                    dump('--- Skipping. Embeddable: '.($embeddable->isEmbeddable() ? 'true' : 'false').' / Embedded: '.($embeddable->isEmbedded() ? 'true' : 'false').' / Text for embedding: '.($textForEmbedding ?? '(undefined)'));
-                }
+                Debugger::devConsoleDump('
+                    --- Skipping. Embeddable: '.($embeddable->isEmbeddable() ? 'true' : 'false').' 
+                    / Embedded: '.($embeddable->isEmbedded() ? 'true' : 'false').' 
+                    / Text for embedding: '.($textForEmbedding ?? '(undefined)')
+                );
                 $lock->release();
                 return;
             }

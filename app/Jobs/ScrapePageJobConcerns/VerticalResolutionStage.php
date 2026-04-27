@@ -7,6 +7,7 @@ use App\Contracts\VerticalResolver\Vertical as ContractVertical;
 use App\Facades\VerticalResolver as VerticalResolverFacade;
 use App\Models\Page;
 use App\Models\Vertical as VerticalModel;
+use App\Utils\Debugger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,9 +15,7 @@ trait VerticalResolutionStage
 {
     protected function handleVerticalResolutionStage(Page $page): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Resolving vertical data, entity '.$page->id);
-        }
+        Debugger::devConsoleDump('Resolving vertical data, entity '.$page->id);
 
         if (!$snapshot = $page->currentSnapshot) {
             return false;

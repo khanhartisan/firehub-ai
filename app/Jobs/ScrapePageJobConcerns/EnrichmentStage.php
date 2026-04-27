@@ -8,6 +8,7 @@ use App\Facades\PageClassifier;
 use App\Models\Page;
 use App\Models\Snapshot;
 use App\Models\Tag;
+use App\Utils\Debugger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,9 +16,7 @@ trait EnrichmentStage
 {
     protected function handleEnrichmentStage(Page $page): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Enrichment, page '.$page->id);
-        }
+        Debugger::devConsoleDump('Enrichment, page '.$page->id);
 
         if (!$snapshot = $page->currentSnapshot) {
             return false;

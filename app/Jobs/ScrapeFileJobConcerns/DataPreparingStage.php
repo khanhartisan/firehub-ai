@@ -3,6 +3,7 @@
 namespace App\Jobs\ScrapeFileJobConcerns;
 
 use App\Models\File;
+use App\Utils\Debugger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Imagick;
@@ -27,9 +28,7 @@ trait DataPreparingStage
      */
     protected function handleFileDataPreparingStage(File $file): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Data preparing, file '.$file->id);
-        }
+        Debugger::devConsoleDump('Data preparing, file '.$file->id);
 
         $ext = strtolower((string) ($file->extension ?? ''));
 

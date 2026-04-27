@@ -4,6 +4,7 @@ namespace App\Jobs\ScrapePageJobConcerns;
 
 use App\Models\Page;
 use App\Models\Snapshot;
+use App\Utils\Debugger;
 use App\Utils\HtmlCleaner;
 use Illuminate\Support\Facades\Storage;
 use Imagick;
@@ -13,9 +14,7 @@ trait DataPreparingStage
 {
     protected function handleDataPreparingStage(Page $page): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Prepare data, page '.$page->id);
-        }
+        Debugger::devConsoleDump('Prepare data, page '.$page->id);
 
         if (!$snapshot = $page->currentSnapshot) {
             return false;

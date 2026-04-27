@@ -5,6 +5,7 @@ namespace App\Jobs\ScrapeFileJobConcerns;
 use App\Enums\ScrapingStatus;
 use App\Jobs\EmbeddingJob;
 use App\Models\File;
+use App\Utils\Debugger;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -18,9 +19,7 @@ trait FinishingStage
      */
     protected function handleFileFinishingStage(File $file): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Finishing, file '.$file->id);
-        }
+        Debugger::devConsoleDump('Finishing, file '.$file->id);
 
         try {
             $this->persistFileScrapeSuccess();

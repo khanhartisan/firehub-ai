@@ -5,15 +5,14 @@ namespace App\Jobs\ScrapePageJobConcerns;
 use App\Enums\ScrapingStatus;
 use App\Facades\ScrapePolicyEngine;
 use App\Models\Page;
+use App\Utils\Debugger;
 use Illuminate\Support\Facades\DB;
 
 trait PolicyEvaluationStage
 {
     protected function handlePolicyEvaluationStage(Page $page): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Evaluate policy, page '.$page->id);
-        }
+        Debugger::devConsoleDump('Evaluate policy, page '.$page->id);
 
         $policyResult = ScrapePolicyEngine::evaluate($page);
 

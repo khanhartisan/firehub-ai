@@ -4,6 +4,7 @@ namespace App\Jobs\ScrapeFileJobConcerns;
 
 use App\Facades\FileVision;
 use App\Models\File;
+use App\Utils\Debugger;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,9 +17,7 @@ trait EnrichmentStage
      */
     protected function handleFileEnrichmentStage(File $file): bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Enrichment, file '.$file->id);
-        }
+        Debugger::devConsoleDump('Enrichment, file '.$file->id);
 
         $preparedPath = static::preparedImageStoragePath($file);
 

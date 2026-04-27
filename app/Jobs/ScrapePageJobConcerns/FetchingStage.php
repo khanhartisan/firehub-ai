@@ -6,6 +6,7 @@ use App\Enums\ScrapingStatus;
 use App\Facades\Scraper;
 use App\Models\Page;
 use App\Models\Snapshot;
+use App\Utils\Debugger;
 use App\Utils\Json;
 use Carbon\Carbon;
 use GuzzleHttp\Exception\ConnectException;
@@ -20,9 +21,7 @@ trait FetchingStage
 {
     protected function handleFetchingStage(Page $page): ?Snapshot
     {
-        if (env('APP_DEBUG')) {
-            dump('Fetching, page '.$page->id);
-        }
+        Debugger::devConsoleDump('Fetching, page '.$page->id);
 
         // Update scraping status
         $page->scraping_status = ScrapingStatus::FETCHING;

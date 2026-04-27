@@ -6,6 +6,7 @@ use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response as ResponseObject;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
+use App\Utils\Debugger;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\ConnectException;
@@ -54,11 +55,12 @@ class OpenAIService implements OpenAIClient
         $payload = $this->buildPayload($input, $options);
 
         try {
-            if (env('APP_DEBUG')
-                and app()->runningInConsole()
-            ) {
-                dump('-- Sending request to OpenAI (compatible) API: '.$this->baseUrl.' / Model: '.($options?->getModel() ?? $this->defaultModel).'. Payload length: '.strlen(json_encode($payload)));
-            }
+            Debugger::devConsoleDump(
+                '-- Sending request to OpenAI (compatible) API: '.$this->baseUrl.' 
+                / Model: '.($options?->getModel() ?? $this->defaultModel).' 
+                / Payload length: '.($payloadLength = strlen(json_encode($payload))).'
+                / Payload JSON: '.($payloadLength <= 5000 ? json_encode($payload) : 'Too long to dump')
+            );
 
             $response = $this->client->post('responses', [
                 'json' => $payload,
@@ -67,11 +69,10 @@ class OpenAIService implements OpenAIClient
 
             $data = json_decode($response->getBody()->getContents(), true);
 
-            if (env('APP_DEBUG')
-                and app()->runningInConsole()
-            ) {
-                dump('---- Response payload length: '.strlen(json_encode($data)));
-            }
+            Debugger::devConsoleDump(
+                '---- Response payload length: '.strlen(json_encode($data)).'
+                / Payload JSON: '.json_encode($data)
+            );
 
             return ResponseObject::fromArray($data);
         } catch (BadResponseException $e) {
@@ -92,11 +93,8 @@ class OpenAIService implements OpenAIClient
             throw new \RuntimeException('Failed to create OpenAI response: '.$e->getMessage(), 0, $e);
 
         } finally {
-            if (env('APP_DEBUG')
-                and app()->runningInConsole()
-                and isset($errorLogs)
-            ) {
-                dump($errorLogs);
+            if (isset($errorLogs)) {
+                Debugger::devConsoleDump($errorLogs);
             }
         }
     }

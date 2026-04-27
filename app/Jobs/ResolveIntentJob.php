@@ -16,6 +16,7 @@ use App\Models\IntentKeyword;
 use App\Models\IntentPage;
 use App\Models\Keyword;
 use App\Models\Page;
+use App\Utils\Debugger;
 use App\Utils\Str;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -50,11 +51,9 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         if (!$lock = $this->getManualLock()
             or !$lock->get()
         ) {
-            if (env('APP_DEBUG')) {
-                dump('Skipped intent resolution job: lock not acquired (another run may be in progress).', [
-                    'job' => static::class,
-                ]);
-            }
+            Debugger::devConsoleDump('Skipped intent resolution job: lock not acquired (another run may be in progress).', [
+                'job' => static::class,
+            ]);
 
             return;
         }
@@ -78,9 +77,7 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                         ->where('is_embedded', false)
                         ->exists()
                 ) {
-                    if (env('APP_DEBUG')) {
-                        dump('Found un-embedded intent, return and wait...');
-                    }
+                    Debugger::devConsoleDump('Found un-embedded intent, return and wait...');
 
                     $lock->release();
                     return;
@@ -259,9 +256,7 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             )
         );
 
-        if (env('APP_DEBUG') and app()->runningInConsole()) {
-            dump('Found '.count($similarIntents).' similar intents');
-        }
+        Debugger::devConsoleDump('Found '.count($similarIntents).' similar intents');
 
         // Check merging
         foreach ($similarIntents as $similarIntent) {
@@ -280,9 +275,7 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             );
 
             if ($mergedIntentData) {
-                if (env('APP_DEBUG') and app()->runningInConsole()) {
-                dump('Merging intents...');
-                }
+                Debugger::devConsoleDump('Merging intents...');
 
                 $intentModel->temporal = $mergedIntentData->getTemporal();
                 $intentModel->title = $mergedIntentData->getTitle();
@@ -291,9 +284,7 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 DB::transaction(fn () => $intentModel->save());
 
                 // Update new vector
-                if (env('APP_DEBUG') and app()->runningInConsole()) {
-                    dump('Update merged intent embedding...');
-                }
+                Debugger::devConsoleDump('Update merged intent embedding...');
                 $newIntentVector = TextEmbedding::embed($intentModel->getTextForEmbedding());
                 DB::transaction(fn () => $intentModel->setEmbedding($newIntentVector));
 

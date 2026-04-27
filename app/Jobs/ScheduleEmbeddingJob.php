@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\Queue as QueueEnum;
 use App\Models\EmbeddableModel;
+use App\Utils\Debugger;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -80,11 +81,7 @@ class ScheduleEmbeddingJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 continue;
             }
 
-            if (env('APP_DEBUG')
-                and app()->runningInConsole()
-            ) {
-                dump('Scheduling embedding for '.$class);
-            }
+            Debugger::devConsoleDump('Scheduling embedding for '.$class);
 
             $limit = min(max($this->perModelLimit, 0), 1000);
             if ($limit === 0) {

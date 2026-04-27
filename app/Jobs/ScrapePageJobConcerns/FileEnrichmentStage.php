@@ -9,6 +9,7 @@ use App\Models\File;
 use App\Models\Fileable;
 use App\Models\Page;
 use App\Models\Snapshot;
+use App\Utils\Debugger;
 use App\Utils\Str;
 use App\Utils\UrlNormalizer;
 
@@ -16,9 +17,7 @@ trait FileEnrichmentStage
 {
     protected function handleFileEnrichmentStage(Page $page): ?bool
     {
-        if (env('APP_DEBUG')) {
-            dump('Handling file enrichment stage, page '.$page->id);
-        }
+        Debugger::devConsoleDump('Handling file enrichment stage, page '.$page->id);
 
         /** @var Snapshot $snapshot */
         if (!$snapshot = $page->currentSnapshot) {

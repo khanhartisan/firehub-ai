@@ -31,6 +31,8 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
 
     public function calculateInitialScrapingTime(Page $page): CarbonInterface
     {
+        // TODO: We need a check for system current backlogs (ie pending ignore scraping budget pages)
+        // And set the init scraping time reasonably so the system will only scrape if it's free
         if ($page->ignore_scraping_budget) {
             return now();
         }

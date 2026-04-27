@@ -369,7 +369,13 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $page->attempts = $page->attempts + 1;
 
         // Stop scraping if too many attempts
-        if ($page->attempts >= config('queue.max_scrape_attempts')) {
+        $maxAttempts = config('queue.max_scrape_attempts');
+        if ($page->attempts >= $maxAttempts) {
+            if (env('APP_DEBUG')) {
+                dump('Page '.$page->id.'. Too many attempts: '.$page->attempts.'/'.$maxAttempts);
+            }
+
+            $page->ignore_scraping_budget = false;
             $page->next_scrape_at = null;
             $page->scraping_status = ScrapingStatus::FAILED;
         } else {

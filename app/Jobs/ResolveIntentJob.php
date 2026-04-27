@@ -116,7 +116,12 @@ class ResolveIntentJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return 0;
         }
 
-        $listIntentKeywords = IntentResolver::inferFromKeywords($keywords->pluck('keyword')->values()->toArray());
+        $listIntentKeywords = IntentResolver::inferFromKeywords(
+            $keywords
+                ->map(fn (Keyword $keyword): \App\Contracts\CommonData\Keyword => $keyword->toKeywordData())
+                ->values()
+                ->toArray()
+        );
 
         foreach ($listIntentKeywords as $intentKeywords) {
             $intentModel = $this->getIntentModelByIntentData($intentKeywords->getIntent());

@@ -2,6 +2,8 @@
 
 namespace App\Contracts\IntentResolver;
 
+use App\Contracts\CommonData\Keyword;
+
 /**
  * Infers search intent (informational, transactional, etc.) from text and suggests keywords.
  *
@@ -39,7 +41,7 @@ interface IntentResolver
      * Then return a list of IntentKeywords.
      * Intent may have to many keywords, a keyword may also belong to many intents.
      *
-     * @param  list<string>  $keywords
+     * @param  list<Keyword>  $keywords
      * @return list<IntentKeywords>
      */
     public function inferFromKeywords(array $keywords): array;
@@ -47,7 +49,8 @@ interface IntentResolver
     /**
      * Assign a relevance score (0–1) to each given keyword for the resolved intent.
      *
-     * @param  list<string|IntentKeyword>  $keywords  Keywords to score (strings or {@see IntentKeyword}; only the keyword text is used).
+     * @param Intent $intentData
+     * @param  list<Keyword|IntentKeyword>  $keywords  Keywords to score (strings or {@see IntentKeyword}; only the keyword text is used).
      * @return list<IntentKeyword> One row per input keyword (after normalisation), in input order.
      */
     public function scoreKeywords(Intent $intentData, array $keywords): array;

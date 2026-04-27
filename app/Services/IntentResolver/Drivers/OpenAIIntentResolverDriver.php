@@ -156,7 +156,7 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
     }
 
     /**
-     * @param  list<string>  $keywords
+     * @param  list<KeywordData>  $keywords
      * @return list<IntentKeywords>
      */
     public function inferFromKeywords(array $keywords): array
@@ -212,8 +212,8 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
     }
 
     /**
-     * @param  list<string>  $keywords
-     * @return list<string>
+     * @param  list<KeywordData|string>  $keywords
+     * @return list<KeywordData>
      */
     protected function normalizeGuessKeywordInput(array $keywords): array
     {
@@ -221,19 +221,24 @@ class OpenAIIntentResolverDriver extends IntentResolverService implements Intent
         $seen = [];
 
         foreach ($keywords as $k) {
-            if (! is_string($k)) {
+            if ($k instanceof KeywordData) {
+                $keywordData = $k;
+            } elseif (is_string($k)) {
+                try {
+                    $keywordData = new KeywordData($k);
+                } catch (\InvalidArgumentException) {
+                    continue;
+                }
+            } else {
                 continue;
             }
-            $s = trim($k);
-            if ($s === '') {
-                continue;
-            }
-            $key = mb_strtolower($s);
+
+            $key = mb_strtolower(json_encode($keywordData->toArray()) ?: $keywordData->getKeyword());
             if (isset($seen[$key])) {
                 continue;
             }
             $seen[$key] = true;
-            $out[] = $s;
+            $out[] = $keywordData;
         }
 
         return $out;
@@ -327,13 +332,19 @@ PROMPT;
     }
 
     /**
-     * @param  list<string>  $keywordStrings
+     * @param  list<KeywordData>  $keywords
      */
-    protected function buildInferFromKeywordsPrompt(array $keywordStrings): string
+    protected function buildInferFromKeywordsPrompt(array $keywords): string
     {
         $numbered = [];
-        foreach ($keywordStrings as $i => $kw) {
-            $numbered[] = ($i + 1).'. '.$kw;
+        foreach ($keywords as $i => $keyword) {
+            $numbered[] = sprintf(
+                '%d. %s (language: %s, country: %s)',
+                $i + 1,
+                $keyword->getKeyword(),
+                $keyword->getLanguage()?->value ?? 'null',
+                $keyword->getCountry()?->value ?? 'null'
+            );
         }
         $list = implode("\n", $numbered);
 
@@ -460,7 +471,7 @@ PROMPT;
     }
 
     /**
-     * @param  list<string|IntentKeyword>  $keywords
+     * @param  list<KeywordData|IntentKeyword|string>  $keywords
      * @return list<IntentKeyword>
      */
     public function scoreKeywords(Intent $intentData, array $keywords): array
@@ -515,8 +526,8 @@ PROMPT;
     }
 
     /**
-     * @param  list<string|IntentKeyword>  $keywords
-     * @return list<string>
+     * @param  list<KeywordData|IntentKeyword|string>  $keywords
+     * @return list<KeywordData>
      */
     protected function normalizeKeywordsForScoring(array $keywords): array
     {
@@ -525,37 +536,41 @@ PROMPT;
 
         foreach ($keywords as $k) {
             if ($k instanceof IntentKeyword) {
-                $s = $k->getKeyword()->getKeyword();
+                $keywordData = $k->getKeyword();
+            } elseif ($k instanceof KeywordData) {
+                $keywordData = $k;
             } elseif (is_string($k)) {
-                $s = trim($k);
+                $keywordData = new KeywordData($k);
             } else {
                 continue;
             }
 
-            if ($s === '') {
-                continue;
-            }
-
-            $key = mb_strtolower($s);
+            $key = mb_strtolower(json_encode($keywordData->toArray()) ?: $keywordData->getKeyword());
             if (isset($seen[$key])) {
                 continue;
             }
             $seen[$key] = true;
-            $out[] = $s;
+            $out[] = $keywordData;
         }
 
         return $out;
     }
 
     /**
-     * @param  list<string>  $keywordStrings
+     * @param  list<KeywordData>  $keywords
      */
-    protected function buildScoreKeywordsPrompt(Intent $intentData, array $keywordStrings): string
+    protected function buildScoreKeywordsPrompt(Intent $intentData, array $keywords): string
     {
         $payload = $intentData->toJson();
         $numbered = [];
-        foreach ($keywordStrings as $i => $kw) {
-            $numbered[] = ($i + 1).'. '.$kw;
+        foreach ($keywords as $i => $keyword) {
+            $numbered[] = sprintf(
+                '%d. %s (language: %s, country: %s)',
+                $i + 1,
+                $keyword->getKeyword(),
+                $keyword->getLanguage()?->value ?? 'null',
+                $keyword->getCountry()?->value ?? 'null'
+            );
         }
         $list = implode("\n", $numbered);
 
@@ -594,7 +609,7 @@ PROMPT;
     }
 
     /**
-     * @param  list<string>  $expectedOrder
+     * @param  list<KeywordData>  $expectedOrder
      * @return list<IntentKeyword>
      */
     protected function parseScoreKeywordsResponse(string $responseText, array $expectedOrder, Intent $intentData): array
@@ -607,8 +622,8 @@ PROMPT;
         }
 
         $out = [];
-        foreach ($expectedOrder as $kw) {
-            $match = $byLower[mb_strtolower($kw)] ?? null;
+        foreach ($expectedOrder as $keywordData) {
+            $match = $byLower[mb_strtolower($keywordData->getKeyword())] ?? null;
             if ($match !== null) {
                 $out[] = $match;
 
@@ -617,9 +632,7 @@ PROMPT;
 
             $out[] = (new IntentKeyword)
                 ->setIntent($intentData)
-                ->setKeyword(
-                    KeywordData::fromArray($this->normalizeKeywordPayload($kw, $intentData))
-                )
+                ->setKeyword($keywordData)
                 ->setRelevance(null);
         }
 

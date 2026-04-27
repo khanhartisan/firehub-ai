@@ -6,6 +6,7 @@ use App\Contracts\IntentResolver\Intent;
 use App\Contracts\IntentResolver\Intentable;
 use App\Contracts\IntentResolver\IntentableIntents;
 use App\Contracts\IntentResolver\IntentResolver as IntentResolverContract;
+use App\Contracts\CommonData\Keyword as KeywordData;
 use App\Facades\IntentResolver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
@@ -162,23 +163,26 @@ class TestIntentResolverService extends Command
             $this->line('-----');
 
             $sampleKeywords = [
-                'best product reviews 2026',
-                'buy online discount',
-                'how to choose guide',
-                'compare prices',
-                'best movies to watch',
-                'best films to watch',
-                'best movies ever',
-                'best films 2026',
-                'best films this year',
-                'best games 2026',
-                'what should I watch with family',
+                new KeywordData('best product reviews 2026'),
+                new KeywordData('buy online discount'),
+                new KeywordData('how to choose guide'),
+                new KeywordData('compare prices'),
+                new KeywordData('best movies to watch'),
+                new KeywordData('best films to watch'),
+                new KeywordData('best movies ever'),
+                new KeywordData('best films 2026'),
+                new KeywordData('best films this year'),
+                new KeywordData('best games 2026'),
+                new KeywordData('what should I watch with family'),
             ];
 
             $scoreStart = microtime(true);
             $scored = $resolver->scoreKeywords($intent, $sampleKeywords);
             $this->info('Processing time (scoreKeywords): '.(microtime(true) - $scoreStart).' seconds');
-            $this->comment('Scoring sample keywords: '.implode(', ', $sampleKeywords));
+            $this->comment('Scoring sample keywords: '.implode(', ', array_map(
+                static fn (KeywordData $keyword): string => $keyword->getKeyword(),
+                $sampleKeywords
+            )));
             $this->line('-----');
 
             if ($scored === []) {
@@ -201,18 +205,21 @@ class TestIntentResolverService extends Command
 
         if ($action === 'infer_from_keywords') {
             $sampleKeywords = [
-                'best running shoes 2026',
-                'marathon training plan',
-                'cheap sneakers free shipping',
-                'how to improve 5k time',
-                'best movies to watch',
-                'best movies ever',
-                'best films 2026',
+                new KeywordData('best running shoes 2026'),
+                new KeywordData('marathon training plan'),
+                new KeywordData('cheap sneakers free shipping'),
+                new KeywordData('how to improve 5k time'),
+                new KeywordData('best movies to watch'),
+                new KeywordData('best movies ever'),
+                new KeywordData('best films 2026'),
             ];
 
             $start = microtime(true);
             $this->info('Calling IntentResolver::inferFromKeywords() / Driver: '.$driver);
-            $this->comment('Sample keywords: '.implode(', ', $sampleKeywords));
+            $this->comment('Sample keywords: '.implode(', ', array_map(
+                static fn (KeywordData $keyword): string => $keyword->getKeyword(),
+                $sampleKeywords
+            )));
 
             $groups = $resolver->inferFromKeywords($sampleKeywords);
             $this->info('Processing time: '.(microtime(true) - $start).' seconds');

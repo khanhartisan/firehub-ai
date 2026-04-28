@@ -60,14 +60,14 @@ class OpenAIAuthorDriver extends AuthorService
         return (float) ($this->config['temperature'] ?? 0.2);
     }
 
-    protected function getMaxChildren(): int
+    public function getMaxChildren(): int
     {
-        return max(1, min(30, (int) ($this->config['max_children'] ?? 12)));
+        return (int) ($this->config['max_children'] ?? 100);
     }
 
     protected function getMaxDepth(): int
     {
-        return max(1, min(8, (int) ($this->config['max_depth'] ?? 6)));
+        return max(1, min(8, (int) ($this->config['max_depth'] ?? 8)));
     }
 
     /**
@@ -98,12 +98,9 @@ class OpenAIAuthorDriver extends AuthorService
 You are a senior editorial writer.
 
 Given a brief, outline, and optional semantic context, produce structured article draft content:
+- You have the freedom to express and organize the article by your way, but make sure you make use of all the points provided by the outline, as well as the related sub-points and evidences.
 - Keep title and excerpt concise, specific, and publish-ready.
-- Return a complete article DOM object in "article" using {type, props, children}.
-- You have creative freedom in structure and flow; use outline/context as guidance, not a strict template.
-- Use semantic HTML tags when helpful (e.g., h2, p, ul, li, strong, a, blockquote).
 - Do not include h1 in article content; h1 is handled by CMS.
-- Keep claims grounded in the provided data and avoid inventing unsupported facts.
 - Keep tone and voice aligned with the brief.
 
 Input JSON:

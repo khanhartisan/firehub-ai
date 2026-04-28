@@ -7,12 +7,14 @@ use App\Contracts\OpenAI\Response as ResponseObject;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Utils\Debugger;
+use App\Utils\Str;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class OpenAIService implements OpenAIClient
 {
@@ -59,7 +61,11 @@ class OpenAIService implements OpenAIClient
                 '-- Sending request to OpenAI (compatible) API: '.$this->baseUrl.' 
                 / Model: '.($options?->getModel() ?? $this->defaultModel).' 
                 / Payload length: '.($payloadLength = strlen(json_encode($payload))).'
-                / Payload JSON: '.($payloadLength <= 5000 ? json_encode($payload) : 'Too long to dump')
+                / Payload JSON: '.($payloadLength <= 5000 ? json_encode($payload) : (function () use ($payload) {
+                    $payloadDumpPath = 'logs/debugger/dumps/'.Str::ulid().'.txt';
+                    Storage::disk('local')->put($payloadDumpPath, json_encode($payload));
+                    return 'Too long to dump. Dumped to: '.$payloadDumpPath;
+                })())
             );
 
             $response = $this->client->post('responses', [

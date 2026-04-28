@@ -205,8 +205,8 @@ return [
     'openai_author' => [
         'model' => env('SYNTHESIZER_OPENAI_AUTHOR_MODEL', 'gpt-4o-mini'),
         'temperature' => 0.2,
-        'max_children' => 12,
-        'max_depth' => 4,
+        'max_children' => 500,
+        'max_depth' => 20,
     ],
 
     /*

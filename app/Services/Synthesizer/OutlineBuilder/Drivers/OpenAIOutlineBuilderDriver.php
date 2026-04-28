@@ -60,12 +60,12 @@ class OpenAIOutlineBuilderDriver extends OutlineBuilderService
 
     protected function getMaxItems(): int
     {
-        return max(1, min(12, (int) ($this->config['max_items'] ?? 6)));
+        return (int) ($this->config['max_items'] ?? 20);
     }
 
     protected function getMaxDepth(): int
     {
-        return max(1, min(6, (int) ($this->config['max_depth'] ?? 6)));
+        return (int) ($this->config['max_depth'] ?? 6);
     }
 
     /**

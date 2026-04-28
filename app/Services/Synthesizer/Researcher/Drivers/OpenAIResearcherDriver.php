@@ -197,7 +197,7 @@ You should not include the points that are not related, non-relevant to the prov
 Each point should include:
 - headline: short and punchy
 - description: concise explanation
-- evidences: concrete facts/quotes/snippets from source content
+- evidences: facts/quotes/snippets/numbers/analytics... from source content
 - rationale: why this point is strategically relevant to the provided idea
 - relevance: 0..1 relevance to the idea, 0 is not relevant, 1 is extremely relevant.
 
@@ -266,14 +266,13 @@ You are a research synthesis analyst.
 
 Given an editorial idea and a set of relevant points:
 - Merge overlapping points into cleaner, non-duplicated points.
-- Preserve high-signal evidence.
 - Keep rationale concise and strategic.
 - Keep relevance scores between 0 and 1.
 - If points materially disagree, place those groups in "conflicts".
 
 A conflict should include:
 - rationale: why these points conflict
-- points: the conflicting points (do not rewrite into one statement)
+- points: both the non-conflict and the conflicting points
 
 Idea JSON:
 {$ideaJson}
@@ -314,7 +313,7 @@ PROMPT;
                             'evidences' => [
                                 'type' => 'array',
                                 'items' => ['type' => 'string'],
-                                'description' => 'Concrete supporting evidence snippets (facts, figures, quotes, or observations) taken from the source content.',
+                                'description' => 'Concrete supporting evidence snippets (facts, analytics, figures, numbers, quotes, information or observations...) taken from the source content.',
                             ],
                             'rationale' => [
                                 'type' => 'string',

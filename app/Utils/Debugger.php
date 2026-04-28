@@ -13,10 +13,15 @@ class Debugger
         }
 
         $trace = debug_backtrace();
-        $caller = $trace[1];
+        $callers = [
+            $trace[1], $trace[2], $trace[3], $trace[4], $trace[5]
+        ];
 
         dump('-----');
-        dump('Caller: '.$caller['file'].':'.$caller['function'].':'.$caller['line']);
+        foreach ($callers as $caller) {
+            dump('Caller: '.$caller['file'].':'.$caller['function'].':'.$caller['line']);
+        }
+
         dump(...$args);
     }
 }

@@ -189,8 +189,8 @@ return [
     'openai_outline_builder' => [
         'model' => env('SYNTHESIZER_OPENAI_OUTLINE_BUILDER_MODEL', 'gpt-4o-mini'),
         'temperature' => 0.2,
-        'max_items' => 6,
-        'max_depth' => 2,
+        'max_items' => 20,
+        'max_depth' => 6,
     ],
 
     /*

@@ -54,10 +54,18 @@ trait HandleIdeaStage
             })
             and $latestArticles->count()
         ) {
-            $ideaBrainstormContext->set('latest_article_titles', 'Latest article titles for ideation context.', $latestArticles
-                ->map(function (Article $article) {
-                    return Str::limit($article->title, 160);
-                })->values()->toArray());
+            $ideaBrainstormContext->set(
+                'latest_article_titles',
+                'Latest article for ideation context.',
+                $latestArticles
+                    ->map(function (Article $article) {
+                        return [
+                            'title' => Str::limit($article->title, 160),
+                            'temporal' => $article->temporal?->value,
+                            'created_at' => (string) $article->created_at
+                        ];
+                    })->values()->toArray()
+            );
         } else {
             $ideaBrainstormContext->set('latest_article_titles', 'Latest article titles for ideation context.', ['No existing articles. This will be the first article.']);
         }

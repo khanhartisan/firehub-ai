@@ -124,6 +124,9 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
         return $suggestions;
     }
 
+    /**
+     * @throws \JsonException
+     */
     public function brainstorm(
         array $temporalSuggestions,
         array $intentTypeSuggestions,
@@ -338,6 +341,12 @@ Intent type suggestions (JSON):
 
 Editorial / business context:
 {$contextJson}
+
+Ensure all ideas are mutually distinct. Do not propose duplicate concepts. Do not generate generic clickbait.
+
+Contextual Balance (Continuity vs. Exploration): Review the "Recent Articles History" to understand the current narrative phase. You SHOULD provide a diverse ideas that either, or balance between:
+- Continuity Ideas: Topics that logically advance the recent content and match the "Audience Knowledge Stage".
+- Exploration Ideas: Fresh, tangential, or entirely new angles that diversify the website's content while still strictly respecting the overarching "Editorial / business context".
 
 Return up to {$limit} distinct ideas as JSON (via schema). Confidence is 0–1 for how strong the idea is given the inputs.
 PROMPT;

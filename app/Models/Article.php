@@ -97,8 +97,6 @@ class Article extends EmbeddableModel implements ShouldCascade
 
     public function getTextForEmbedding(): ?string
     {
-        $body = $this->article instanceof DOMArticle ? $this->article->toHtml() : '';
-
-        return '# '.$this->title."\n\n".$this->excerpt."\n\n".$body;
+        return '# '.$this->title."\n\n".$this->excerpt;
     }
 }

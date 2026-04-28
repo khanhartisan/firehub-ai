@@ -39,7 +39,7 @@ class KeywordResearchJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
      */
     public function __construct(Keyword $keyword,
                                 protected array $searchEngineDrivers = [],
-                                protected int $limitPerDriver = 10,
+                                protected int $limitPerDriver = 5,
                                 protected bool $forceResearch = false)
     {
         $this->keyword = $keyword->withoutRelations();

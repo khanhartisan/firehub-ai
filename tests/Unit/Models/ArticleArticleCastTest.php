@@ -6,6 +6,7 @@ use App\Contracts\DOM\Article as DOMArticle;
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
 use App\Models\Article;
+use App\Utils\Str;
 use Tests\TestCase;
 
 class ArticleArticleCastTest extends TestCase
@@ -36,10 +37,12 @@ class ArticleArticleCastTest extends TestCase
     public function test_it_accepts_array_payload_and_casts_to_dom_article(): void
     {
         $payload = [
+            'identifier' => Str::uuid()->toString(),
             'type' => 'article',
             'props' => [],
             'children' => [
                 [
+                    'identifier' => Str::uuid()->toString(),
                     'type' => 'p',
                     'props' => [],
                     'children' => ['Array payload paragraph'],

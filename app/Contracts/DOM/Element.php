@@ -3,10 +3,13 @@
 namespace App\Contracts\DOM;
 
 use App\Concerns\Serializable as SerializableTrait;
+use App\Contracts\Identifiable;
 use App\Contracts\Serializable;
+use App\Utils\Str;
 
-class Element implements Serializable
+class Element implements Serializable, Identifiable
 {
+    use \App\Concerns\Identifiable;
     use SerializableTrait;
 
     protected ?ElementType $type = null;
@@ -20,6 +23,11 @@ class Element implements Serializable
      * @var array<int, Element|string>
      */
     protected array $children = [];
+
+    public function getIdentifier(): ?string
+    {
+        return $this->identifier ??= (string) Str::uuid();
+    }
 
     public function getType(): ?ElementType
     {
@@ -137,6 +145,7 @@ class Element implements Serializable
     public function toArray(): array
     {
         return [
+            'identifier' => $this->getIdentifier(),
             'type' => $this->type?->value,
             'props' => $this->props,
             'children' => array_map(
@@ -152,6 +161,10 @@ class Element implements Serializable
     public static function fromArray(array $data): static
     {
         $element = new static;
+
+        if (isset($data['identifier'])) {
+            $element->setIdentifier($data['identifier']);
+        }
 
         if (isset($data['type']) && is_string($data['type'])) {
             $element->setType(ElementType::tryFrom($data['type']));

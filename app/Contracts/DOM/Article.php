@@ -23,6 +23,10 @@ class Article extends Element
     {
         $article = new static;
 
+        if (isset($data['identifier'])) {
+            $article->setIdentifier($data['identifier']);
+        }
+
         if (isset($data['props']) && is_array($data['props'])) {
             $article->setProps($data['props']);
         }

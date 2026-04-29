@@ -180,7 +180,7 @@ class OpenAIResearcherDriver extends ResearcherService
 
     protected function getMaxPoints(): int
     {
-        return max(1, min(20, (int) ($this->config['max_points'] ?? 8)));
+        return (int) ($this->config['max_points'] ?? 20);
     }
 
     protected function buildExtractPointsPrompt(Idea $idea, string $content): string
@@ -190,16 +190,18 @@ class OpenAIResearcherDriver extends ResearcherService
         return <<<PROMPT
 You are a research analyst for editorial planning. You will be provided an idea of the new article, and a source content that may contain related information for the article.
  
-Your job is to extract concise, high-signal evidence-based points from the source content that is related to the provided idea.
+Your job is to extract points from the source content that is related to the provided idea.
 
 You should not include the points that are not related, non-relevant to the provided idea.
 
 Each point should include:
 - headline: short and punchy
 - description: concise explanation
-- evidences: facts/quotes/snippets/numbers/analytics/benchmark/information... from source content that supports or is related to the point.
+- evidences: All facts/quotes/snippets/numbers/analytics/benchmark/information... from source content that supports or is related to the point.
 - rationale: why this point is strategically relevant to the provided idea
 - relevance: 0..1 relevance to the idea, 0 is not relevant, 1 is extremely relevant.
+
+It is very important to extract the real numbers, analytics, examples, proofs... of the point into the evidences.
 
 Idea JSON:
 {$ideaJson}
@@ -236,6 +238,8 @@ Return exactly one resolved relevant point that:
 - keeps only evidence supported by verified facts
 - has concise rationale
 - includes relevance (to the given idea) in [0,1]
+
+It is very important to keep the real numbers, analytics, examples, proofs... of the point in the evidences.
 
 Idea JSON:
 {$ideaJson}
@@ -274,6 +278,8 @@ A conflict should include:
 - rationale: why these points conflict
 - points: both the non-conflict and the conflicting points
 
+It is very important to keep the real numbers, analytics, examples, proofs... of the point in the evidences.
+
 Idea JSON:
 {$ideaJson}
 
@@ -298,13 +304,13 @@ PROMPT;
                     'type' => 'array',
                     'minItems' => 0,
                     'maxItems' => $maxPoints,
-                    'description' => 'Ranked list of extracted research points relevant to the provided idea. Most relevant items should come first.',
+                    'description' => 'List of extracted research points relevant to the provided idea.',
                     'items' => [
                         'type' => 'object',
                         'properties' => [
                             'headline' => [
                                 'type' => 'string',
-                                'description' => 'A concise, punchy summary sentence of the key insight.',
+                                'description' => 'A summary of the key insight.',
                             ],
                             'description' => [
                                 'type' => 'string',

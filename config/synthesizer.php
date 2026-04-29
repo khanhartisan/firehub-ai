@@ -83,6 +83,10 @@ return [
                         'class' => OpenAIIdeaAdvisorDriver::class,
                         'weight' => 1.0,
                     ],
+                    [
+                        'class' => \App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaExpansionAdvisorDriver::class,
+                        'weight' => 2.0,
+                    ],
                 ],
                 'auditor' => OpenAIIdeaAuditorDriver::class,
                 'picker' => OpenAIIdeaPickerDriver::class,
@@ -113,7 +117,7 @@ return [
 
     'openai_idea_advisor' => [
         'model' => env('SYNTHESIZER_OPENAI_IDEA_ADVISOR_MODEL', 'gpt-4o-mini'),
-        'temperature' => 0.3,
+        'temperature' => 1.2,
         'max_temporal_suggestions' => 8,
         'max_intent_type_suggestions' => 8,
     ],

@@ -8,20 +8,20 @@ use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 
 /**
- * Chooses global temporal + intent picks (weighted), then brainstorms ideas per advisor for that pair.
+ * Aggregates weighted temporal + intent suggestion lists, then brainstorms per advisor.
  */
 trait HandleIdeaStageBrainstorm
 {
     /**
-     * @return ?true if selections already exist; false if {@see selectTopSuggestions()} cannot pick;
-     *         null after successfully persisting first-time selections (checkpoint before brainstorm).
+     * @return ?true if aggregated selections already exist; false if {@see selectTopSuggestions()} cannot pick;
+     *         null after successfully persisting first-time aggregated selections (checkpoint before brainstorm).
      */
     protected function processTopSuggestionSelection(): ?bool
     {
         $ideaData = $this->getIdeaStageData();
 
-        if ($ideaData->hasSelectedTemporalSuggestion()
-            && $ideaData->hasSelectedIntentTypeSuggestion()
+        if ($ideaData->hasSelectedTemporalSuggestions()
+            && $ideaData->hasSelectedIntentTypeSuggestions()
         ) {
             return true;
         }
@@ -36,9 +36,9 @@ trait HandleIdeaStageBrainstorm
     protected function processBrainstormCollection(SemanticContext $context): ?bool
     {
         $ideaData = $this->getIdeaStageData();
-        $temporalSuggestion = $ideaData->getSelectedTemporalSuggestion();
-        $intentTypeSuggestion = $ideaData->getSelectedIntentTypeSuggestion();
-        if (! $temporalSuggestion || ! $intentTypeSuggestion) {
+        $temporalSuggestions = $ideaData->getSelectedTemporalSuggestions();
+        $intentTypeSuggestions = $ideaData->getSelectedIntentTypeSuggestions();
+        if ($temporalSuggestions === [] || $intentTypeSuggestions === []) {
             return false;
         }
 
@@ -53,8 +53,8 @@ trait HandleIdeaStageBrainstorm
 
             // One advisor per job run: persist then exit so the queue slices long advisor lists.
             $ideas = $advisor->brainstorm(
-                [$temporalSuggestion],
-                [$intentTypeSuggestion],
+                $temporalSuggestions,
+                $intentTypeSuggestions,
                 $context,
                 5
             );
@@ -68,17 +68,16 @@ trait HandleIdeaStageBrainstorm
     }
 
     /**
-     * For each advisor, score suggestions as (confidence × advisor weight); take the best temporal
-     * and the best intent independently (not necessarily from the same advisor).
+     * For each advisor, score suggestions as (confidence × advisor weight), then persist full lists
+     * sorted by weighted score descending for temporal and intent independently.
      */
     protected function selectTopSuggestions(): bool
     {
         $ideaData = $this->getIdeaStageData();
 
-        $bestTemporal = null;
-        $bestTemporalWeighted = -1.0;
-        $bestIntent = null;
-        $bestIntentWeighted = -1.0;
+        $weightedTemporalBuckets = [];
+        $weightedIntentTypeBuckets = [];
+        $totalAdvisorWeight = 0.0;
 
         foreach ($this->getIdeaAdvisors() as $advisor) {
             if (! $advisor instanceof IdeaAdvisor) {
@@ -86,46 +85,105 @@ trait HandleIdeaStageBrainstorm
             }
 
             $weight = $advisor->getWeight();
+            $totalAdvisorWeight += $weight;
             $advisorData = $ideaData->getAdvisorDataByIdentifier((string) $advisor->getIdentifier());
             if (! $advisorData) {
                 continue;
             }
 
-            // Compare weighted scores across advisors for temporal…
+            // Aggregate by unique temporal while tracking highest individual weighted contribution reason.
             foreach ($advisorData->getTemporalSuggestions() as $suggestion) {
                 if (! $suggestion instanceof TemporalSuggestion) {
                     continue;
                 }
 
+                $key = $suggestion->getTemporal()->value;
                 $weighted = $this->weightedSuggestionScore($suggestion->getConfidence(), $weight);
-                if ($weighted > $bestTemporalWeighted) {
-                    $bestTemporalWeighted = $weighted;
-                    $bestTemporal = $suggestion;
+                $weightedTemporalBuckets[$key] ??= [
+                    'temporal' => $suggestion->getTemporal(),
+                    'weighted_sum' => 0.0,
+                    'best_weighted' => -1.0,
+                    'reason' => null,
+                ];
+
+                $weightedTemporalBuckets[$key]['weighted_sum'] += $weighted;
+                if ($weighted > $weightedTemporalBuckets[$key]['best_weighted']) {
+                    $weightedTemporalBuckets[$key]['best_weighted'] = $weighted;
+                    $weightedTemporalBuckets[$key]['reason'] = $suggestion->getReason();
                 }
             }
 
-            // …and independently for intent type (winners may come from different advisors).
+            // Aggregate by unique intent type while tracking highest individual weighted contribution reason.
             foreach ($advisorData->getIntentTypeSuggestions() as $suggestion) {
                 if (! $suggestion instanceof IntentTypeSuggestion) {
                     continue;
                 }
 
+                $key = (string) $suggestion->getIntentType()->value;
                 $weighted = $this->weightedSuggestionScore($suggestion->getConfidence(), $weight);
-                if ($weighted > $bestIntentWeighted) {
-                    $bestIntentWeighted = $weighted;
-                    $bestIntent = $suggestion;
+                $weightedIntentTypeBuckets[$key] ??= [
+                    'intent_type' => $suggestion->getIntentType(),
+                    'weighted_sum' => 0.0,
+                    'best_weighted' => -1.0,
+                    'reason' => null,
+                ];
+
+                $weightedIntentTypeBuckets[$key]['weighted_sum'] += $weighted;
+                if ($weighted > $weightedIntentTypeBuckets[$key]['best_weighted']) {
+                    $weightedIntentTypeBuckets[$key]['best_weighted'] = $weighted;
+                    $weightedIntentTypeBuckets[$key]['reason'] = $suggestion->getReason();
                 }
             }
         }
 
-        if (! $bestTemporal instanceof TemporalSuggestion
-            || ! $bestIntent instanceof IntentTypeSuggestion
+        if ($totalAdvisorWeight <= 0.0
+            || $weightedTemporalBuckets === []
+            || $weightedIntentTypeBuckets === []
         ) {
             return false;
         }
 
-        $ideaData->setSelectedTemporalSuggestion($bestTemporal);
-        $ideaData->setSelectedIntentTypeSuggestion($bestIntent);
+        $weightedTemporals = array_map(
+            static fn (array $bucket): array => [
+                'weighted' => $bucket['weighted_sum'] / $totalAdvisorWeight,
+                'suggestion' => new TemporalSuggestion(
+                    $bucket['temporal'],
+                    $bucket['weighted_sum'] / $totalAdvisorWeight,
+                    $bucket['reason']
+                ),
+            ],
+            array_values($weightedTemporalBuckets)
+        );
+
+        $weightedIntentTypes = array_map(
+            static fn (array $bucket): array => [
+                'weighted' => $bucket['weighted_sum'] / $totalAdvisorWeight,
+                'suggestion' => new IntentTypeSuggestion(
+                    $bucket['intent_type'],
+                    $bucket['weighted_sum'] / $totalAdvisorWeight,
+                    $bucket['reason']
+                ),
+            ],
+            array_values($weightedIntentTypeBuckets)
+        );
+
+        usort(
+            $weightedTemporals,
+            static fn (array $left, array $right): int => $right['weighted'] <=> $left['weighted']
+        );
+        usort(
+            $weightedIntentTypes,
+            static fn (array $left, array $right): int => $right['weighted'] <=> $left['weighted']
+        );
+
+        $ideaData->setSelectedTemporalSuggestions(array_map(
+            static fn (array $item): TemporalSuggestion => $item['suggestion'],
+            $weightedTemporals
+        ));
+        $ideaData->setSelectedIntentTypeSuggestions(array_map(
+            static fn (array $item): IntentTypeSuggestion => $item['suggestion'],
+            $weightedIntentTypes
+        ));
         $this->touchArticleQuietly();
 
         return true;

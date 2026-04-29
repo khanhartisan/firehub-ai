@@ -17,8 +17,10 @@ final class IdeaStageData implements \App\Contracts\Serializable
     /** @var array<string, AdvisorData> */
     protected array $advisorDataByIdentifier = [];
 
-    protected ?TemporalSuggestion $selectedTemporalSuggestion = null;
-    protected ?IntentTypeSuggestion $selectedIntentTypeSuggestion = null;
+    /** @var TemporalSuggestion[] */
+    protected array $selectedTemporalSuggestions = [];
+    /** @var IntentTypeSuggestion[] */
+    protected array $selectedIntentTypeSuggestions = [];
 
     protected ?IdeaAuditReport $pickedIdeaAuditReport = null;
 
@@ -61,36 +63,46 @@ final class IdeaStageData implements \App\Contracts\Serializable
         return $this;
     }
 
-    public function hasSelectedTemporalSuggestion(): bool
+    public function hasSelectedTemporalSuggestions(): bool
     {
-        return $this->getSelectedTemporalSuggestion() instanceof TemporalSuggestion;
+        return count($this->getSelectedTemporalSuggestions()) > 0;
     }
 
-    public function getSelectedTemporalSuggestion(): ?TemporalSuggestion
+    /** @return TemporalSuggestion[] */
+    public function getSelectedTemporalSuggestions(): array
     {
-        return $this->selectedTemporalSuggestion;
+        return $this->selectedTemporalSuggestions;
     }
 
-    public function setSelectedTemporalSuggestion(?TemporalSuggestion $suggestion): static
+    /** @param iterable<TemporalSuggestion> $suggestions */
+    public function setSelectedTemporalSuggestions(iterable $suggestions): static
     {
-        $this->selectedTemporalSuggestion = $suggestion;
+        $this->selectedTemporalSuggestions = array_values(array_filter(
+            is_array($suggestions) ? $suggestions : iterator_to_array($suggestions),
+            static fn ($v): bool => $v instanceof TemporalSuggestion
+        ));
 
         return $this;
     }
 
-    public function hasSelectedIntentTypeSuggestion(): bool
+    public function hasSelectedIntentTypeSuggestions(): bool
     {
-        return $this->getSelectedIntentTypeSuggestion() instanceof IntentTypeSuggestion;
+        return count($this->getSelectedIntentTypeSuggestions()) > 0;
     }
 
-    public function getSelectedIntentTypeSuggestion(): ?IntentTypeSuggestion
+    /** @return IntentTypeSuggestion[] */
+    public function getSelectedIntentTypeSuggestions(): array
     {
-        return $this->selectedIntentTypeSuggestion;
+        return $this->selectedIntentTypeSuggestions;
     }
 
-    public function setSelectedIntentTypeSuggestion(?IntentTypeSuggestion $suggestion): static
+    /** @param iterable<IntentTypeSuggestion> $suggestions */
+    public function setSelectedIntentTypeSuggestions(iterable $suggestions): static
     {
-        $this->selectedIntentTypeSuggestion = $suggestion;
+        $this->selectedIntentTypeSuggestions = array_values(array_filter(
+            is_array($suggestions) ? $suggestions : iterator_to_array($suggestions),
+            static fn ($v): bool => $v instanceof IntentTypeSuggestion
+        ));
 
         return $this;
     }
@@ -376,8 +388,14 @@ final class IdeaStageData implements \App\Contracts\Serializable
     {
         return [
             'advisors' => array_map(static fn (AdvisorData $v) => $v->toArray(), $this->getAdvisorDataMap()),
-            'selected_temporal_suggestion' => $this->getSelectedTemporalSuggestion()?->toArray(),
-            'selected_intent_type_suggestion' => $this->getSelectedIntentTypeSuggestion()?->toArray(),
+            'selected_temporal_suggestions' => array_map(
+                static fn (TemporalSuggestion $v) => $v->toArray(),
+                $this->getSelectedTemporalSuggestions()
+            ),
+            'selected_intent_type_suggestions' => array_map(
+                static fn (IntentTypeSuggestion $v) => $v->toArray(),
+                $this->getSelectedIntentTypeSuggestions()
+            ),
             'picked_idea_audit_report' => $this->getPickedIdeaAuditReport()?->toArray(),
             'ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->getIdeas()),
             'unique_idea_identifier_pairs' => $this->getUniqueIdeaIdentifierPairs(),
@@ -406,12 +424,18 @@ final class IdeaStageData implements \App\Contracts\Serializable
             }
         }
 
-        if (isset($data['selected_temporal_suggestion']) && is_array($data['selected_temporal_suggestion'])) {
-            $dto->setSelectedTemporalSuggestion(TemporalSuggestion::fromArray($data['selected_temporal_suggestion']));
+        if (isset($data['selected_temporal_suggestions']) && is_array($data['selected_temporal_suggestions'])) {
+            $dto->setSelectedTemporalSuggestions(array_map(
+                static fn (array $v): TemporalSuggestion => TemporalSuggestion::fromArray($v),
+                array_values(array_filter($data['selected_temporal_suggestions'], 'is_array'))
+            ));
         }
 
-        if (isset($data['selected_intent_type_suggestion']) && is_array($data['selected_intent_type_suggestion'])) {
-            $dto->setSelectedIntentTypeSuggestion(IntentTypeSuggestion::fromArray($data['selected_intent_type_suggestion']));
+        if (isset($data['selected_intent_type_suggestions']) && is_array($data['selected_intent_type_suggestions'])) {
+            $dto->setSelectedIntentTypeSuggestions(array_map(
+                static fn (array $v): IntentTypeSuggestion => IntentTypeSuggestion::fromArray($v),
+                array_values(array_filter($data['selected_intent_type_suggestions'], 'is_array'))
+            ));
         }
 
         if (isset($data['picked_idea_audit_report']) && is_array($data['picked_idea_audit_report'])) {

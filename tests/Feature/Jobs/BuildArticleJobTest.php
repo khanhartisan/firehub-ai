@@ -125,8 +125,8 @@ class BuildArticleJobTest extends TestCase
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Weighted selection test.');
 
-        // Alpha: weight 1 — high temporal score wins overall for temporal pick.
-        // Beta: weight 3 — low raw intent score still wins after weighting for intent pick.
+        // Alpha: weight 1, Beta: weight 3.
+        // Assertions verify unique suggestion aggregation by weighted average across all advisors.
         $alpha = new WeightedStubIdeaAdvisor('weighted-alpha', 1.0);
         $beta = new WeightedStubIdeaAdvisor('weighted-beta', 3.0);
 
@@ -135,19 +135,23 @@ class BuildArticleJobTest extends TestCase
 
         $alphaData = new AdvisorData;
         $alphaData->setTemporalSuggestions([
-            new TemporalSuggestion(Temporal::TOPICAL, 0.9, 'alpha-temporal'),
+            new TemporalSuggestion(Temporal::TOPICAL, 0.9, 'alpha-topical'),
+            new TemporalSuggestion(Temporal::EVERGREEN, 0.1, 'alpha-evergreen'),
         ]);
         $alphaData->setIntentTypeSuggestions([
-            new IntentTypeSuggestion(IntentType::INFORMATIONAL, 0.2, 'alpha-intent'),
+            new IntentTypeSuggestion(IntentType::INFORMATIONAL, 0.2, 'alpha-informational'),
+            new IntentTypeSuggestion(IntentType::COMMERCIAL, 0.05, 'alpha-commercial'),
         ]);
         $ideaData->setAdvisorDataByIdentifier('weighted-alpha', $alphaData);
 
         $betaData = new AdvisorData;
         $betaData->setTemporalSuggestions([
-            new TemporalSuggestion(Temporal::EVERGREEN, 0.2, 'beta-temporal'),
+            new TemporalSuggestion(Temporal::TOPICAL, 0.2, 'beta-topical'),
+            new TemporalSuggestion(Temporal::EVERGREEN, 0.2, 'beta-evergreen'),
         ]);
         $betaData->setIntentTypeSuggestions([
-            new IntentTypeSuggestion(IntentType::COMMERCIAL, 0.1, 'beta-intent'),
+            new IntentTypeSuggestion(IntentType::INFORMATIONAL, 0.1, 'beta-informational'),
+            new IntentTypeSuggestion(IntentType::COMMERCIAL, 0.1, 'beta-commercial'),
         ]);
         $ideaData->setAdvisorDataByIdentifier('weighted-beta', $betaData);
 
@@ -155,8 +159,8 @@ class BuildArticleJobTest extends TestCase
         $article->save();
         $article->refresh();
 
-        // Weighted temporal: 0.9*1=0.9 (alpha) vs 0.2*3=0.6 (beta) → TOPICAL.
-        // Weighted intent: 0.2*1=0.2 (alpha) vs 0.1*3=0.3 (beta) → COMMERCIAL.
+        // Topical avg=(0.9*1 + 0.2*3) / (1+3)=0.375, Evergreen avg=(0.1*1 + 0.2*3)/4=0.175.
+        // Commercial avg=(0.05*1 + 0.1*3)/4=0.0875, Informational avg=(0.2*1 + 0.1*3)/4=0.125.
         $job = new class($client, $article->id, [$alpha, $beta]) extends BuildArticleJob
         {
             /**
@@ -182,8 +186,23 @@ class BuildArticleJobTest extends TestCase
         $article->refresh();
         $selected = $article->stage_data->getIdeaStageData();
 
-        $this->assertSame(Temporal::TOPICAL, $selected->getSelectedTemporalSuggestion()->getTemporal());
-        $this->assertSame(IntentType::COMMERCIAL, $selected->getSelectedIntentTypeSuggestion()->getIntentType());
+        $selectedTemporals = array_values($selected->getSelectedTemporalSuggestions());
+        $selectedIntentTypes = array_values($selected->getSelectedIntentTypeSuggestions());
+
+        $this->assertCount(2, $selectedTemporals);
+        $this->assertCount(2, $selectedIntentTypes);
+        $this->assertSame(Temporal::TOPICAL, $selectedTemporals[0]->getTemporal());
+        $this->assertSame(Temporal::EVERGREEN, $selectedTemporals[1]->getTemporal());
+        $this->assertSame(IntentType::INFORMATIONAL, $selectedIntentTypes[0]->getIntentType());
+        $this->assertSame(IntentType::COMMERCIAL, $selectedIntentTypes[1]->getIntentType());
+        $this->assertEqualsWithDelta(0.375, $selectedTemporals[0]->getConfidence(), 0.0001);
+        $this->assertEqualsWithDelta(0.175, $selectedTemporals[1]->getConfidence(), 0.0001);
+        $this->assertEqualsWithDelta(0.125, $selectedIntentTypes[0]->getConfidence(), 0.0001);
+        $this->assertEqualsWithDelta(0.0875, $selectedIntentTypes[1]->getConfidence(), 0.0001);
+        $this->assertSame('alpha-topical', $selectedTemporals[0]->getReason());
+        $this->assertSame('beta-evergreen', $selectedTemporals[1]->getReason());
+        $this->assertSame('beta-informational', $selectedIntentTypes[0]->getReason());
+        $this->assertSame('beta-commercial', $selectedIntentTypes[1]->getReason());
     }
 
     public function test_process_intent_merging_with_always_merge_strategy(): void

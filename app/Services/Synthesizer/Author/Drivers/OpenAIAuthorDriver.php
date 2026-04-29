@@ -170,7 +170,10 @@ PROMPT;
     {
         return [
             'anyOf' => [
-                ['type' => 'string'],
+                [
+                    'type' => 'string',
+                    'description' => 'Used for text only (NOT HTML)'
+                ],
                 $this->buildElementSchema($depth),
             ],
         ];

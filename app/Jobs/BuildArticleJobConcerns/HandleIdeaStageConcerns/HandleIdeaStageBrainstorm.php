@@ -144,11 +144,11 @@ trait HandleIdeaStageBrainstorm
         }
 
         $weightedTemporals = array_map(
-            static fn (array $bucket): array => [
-                'weighted' => $bucket['weighted_sum'] / $totalAdvisorWeight,
+            fn (array $bucket): array => [
+                'weighted' => $this->normalizeConfidence($bucket['weighted_sum'] / $totalAdvisorWeight),
                 'suggestion' => new TemporalSuggestion(
                     $bucket['temporal'],
-                    $bucket['weighted_sum'] / $totalAdvisorWeight,
+                    $this->normalizeConfidence($bucket['weighted_sum'] / $totalAdvisorWeight),
                     $bucket['reason']
                 ),
             ],
@@ -156,11 +156,11 @@ trait HandleIdeaStageBrainstorm
         );
 
         $weightedIntentTypes = array_map(
-            static fn (array $bucket): array => [
-                'weighted' => $bucket['weighted_sum'] / $totalAdvisorWeight,
+            fn (array $bucket): array => [
+                'weighted' => $this->normalizeConfidence($bucket['weighted_sum'] / $totalAdvisorWeight),
                 'suggestion' => new IntentTypeSuggestion(
                     $bucket['intent_type'],
-                    $bucket['weighted_sum'] / $totalAdvisorWeight,
+                    $this->normalizeConfidence($bucket['weighted_sum'] / $totalAdvisorWeight),
                     $bucket['reason']
                 ),
             ],
@@ -191,6 +191,11 @@ trait HandleIdeaStageBrainstorm
 
     protected function weightedSuggestionScore(?float $confidence, float $weight): float
     {
-        return ($confidence ?? 0.0) * $weight;
+        return $this->normalizeConfidence($confidence ?? 0.0) * $weight;
+    }
+
+    protected function normalizeConfidence(float $confidence): float
+    {
+        return max(0.0, min(1.0, $confidence));
     }
 }

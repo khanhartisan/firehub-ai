@@ -156,6 +156,14 @@ You are choosing which audited article ideas best fit the editorial context. Eac
 
 Return "picked_audit_report_identifiers" as a list of audit_report_identifier values from the input candidates only, best match first. Include at most the number given by pick_at_most. If nothing is suitable, use an empty list.
 
+You're not restricted to rely on the audit scores. You pick the ideas that fit the best with the current client context, that is balanced between:
+- Continuity Ideas: Topics that logically advance the recent content and match the "Audience Knowledge Stage".
+- Exploration Ideas: Fresh, tangential, or entirely new angles that diversify the website's content while still strictly respecting the overarching "Editorial / business context".
+
+Your duty is to make sure that the new idea will bring the better engagement and best experience for the reader of the client's context. 
+
+For example an idea may have higher audit score because it's more relevant and more continuity, but you may choose the 2nd idea that brings a fresh air to the site because the current contents have been continued for too long, and the 2nd idea supports to expand the current website contents...
+
 Input JSON:
 {$json}
 PROMPT;

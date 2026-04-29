@@ -243,7 +243,7 @@ class ScrapePageJobTest extends TestCase
             'url_hash' => sha1('https://example.com/page'),
             'scraping_status' => ScrapingStatus::QUEUED,
             'attempts' => config('queue.max_scrape_attempts'),
-            'next_scrape_at' => Carbon::now()->addHour(),
+            'next_scrape_at' => Carbon::now(),
             'snapshots_count' => 0,
         ]);
 
@@ -257,7 +257,7 @@ class ScrapePageJobTest extends TestCase
 
         $this->assertDatabaseCount('snapshots', 0);
         $entity->refresh();
-        $this->assertSame(ScrapingStatus::FAILED->value, $entity->scraping_status->value);
+        $this->assertSame(ScrapingStatus::FAILED, $entity->scraping_status);
         $this->assertSame(config('queue.max_scrape_attempts') + 1, $entity->attempts);
         $this->assertNull($entity->next_scrape_at);
     }

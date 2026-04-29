@@ -132,6 +132,14 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
     {
         $page = $this->page;
 
+        // Skip if not at scrape time yet
+        if (!$page->ignore_scraping_budget
+            and $page->next_scrape_at?->gt(now())
+        ) {
+            Debugger::devConsoleDump('Page '.$page->id.'. Not scrape time yet. Next scrape time: '.$page->next_scrape_at->diffForHumans().'. Skipping...');
+            return;
+        }
+
         $stage = $page->scraping_stage ?? ScrapingStage::FETCHING;
 
         // Manual job unique lock

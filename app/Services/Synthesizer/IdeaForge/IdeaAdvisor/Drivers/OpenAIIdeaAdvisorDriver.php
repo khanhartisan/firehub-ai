@@ -348,6 +348,9 @@ Contextual Balance (Continuity vs. Exploration): Review the "Recent Articles His
 - Continuity Ideas: Topics that logically advance the recent content and match the "Audience Knowledge Stage".
 - Exploration Ideas: Fresh, tangential, or entirely new angles that diversify the website's content while still strictly respecting the overarching "Editorial / business context".
 
+
+Your duty is to make sure that the new idea will bring the better engagement and best experience for the reader of the client's context.
+
 Return up to {$limit} distinct ideas as JSON (via schema). Confidence is 0–1 for how strong the idea is given the inputs.
 PROMPT;
     }

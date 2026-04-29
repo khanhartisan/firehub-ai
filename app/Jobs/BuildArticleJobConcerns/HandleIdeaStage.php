@@ -116,7 +116,7 @@ trait HandleIdeaStage
         }
 
         // 7) Pick one winning idea (limit 1).
-        $pickedList = $this->getIdeaForgeService()->getIdeaPicker()->pick($ideaAuditReports, $context, 1) ?? [];
+        $pickedList = $this->getIdeaForgeService()->getIdeaPicker()->pick($ideaAuditReports, $ideaBrainstormContext, 1) ?? [];
         $pickedReport = $pickedList[0] ?? null;
         if (! $pickedReport instanceof IdeaAuditReport) {
             return false;

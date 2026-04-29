@@ -197,7 +197,7 @@ You should not include the points that are not related, non-relevant to the prov
 Each point should include:
 - headline: short and punchy
 - description: concise explanation
-- evidences: facts/quotes/snippets/numbers/analytics... from source content
+- evidences: facts/quotes/snippets/numbers/analytics/benchmark/information... from source content that supports or is related to the point.
 - rationale: why this point is strategically relevant to the provided idea
 - relevance: 0..1 relevance to the idea, 0 is not relevant, 1 is extremely relevant.
 
@@ -313,7 +313,7 @@ PROMPT;
                             'evidences' => [
                                 'type' => 'array',
                                 'items' => ['type' => 'string'],
-                                'description' => 'Concrete supporting evidence snippets (facts, analytics, figures, numbers, quotes, information or observations...) taken from the source content.',
+                                'description' => 'Facts/quotes/snippets/numbers/analytics/benchmark/information... or observations... taken from the source content that supports or is related.',
                             ],
                             'rationale' => [
                                 'type' => 'string',
@@ -406,6 +406,7 @@ PROMPT;
                 'evidences' => [
                     'type' => 'array',
                     'items' => ['type' => 'string'],
+                    'description' => 'Facts/quotes/snippets/numbers/analytics/benchmark/information... or observations... taken from the source content that supports or is related.',
                 ],
                 'rationale' => ['type' => 'string'],
                 'relevance' => [

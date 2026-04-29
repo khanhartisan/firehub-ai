@@ -9,6 +9,11 @@ trait InteractsWithSemanticContext
     protected function buildSemanticContext(): ?SemanticContext
     {
         $context = new SemanticContext;
+        $context->set(
+            'client_language',
+            'The primary language the client uses to publish contents',
+            $this->client->language?->value
+        );
         $hasAny = false;
 
         if ($this->client->context) {

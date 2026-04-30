@@ -1,0 +1,724 @@
+<?php
+
+namespace App\Services\Synthesizer\Illustration\Director\Drivers;
+
+use App\Contracts\OpenAI\OpenAIClient;
+use App\Contracts\OpenAI\Response;
+use App\Contracts\OpenAI\ResponseInput;
+use App\Contracts\OpenAI\ResponseOptions;
+use App\Contracts\Synthesizer\Illustration\DirectionContexts\ArtStyleContext;
+use App\Contracts\Synthesizer\Illustration\DirectionContexts\CameraAndLightingContext;
+use App\Contracts\Synthesizer\Illustration\DirectionContexts\ConceptContext;
+use App\Contracts\Synthesizer\Illustration\DirectionContexts\ConceptContexts\AbstractionContext;
+use App\Contracts\Synthesizer\Illustration\DirectionContexts\ConceptContexts\CharacterContext;
+use App\Contracts\Synthesizer\Illustration\DirectionContexts\ConceptContexts\LandscapeContext;
+use App\Contracts\Synthesizer\Illustration\DirectionContexts\ConceptContexts\ObjectContext;
+use App\Contracts\Synthesizer\Illustration\Director;
+use App\Contracts\Synthesizer\Illustration\IllustrationContext;
+use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
+use App\Contracts\Synthesizer\Illustration\Illustratable;
+use App\Contracts\Synthesizer\Illustration\Illustrator;
+use App\Enums\AspectRatio;
+use App\Services\Synthesizer\Illustration\Director\DirectorService;
+use RuntimeException;
+
+class OpenAIDirectorDriver extends DirectorService implements Director
+{
+    protected ?OpenAIClient $openAIClient;
+
+    /** @var array<string, mixed> */
+    protected array $config;
+
+    /** @param array<string, mixed> $config */
+    public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
+    {
+        $this->openAIClient = $openAIClient;
+        $this->config = array_merge(config('synthesizer.openai_illustration_director', []), $config);
+    }
+
+    public function resolveIllustrationContexts(
+        Illustratable $illustratable,
+        ?int $minContexts = null,
+        ?int $maxContexts = null
+    ): array {
+        $content = trim($illustratable->getIllustrationContent());
+        if ($content === '') {
+            return [];
+        }
+
+        $min = max(1, (int) ($minContexts ?? 1));
+        $max = max($min, (int) ($maxContexts ?? 3));
+        $max = min($max, (int) ($this->config['max_contexts'] ?? 8));
+
+        $payload = $this->requestStructuredJson(
+            $this->buildResolveContextsPrompt($content, $min, $max),
+            'illustration_contexts',
+            $this->buildResolveContextsSchema($min, $max),
+            'Failed to resolve illustration contexts with OpenAI'
+        );
+
+        $contexts = [];
+        foreach (($payload['contexts'] ?? []) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $subject = trim((string) ($row['subject'] ?? ''));
+            if ($subject === '') {
+                continue;
+            }
+
+            $context = (new IllustrationContext())->setSubject($subject);
+
+            $goal = trim((string) ($row['goal'] ?? ''));
+            if ($goal !== '') {
+                $context->setGoal($goal);
+            }
+
+            $style = trim((string) ($row['style'] ?? ''));
+            if ($style !== '') {
+                $context->setStyle($style);
+            }
+
+            $macroContext = trim((string) ($row['macro_context'] ?? ''));
+            if ($macroContext !== '') {
+                $context->setMacroContext($macroContext);
+            }
+
+            $microContext = trim((string) ($row['micro_context'] ?? ''));
+            if ($microContext !== '') {
+                $context->setMicroContext($microContext);
+            }
+
+            if (is_string($row['aspect_ratio'] ?? null)) {
+                $aspectRatio = AspectRatio::tryFrom($row['aspect_ratio']);
+                if ($aspectRatio instanceof AspectRatio) {
+                    $context->setAspectRatio($aspectRatio);
+                }
+            }
+
+            if (is_array($row['reference_file_ids'] ?? null)) {
+                $context->setReferenceFileIds($row['reference_file_ids']);
+            }
+
+            if (is_array($row['constraints'] ?? null)) {
+                $context->setConstraints($row['constraints']);
+            }
+
+            $contexts[] = $context;
+        }
+
+        return array_slice($contexts, 0, $max);
+    }
+
+    public function direct(IllustrationContext $context): IllustrationDirection
+    {
+        $payload = $this->requestStructuredJson(
+            $this->buildDirectionPrompt($context),
+            'illustration_direction',
+            $this->buildDirectionSchema(),
+            'Failed to create illustration direction with OpenAI'
+        );
+
+        return (new IllustrationDirection())
+            ->setConceptContext($this->hydrateConceptContext($payload['concept_context'] ?? null))
+            ->setArtStyleContext($this->hydrateArtStyleContext($payload['art_style_context'] ?? null))
+            ->setCameraAndLightingContext(
+                $this->hydrateCameraAndLightingContext($payload['camera_and_lighting_context'] ?? null)
+            );
+    }
+
+    public function determineIllustrator(
+        IllustrationContext $context,
+        IllustrationDirection $direction,
+        array $illustrators
+    ): ?Illustrator {
+        $available = array_values(array_filter(
+            $illustrators,
+            static fn (mixed $illustrator): bool => $illustrator instanceof Illustrator
+        ));
+
+        if ($available === []) {
+            return null;
+        }
+
+        $payload = $this->requestStructuredJson(
+            $this->buildDetermineIllustratorPrompt($context, $direction, $available),
+            'illustrator_selection',
+            $this->buildDetermineIllustratorSchema(),
+            'Failed to determine illustrator with OpenAI'
+        );
+
+        $selectedIdentifier = trim((string) ($payload['identifier'] ?? ''));
+        if ($selectedIdentifier === '') {
+            return $available[0];
+        }
+
+        foreach ($available as $illustrator) {
+            if ((string) $illustrator->getIdentifier() === $selectedIdentifier) {
+                return $illustrator;
+            }
+        }
+
+        return $available[0];
+    }
+
+    protected function getModel(): string
+    {
+        return (string) ($this->config['model'] ?? 'gpt-4o-mini');
+    }
+
+    protected function getTemperature(): float
+    {
+        return (float) ($this->config['temperature'] ?? 0.2);
+    }
+
+    protected function buildResolveContextsPrompt(string $content, int $min, int $max): string
+    {
+        return <<<PROMPT
+You are an illustration planning director.
+
+Given source content, split it into concrete illustration contexts suitable for downstream image generation.
+Generate between {$min} and {$max} contexts.
+
+Input content:
+{$content}
+PROMPT;
+    }
+
+    protected function buildDirectionPrompt(IllustrationContext $context): string
+    {
+        $json = json_encode($context->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        return <<<PROMPT
+You are an illustration art director.
+
+Given the illustration context JSON, produce structured direction contexts for:
+- concept_context
+- art_style_context
+- camera_and_lighting_context
+
+Return practical, implementation-ready fields only:
+- Use concise, explicit strings
+- Keep list fields short and concrete
+- Do not include markdown formatting
+- Do not invent unknown schema keys
+
+Illustration context:
+{$json}
+PROMPT;
+    }
+
+    /** @param Illustrator[] $illustrators */
+    protected function buildDetermineIllustratorPrompt(
+        IllustrationContext $context,
+        IllustrationDirection $direction,
+        array $illustrators
+    ): string {
+        $candidateData = array_map(static function (Illustrator $illustrator): array {
+            return [
+                'identifier' => $illustrator->getIdentifier(),
+                'description' => $illustrator->getDescription(),
+            ];
+        }, $illustrators);
+
+        $payload = [
+            'context' => $context->toArray(),
+            'direction' => $direction->toArray(),
+            'candidates' => $candidateData,
+        ];
+        $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        return <<<PROMPT
+Choose the best illustrator identifier from the given candidates.
+If uncertain, choose the most generally capable one.
+
+Input:
+{$json}
+PROMPT;
+    }
+
+    /** @return array<string, mixed> */
+    protected function buildResolveContextsSchema(int $min, int $max): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'contexts' => [
+                    'type' => 'array',
+                    'minItems' => $min,
+                    'maxItems' => $max,
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'subject' => ['type' => 'string'],
+                            'goal' => ['type' => 'string'],
+                            'style' => ['type' => 'string'],
+                            'macro_context' => ['type' => 'string'],
+                            'micro_context' => ['type' => 'string'],
+                            'aspect_ratio' => [
+                                'type' => 'string',
+                                'enum' => array_map(static fn (AspectRatio $ratio): string => $ratio->value, AspectRatio::cases()),
+                            ],
+                            'reference_file_ids' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string'],
+                            ],
+                            'constraints' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string'],
+                            ],
+                        ],
+                        'required' => ['subject', 'goal', 'style', 'macro_context', 'micro_context', 'aspect_ratio', 'reference_file_ids', 'constraints'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            'required' => ['contexts'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    protected function buildDirectionSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'concept_context' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'logline' => ['type' => 'string'],
+                        'primary_subject' => ['type' => 'string'],
+                        'narrative_intent' => ['type' => 'string'],
+                        'scene_context' => ['type' => 'string'],
+                        'mood' => ['type' => 'string'],
+                        'symbolic_notes' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'character_contexts' => [
+                            'type' => 'array',
+                            'items' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'role' => ['type' => 'string'],
+                                    'identity' => ['type' => 'string'],
+                                    'appearance' => ['type' => 'string'],
+                                    'wardrobe' => ['type' => 'string'],
+                                    'pose' => ['type' => 'string'],
+                                    'position' => ['type' => 'string'],
+                                    'expression' => ['type' => 'string'],
+                                    'action' => ['type' => 'string'],
+                                    'props' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                ],
+                                'required' => ['role', 'identity', 'appearance', 'wardrobe', 'pose', 'position', 'expression', 'action', 'props', 'constraints'],
+                                'additionalProperties' => false,
+                            ],
+                        ],
+                        'object_contexts' => [
+                            'type' => 'array',
+                            'items' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'name' => ['type' => 'string'],
+                                    'type' => ['type' => 'string'],
+                                    'appearance' => ['type' => 'string'],
+                                    'material' => ['type' => 'string'],
+                                    'condition' => ['type' => 'string'],
+                                    'position' => ['type' => 'string'],
+                                    'scale' => ['type' => 'string'],
+                                    'interaction' => ['type' => 'string'],
+                                    'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                ],
+                                'required' => ['name', 'type', 'appearance', 'material', 'condition', 'position', 'scale', 'interaction', 'constraints'],
+                                'additionalProperties' => false,
+                            ],
+                        ],
+                        'abstraction_contexts' => [
+                            'type' => 'array',
+                            'items' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'theme' => ['type' => 'string'],
+                                    'metaphor' => ['type' => 'string'],
+                                    'narrative_arc' => ['type' => 'string'],
+                                    'dominant_shapes' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'symbolic_elements' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'mood' => ['type' => 'string'],
+                                    'visual_tension' => ['type' => 'string'],
+                                    'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                ],
+                                'required' => ['theme', 'metaphor', 'narrative_arc', 'dominant_shapes', 'symbolic_elements', 'mood', 'visual_tension', 'constraints'],
+                                'additionalProperties' => false,
+                            ],
+                        ],
+                        'landscape_context' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'setting' => ['type' => 'string'],
+                                'location' => ['type' => 'string'],
+                                'terrain' => ['type' => 'string'],
+                                'vegetation' => ['type' => 'string'],
+                                'structures' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                'weather' => ['type' => 'string'],
+                                'time_of_day' => ['type' => 'string'],
+                                'season' => ['type' => 'string'],
+                                'mood' => ['type' => 'string'],
+                                'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                            ],
+                            'required' => ['setting', 'location', 'terrain', 'vegetation', 'structures', 'weather', 'time_of_day', 'season', 'mood', 'constraints'],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                    'required' => ['logline', 'primary_subject', 'narrative_intent', 'scene_context', 'mood', 'symbolic_notes', 'constraints', 'character_contexts', 'object_contexts', 'abstraction_contexts', 'landscape_context'],
+                    'additionalProperties' => false,
+                ],
+                'art_style_context' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'art_medium' => ['type' => 'string'],
+                        'style' => ['type' => 'string'],
+                        'creator_references' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'color_palette' => ['type' => 'string'],
+                        'overall_vibe' => ['type' => 'string'],
+                        'rendering_details' => ['type' => 'string'],
+                        'negative_style_constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                    ],
+                    'required' => ['art_medium', 'style', 'creator_references', 'color_palette', 'overall_vibe', 'rendering_details', 'negative_style_constraints'],
+                    'additionalProperties' => false,
+                ],
+                'camera_and_lighting_context' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'shot_size' => ['type' => 'string'],
+                        'camera_angle' => ['type' => 'string'],
+                        'lenses' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'lighting' => ['type' => 'string'],
+                        'filter' => ['type' => 'string'],
+                        'optical' => ['type' => 'string'],
+                        'color_palette' => ['type' => 'string'],
+                        'compositional_rules' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'depth_plan' => ['type' => 'string'],
+                        'negative_constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                    ],
+                    'required' => ['shot_size', 'camera_angle', 'lenses', 'lighting', 'filter', 'optical', 'color_palette', 'compositional_rules', 'depth_plan', 'negative_constraints'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            'required' => ['concept_context', 'art_style_context', 'camera_and_lighting_context'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    protected function hydrateConceptContext(mixed $raw): ?ConceptContext
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $context = new ConceptContext();
+
+        $this->setIfNonEmptyString($raw['logline'] ?? null, static fn (string $value) => $context->setLogline($value));
+        $this->setIfNonEmptyString($raw['primary_subject'] ?? null, static fn (string $value) => $context->setPrimarySubject($value));
+        $this->setIfNonEmptyString($raw['narrative_intent'] ?? null, static fn (string $value) => $context->setNarrativeIntent($value));
+        $this->setIfNonEmptyString($raw['scene_context'] ?? null, static fn (string $value) => $context->setSceneContext($value));
+        $this->setIfNonEmptyString($raw['mood'] ?? null, static fn (string $value) => $context->setMood($value));
+        if (is_array($raw['symbolic_notes'] ?? null)) {
+            $context->setSymbolicNotes($raw['symbolic_notes']);
+        }
+        if (is_array($raw['constraints'] ?? null)) {
+            $context->setConstraints($raw['constraints']);
+        }
+
+        $characterContexts = [];
+        foreach (($raw['character_contexts'] ?? []) as $item) {
+            $character = $this->hydrateCharacterContext($item);
+            if ($character instanceof CharacterContext) {
+                $characterContexts[] = $character;
+            }
+        }
+        if ($characterContexts !== []) {
+            $context->set(
+                'character_contexts',
+                'Character-level concept contexts.',
+                $characterContexts
+            );
+        }
+
+        $objectContexts = [];
+        foreach (($raw['object_contexts'] ?? []) as $item) {
+            $object = $this->hydrateObjectContext($item);
+            if ($object instanceof ObjectContext) {
+                $objectContexts[] = $object;
+            }
+        }
+        if ($objectContexts !== []) {
+            $context->set(
+                'object_contexts',
+                'Object-level concept contexts.',
+                $objectContexts
+            );
+        }
+
+        $abstractionContexts = [];
+        foreach (($raw['abstraction_contexts'] ?? []) as $item) {
+            $abstraction = $this->hydrateAbstractionContext($item);
+            if ($abstraction instanceof AbstractionContext) {
+                $abstractionContexts[] = $abstraction;
+            }
+        }
+        if ($abstractionContexts !== []) {
+            $context->set(
+                'abstraction_contexts',
+                'Abstraction-level concept contexts.',
+                $abstractionContexts
+            );
+        }
+
+        $landscape = $this->hydrateLandscapeContext($raw['landscape_context'] ?? null);
+        if ($landscape instanceof LandscapeContext) {
+            $context->set(
+                'landscape_context',
+                'Landscape-level concept context.',
+                $landscape
+            );
+        }
+
+        return $context;
+    }
+
+    protected function hydrateArtStyleContext(mixed $raw): ?ArtStyleContext
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $context = new ArtStyleContext();
+        $this->setIfNonEmptyString($raw['art_medium'] ?? null, static function (string $value) use ($context): void {
+            $context->set('art_medium', 'Primary image medium choice.', $value);
+        });
+        $this->setIfNonEmptyString($raw['style'] ?? null, static fn (string $value) => $context->setStyle($value));
+        if (is_array($raw['creator_references'] ?? null)) {
+            $context->setCreatorReferences($raw['creator_references']);
+        }
+        $this->setIfNonEmptyString($raw['color_palette'] ?? null, static fn (string $value) => $context->setColorPalette($value));
+        $this->setIfNonEmptyString($raw['overall_vibe'] ?? null, static fn (string $value) => $context->setOverallVibe($value));
+        $this->setIfNonEmptyString($raw['rendering_details'] ?? null, static fn (string $value) => $context->setRenderingDetails($value));
+        if (is_array($raw['negative_style_constraints'] ?? null)) {
+            $context->setNegativeStyleConstraints($raw['negative_style_constraints']);
+        }
+
+        return $context;
+    }
+
+    protected function hydrateCameraAndLightingContext(mixed $raw): ?CameraAndLightingContext
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $context = new CameraAndLightingContext();
+        $this->setIfNonEmptyString($raw['shot_size'] ?? null, static fn (string $value) => $context->setShotSize($value));
+        $this->setIfNonEmptyString($raw['camera_angle'] ?? null, static fn (string $value) => $context->setCameraAngle($value));
+        if (is_array($raw['lenses'] ?? null)) {
+            $context->setLenses($raw['lenses']);
+        }
+        $this->setIfNonEmptyString($raw['lighting'] ?? null, static fn (string $value) => $context->setLighting($value));
+        $this->setIfNonEmptyString($raw['filter'] ?? null, static fn (string $value) => $context->setFilter($value));
+        $this->setIfNonEmptyString($raw['optical'] ?? null, static fn (string $value) => $context->setOptical($value));
+        $this->setIfNonEmptyString($raw['color_palette'] ?? null, static fn (string $value) => $context->setColorPalette($value));
+        if (is_array($raw['compositional_rules'] ?? null)) {
+            $context->setCompositionalRules($raw['compositional_rules']);
+        }
+        $this->setIfNonEmptyString($raw['depth_plan'] ?? null, static fn (string $value) => $context->setDepthPlan($value));
+        if (is_array($raw['negative_constraints'] ?? null)) {
+            $context->setNegativeConstraints($raw['negative_constraints']);
+        }
+
+        return $context;
+    }
+
+    protected function hydrateCharacterContext(mixed $raw): ?CharacterContext
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $context = new CharacterContext();
+        $this->setIfNonEmptyString($raw['role'] ?? null, static fn (string $value) => $context->setRole($value));
+        $this->setIfNonEmptyString($raw['identity'] ?? null, static fn (string $value) => $context->setIdentity($value));
+        $this->setIfNonEmptyString($raw['appearance'] ?? null, static fn (string $value) => $context->setAppearance($value));
+        $this->setIfNonEmptyString($raw['wardrobe'] ?? null, static fn (string $value) => $context->setWardrobe($value));
+        $this->setIfNonEmptyString($raw['pose'] ?? null, static fn (string $value) => $context->setPose($value));
+        $this->setIfNonEmptyString($raw['position'] ?? null, static fn (string $value) => $context->setPosition($value));
+        $this->setIfNonEmptyString($raw['expression'] ?? null, static fn (string $value) => $context->setExpression($value));
+        $this->setIfNonEmptyString($raw['action'] ?? null, static fn (string $value) => $context->setAction($value));
+        if (is_array($raw['props'] ?? null)) {
+            $context->setProps($raw['props']);
+        }
+        if (is_array($raw['constraints'] ?? null)) {
+            $context->setConstraints($raw['constraints']);
+        }
+
+        return $context;
+    }
+
+    protected function hydrateObjectContext(mixed $raw): ?ObjectContext
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $context = new ObjectContext();
+        $this->setIfNonEmptyString($raw['name'] ?? null, static fn (string $value) => $context->setName($value));
+        $this->setIfNonEmptyString($raw['type'] ?? null, static fn (string $value) => $context->setType($value));
+        $this->setIfNonEmptyString($raw['appearance'] ?? null, static fn (string $value) => $context->setAppearance($value));
+        $this->setIfNonEmptyString($raw['material'] ?? null, static fn (string $value) => $context->setMaterial($value));
+        $this->setIfNonEmptyString($raw['condition'] ?? null, static fn (string $value) => $context->setCondition($value));
+        $this->setIfNonEmptyString($raw['position'] ?? null, static fn (string $value) => $context->setPosition($value));
+        $this->setIfNonEmptyString($raw['scale'] ?? null, static fn (string $value) => $context->setScale($value));
+        $this->setIfNonEmptyString($raw['interaction'] ?? null, static fn (string $value) => $context->setInteraction($value));
+        if (is_array($raw['constraints'] ?? null)) {
+            $context->setConstraints($raw['constraints']);
+        }
+
+        return $context;
+    }
+
+    protected function hydrateAbstractionContext(mixed $raw): ?AbstractionContext
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $context = new AbstractionContext();
+        $this->setIfNonEmptyString($raw['theme'] ?? null, static fn (string $value) => $context->setTheme($value));
+        $this->setIfNonEmptyString($raw['metaphor'] ?? null, static fn (string $value) => $context->setMetaphor($value));
+        $this->setIfNonEmptyString($raw['narrative_arc'] ?? null, static fn (string $value) => $context->setNarrativeArc($value));
+        if (is_array($raw['dominant_shapes'] ?? null)) {
+            $context->setDominantShapes($raw['dominant_shapes']);
+        }
+        if (is_array($raw['symbolic_elements'] ?? null)) {
+            $context->setSymbolicElements($raw['symbolic_elements']);
+        }
+        $this->setIfNonEmptyString($raw['mood'] ?? null, static fn (string $value) => $context->setMood($value));
+        $this->setIfNonEmptyString($raw['visual_tension'] ?? null, static fn (string $value) => $context->setVisualTension($value));
+        if (is_array($raw['constraints'] ?? null)) {
+            $context->setConstraints($raw['constraints']);
+        }
+
+        return $context;
+    }
+
+    protected function hydrateLandscapeContext(mixed $raw): ?LandscapeContext
+    {
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $context = new LandscapeContext();
+        $this->setIfNonEmptyString($raw['setting'] ?? null, static fn (string $value) => $context->setSetting($value));
+        $this->setIfNonEmptyString($raw['location'] ?? null, static fn (string $value) => $context->setLocation($value));
+        $this->setIfNonEmptyString($raw['terrain'] ?? null, static fn (string $value) => $context->setTerrain($value));
+        $this->setIfNonEmptyString($raw['vegetation'] ?? null, static fn (string $value) => $context->setVegetation($value));
+        if (is_array($raw['structures'] ?? null)) {
+            $context->setStructures($raw['structures']);
+        }
+        $this->setIfNonEmptyString($raw['weather'] ?? null, static fn (string $value) => $context->setWeather($value));
+        $this->setIfNonEmptyString($raw['time_of_day'] ?? null, static fn (string $value) => $context->setTimeOfDay($value));
+        $this->setIfNonEmptyString($raw['season'] ?? null, static fn (string $value) => $context->setSeason($value));
+        $this->setIfNonEmptyString($raw['mood'] ?? null, static fn (string $value) => $context->setMood($value));
+        if (is_array($raw['constraints'] ?? null)) {
+            $context->setConstraints($raw['constraints']);
+        }
+
+        return $context;
+    }
+
+    protected function setIfNonEmptyString(mixed $value, callable $setter): void
+    {
+        if (! is_string($value)) {
+            return;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return;
+        }
+
+        $setter($value);
+    }
+
+    /** @return array<string, mixed> */
+    protected function buildDetermineIllustratorSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'identifier' => ['type' => 'string'],
+            ],
+            'required' => ['identifier'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    protected function requestStructuredJson(
+        string $prompt,
+        string $schemaName,
+        array $jsonSchema,
+        string $failureMessage,
+    ): array {
+        if (! $this->openAIClient instanceof OpenAIClient) {
+            throw new RuntimeException("{$failureMessage}: OpenAI client is not configured.");
+        }
+
+        $input = ResponseInput::text($prompt);
+        $options = ResponseOptions::create()
+            ->model($this->getModel())
+            ->temperature($this->getTemperature())
+            ->responseFormat([
+                'type' => 'json_schema',
+                'name' => $schemaName,
+                'schema' => $jsonSchema,
+                'strict' => true,
+            ]);
+
+        try {
+            $response = $this->openAIClient->createResponse($input, $options);
+        } catch (\Exception $e) {
+            throw new RuntimeException("{$failureMessage}: {$e->getMessage()}", 0, $e);
+        }
+
+        $this->checkForRefusal($response);
+
+        $text = $response->getFirstOutputText();
+        if ($text === null || $text === '') {
+            throw new RuntimeException("{$failureMessage}: empty model output.");
+        }
+
+        $data = json_decode($text, true);
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($data)) {
+            throw new RuntimeException("{$failureMessage}: invalid JSON (".json_last_error_msg().').');
+        }
+
+        return $data;
+    }
+
+    protected function checkForRefusal(Response $response): void
+    {
+        foreach ($response->getOutput() as $item) {
+            if (($item['type'] ?? null) !== 'message' || ! isset($item['content']) || ! is_array($item['content'])) {
+                continue;
+            }
+
+            foreach ($item['content'] as $content) {
+                if (($content['type'] ?? null) === 'refusal') {
+                    $message = $content['refusal'] ?? 'The model refused to complete this request.';
+                    throw new RuntimeException("OpenAI refused the request: {$message}");
+                }
+            }
+        }
+    }
+}
+

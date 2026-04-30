@@ -12,7 +12,9 @@ use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriv
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
+use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAIDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
+use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAIIllustratorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
@@ -112,9 +114,9 @@ return [
                 'driver' => OpenAIAuthorDriver::class,
             ],
             'illustration' => [
-                'director' => BasicDirectorDriver::class,
+                'director' => OpenAIDirectorDriver::class,
                 'illustrators' => [
-                    BasicIllustratorDriver::class,
+                    OpenAIIllustratorDriver::class,
                 ],
             ],
         ],
@@ -225,6 +227,23 @@ return [
         'temperature' => 0.5,
         'max_children' => 1000,
         'max_depth' => 20,
+    ],
+
+    'openai_illustration_director' => [
+        'model' => env('SYNTHESIZER_OPENAI_ILLUSTRATION_DIRECTOR_MODEL', 'gpt-4o-mini'),
+        'temperature' => 0.2,
+        'max_contexts' => 8,
+    ],
+
+    'openai_illustrator' => [
+        'identifier' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_IDENTIFIER', 'openai-illustrator'),
+        'description' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_DESCRIPTION', 'OpenAI-backed illustration generator.'),
+        'model' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_MODEL', 'gpt-image-1'),
+        'quality' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_QUALITY', 'high'),
+        'output_format' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_OUTPUT_FORMAT', 'png'),
+        'count' => (int) env('SYNTHESIZER_OPENAI_ILLUSTRATOR_COUNT', 1),
+        'filesystem_disk' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_FILESYSTEM_DISK', env('FILESYSTEM_DISK', 'local')),
+        'filesystem_directory' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_FILESYSTEM_DIRECTORY', 'illustrations/generated'),
     ],
 
     /*

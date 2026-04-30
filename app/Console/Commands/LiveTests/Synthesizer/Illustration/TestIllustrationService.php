@@ -49,8 +49,7 @@ class TestIllustrationService extends Command
             return self::FAILURE;
         }
 
-        $minContexts = max(1, (int) $this->option('min-contexts'));
-        $maxContexts = max($minContexts, (int) $this->option('max-contexts'));
+        [$minContexts, $maxContexts] = $this->resolveContextRange();
 
         $synthesizer = Synthesizer::driver($requestedDriver);
         $director = $synthesizer->getIllustrationDirector();
@@ -194,6 +193,27 @@ class TestIllustrationService extends Command
         return in_array($choice, ['contexts', 'direction', 'selection', 'generation', 'full'], true)
             ? $choice
             : 'full';
+    }
+
+    /**
+     * @return array{0:int,1:int}
+     */
+    private function resolveContextRange(): array
+    {
+        $min = max(1, (int) $this->option('min-contexts'));
+        $max = max($min, (int) $this->option('max-contexts'));
+
+        if (! $this->input->isInteractive()) {
+            return [$min, $max];
+        }
+
+        $minInput = (int) $this->ask('Minimum contexts to generate', (string) $min);
+        $min = max(1, $minInput);
+
+        $maxInput = (int) $this->ask('Maximum contexts to generate', (string) max($max, $min));
+        $max = max($min, $maxInput);
+
+        return [$min, $max];
     }
 
     /**

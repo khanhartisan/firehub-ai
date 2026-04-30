@@ -10,6 +10,8 @@ use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
+use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
+use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
 use Illuminate\Support\Manager;
@@ -67,6 +69,14 @@ class SynthesizerManager extends Manager
             $driverConfig['author']['driver'] ?? BasicAuthorDriver::class
         );
 
+        $illustrationDirector = $this->container->make(
+            $driverConfig['illustration']['director'] ?? BasicDirectorDriver::class
+        );
+        $illustrators = array_values(array_map(
+            fn (string $driver) => $this->container->make($driver),
+            $driverConfig['illustration']['illustrators'] ?? [BasicIllustratorDriver::class]
+        ));
+
         /** @var SynthesizerContract */
         return $this->container->make(
             $driverConfig['service'] ?? SynthesizerService::class,
@@ -76,6 +86,8 @@ class SynthesizerManager extends Manager
                 'briefBuilder' => $briefBuilder,
                 'outlineBuilder' => $outlineBuilder,
                 'author' => $author,
+                'illustrationDirector' => $illustrationDirector,
+                'illustrators' => $illustrators,
             ]
         );
     }

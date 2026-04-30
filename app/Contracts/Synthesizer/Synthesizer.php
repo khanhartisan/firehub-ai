@@ -5,6 +5,8 @@ namespace App\Contracts\Synthesizer;
 use App\Contracts\Synthesizer\Author\Author;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
 use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
+use App\Contracts\Synthesizer\Illustration\Director;
+use App\Contracts\Synthesizer\Illustration\Illustrator;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
 use App\Contracts\Synthesizer\Researcher\Researcher;
 
@@ -29,4 +31,19 @@ interface Synthesizer
     public function setAuthor(Author $author): static;
 
     public function getAuthor(): Author;
+
+    public function setIllustrationDirector(Director $director): static;
+
+    public function getIllustrationDirector(): Director;
+
+    /**
+     * @param Illustrator[] $illustrators
+     * @return static
+     */
+    public function setIllustrators(array $illustrators): static;
+
+    /**
+     * @return Illustrator[]
+     */
+    public function getIllustrators(): array;
 }

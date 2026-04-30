@@ -11,6 +11,8 @@ use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDrive
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
+use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
+use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
@@ -72,6 +74,12 @@ return [
             'author' => [
                 'driver' => BasicAuthorDriver::class,
             ],
+            'illustration' => [
+                'director' => BasicDirectorDriver::class,
+                'illustrators' => [
+                    BasicIllustratorDriver::class,
+                ],
+            ],
         ],
 
         'openai' => [
@@ -102,6 +110,12 @@ return [
             ],
             'author' => [
                 'driver' => OpenAIAuthorDriver::class,
+            ],
+            'illustration' => [
+                'director' => BasicDirectorDriver::class,
+                'illustrators' => [
+                    BasicIllustratorDriver::class,
+                ],
             ],
         ],
     ],

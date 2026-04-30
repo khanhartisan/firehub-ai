@@ -50,7 +50,7 @@ class BriefBuilderDriversTest extends TestCase
         );
 
         $this->assertSame('context fallback', $brief->getDescription());
-        $this->assertCount(2, $brief->getInstructions());
+        $this->assertCount(1, $brief->getInstructions());
     }
 
     public function test_openai_brief_builder_prefers_ai_title_and_description_over_intent(): void

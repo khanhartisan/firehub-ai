@@ -18,6 +18,8 @@ use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDrive
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
+use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
+use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
@@ -49,6 +51,9 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(BasicBriefBuilderDriver::class, $driver->getBriefBuilder());
         $this->assertInstanceOf(BasicOutlineBuilderDriver::class, $driver->getOutlineBuilder());
         $this->assertInstanceOf(BasicAuthorDriver::class, $driver->getAuthor());
+        $this->assertInstanceOf(BasicDirectorDriver::class, $driver->getIllustrationDirector());
+        $this->assertNotEmpty($driver->getIllustrators());
+        $this->assertInstanceOf(BasicIllustratorDriver::class, $driver->getIllustrators()[0]);
 
         $ideaForge = $driver->getIdeaForge();
         $this->assertNotEmpty($ideaForge->getIdeaAdvisors());
@@ -123,5 +128,8 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIResearcherDriver::class, $driver->getResearcher());
         $this->assertInstanceOf(OpenAIOutlineBuilderDriver::class, $driver->getOutlineBuilder());
         $this->assertInstanceOf(OpenAIAuthorDriver::class, $driver->getAuthor());
+        $this->assertInstanceOf(BasicDirectorDriver::class, $driver->getIllustrationDirector());
+        $this->assertNotEmpty($driver->getIllustrators());
+        $this->assertInstanceOf(BasicIllustratorDriver::class, $driver->getIllustrators()[0]);
     }
 }

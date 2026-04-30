@@ -13,6 +13,12 @@ use App\Contracts\Synthesizer\IdeaForge\IdeaAuditor;
 use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
 use App\Contracts\Synthesizer\IdeaForge\IdeaPicker;
 use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
+use App\Contracts\Synthesizer\Illustration\Director;
+use App\Contracts\Synthesizer\Illustration\IllustrationContext;
+use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
+use App\Contracts\Synthesizer\Illustration\Illustratable;
+use App\Contracts\Synthesizer\Illustration\Illustrator;
+use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
 use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
@@ -31,6 +37,9 @@ class SynthesizerServiceTest extends TestCase
         $briefBuilderA = $this->makeBriefBuilder();
         $outlineBuilderA = $this->makeOutlineBuilder();
         $authorA = $this->makeAuthor();
+        $illustrationDirectorA = $this->makeIllustrationDirector();
+        $illustratorA = $this->makeIllustrator();
+        $illustratorB = $this->makeIllustrator();
 
         $service = new SynthesizerService(
             ideaForge: $ideaForgeA,
@@ -38,6 +47,8 @@ class SynthesizerServiceTest extends TestCase
             briefBuilder: $briefBuilderA,
             outlineBuilder: $outlineBuilderA,
             author: $authorA,
+            illustrationDirector: $illustrationDirectorA,
+            illustrators: [$illustratorA],
         );
 
         $this->assertSame($ideaForgeA, $service->getIdeaForge());
@@ -45,24 +56,31 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($briefBuilderA, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderA, $service->getOutlineBuilder());
         $this->assertSame($authorA, $service->getAuthor());
+        $this->assertSame($illustrationDirectorA, $service->getIllustrationDirector());
+        $this->assertSame([$illustratorA], $service->getIllustrators());
 
         $ideaForgeB = $this->makeIdeaForge();
         $researcherB = $this->makeResearcher();
         $briefBuilderB = $this->makeBriefBuilder();
         $outlineBuilderB = $this->makeOutlineBuilder();
         $authorB = $this->makeAuthor();
+        $illustrationDirectorB = $this->makeIllustrationDirector();
 
         $this->assertSame($service, $service->setIdeaForge($ideaForgeB));
         $this->assertSame($service, $service->setResearcher($researcherB));
         $this->assertSame($service, $service->setBriefBuilder($briefBuilderB));
         $this->assertSame($service, $service->setOutlineBuilder($outlineBuilderB));
         $this->assertSame($service, $service->setAuthor($authorB));
+        $this->assertSame($service, $service->setIllustrationDirector($illustrationDirectorB));
+        $this->assertSame($service, $service->setIllustrators([$illustratorB, new \stdClass()]));
 
         $this->assertSame($ideaForgeB, $service->getIdeaForge());
         $this->assertSame($researcherB, $service->getResearcher());
         $this->assertSame($briefBuilderB, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderB, $service->getOutlineBuilder());
         $this->assertSame($authorB, $service->getAuthor());
+        $this->assertSame($illustrationDirectorB, $service->getIllustrationDirector());
+        $this->assertSame([$illustratorB], $service->getIllustrators());
     }
 
     protected function makeIdeaForge(): IdeaForge
@@ -175,6 +193,69 @@ class SynthesizerServiceTest extends TestCase
             public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft
             {
                 return new Draft;
+            }
+        };
+    }
+
+    protected function makeIllustrationDirector(): Director
+    {
+        return new class implements Director
+        {
+            public function resolveIllustrationContexts(
+                Illustratable $illustratable,
+                ?int $minContexts = null,
+                ?int $maxContexts = null
+            ): array {
+                return [];
+            }
+
+            public function direct(IllustrationContext $context): IllustrationDirection
+            {
+                return new IllustrationDirection;
+            }
+
+            public function determineIllustrator(
+                IllustrationContext $context,
+                IllustrationDirection $direction,
+                array $illustrators
+            ): ?Illustrator {
+                return $illustrators[0] ?? null;
+            }
+        };
+    }
+
+    protected function makeIllustrator(): Illustrator
+    {
+        return new class implements Illustrator
+        {
+            protected ?string $description = null;
+            protected ?string $identifier = null;
+
+            public function getDescription(): ?string
+            {
+                return $this->description;
+            }
+
+            public function setDescription(?string $description): static
+            {
+                $this->description = $description;
+                return $this;
+            }
+
+            public function getIdentifier(): ?string
+            {
+                return $this->identifier;
+            }
+
+            public function setIdentifier(?string $identifier): static
+            {
+                $this->identifier = $identifier;
+                return $this;
+            }
+
+            public function generate(IllustrationContext $context, IllustrationDirection $direction): IllustrationResult
+            {
+                return new IllustrationResult;
             }
         };
     }

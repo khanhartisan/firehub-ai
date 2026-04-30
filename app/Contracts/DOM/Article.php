@@ -2,9 +2,11 @@
 
 namespace App\Contracts\DOM;
 
+use App\Contracts\Synthesizer\Illustration\Illustratable;
 use Exception;
+use League\HTMLToMarkdown\HtmlConverter;
 
-class Article extends Element
+class Article extends Element implements Illustratable
 {
     protected ?ElementType $type = ElementType::ARTICLE;
 
@@ -52,5 +54,15 @@ class Article extends Element
         }
 
         return $article;
+    }
+
+    public function toMarkdown(): string
+    {
+        return new HtmlConverter()->convert($this->toHtml());
+    }
+
+    public function getIllustrationContent(): string
+    {
+        return $this->toMarkdown();
     }
 }

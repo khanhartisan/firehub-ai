@@ -42,7 +42,6 @@ class OpenAIBriefBuilderDriver extends BriefBuilderService
         $fallbackDescription = $this->resolveFallbackDescription($context);
         $defaultInstructions = array_values(array_filter([
             'Keep claims grounded in source context.',
-            'Keep structure concise and scannable.',
             $idea->getReason(),
         ]));
 

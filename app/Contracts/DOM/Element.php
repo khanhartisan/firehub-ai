@@ -6,6 +6,7 @@ use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Identifiable;
 use App\Contracts\Serializable;
 use App\Utils\Str;
+use Exception;
 
 class Element implements Serializable, Identifiable
 {
@@ -101,6 +102,45 @@ class Element implements Serializable, Identifiable
         $this->children[] = $child;
 
         return $this;
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function insertAfter(string $identifier, Element|string $child): static
+    {
+        return $this->insertRelativeToIdentifier($identifier, $child, true);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function insertBefore(string $identifier, Element|string $child): static
+    {
+        return $this->insertRelativeToIdentifier($identifier, $child, false);
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function insertRelativeToIdentifier(string $identifier, Element|string $child, bool $insertAfter): static
+    {
+        foreach ($this->children as $index => $existingChild) {
+            if (! $existingChild instanceof self) {
+                continue;
+            }
+
+            if ($existingChild->getIdentifier() !== $identifier) {
+                continue;
+            }
+
+            $insertIndex = $insertAfter ? $index + 1 : $index;
+            array_splice($this->children, $insertIndex, 0, [$child]);
+
+            return $this;
+        }
+
+        throw new Exception('Child with the provided identifier was not found.');
     }
 
     public function toHtml(): string

@@ -4,6 +4,7 @@ namespace Tests\Unit\Contracts\DOM;
 
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
+use Exception;
 use Tests\TestCase;
 
 class ElementTest extends TestCase
@@ -102,5 +103,105 @@ class ElementTest extends TestCase
             ->addChild('5 > 3 & "safe"');
 
         $this->assertSame('5 &gt; 3 &amp; &quot;safe&quot;', $element->getInnerHtml());
+    }
+
+    public function test_it_inserts_child_after_matching_identifier(): void
+    {
+        $firstChild = (new Element)->setType(ElementType::P)->addChild('First');
+        $secondChild = (new Element)->setType(ElementType::P)->addChild('Second');
+        $insertedChild = (new Element)->setType(ElementType::P)->addChild('Inserted');
+
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->setChildren([$firstChild, $secondChild]);
+
+        $parent->insertAfter($firstChild->getIdentifier(), $insertedChild);
+
+        $children = $parent->getChildren();
+        $this->assertCount(3, $children);
+        $this->assertSame($firstChild, $children[0]);
+        $this->assertSame($insertedChild, $children[1]);
+        $this->assertSame($secondChild, $children[2]);
+    }
+
+    public function test_it_throws_when_inserting_after_unknown_identifier(): void
+    {
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->addChild((new Element)->setType(ElementType::P)->addChild('Only child'));
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Child with the provided identifier was not found.');
+
+        $parent->insertAfter('missing-identifier', 'insert me');
+    }
+
+    public function test_it_inserts_string_child_after_matching_identifier_in_mixed_children(): void
+    {
+        $firstChild = (new Element)->setType(ElementType::P)->addChild('First');
+        $secondChild = (new Element)->setType(ElementType::P)->addChild('Second');
+
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->setChildren([$firstChild, 'between', $secondChild]);
+
+        $parent->insertAfter($firstChild->getIdentifier(), 'inserted-text');
+
+        $children = $parent->getChildren();
+        $this->assertCount(4, $children);
+        $this->assertSame($firstChild, $children[0]);
+        $this->assertSame('inserted-text', $children[1]);
+        $this->assertSame('between', $children[2]);
+        $this->assertSame($secondChild, $children[3]);
+    }
+
+    public function test_it_inserts_child_before_matching_identifier(): void
+    {
+        $firstChild = (new Element)->setType(ElementType::P)->addChild('First');
+        $secondChild = (new Element)->setType(ElementType::P)->addChild('Second');
+        $insertedChild = (new Element)->setType(ElementType::P)->addChild('Inserted');
+
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->setChildren([$firstChild, $secondChild]);
+
+        $parent->insertBefore($secondChild->getIdentifier(), $insertedChild);
+
+        $children = $parent->getChildren();
+        $this->assertCount(3, $children);
+        $this->assertSame($firstChild, $children[0]);
+        $this->assertSame($insertedChild, $children[1]);
+        $this->assertSame($secondChild, $children[2]);
+    }
+
+    public function test_it_throws_when_inserting_before_unknown_identifier(): void
+    {
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->addChild((new Element)->setType(ElementType::P)->addChild('Only child'));
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Child with the provided identifier was not found.');
+
+        $parent->insertBefore('missing-identifier', 'insert me');
+    }
+
+    public function test_it_inserts_string_child_before_first_matching_identifier_in_mixed_children(): void
+    {
+        $firstChild = (new Element)->setType(ElementType::P)->addChild('First');
+        $secondChild = (new Element)->setType(ElementType::P)->addChild('Second');
+
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->setChildren(['leading-text', $firstChild, $secondChild]);
+
+        $parent->insertBefore($firstChild->getIdentifier(), 'inserted-text');
+
+        $children = $parent->getChildren();
+        $this->assertCount(4, $children);
+        $this->assertSame('leading-text', $children[0]);
+        $this->assertSame('inserted-text', $children[1]);
+        $this->assertSame($firstChild, $children[2]);
+        $this->assertSame($secondChild, $children[3]);
     }
 }

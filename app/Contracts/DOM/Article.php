@@ -4,11 +4,14 @@ namespace App\Contracts\DOM;
 
 use App\Contracts\Synthesizer\Illustration\Illustratable;
 use Exception;
+use League\HTMLToMarkdown\Converter\TableConverter;
 use League\HTMLToMarkdown\HtmlConverter;
 
 class Article extends Element implements Illustratable
 {
     protected ?ElementType $type = ElementType::ARTICLE;
+
+    protected static HtmlConverter $htmlConverter;
 
     /**
      * @throws Exception
@@ -58,7 +61,15 @@ class Article extends Element implements Illustratable
 
     public function toMarkdown(): string
     {
-        return new HtmlConverter()->convert($this->toHtml());
+        $htmlConverter = static::$htmlConverter ??= (function () {
+            $converter = new HtmlConverter([
+                'strip_tags' => true
+            ]);
+            $converter->getEnvironment()->addConverter(new TableConverter());
+            return $converter;
+        })();
+
+        return $htmlConverter->convert($this->toHtml());
     }
 
     public function getIllustrationContent(): string

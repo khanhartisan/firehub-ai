@@ -2,15 +2,15 @@
 
 namespace App\Contracts\DOM;
 
+use App\Concerns\AlwaysIdentifiable;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Identifiable;
 use App\Contracts\Serializable;
-use App\Utils\Str;
 use Exception;
 
 class Element implements Serializable, Identifiable
 {
-    use \App\Concerns\Identifiable;
+    use AlwaysIdentifiable;
     use SerializableTrait;
 
     protected ?ElementType $type = null;
@@ -24,11 +24,6 @@ class Element implements Serializable, Identifiable
      * @var array<int, Element|string>
      */
     protected array $children = [];
-
-    public function getIdentifier(): ?string
-    {
-        return $this->identifier ??= (string) Str::uuid();
-    }
 
     public function getType(): ?ElementType
     {

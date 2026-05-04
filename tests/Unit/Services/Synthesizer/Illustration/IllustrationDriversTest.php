@@ -4,6 +4,7 @@ namespace Tests\Unit\Services\Synthesizer\Illustration;
 
 use App\Contracts\Synthesizer\Illustration\IllustrationContext;
 use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
+use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Enums\AspectRatio;
 use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
@@ -70,6 +71,44 @@ class IllustrationDriversTest extends TestCase
         $this->assertSame(AspectRatio::LANDSCAPE_WIDE, $resultA->getAspectRatio());
         $this->assertNotNull($resultA->getSeed());
         $this->assertSame($resultA->getSeed(), $resultB->getSeed());
+        $this->assertSame($context, $resultA->getIllustrationContext());
+    }
+
+    public function test_illustration_result_serializes_illustration_context_round_trip(): void
+    {
+        $context = (new IllustrationContext())
+            ->setSubject('Test subject')
+            ->setGoal('Test goal');
+
+        $original = (new IllustrationResult())
+            ->setIllustrationContext($context)
+            ->setAspectRatio(AspectRatio::SQUARE)
+            ->setSeed('abc123');
+
+        $expectedId = $original->getIdentifier();
+
+        $restored = IllustrationResult::fromArray($original->toArray());
+
+        $this->assertSame($expectedId, $restored->getIdentifier());
+        $this->assertNotNull($restored->getIllustrationContext());
+        $this->assertSame('Test subject', $restored->getIllustrationContext()->getSubjectValue());
+        $this->assertSame('Test goal', $restored->getIllustrationContext()->getGoalValue());
+        $this->assertSame(AspectRatio::SQUARE, $restored->getAspectRatio());
+        $this->assertSame('abc123', $restored->getSeed());
+    }
+
+    public function test_illustration_result_from_array_omitted_identifier_assigns_on_first_access(): void
+    {
+        $context = (new IllustrationContext())->setSubject('Only context');
+
+        $restored = IllustrationResult::fromArray([
+            'illustration_context' => $context->toArray(),
+        ]);
+
+        $id = $restored->getIdentifier();
+        $this->assertIsString($id);
+        $this->assertNotSame('', $id);
+        $this->assertSame('Only context', $restored->getIllustrationContext()?->getSubjectValue());
     }
 }
 

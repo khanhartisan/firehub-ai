@@ -19,6 +19,7 @@ class BasicIllustratorDriver extends IllustratorService
     public function generate(IllustrationContext $context, IllustrationDirection $direction): IllustrationResult
     {
         $result = new IllustrationResult();
+        $result->setIllustrationContext($context);
 
         $aspectRatio = $context->getAspectRatioValue();
         if (is_string($aspectRatio)) {

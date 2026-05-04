@@ -44,6 +44,7 @@ class OpenAIIllustratorDriver extends IllustratorService
         $responseData = $this->generateImages($prompt, $aspectRatio);
 
         $result = new IllustrationResult();
+        $result->setIllustrationContext($context);
         $result->setAspectRatio($aspectRatio);
 
         $seed = trim((string) ($responseData['seed'] ?? ''));

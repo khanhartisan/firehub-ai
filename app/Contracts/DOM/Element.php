@@ -120,22 +120,33 @@ class Element implements Serializable, Identifiable
      */
     private function insertRelativeToIdentifier(string $identifier, Element|string $child, bool $insertAfter): static
     {
+        if (! $this->tryInsertRelativeToIdentifier($identifier, $child, $insertAfter)) {
+            throw new Exception('Child with the provided identifier was not found.');
+        }
+
+        return $this;
+    }
+
+    private function tryInsertRelativeToIdentifier(string $identifier, Element|string $child, bool $insertAfter): bool
+    {
         foreach ($this->children as $index => $existingChild) {
             if (! $existingChild instanceof self) {
                 continue;
             }
 
-            if ($existingChild->getIdentifier() !== $identifier) {
-                continue;
+            if ($existingChild->getIdentifier() === $identifier) {
+                $insertIndex = $insertAfter ? $index + 1 : $index;
+                array_splice($this->children, $insertIndex, 0, [$child]);
+
+                return true;
             }
 
-            $insertIndex = $insertAfter ? $index + 1 : $index;
-            array_splice($this->children, $insertIndex, 0, [$child]);
-
-            return $this;
+            if ($existingChild->tryInsertRelativeToIdentifier($identifier, $child, $insertAfter)) {
+                return true;
+            }
         }
 
-        throw new Exception('Child with the provided identifier was not found.');
+        return false;
     }
 
     public function toHtml(): string

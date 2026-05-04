@@ -204,4 +204,72 @@ class ElementTest extends TestCase
         $this->assertSame($firstChild, $children[2]);
         $this->assertSame($secondChild, $children[3]);
     }
+
+    public function test_it_inserts_after_a_deeply_nested_element(): void
+    {
+        $target = (new Element)->setType(ElementType::P)->addChild('Target');
+        $sibling = (new Element)->setType(ElementType::P)->addChild('Sibling');
+        $inserted = (new Element)->setType(ElementType::P)->addChild('Inserted');
+
+        $inner = (new Element)->setType(ElementType::DIV)->setChildren([$target, $sibling]);
+        $root = (new Element)->setType(ElementType::DIV)->addChild($inner);
+
+        $root->insertAfter($target->getIdentifier(), $inserted);
+
+        $innerChildren = $inner->getChildren();
+        $this->assertCount(3, $innerChildren);
+        $this->assertSame($target, $innerChildren[0]);
+        $this->assertSame($inserted, $innerChildren[1]);
+        $this->assertSame($sibling, $innerChildren[2]);
+        $this->assertCount(1, $root->getChildren());
+    }
+
+    public function test_it_inserts_before_a_deeply_nested_element(): void
+    {
+        $target = (new Element)->setType(ElementType::P)->addChild('Target');
+        $sibling = (new Element)->setType(ElementType::P)->addChild('Sibling');
+        $inserted = (new Element)->setType(ElementType::P)->addChild('Inserted');
+
+        $inner = (new Element)->setType(ElementType::DIV)->setChildren([$sibling, $target]);
+        $root = (new Element)->setType(ElementType::DIV)->addChild($inner);
+
+        $root->insertBefore($target->getIdentifier(), $inserted);
+
+        $innerChildren = $inner->getChildren();
+        $this->assertCount(3, $innerChildren);
+        $this->assertSame($sibling, $innerChildren[0]);
+        $this->assertSame($inserted, $innerChildren[1]);
+        $this->assertSame($target, $innerChildren[2]);
+        $this->assertCount(1, $root->getChildren());
+    }
+
+    public function test_it_inserts_relative_to_identifier_at_arbitrary_depth(): void
+    {
+        $target = (new Element)->setType(ElementType::P)->addChild('Deep target');
+        $inserted = (new Element)->setType(ElementType::SPAN)->addChild('Inserted');
+
+        $level3 = (new Element)->setType(ElementType::DIV)->addChild($target);
+        $level2 = (new Element)->setType(ElementType::DIV)->addChild($level3);
+        $level1 = (new Element)->setType(ElementType::DIV)->addChild($level2);
+
+        $level1->insertAfter($target->getIdentifier(), $inserted);
+
+        $deepChildren = $level3->getChildren();
+        $this->assertCount(2, $deepChildren);
+        $this->assertSame($target, $deepChildren[0]);
+        $this->assertSame($inserted, $deepChildren[1]);
+    }
+
+    public function test_it_throws_when_identifier_is_absent_from_entire_tree(): void
+    {
+        $inner = (new Element)->setType(ElementType::DIV)
+            ->addChild((new Element)->setType(ElementType::P)->addChild('Nested'));
+
+        $root = (new Element)->setType(ElementType::DIV)->addChild($inner);
+
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Child with the provided identifier was not found.');
+
+        $root->insertAfter('missing-identifier', 'insert me');
+    }
 }

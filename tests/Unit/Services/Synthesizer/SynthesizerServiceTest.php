@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Synthesizer;
 
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\DOM\Article;
 use App\Contracts\Synthesizer\Author\Author;
 use App\Contracts\Synthesizer\Author\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
@@ -193,6 +194,11 @@ class SynthesizerServiceTest extends TestCase
             public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft
             {
                 return new Draft;
+            }
+
+            public function getIllustrationAnchors(Article $article, array $illustrationResults): array
+            {
+                return [];
             }
         };
     }

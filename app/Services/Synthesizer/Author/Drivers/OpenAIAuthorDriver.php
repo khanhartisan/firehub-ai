@@ -4,13 +4,16 @@ namespace App\Services\Synthesizer\Author\Drivers;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
+use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Contracts\Synthesizer\Author\Draft;
+use App\Contracts\Synthesizer\Author\IllustrationAnchor;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
+use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Services\Synthesizer\Author\AuthorService;
 use RuntimeException;
@@ -48,6 +51,230 @@ class OpenAIAuthorDriver extends AuthorService
             ->setTitle($this->sanitizeNullableString($payload['title'] ?? null) ?: $brief->getTitle())
             ->setExcerpt($this->sanitizeNullableString($payload['excerpt'] ?? null) ?: $brief->getDescription())
             ->setArticle($article);
+    }
+
+    /**
+     * @param  IllustrationResult[]  $illustrationResults
+     * @return IllustrationAnchor[]
+     */
+    public function getIllustrationAnchors(Article $article, array $illustrationResults): array
+    {
+        $results = array_values(array_filter(
+            $illustrationResults,
+            static fn (mixed $item): bool => $item instanceof IllustrationResult
+        ));
+
+        if ($results === []) {
+            return [];
+        }
+
+        if (! $this->openAIClient instanceof OpenAIClient) {
+            throw new RuntimeException('OpenAI author driver requires an OpenAI client instance.');
+        }
+
+        $elementIds = $this->collectElementIdentifiers($article);
+        if ($elementIds === []) {
+            throw new RuntimeException('Cannot resolve illustration anchors: article DOM has no identifiable elements.');
+        }
+
+        $payload = $this->generateIllustrationAnchorsPayload($article, $results, $elementIds);
+
+        return $this->validateAndHydrateIllustrationAnchors($payload, $results, $elementIds);
+    }
+
+    /**
+     * @param  IllustrationResult[]  $results
+     * @param  list<string>  $elementIds
+     * @return array<string, mixed>
+     */
+    protected function generateIllustrationAnchorsPayload(
+        Article $article,
+        array $results,
+        array $elementIds,
+    ): array {
+        $count = count($results);
+        $illustrationIds = array_values(array_unique(array_map(
+            static fn (IllustrationResult $result): string => $result->getIdentifier(),
+            $results
+        )));
+
+        if (count($illustrationIds) !== $count) {
+            throw new RuntimeException('Cannot resolve illustration anchors: duplicate illustration identifiers in input.');
+        }
+
+        $data = $this->requestStructuredJson(
+            $this->buildIllustrationAnchorsPrompt($article, $results, $elementIds, $count),
+            'author_illustration_anchors',
+            $this->buildIllustrationAnchorsSchema($count, $illustrationIds, $elementIds),
+            'Failed to resolve illustration anchors with OpenAI'
+        );
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * @param  IllustrationResult[]  $results
+     * @param  list<string>  $elementIds
+     */
+    protected function buildIllustrationAnchorsPrompt(
+        Article $article,
+        array $results,
+        array $elementIds,
+        int $expectedAnchorCount,
+    ): string {
+        $input = [
+            'article' => $article->toArray(),
+            'illustrations' => array_map(
+                static fn (IllustrationResult $result): array => $result->toArray(),
+                $results
+            ),
+            'allowed_element_identifiers' => $elementIds,
+        ];
+        $json = json_encode($input, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        return <<<PROMPT
+You are a senior editor placing illustrations in an article DOM.
+
+Each illustration must appear exactly once in your output. Return exactly {$expectedAnchorCount} anchors in the anchors array (same length as illustrations).
+For each illustration (in input array order), choose the DOM element identifier that is the best structural anchor: the illustration will be inserted immediately before or after that element according to is_after (true = after the element, false = before).
+
+Rules:
+- illustration_identifier must match one of the illustration identifiers in the input.
+- element_identifier must be one of allowed_element_identifiers.
+- Cover every illustration exactly once across the anchors array.
+
+Input JSON:
+{$json}
+PROMPT;
+    }
+
+    /**
+     * @param  list<string>  $illustrationIds
+     * @param  list<string>  $elementIds
+     * @return array<string, mixed>
+     */
+    protected function buildIllustrationAnchorsSchema(
+        int $anchorCount,
+        array $illustrationIds,
+        array $elementIds,
+    ): array {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'anchors' => [
+                    'type' => 'array',
+                    'minItems' => $anchorCount,
+                    'maxItems' => $anchorCount,
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'illustration_identifier' => [
+                                'type' => 'string',
+                                'enum' => $illustrationIds,
+                            ],
+                            'element_identifier' => [
+                                'type' => 'string',
+                                'enum' => $elementIds,
+                            ],
+                            'is_after' => [
+                                'type' => 'boolean',
+                            ],
+                        ],
+                        'required' => ['illustration_identifier', 'element_identifier', 'is_after'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            'required' => ['anchors'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  IllustrationResult[]  $results
+     * @param  list<string>  $elementIds
+     * @return IllustrationAnchor[]
+     */
+    protected function validateAndHydrateIllustrationAnchors(
+        array $payload,
+        array $results,
+        array $elementIds,
+    ): array {
+        $anchorsRaw = $payload['anchors'] ?? null;
+        if (! is_array($anchorsRaw)) {
+            throw new RuntimeException('Failed to resolve illustration anchors with OpenAI: missing anchors array.');
+        }
+
+        $elementIdLookup = array_fill_keys($elementIds, true);
+        $built = [];
+
+        foreach ($anchorsRaw as $row) {
+            if (! is_array($row)) {
+                throw new RuntimeException('Failed to resolve illustration anchors with OpenAI: invalid anchor row.');
+            }
+
+            try {
+                $built[] = IllustrationAnchor::fromArray($row);
+            } catch (\InvalidArgumentException $e) {
+                throw new RuntimeException(
+                    'Failed to resolve illustration anchors with OpenAI: '.$e->getMessage(),
+                    0,
+                    $e
+                );
+            }
+        }
+
+        if (count($built) !== count($results)) {
+            throw new RuntimeException('Failed to resolve illustration anchors with OpenAI: unexpected anchor count.');
+        }
+
+        $expectedIllustrationIds = array_map(
+            static fn (IllustrationResult $result): string => $result->getIdentifier(),
+            $results
+        );
+        $fromResponse = array_map(
+            static fn (IllustrationAnchor $anchor): string => $anchor->getIllustrationIdentifier(),
+            $built
+        );
+        sort($expectedIllustrationIds);
+        sort($fromResponse);
+        if ($fromResponse !== $expectedIllustrationIds) {
+            throw new RuntimeException(
+                'Failed to resolve illustration anchors with OpenAI: illustration identifiers do not match the requested set.'
+            );
+        }
+
+        foreach ($built as $anchor) {
+            if (! isset($elementIdLookup[$anchor->getElementIdentifier()])) {
+                throw new RuntimeException(
+                    'Failed to resolve illustration anchors with OpenAI: unknown element identifier in anchor output.'
+                );
+            }
+        }
+
+        return $built;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function collectElementIdentifiers(Element $root): array
+    {
+        $ids = [];
+
+        $visit = function (Element $node) use (&$visit, &$ids): void {
+            $ids[] = $node->getIdentifier();
+            foreach ($node->getChildren() as $child) {
+                if ($child instanceof Element) {
+                    $visit($child);
+                }
+            }
+        };
+
+        $visit($root);
+
+        return array_values(array_unique($ids));
     }
 
     protected function getModel(): string

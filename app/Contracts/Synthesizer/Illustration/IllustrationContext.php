@@ -88,7 +88,7 @@ class IllustrationContext extends SemanticContext
     {
         return $this->set(
             'macro_context',
-            'High-level context of what we are working on.',
+            'High-level, big-picture context of what we are working on.',
             $macroContext
         );
     }
@@ -97,7 +97,7 @@ class IllustrationContext extends SemanticContext
     {
         return $this->set(
             'micro_context',
-            'Fine-grained, local, detailed context that we needs to illustrate..',
+            'The specific part, detailed context that we needs to illustrate.',
             $microContext
         );
     }

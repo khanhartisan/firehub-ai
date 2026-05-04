@@ -7,7 +7,9 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
 use App\Contracts\Synthesizer\Author\Draft;
+use App\Contracts\Synthesizer\Author\IllustrationAnchor;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
+use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Services\Synthesizer\Author\AuthorService;
 
@@ -93,6 +95,70 @@ class BasicAuthorDriver extends AuthorService
             ->setTitle($brief->getTitle())
             ->setExcerpt($brief->getDescription())
             ->setArticle($article);
+    }
+
+    /**
+     * @param  IllustrationResult[]  $illustrationResults
+     * @return IllustrationAnchor[]
+     */
+    public function getIllustrationAnchors(Article $article, array $illustrationResults): array
+    {
+        $candidates = $this->collectIllustrationAnchorCandidates($article);
+        if ($candidates === []) {
+            return [];
+        }
+
+        $anchors = [];
+        $lastIndex = count($candidates) - 1;
+
+        foreach ($illustrationResults as $result) {
+            if (! $result instanceof IllustrationResult) {
+                continue;
+            }
+
+            $slot = count($anchors);
+            $element = $candidates[$slot > $lastIndex ? $lastIndex : $slot];
+
+            $anchors[] = new IllustrationAnchor(
+                $result->getIdentifier(),
+                $element->getIdentifier(),
+                true,
+            );
+        }
+
+        return $anchors;
+    }
+
+    /**
+     * Block-level elements in document order suitable for placing illustrations nearby.
+     *
+     * @return Element[]
+     */
+    protected function collectIllustrationAnchorCandidates(Element $root): array
+    {
+        $candidates = [];
+
+        foreach ($root->getChildren() as $child) {
+            if (! $child instanceof Element) {
+                continue;
+            }
+
+            if ($this->isIllustrationAnchorCandidate($child)) {
+                $candidates[] = $child;
+            }
+
+            $candidates = array_merge($candidates, $this->collectIllustrationAnchorCandidates($child));
+        }
+
+        return $candidates;
+    }
+
+    protected function isIllustrationAnchorCandidate(Element $element): bool
+    {
+        return match ($element->getType()) {
+            ElementType::H2, ElementType::H3, ElementType::P => true,
+            default => false,
+        };
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\Author\Draft;
+use App\Contracts\Synthesizer\Author\IllustrationAnchor;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
@@ -150,6 +151,27 @@ class SynthesizerDataObjectsTest extends TestCase
         $this->assertNotNull($restoredDraft->getArticle());
         $this->assertStringContainsString('<h2>Key updates</h2>', $restoredDraft->getArticle()->toHtml());
         $this->assertEmpty($restoredDraft->getReferenceFiles());
+    }
+
+    public function test_illustration_anchor_round_trip_serialization(): void
+    {
+        $anchor = new IllustrationAnchor('illustration-uuid-1', 'element-uuid-2', false);
+
+        $payload = $anchor->toArray();
+        $this->assertSame('illustration-uuid-1', $payload['illustration_identifier']);
+        $this->assertSame('element-uuid-2', $payload['element_identifier']);
+        $this->assertFalse($payload['is_after']);
+
+        $restored = IllustrationAnchor::fromArray($payload);
+        $this->assertSame('illustration-uuid-1', $restored->getIllustrationIdentifier());
+        $this->assertSame('element-uuid-2', $restored->getElementIdentifier());
+        $this->assertFalse($restored->isAfter());
+
+        $defaultAfter = IllustrationAnchor::fromArray([
+            'illustration_identifier' => 'ill-a',
+            'element_identifier' => 'el-b',
+        ]);
+        $this->assertTrue($defaultAfter->isAfter());
     }
 
     public function test_idea_uniqueness_report_getters_setters_and_to_array(): void

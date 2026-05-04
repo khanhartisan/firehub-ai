@@ -5,7 +5,10 @@ namespace Tests\Unit\Services\Synthesizer\OutlineBuilder;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
+use App\Contracts\DOM\Article;
+use App\Contracts\Synthesizer\Author\IllustrationAnchor;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
+use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
@@ -72,6 +75,138 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertStringContainsString('<h2>Body</h2>', $articleHtml);
         $this->assertStringContainsString('<h2>Additional context</h2>', $articleHtml);
         $this->assertStringContainsString('Use context &quot;tone&quot;: &quot;Be practical&quot;', $articleHtml);
+    }
+
+    public function test_basic_author_driver_maps_illustration_results_to_dom_anchors(): void
+    {
+        $author = new BasicAuthorDriver;
+        $brief = (new Brief)
+            ->setTitle('AI weekly')
+            ->setDescription('Top developments this week.');
+        $outline = (new \App\Contracts\Synthesizer\OutlineBuilder\Outline)
+            ->setItems([
+                (new OutlineItem)->setPoint(
+                    (new RelevantPoint)
+                        ->setHeadline('Intro')
+                        ->setDescription('Opening')
+                ),
+                (new OutlineItem)->setPoint(
+                    (new RelevantPoint)
+                        ->setHeadline('Body')
+                        ->setDescription('Details')
+                ),
+            ]);
+
+        $draft = $author->draft($brief, $outline, null);
+        $article = $draft->getArticle();
+        $this->assertNotNull($article);
+
+        $first = new IllustrationResult;
+        $second = new IllustrationResult;
+
+        $anchors = $author->getIllustrationAnchors($article, [$first, $second]);
+
+        $this->assertCount(2, $anchors);
+        $this->assertContainsOnlyInstancesOf(IllustrationAnchor::class, $anchors);
+        $this->assertSame($first->getIdentifier(), $anchors[0]->getIllustrationIdentifier());
+        $this->assertSame($second->getIdentifier(), $anchors[1]->getIllustrationIdentifier());
+        $this->assertNotSame($anchors[0]->getElementIdentifier(), $anchors[1]->getElementIdentifier());
+        $this->assertTrue($anchors[0]->isAfter());
+        $this->assertTrue($anchors[1]->isAfter());
+    }
+
+    public function test_openai_author_driver_resolves_illustration_anchors_via_structured_response(): void
+    {
+        $article = Article::fromArray([
+            'identifier' => 'article-root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'el-heading',
+                    'type' => 'h2',
+                    'props' => [],
+                    'children' => ['Section'],
+                ],
+                [
+                    'identifier' => 'el-body',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Body text'],
+                ],
+            ],
+        ]);
+
+        $first = new IllustrationResult;
+        $second = new IllustrationResult;
+        $id1 = $first->getIdentifier();
+        $id2 = $second->getIdentifier();
+
+        $payload = json_encode([
+            'anchors' => [
+                [
+                    'illustration_identifier' => $id1,
+                    'element_identifier' => 'el-heading',
+                    'is_after' => true,
+                ],
+                [
+                    'illustration_identifier' => $id2,
+                    'element_identifier' => 'el-body',
+                    'is_after' => false,
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_author_anchors_1',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $author = new OpenAIAuthorDriver($client, ['model' => 'gpt-4o-mini']);
+        $anchors = $author->getIllustrationAnchors($article, [$first, $second]);
+
+        $this->assertCount(2, $anchors);
+        $this->assertSame($id1, $anchors[0]->getIllustrationIdentifier());
+        $this->assertSame('el-heading', $anchors[0]->getElementIdentifier());
+        $this->assertTrue($anchors[0]->isAfter());
+        $this->assertSame($id2, $anchors[1]->getIllustrationIdentifier());
+        $this->assertSame('el-body', $anchors[1]->getElementIdentifier());
+        $this->assertFalse($anchors[1]->isAfter());
+    }
+
+    public function test_openai_author_driver_throws_when_client_missing_for_illustration_anchors(): void
+    {
+        $author = new OpenAIAuthorDriver;
+        $article = Article::fromArray([
+            'identifier' => 'article-root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'el-heading',
+                    'type' => 'h2',
+                    'props' => [],
+                    'children' => ['Section'],
+                ],
+            ],
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('OpenAI author driver requires an OpenAI client instance');
+
+        $author->getIllustrationAnchors($article, [new IllustrationResult]);
     }
 
     public function test_openai_author_driver_hydrates_article_from_structured_response(): void

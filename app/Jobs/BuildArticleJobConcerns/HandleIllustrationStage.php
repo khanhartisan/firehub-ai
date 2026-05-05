@@ -3,17 +3,12 @@
 namespace App\Jobs\BuildArticleJobConcerns;
 
 use App\Contracts\DOM\Article as DOMArticle;
-use App\Contracts\DOM\Element;
-use App\Contracts\DOM\ElementType;
-use App\Contracts\Filesystem\File;
-use App\Contracts\Synthesizer\Author\IllustrationAnchor;
-use App\Contracts\Synthesizer\Illustration\IllustrationResult;
+use App\Contracts\Model\Article\IllustrationData;
 use App\Models\Article;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * ILLUSTRATION stage: resolves illustration contexts → generates one image per job run →
- * resolves anchors → weaves images into the article DOM.
+ * resolves anchors → persists illustration metadata on the article.
  *
  * Each sub-step that calls an external service checkpoints (returns null) so the queue
  * can slice the work across multiple job ticks, matching the pattern used by IDEA and RESEARCH.
@@ -21,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
 trait HandleIllustrationStage
 {
     /**
-     * @return ?true when all illustrations are woven into the DOM;
+     * @return ?true when illustration metadata is fully persisted;
      *               null while a sub-step is in-flight (checkpoint — same stage re-runs);
      *               false on invalid state (e.g. illustration stage reached before draft exists).
      */
@@ -59,9 +54,11 @@ trait HandleIllustrationStage
             return $anchorProgress;
         }
 
-        // 4. Weave illustrations into the DOM and persist — no external call.
-        $this->applyIllustrationAnchors($dom);
-        $article->article = $dom;
+        // 4. Persist resolved illustration payload on the article.
+        $stageData = $this->getStageData()->getIllustrationStageData();
+        $article->illustration = (new IllustrationData)
+            ->setIllustrationResults($stageData->getIllustrationResults())
+            ->setIllustrationAnchors($stageData->getIllustrationAnchors());
         $this->touchArticleQuietly();
 
         return true;
@@ -170,102 +167,6 @@ trait HandleIllustrationStage
 
         $stageData->setIllustrationAnchors($anchors);
         $this->touchArticleQuietly();
-
-        return null;
-    }
-
-    /**
-     * Inserts one <img> element per anchor into the DOM. Silently skips anchors whose target
-     * element cannot be found (e.g. DOM was edited between stages).
-     */
-    protected function applyIllustrationAnchors(DOMArticle $dom): void
-    {
-        $stageData = $this->getStageData()->getIllustrationStageData();
-
-        $resultMap = [];
-        foreach ($stageData->getIllustrationResults() as $result) {
-            $resultMap[$result->getIdentifier()] = $result;
-        }
-
-        $groupedAnchors = [];
-        foreach ($stageData->getIllustrationAnchors() as $anchor) {
-            if (! $anchor instanceof IllustrationAnchor) {
-                continue;
-            }
-            $groupKey = $anchor->getElementIdentifier()."\0".($anchor->isAfter() ? '1' : '0');
-            $groupedAnchors[$groupKey][] = $anchor;
-        }
-
-        foreach ($groupedAnchors as $anchors) {
-            // Reverse so insertBefore/insertAfter keeps original order.
-            foreach (array_reverse($anchors) as $anchor) {
-                $result = $resultMap[$anchor->getIllustrationIdentifier()] ?? null;
-                if (! $result) {
-                    continue;
-                }
-
-                $imgElement = $this->buildImageElementFromResult($result);
-                if (! $imgElement instanceof Element) {
-                    continue;
-                }
-
-                $targetParent = $this->findDirectParentForElementId($dom, $anchor->getElementIdentifier());
-                if (! $targetParent instanceof Element) {
-                    continue;
-                }
-
-                try {
-                    if ($anchor->isAfter()) {
-                        $targetParent->insertAfter($anchor->getElementIdentifier(), $imgElement);
-                    } else {
-                        $targetParent->insertBefore($anchor->getElementIdentifier(), $imgElement);
-                    }
-                } catch (\Exception) {
-                    // anchor element no longer present in DOM — skip
-                }
-            }
-        }
-    }
-
-    protected function buildImageElementFromResult(IllustrationResult $result): ?Element
-    {
-        $files = $result->getFiles();
-        $first = $files[0] ?? null;
-        if (! $first instanceof File) {
-            return null;
-        }
-
-        $path = trim($first->getPath());
-        if ($path === '') {
-            return null;
-        }
-
-        $src = str_starts_with($path, 'http://') || str_starts_with($path, 'https://')
-            ? $path
-            : Storage::url($path);
-
-        return (new Element)
-            ->setType(ElementType::IMG)
-            ->setProp('src', $src)
-            ->setProp('alt', $result->getIllustrationContext()?->getSubjectValue() ?: '');
-    }
-
-    protected function findDirectParentForElementId(Element $root, string $targetIdentifier): ?Element
-    {
-        foreach ($root->getChildren() as $child) {
-            if (! $child instanceof Element) {
-                continue;
-            }
-
-            if ($child->getIdentifier() === $targetIdentifier) {
-                return $root;
-            }
-
-            $found = $this->findDirectParentForElementId($child, $targetIdentifier);
-            if ($found instanceof Element) {
-                return $found;
-            }
-        }
 
         return null;
     }

@@ -1,9 +1,12 @@
 <?php
 
+use App\Enums\ArticleStage;
+use App\Enums\ArticleStageStatus;
+use App\Enums\ArticleStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -16,22 +19,22 @@ return new class extends Migration
         // because we want to be able to perform the vector queries
         // against a client_id with the best performance
 
-        DB::statement("CREATE TABLE articles (
+        DB::statement('CREATE TABLE articles (
             id char(26) NOT NULL,
             client_id varchar(255) NOT NULL,
             primary key(client_id, id)
-        ) PARTITION BY HASH (client_id)");
+        ) PARTITION BY HASH (client_id)');
 
         Schema::table('articles', function (Blueprint $table) {
             $table->string('language')->nullable();
             $table->string('temporal')->nullable();
 
-            $table->unsignedTinyInteger('status')->default(\App\Enums\ArticleStatus::UNREADY);
+            $table->unsignedTinyInteger('status')->default(ArticleStatus::UNREADY);
 
             $table->unsignedTinyInteger('stage')
-                ->default(\App\Enums\ArticleStage::IDEA->value);
+                ->default(ArticleStage::IDEA->value);
             $table->unsignedTinyInteger('stage_status')
-                ->default(\App\Enums\ArticleStageStatus::PENDING->value);
+                ->default(ArticleStageStatus::PENDING->value);
             $table->jsonb('stage_data')->nullable();
 
             $table->jsonb('context')->nullable();
@@ -39,6 +42,7 @@ return new class extends Migration
             $table->string('title')->nullable();
             $table->text('excerpt')->nullable();
             $table->json('article')->nullable();
+            $table->jsonb('illustration')->nullable();
             $table->ulid('thumbnail_file_id')->nullable();
 
             $table->timestamps();

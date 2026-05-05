@@ -174,9 +174,9 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $this->runToCompletion($job, $article);
         $article->refresh();
 
-        $this->assertInstanceOf(DOMArticle::class, $article->article);
-        $this->assertStringContainsString('<img', $article->article->toHtml());
-        $this->assertStringContainsString('src=', $article->article->toHtml());
+        $this->assertInstanceOf(DOMArticle::class, $article->illustrated_article);
+        $this->assertStringContainsString('<img', $article->illustrated_article->toHtml());
+        $this->assertStringContainsString('src=', $article->illustrated_article->toHtml());
     }
 
     public function test_illustration_stage_persists_results_in_stage_data(): void
@@ -235,7 +235,7 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $article->refresh();
 
         $path = $article->stage_data->getIllustrationStageData()->getIllustrationResults()[0]->getFiles()[0]->getPath();
-        $this->assertStringContainsString($path, $article->article->toHtml());
+        $this->assertStringContainsString($path, $article->illustrated_article->toHtml());
     }
 
     public function test_single_sentence_dom_produces_exactly_one_result(): void
@@ -314,8 +314,9 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $stageArray = $article->stage_data->toArray();
         $this->assertArrayHasKey('illustration', $stageArray);
 
-        $this->assertInstanceOf(DOMArticle::class, $article->article);
-        $this->assertStringContainsString('<img', $article->article->toHtml());
+        $this->assertNotNull($article->illustration);
+        $this->assertInstanceOf(DOMArticle::class, $article->illustrated_article);
+        $this->assertStringContainsString('<img', $article->illustrated_article->toHtml());
     }
 
     // -------------------------------------------------------------------------
@@ -337,6 +338,7 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $stageData = StageData::fromArray([]);
         if ($draft !== null) {
             $stageData->setDraft($draft);
+            $article->article = $draft->getArticle();
         }
 
         $article->stage_data = $stageData;

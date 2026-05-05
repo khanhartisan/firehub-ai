@@ -4,8 +4,9 @@ namespace App\Models;
 
 use App\Casts\ArticleArticleCast;
 use App\Casts\ArticleContextCast;
+use App\Casts\ArticleIllustratedArticleCast;
+use App\Casts\ArticleIllustrationCast;
 use App\Casts\ArticleStageDataCast;
-use App\Contracts\DOM\Article as DOMArticle;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
@@ -31,6 +32,8 @@ class Article extends EmbeddableModel implements ShouldCascade
         'stage' => ArticleStage::class,
         'stage_status' => ArticleStageStatus::class,
         'stage_data' => ArticleStageDataCast::class,
+        'illustration' => ArticleIllustrationCast::class,
+        'illustrated_article' => ArticleIllustratedArticleCast::class,
         'vector' => 'array',
         'is_embeddable' => 'boolean',
         'is_embedded' => 'boolean',
@@ -42,7 +45,7 @@ class Article extends EmbeddableModel implements ShouldCascade
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            new CascadeDetails($this->articleIntents())
+            new CascadeDetails($this->articleIntents()),
         ];
     }
 
@@ -81,7 +84,7 @@ class Article extends EmbeddableModel implements ShouldCascade
 
     public function isEmbedded(): bool
     {
-        if (!$this->is_embedded) {
+        if (! $this->is_embedded) {
             return false;
         }
 

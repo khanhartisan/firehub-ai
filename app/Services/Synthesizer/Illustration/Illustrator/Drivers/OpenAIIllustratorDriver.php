@@ -69,7 +69,7 @@ class OpenAIIllustratorDriver extends IllustratorService
 
     protected function getQuality(): string
     {
-        return (string) ($this->config['quality'] ?? 'high');
+        return (string) ($this->config['quality'] ?? 'low');
     }
 
     protected function getOutputFormat(): string
@@ -103,6 +103,10 @@ class OpenAIIllustratorDriver extends IllustratorService
 Create a high-quality illustration based on the following structured direction.
 Respect constraints and avoid adding unrelated visual elements.
 If context and direction conflict, prioritize direction.
+Ground all visual details in the provided JSON only.
+Do not invent facts, domain knowledge, numbers, labels, names, or relationships that are not explicitly present.
+Treat constraints and knowledge_guidelines as strict requirements and depict them faithfully.
+When information is missing, remain generic rather than guessing specific facts.
 
 Input JSON:
 {$json}

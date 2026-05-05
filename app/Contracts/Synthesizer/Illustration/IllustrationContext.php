@@ -39,6 +39,15 @@ class IllustrationContext extends IdentifiableSemanticContext
 {
     use HasMeta;
 
+    public function setLanguage(string $language): static
+    {
+        return $this->set(
+            'language',
+            'The primary language for all text elements within the illustration, including labels, headings, and descriptions (if any). Ignore if the illustration does not require text.',
+            $language
+        );
+    }
+
     public function setSubject(string $subject): static
     {
         return $this->set(
@@ -108,6 +117,15 @@ class IllustrationContext extends IdentifiableSemanticContext
             'constraints',
             'Hard requirements or limitations the illustration must satisfy.',
             array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint)))
+        );
+    }
+
+    public function setKnowledgeGuidelines(array $knowledgeGuidelines): static
+    {
+        return $this->set(
+            'knowledge_guidelines',
+            'Specific domain logic and factual rules that must be accurately represented.',
+            $knowledgeGuidelines
         );
     }
 }

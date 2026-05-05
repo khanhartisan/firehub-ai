@@ -399,7 +399,7 @@ PROMPT;
             'anyOf' => [
                 [
                     'type' => 'string',
-                    'description' => 'Used for text only (NOT HTML)'
+                    'description' => 'Used for raw text only (NOT HTML tag)'
                 ],
                 $this->buildElementSchema($depth),
             ],
@@ -417,6 +417,7 @@ PROMPT;
 
         return [
             'type' => 'object',
+            'description' => 'Represent HTML element',
             'properties' => [
                 'type' => [
                     'type' => 'string',

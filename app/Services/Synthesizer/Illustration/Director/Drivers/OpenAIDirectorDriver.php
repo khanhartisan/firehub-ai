@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer\Illustration\Director\Drivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
@@ -69,6 +70,10 @@ class OpenAIDirectorDriver extends DirectorService implements Director
             }
 
             $context = (new IllustrationContext())->setSubject($subject);
+            $language = trim((string) ($row['language'] ?? ''));
+            if ($language !== '') {
+                $context->setLanguage($language);
+            }
 
             $goal = trim((string) ($row['goal'] ?? ''));
             if ($goal !== '') {
@@ -103,6 +108,9 @@ class OpenAIDirectorDriver extends DirectorService implements Director
 
             if (is_array($row['constraints'] ?? null)) {
                 $context->setConstraints($row['constraints']);
+            }
+            if (is_array($row['knowledge_guidelines'] ?? null)) {
+                $context->setKnowledgeGuidelines($row['knowledge_guidelines']);
             }
 
             $contexts[] = $context;
@@ -180,6 +188,11 @@ You are an illustration planning director.
 
 Given source content, split it into concrete illustration contexts suitable for downstream image generation.
 Generate between {$min} and {$max} contexts.
+Extract factual details and domain knowledge carefully from the source content.
+Capture concrete facts in constraints and knowledge_guidelines (names, numbers, quantities, dates, measurements, percentages, amounts, classifications, and rules).
+Preserve extracted facts exactly; do not paraphrase away critical figures or qualifiers.
+Do not invent facts or knowledge that are not present in the source content.
+If a detail is uncertain or missing, do not guess; only include verifiable information from the input.
 
 Input content:
 {$content}
@@ -241,35 +254,65 @@ PROMPT;
     /** @return array<string, mixed> */
     protected function buildResolveContextsSchema(int $min, int $max): array
     {
+        $descriptions = $this->buildResolveContextDescriptionMap();
+
         return [
             'type' => 'object',
             'properties' => [
                 'contexts' => [
                     'type' => 'array',
+                    'description' => 'Resolved illustration contexts extracted from the source content.',
                     'minItems' => $min,
                     'maxItems' => $max,
                     'items' => [
                         'type' => 'object',
                         'properties' => [
-                            'subject' => ['type' => 'string'],
-                            'goal' => ['type' => 'string'],
-                            'style' => ['type' => 'string'],
-                            'macro_context' => ['type' => 'string'],
-                            'micro_context' => ['type' => 'string'],
+                            'language' => [
+                                'type' => 'string',
+                                'description' => $descriptions['language'],
+                            ],
+                            'subject' => [
+                                'type' => 'string',
+                                'description' => $descriptions['subject'],
+                            ],
+                            'goal' => [
+                                'type' => 'string',
+                                'description' => $descriptions['goal'],
+                            ],
+                            'style' => [
+                                'type' => 'string',
+                                'description' => $descriptions['style'],
+                            ],
+                            'macro_context' => [
+                                'type' => 'string',
+                                'description' => $descriptions['macro_context'],
+                            ],
+                            'micro_context' => [
+                                'type' => 'string',
+                                'description' => $descriptions['micro_context'],
+                            ],
                             'aspect_ratio' => [
                                 'type' => 'string',
+                                'description' => $descriptions['aspect_ratio'],
                                 'enum' => array_map(static fn (AspectRatio $ratio): string => $ratio->value, AspectRatio::cases()),
                             ],
-                            'reference_file_ids' => [
-                                'type' => 'array',
-                                'items' => ['type' => 'string'],
-                            ],
+//                            'reference_file_ids' => [
+//                                'type' => 'array',
+//                                'description' => $descriptions['reference_file_ids'],
+//                                'items' => ['type' => 'string'],
+//                            ],
                             'constraints' => [
                                 'type' => 'array',
+                                'description' => $descriptions['constraints'],
+                                'items' => ['type' => 'string'],
+                            ],
+                            'knowledge_guidelines' => [
+                                'type' => 'array',
+                                'description' => $descriptions['knowledge_guidelines'],
                                 'items' => ['type' => 'string'],
                             ],
                         ],
-                        'required' => ['subject', 'goal', 'style', 'macro_context', 'micro_context', 'aspect_ratio', 'reference_file_ids', 'constraints'],
+                        'required' => ['language', 'subject', 'goal', 'style', 'macro_context', 'micro_context', 'aspect_ratio', /*'reference_file_ids',*/ 'constraints', 'knowledge_guidelines'],
                         'additionalProperties' => false,
                     ],
                 ],
@@ -279,37 +322,117 @@ PROMPT;
         ];
     }
 
+    /** @return array<string, string> */
+    protected function buildResolveContextDescriptionMap(): array
+    {
+        $context = (new IllustrationContext())
+            ->setLanguage('placeholder')
+            ->setSubject('placeholder')
+            ->setGoal('placeholder')
+            ->setStyle('placeholder')
+            ->setMacroContext('placeholder')
+            ->setMicroContext('placeholder')
+            ->setAspectRatio(AspectRatio::SQUARE)
+            ->setReferenceFileIds(['placeholder'])
+            ->setConstraints(['placeholder'])
+            ->setKnowledgeGuidelines(['placeholder']);
+
+        return $this->extractDescriptions(
+            $context,
+            ['language', 'subject', 'goal', 'style', 'macro_context', 'micro_context', 'aspect_ratio', 'reference_file_ids', 'constraints', 'knowledge_guidelines']
+        );
+    }
+
     /** @return array<string, mixed> */
     protected function buildDirectionSchema(): array
     {
+        $descriptions = $this->buildDirectionDescriptionMap();
+
         return [
             'type' => 'object',
             'properties' => [
                 'concept_context' => [
                     'type' => 'object',
+                    'description' => $descriptions['illustration_direction']['concept_context'],
                     'properties' => [
-                        'logline' => ['type' => 'string'],
-                        'primary_subject' => ['type' => 'string'],
-                        'narrative_intent' => ['type' => 'string'],
-                        'scene_context' => ['type' => 'string'],
-                        'mood' => ['type' => 'string'],
-                        'symbolic_notes' => ['type' => 'array', 'items' => ['type' => 'string']],
-                        'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'logline' => [
+                            'type' => 'string',
+                            'description' => $descriptions['concept_context']['logline'],
+                        ],
+                        'primary_subject' => [
+                            'type' => 'string',
+                            'description' => $descriptions['concept_context']['primary_subject'],
+                        ],
+                        'narrative_intent' => [
+                            'type' => 'string',
+                            'description' => $descriptions['concept_context']['narrative_intent'],
+                        ],
+                        'scene_context' => [
+                            'type' => 'string',
+                            'description' => $descriptions['concept_context']['scene_context'],
+                        ],
+                        'mood' => [
+                            'type' => 'string',
+                            'description' => $descriptions['concept_context']['mood'],
+                        ],
+                        'symbolic_notes' => [
+                            'type' => 'array',
+                            'description' => $descriptions['concept_context']['symbolic_notes'],
+                            'items' => ['type' => 'string'],
+                        ],
+                        'constraints' => [
+                            'type' => 'array',
+                            'description' => $descriptions['concept_context']['constraints'],
+                            'items' => ['type' => 'string'],
+                        ],
                         'character_contexts' => [
                             'type' => 'array',
+                            'description' => $descriptions['concept_context']['character_contexts'],
                             'items' => [
                                 'type' => 'object',
                                 'properties' => [
-                                    'role' => ['type' => 'string'],
-                                    'identity' => ['type' => 'string'],
-                                    'appearance' => ['type' => 'string'],
-                                    'wardrobe' => ['type' => 'string'],
-                                    'pose' => ['type' => 'string'],
-                                    'position' => ['type' => 'string'],
-                                    'expression' => ['type' => 'string'],
-                                    'action' => ['type' => 'string'],
-                                    'props' => ['type' => 'array', 'items' => ['type' => 'string']],
-                                    'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'role' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['character_context']['role'],
+                                    ],
+                                    'identity' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['character_context']['identity'],
+                                    ],
+                                    'appearance' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['character_context']['appearance'],
+                                    ],
+                                    'wardrobe' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['character_context']['wardrobe'],
+                                    ],
+                                    'pose' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['character_context']['pose'],
+                                    ],
+                                    'position' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['character_context']['position'],
+                                    ],
+                                    'expression' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['character_context']['expression'],
+                                    ],
+                                    'action' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['character_context']['action'],
+                                    ],
+                                    'props' => [
+                                        'type' => 'array',
+                                        'description' => $descriptions['character_context']['props'],
+                                        'items' => ['type' => 'string'],
+                                    ],
+                                    'constraints' => [
+                                        'type' => 'array',
+                                        'description' => $descriptions['character_context']['constraints'],
+                                        'items' => ['type' => 'string'],
+                                    ],
                                 ],
                                 'required' => ['role', 'identity', 'appearance', 'wardrobe', 'pose', 'position', 'expression', 'action', 'props', 'constraints'],
                                 'additionalProperties' => false,
@@ -317,18 +440,47 @@ PROMPT;
                         ],
                         'object_contexts' => [
                             'type' => 'array',
+                            'description' => $descriptions['concept_context']['object_contexts'],
                             'items' => [
                                 'type' => 'object',
                                 'properties' => [
-                                    'name' => ['type' => 'string'],
-                                    'type' => ['type' => 'string'],
-                                    'appearance' => ['type' => 'string'],
-                                    'material' => ['type' => 'string'],
-                                    'condition' => ['type' => 'string'],
-                                    'position' => ['type' => 'string'],
-                                    'scale' => ['type' => 'string'],
-                                    'interaction' => ['type' => 'string'],
-                                    'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'name' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['object_context']['name'],
+                                    ],
+                                    'type' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['object_context']['type'],
+                                    ],
+                                    'appearance' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['object_context']['appearance'],
+                                    ],
+                                    'material' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['object_context']['material'],
+                                    ],
+                                    'condition' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['object_context']['condition'],
+                                    ],
+                                    'position' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['object_context']['position'],
+                                    ],
+                                    'scale' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['object_context']['scale'],
+                                    ],
+                                    'interaction' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['object_context']['interaction'],
+                                    ],
+                                    'constraints' => [
+                                        'type' => 'array',
+                                        'description' => $descriptions['object_context']['constraints'],
+                                        'items' => ['type' => 'string'],
+                                    ],
                                 ],
                                 'required' => ['name', 'type', 'appearance', 'material', 'condition', 'position', 'scale', 'interaction', 'constraints'],
                                 'additionalProperties' => false,
@@ -336,17 +488,45 @@ PROMPT;
                         ],
                         'abstraction_contexts' => [
                             'type' => 'array',
+                            'description' => $descriptions['concept_context']['abstraction_contexts'],
                             'items' => [
                                 'type' => 'object',
                                 'properties' => [
-                                    'theme' => ['type' => 'string'],
-                                    'metaphor' => ['type' => 'string'],
-                                    'narrative_arc' => ['type' => 'string'],
-                                    'dominant_shapes' => ['type' => 'array', 'items' => ['type' => 'string']],
-                                    'symbolic_elements' => ['type' => 'array', 'items' => ['type' => 'string']],
-                                    'mood' => ['type' => 'string'],
-                                    'visual_tension' => ['type' => 'string'],
-                                    'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                    'theme' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['abstraction_context']['theme'],
+                                    ],
+                                    'metaphor' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['abstraction_context']['metaphor'],
+                                    ],
+                                    'narrative_arc' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['abstraction_context']['narrative_arc'],
+                                    ],
+                                    'dominant_shapes' => [
+                                        'type' => 'array',
+                                        'description' => $descriptions['abstraction_context']['dominant_shapes'],
+                                        'items' => ['type' => 'string'],
+                                    ],
+                                    'symbolic_elements' => [
+                                        'type' => 'array',
+                                        'description' => $descriptions['abstraction_context']['symbolic_elements'],
+                                        'items' => ['type' => 'string'],
+                                    ],
+                                    'mood' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['abstraction_context']['mood'],
+                                    ],
+                                    'visual_tension' => [
+                                        'type' => 'string',
+                                        'description' => $descriptions['abstraction_context']['visual_tension'],
+                                    ],
+                                    'constraints' => [
+                                        'type' => 'array',
+                                        'description' => $descriptions['abstraction_context']['constraints'],
+                                        'items' => ['type' => 'string'],
+                                    ],
                                 ],
                                 'required' => ['theme', 'metaphor', 'narrative_arc', 'dominant_shapes', 'symbolic_elements', 'mood', 'visual_tension', 'constraints'],
                                 'additionalProperties' => false,
@@ -354,17 +534,50 @@ PROMPT;
                         ],
                         'landscape_context' => [
                             'type' => 'object',
+                            'description' => $descriptions['concept_context']['landscape_context'],
                             'properties' => [
-                                'setting' => ['type' => 'string'],
-                                'location' => ['type' => 'string'],
-                                'terrain' => ['type' => 'string'],
-                                'vegetation' => ['type' => 'string'],
-                                'structures' => ['type' => 'array', 'items' => ['type' => 'string']],
-                                'weather' => ['type' => 'string'],
-                                'time_of_day' => ['type' => 'string'],
-                                'season' => ['type' => 'string'],
-                                'mood' => ['type' => 'string'],
-                                'constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                                'setting' => [
+                                    'type' => 'string',
+                                    'description' => $descriptions['landscape_context']['setting'],
+                                ],
+                                'location' => [
+                                    'type' => 'string',
+                                    'description' => $descriptions['landscape_context']['location'],
+                                ],
+                                'terrain' => [
+                                    'type' => 'string',
+                                    'description' => $descriptions['landscape_context']['terrain'],
+                                ],
+                                'vegetation' => [
+                                    'type' => 'string',
+                                    'description' => $descriptions['landscape_context']['vegetation'],
+                                ],
+                                'structures' => [
+                                    'type' => 'array',
+                                    'description' => $descriptions['landscape_context']['structures'],
+                                    'items' => ['type' => 'string'],
+                                ],
+                                'weather' => [
+                                    'type' => 'string',
+                                    'description' => $descriptions['landscape_context']['weather'],
+                                ],
+                                'time_of_day' => [
+                                    'type' => 'string',
+                                    'description' => $descriptions['landscape_context']['time_of_day'],
+                                ],
+                                'season' => [
+                                    'type' => 'string',
+                                    'description' => $descriptions['landscape_context']['season'],
+                                ],
+                                'mood' => [
+                                    'type' => 'string',
+                                    'description' => $descriptions['landscape_context']['mood'],
+                                ],
+                                'constraints' => [
+                                    'type' => 'array',
+                                    'description' => $descriptions['landscape_context']['constraints'],
+                                    'items' => ['type' => 'string'],
+                                ],
                             ],
                             'required' => ['setting', 'location', 'terrain', 'vegetation', 'structures', 'weather', 'time_of_day', 'season', 'mood', 'constraints'],
                             'additionalProperties' => false,
@@ -375,31 +588,89 @@ PROMPT;
                 ],
                 'art_style_context' => [
                     'type' => 'object',
+                    'description' => $descriptions['illustration_direction']['art_style_context'],
                     'properties' => [
-                        'art_medium' => ['type' => 'string'],
-                        'style' => ['type' => 'string'],
-                        'creator_references' => ['type' => 'array', 'items' => ['type' => 'string']],
-                        'color_palette' => ['type' => 'string'],
-                        'overall_vibe' => ['type' => 'string'],
-                        'rendering_details' => ['type' => 'string'],
-                        'negative_style_constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'art_medium' => [
+                            'type' => 'string',
+                            'description' => $descriptions['art_style_context']['art_medium'],
+                        ],
+                        'style' => [
+                            'type' => 'string',
+                            'description' => $descriptions['art_style_context']['style'],
+                        ],
+                        'creator_references' => [
+                            'type' => 'array',
+                            'description' => $descriptions['art_style_context']['creator_references'],
+                            'items' => ['type' => 'string'],
+                        ],
+                        'color_palette' => [
+                            'type' => 'string',
+                            'description' => $descriptions['art_style_context']['color_palette'],
+                        ],
+                        'overall_vibe' => [
+                            'type' => 'string',
+                            'description' => $descriptions['art_style_context']['overall_vibe'],
+                        ],
+                        'rendering_details' => [
+                            'type' => 'string',
+                            'description' => $descriptions['art_style_context']['rendering_details'],
+                        ],
+                        'negative_style_constraints' => [
+                            'type' => 'array',
+                            'description' => $descriptions['art_style_context']['negative_style_constraints'],
+                            'items' => ['type' => 'string'],
+                        ],
                     ],
                     'required' => ['art_medium', 'style', 'creator_references', 'color_palette', 'overall_vibe', 'rendering_details', 'negative_style_constraints'],
                     'additionalProperties' => false,
                 ],
                 'camera_and_lighting_context' => [
                     'type' => 'object',
+                    'description' => $descriptions['illustration_direction']['camera_and_lighting_context'],
                     'properties' => [
-                        'shot_size' => ['type' => 'string'],
-                        'camera_angle' => ['type' => 'string'],
-                        'lenses' => ['type' => 'array', 'items' => ['type' => 'string']],
-                        'lighting' => ['type' => 'string'],
-                        'filter' => ['type' => 'string'],
-                        'optical' => ['type' => 'string'],
-                        'color_palette' => ['type' => 'string'],
-                        'compositional_rules' => ['type' => 'array', 'items' => ['type' => 'string']],
-                        'depth_plan' => ['type' => 'string'],
-                        'negative_constraints' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        'shot_size' => [
+                            'type' => 'string',
+                            'description' => $descriptions['camera_and_lighting_context']['shot_size'],
+                        ],
+                        'camera_angle' => [
+                            'type' => 'string',
+                            'description' => $descriptions['camera_and_lighting_context']['camera_angle'],
+                        ],
+                        'lenses' => [
+                            'type' => 'array',
+                            'description' => $descriptions['camera_and_lighting_context']['lenses'],
+                            'items' => ['type' => 'string'],
+                        ],
+                        'lighting' => [
+                            'type' => 'string',
+                            'description' => $descriptions['camera_and_lighting_context']['lighting'],
+                        ],
+                        'filter' => [
+                            'type' => 'string',
+                            'description' => $descriptions['camera_and_lighting_context']['filter'],
+                        ],
+                        'optical' => [
+                            'type' => 'string',
+                            'description' => $descriptions['camera_and_lighting_context']['optical'],
+                        ],
+                        'color_palette' => [
+                            'type' => 'string',
+                            'description' => $descriptions['camera_and_lighting_context']['color_palette'],
+                        ],
+                        'compositional_rules' => [
+                            'type' => 'array',
+                            'description' => $descriptions['camera_and_lighting_context']['compositional_rules'],
+                            'items' => ['type' => 'string'],
+                        ],
+                        'depth_plan' => [
+                            'type' => 'string',
+                            'description' => $descriptions['camera_and_lighting_context']['depth_plan'],
+                        ],
+                        'negative_constraints' => [
+                            'type' => 'array',
+                            'description' => $descriptions['camera_and_lighting_context']['negative_constraints'],
+                            'items' => ['type' => 'string'],
+                        ],
                     ],
                     'required' => ['shot_size', 'camera_angle', 'lenses', 'lighting', 'filter', 'optical', 'color_palette', 'compositional_rules', 'depth_plan', 'negative_constraints'],
                     'additionalProperties' => false,
@@ -408,6 +679,143 @@ PROMPT;
             'required' => ['concept_context', 'art_style_context', 'camera_and_lighting_context'],
             'additionalProperties' => false,
         ];
+    }
+
+    /** @return array<string, array<string, string>> */
+    protected function buildDirectionDescriptionMap(): array
+    {
+        $direction = (new IllustrationDirection())
+            ->setConceptContext(new ConceptContext())
+            ->setArtStyleContext(new ArtStyleContext())
+            ->setCameraAndLightingContext(new CameraAndLightingContext());
+
+        $concept = (new ConceptContext())
+            ->setLogline('placeholder')
+            ->setPrimarySubject('placeholder')
+            ->setNarrativeIntent('placeholder')
+            ->setSceneContext('placeholder')
+            ->setMood('placeholder')
+            ->setSymbolicNotes(['placeholder'])
+            ->setConstraints(['placeholder'])
+            ->set('character_contexts', 'Character-level concept contexts.', [new CharacterContext()])
+            ->set('object_contexts', 'Object-level concept contexts.', [new ObjectContext()])
+            ->set('abstraction_contexts', 'Abstraction-level concept contexts.', [new AbstractionContext()])
+            ->set('landscape_context', 'Landscape-level concept context.', new LandscapeContext());
+
+        $character = (new CharacterContext())
+            ->setRole('placeholder')
+            ->setIdentity('placeholder')
+            ->setAppearance('placeholder')
+            ->setWardrobe('placeholder')
+            ->setPose('placeholder')
+            ->setPosition('placeholder')
+            ->setExpression('placeholder')
+            ->setAction('placeholder')
+            ->setProps(['placeholder'])
+            ->setConstraints(['placeholder']);
+
+        $object = (new ObjectContext())
+            ->setName('placeholder')
+            ->setType('placeholder')
+            ->setAppearance('placeholder')
+            ->setMaterial('placeholder')
+            ->setCondition('placeholder')
+            ->setPosition('placeholder')
+            ->setScale('placeholder')
+            ->setInteraction('placeholder')
+            ->setConstraints(['placeholder']);
+
+        $abstraction = (new AbstractionContext())
+            ->setTheme('placeholder')
+            ->setMetaphor('placeholder')
+            ->setNarrativeArc('placeholder')
+            ->setDominantShapes(['placeholder'])
+            ->setSymbolicElements(['placeholder'])
+            ->setMood('placeholder')
+            ->setVisualTension('placeholder')
+            ->setConstraints(['placeholder']);
+
+        $landscape = (new LandscapeContext())
+            ->setSetting('placeholder')
+            ->setLocation('placeholder')
+            ->setTerrain('placeholder')
+            ->setVegetation('placeholder')
+            ->setStructures(['placeholder'])
+            ->setWeather('placeholder')
+            ->setTimeOfDay('placeholder')
+            ->setSeason('placeholder')
+            ->setMood('placeholder')
+            ->setConstraints(['placeholder']);
+
+        $artStyle = (new ArtStyleContext())
+            ->set('art_medium', 'Primary image medium choice (photography, 2D illustration, or 3D illustration).', 'placeholder')
+            ->setStyle('placeholder')
+            ->setCreatorReferences(['placeholder'])
+            ->setColorPalette('placeholder')
+            ->setOverallVibe('placeholder')
+            ->setRenderingDetails('placeholder')
+            ->setNegativeStyleConstraints(['placeholder']);
+
+        $cameraAndLighting = (new CameraAndLightingContext())
+            ->setShotSize('placeholder')
+            ->setCameraAngle('placeholder')
+            ->setLenses(['placeholder'])
+            ->setLighting('placeholder')
+            ->setFilter('placeholder')
+            ->setOptical('placeholder')
+            ->setColorPalette('placeholder')
+            ->setCompositionalRules(['placeholder'])
+            ->setDepthPlan('placeholder')
+            ->setNegativeConstraints(['placeholder']);
+
+        return [
+            'illustration_direction' => $this->extractDescriptions(
+                $direction,
+                ['concept_context', 'art_style_context', 'camera_and_lighting_context']
+            ),
+            'concept_context' => $this->extractDescriptions(
+                $concept,
+                ['logline', 'primary_subject', 'narrative_intent', 'scene_context', 'mood', 'symbolic_notes', 'constraints', 'character_contexts', 'object_contexts', 'abstraction_contexts', 'landscape_context']
+            ),
+            'character_context' => $this->extractDescriptions(
+                $character,
+                ['role', 'identity', 'appearance', 'wardrobe', 'pose', 'position', 'expression', 'action', 'props', 'constraints']
+            ),
+            'object_context' => $this->extractDescriptions(
+                $object,
+                ['name', 'type', 'appearance', 'material', 'condition', 'position', 'scale', 'interaction', 'constraints']
+            ),
+            'abstraction_context' => $this->extractDescriptions(
+                $abstraction,
+                ['theme', 'metaphor', 'narrative_arc', 'dominant_shapes', 'symbolic_elements', 'mood', 'visual_tension', 'constraints']
+            ),
+            'landscape_context' => $this->extractDescriptions(
+                $landscape,
+                ['setting', 'location', 'terrain', 'vegetation', 'structures', 'weather', 'time_of_day', 'season', 'mood', 'constraints']
+            ),
+            'art_style_context' => $this->extractDescriptions(
+                $artStyle,
+                ['art_medium', 'style', 'creator_references', 'color_palette', 'overall_vibe', 'rendering_details', 'negative_style_constraints']
+            ),
+            'camera_and_lighting_context' => $this->extractDescriptions(
+                $cameraAndLighting,
+                ['shot_size', 'camera_angle', 'lenses', 'lighting', 'filter', 'optical', 'color_palette', 'compositional_rules', 'depth_plan', 'negative_constraints']
+            ),
+        ];
+    }
+
+    /**
+     * @param string[] $keys
+     * @return array<string, string>
+     */
+    protected function extractDescriptions(SemanticContext $context, array $keys): array
+    {
+        $descriptions = [];
+        foreach ($keys as $key) {
+            $descriptions[$key] = (string) ($context->getDescription($key) ?? '');
+        }
+
+        return $descriptions;
     }
 
     protected function hydrateConceptContext(mixed $raw): ?ConceptContext

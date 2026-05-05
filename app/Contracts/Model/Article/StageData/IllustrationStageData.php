@@ -4,6 +4,7 @@ namespace App\Contracts\Model\Article\StageData;
 
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
+use App\Contracts\Model\Article\StageData\IllustrationStageData\IllustrationTask;
 use App\Contracts\Synthesizer\Author\IllustrationAnchor;
 use App\Contracts\Synthesizer\Illustration\IllustrationContext;
 use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
@@ -13,11 +14,8 @@ final class IllustrationStageData implements Serializable
 {
     use SerializableTrait;
 
-    /** @var IllustrationContext[] */
-    protected array $illustrationContexts = [];
-
-    /** @var IllustrationDirection[] */
-    protected array $illustrationDirections = [];
+    /** @var IllustrationTask[] */
+    protected array $illustrationTasks = [];
 
     /** @var IllustrationResult[] */
     protected array $illustrationResults = [];
@@ -26,11 +24,37 @@ final class IllustrationStageData implements Serializable
     protected array $illustrationAnchors = [];
 
     /**
+     * @return IllustrationTask[]
+     */
+    public function getIllustrationTasks(): array
+    {
+        return $this->illustrationTasks;
+    }
+
+    /**
+     * @param  IllustrationTask[]  $illustrationTasks
+     */
+    public function setIllustrationTasks(array $illustrationTasks): static
+    {
+        $filtered = array_values(
+            array_filter($illustrationTasks, static fn ($t) => $t instanceof IllustrationTask && $t->getIllustrationContext() instanceof IllustrationContext)
+        );
+        $this->illustrationTasks = $filtered;
+
+        return $this;
+    }
+
+    /**
      * @return IllustrationContext[]
      */
     public function getIllustrationContexts(): array
     {
-        return $this->illustrationContexts;
+        return array_values(
+            array_filter(
+                array_map(static fn (IllustrationTask $task) => $task->getIllustrationContext(), $this->illustrationTasks),
+                static fn ($context) => $context instanceof IllustrationContext
+            )
+        );
     }
 
     /**
@@ -38,15 +62,27 @@ final class IllustrationStageData implements Serializable
      */
     public function setIllustrationContexts(array $illustrationContexts): static
     {
-        $filtered = array_values(
+        $filteredContexts = array_values(
             array_filter($illustrationContexts, static fn ($c) => $c instanceof IllustrationContext)
         );
+        $existingDirectionsByContextIdentifier = [];
+        foreach ($this->illustrationTasks as $task) {
+            $context = $task->getIllustrationContext();
+            $direction = $task->getIllustrationDirection();
+            if (! $context instanceof IllustrationContext || ! $direction instanceof IllustrationDirection) {
+                continue;
+            }
 
-        foreach ($filtered as $context) {
-            $context->getIdentifier();
+            $existingDirectionsByContextIdentifier[$context->getIdentifier()] = $direction;
         }
 
-        $this->illustrationContexts = $filtered;
+        $tasks = [];
+        foreach ($filteredContexts as $context) {
+            $tasks[] = (new IllustrationTask)
+                ->setIllustrationContext($context)
+                ->setIllustrationDirection($existingDirectionsByContextIdentifier[$context->getIdentifier()] ?? null);
+        }
+        $this->setIllustrationTasks($tasks);
 
         return $this;
     }
@@ -56,46 +92,23 @@ final class IllustrationStageData implements Serializable
      */
     public function getIllustrationDirections(): array
     {
-        return $this->illustrationDirections;
-    }
-
-    /**
-     * @param  IllustrationDirection[]  $illustrationDirections
-     */
-    public function setIllustrationDirections(array $illustrationDirections): static
-    {
-        $this->illustrationDirections = array_values(
-            array_filter($illustrationDirections, static fn ($d) => $d instanceof IllustrationDirection)
+        return array_values(
+            array_filter(
+                array_map(static fn (IllustrationTask $task) => $task->getIllustrationDirection(), $this->illustrationTasks),
+                static fn ($direction) => $direction instanceof IllustrationDirection
+            )
         );
-
-        return $this;
-    }
-
-    public function getIllustrationDirectionAt(int $index): ?IllustrationDirection
-    {
-        $direction = $this->illustrationDirections[$index] ?? null;
-
-        return $direction instanceof IllustrationDirection ? $direction : null;
-    }
-
-    public function setIllustrationDirectionAt(int $index, IllustrationDirection $direction): static
-    {
-        $illustrationDirections = $this->illustrationDirections;
-        $illustrationDirections[$index] = $direction;
-        ksort($illustrationDirections);
-        $this->setIllustrationDirections(array_values($illustrationDirections));
-
-        return $this;
     }
 
     public function getIllustrationDirectionByContextIdentifier(string $contextIdentifier): ?IllustrationDirection
     {
-        foreach ($this->getIllustrationContexts() as $index => $context) {
-            if ($context->getIdentifier() !== $contextIdentifier) {
+        foreach ($this->illustrationTasks as $task) {
+            $context = $task->getIllustrationContext();
+            if (! $context instanceof IllustrationContext || $context->getIdentifier() !== $contextIdentifier) {
                 continue;
             }
 
-            return $this->getIllustrationDirectionAt($index);
+            return $task->getIllustrationDirection();
         }
 
         return null;
@@ -103,12 +116,15 @@ final class IllustrationStageData implements Serializable
 
     public function setIllustrationDirectionForContextIdentifier(string $contextIdentifier, IllustrationDirection $direction): static
     {
-        foreach ($this->getIllustrationContexts() as $index => $context) {
-            if ($context->getIdentifier() !== $contextIdentifier) {
+        foreach ($this->illustrationTasks as $task) {
+            $context = $task->getIllustrationContext();
+            if (! $context instanceof IllustrationContext || $context->getIdentifier() !== $contextIdentifier) {
                 continue;
             }
 
-            return $this->setIllustrationDirectionAt($index, $direction);
+            $task->setIllustrationDirection($direction);
+
+            return $this;
         }
 
         return $this;
@@ -158,7 +174,7 @@ final class IllustrationStageData implements Serializable
      */
     public function isIllustrationAnchorsResolved(): bool
     {
-        if ($this->illustrationContexts !== [] && $this->illustrationResults === []) {
+        if ($this->illustrationTasks !== [] && $this->illustrationResults === []) {
             return false;
         }
 
@@ -206,11 +222,7 @@ final class IllustrationStageData implements Serializable
     public function toArray(): array
     {
         return [
-            'illustration_contexts' => array_map(
-                static fn (IllustrationContext $c) => $c->toArray(),
-                $this->illustrationContexts
-            ),
-            'illustration_directions' => array_map(static fn (IllustrationDirection $d) => $d->toArray(), $this->illustrationDirections),
+            'illustration_tasks' => array_map(static fn (IllustrationTask $t) => $t->toArray(), $this->illustrationTasks),
             'illustration_results' => array_map(static fn (IllustrationResult $r) => $r->toArray(), $this->illustrationResults),
             'illustration_anchors' => array_map(static fn (IllustrationAnchor $a) => $a->toArray(), $this->illustrationAnchors),
         ];
@@ -220,24 +232,14 @@ final class IllustrationStageData implements Serializable
     {
         $obj = new static;
 
-        if (isset($data['illustration_contexts']) && is_array($data['illustration_contexts'])) {
-            $contexts = [];
-            foreach ($data['illustration_contexts'] as $c) {
-                if (is_array($c)) {
-                    $contexts[] = IllustrationContext::fromArray($c);
+        if (isset($data['illustration_tasks']) && is_array($data['illustration_tasks'])) {
+            $tasks = [];
+            foreach ($data['illustration_tasks'] as $task) {
+                if (is_array($task)) {
+                    $tasks[] = IllustrationTask::fromArray($task);
                 }
             }
-            $obj->setIllustrationContexts($contexts);
-        }
-
-        if (isset($data['illustration_directions']) && is_array($data['illustration_directions'])) {
-            $illustrationDirections = [];
-            foreach ($data['illustration_directions'] as $d) {
-                if (is_array($d)) {
-                    $illustrationDirections[] = IllustrationDirection::fromArray($d);
-                }
-            }
-            $obj->setIllustrationDirections($illustrationDirections);
+            $obj->setIllustrationTasks($tasks);
         }
 
         if (isset($data['illustration_results']) && is_array($data['illustration_results'])) {

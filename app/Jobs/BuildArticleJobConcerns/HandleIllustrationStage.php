@@ -95,13 +95,18 @@ trait HandleIllustrationStage
     {
         $stageData = $this->getStageData()->getIllustrationStageData();
 
-        $contexts = $stageData->getIllustrationContexts();
-        if (empty($contexts)) {
+        $tasks = $stageData->getIllustrationTasks();
+        if (empty($tasks)) {
             return false;
         }
 
         $nextContext = null;
-        foreach ($contexts as $context) {
+        foreach ($tasks as $task) {
+            $context = $task->getIllustrationContext();
+            if (! $context) {
+                continue;
+            }
+
             if (! $stageData->hasIllustrationResultForContextIdentifier($context->getIdentifier())) {
                 $nextContext = $context;
                 break;

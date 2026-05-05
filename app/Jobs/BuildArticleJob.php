@@ -9,6 +9,7 @@ use App\Enums\Queue;
 use App\Jobs\BuildArticleJobConcerns\HandleBriefStage;
 use App\Jobs\BuildArticleJobConcerns\HandleDraftStage;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStage;
+use App\Jobs\BuildArticleJobConcerns\HandleIllustrationStage;
 use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStage;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
@@ -57,6 +58,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     use HandleBriefStage;
     use HandleDraftStage;
     use HandleOutlineStage;
+    use HandleIllustrationStage;
 
     public int $timeout = 300;
 
@@ -185,6 +187,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             ArticleStage::BRIEF => $this->handleBriefStage(),
             ArticleStage::OUTLINE => $this->handleOutlineStage(),
             ArticleStage::DRAFT => $this->handleDraftStage(),
+            ArticleStage::ILLUSTRATION => $this->handleIllustrationStage(),
             ArticleStage::FINAL => true,
         };
     }
@@ -196,7 +199,8 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             ArticleStage::RESEARCH => ArticleStage::BRIEF,
             ArticleStage::BRIEF => ArticleStage::OUTLINE,
             ArticleStage::OUTLINE => ArticleStage::DRAFT,
-            ArticleStage::DRAFT, ArticleStage::FINAL => ArticleStage::FINAL,
+            ArticleStage::DRAFT => ArticleStage::ILLUSTRATION,
+            ArticleStage::ILLUSTRATION, ArticleStage::FINAL => ArticleStage::FINAL,
         };
     }
 

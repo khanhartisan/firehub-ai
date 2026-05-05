@@ -2,7 +2,7 @@
 
 namespace App\Contracts\Synthesizer\Illustration;
 
-use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\CommonData\IdentifiableSemanticContext;
 use App\Contracts\CommonData\SemanticContextConcerns\HasMeta;
 use App\Enums\AspectRatio;
 
@@ -35,7 +35,7 @@ use App\Enums\AspectRatio;
  * @method null|array getMetaValue()
  * @method null|string getMetaDescription()
  */
-class IllustrationContext extends SemanticContext
+class IllustrationContext extends IdentifiableSemanticContext
 {
     use HasMeta;
 

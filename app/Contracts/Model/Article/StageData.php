@@ -4,6 +4,7 @@ namespace App\Contracts\Model\Article;
 
 use App\Concerns\Serializable;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
+use App\Contracts\Model\Article\StageData\IllustrationStageData;
 use App\Contracts\Model\Article\StageData\ResearchStageData;
 use App\Contracts\Synthesizer\Author\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
@@ -18,6 +19,7 @@ final class StageData implements \App\Contracts\Serializable
     protected ?Brief $brief = null;
     protected ?Outline $outline = null;
     protected ?Draft $draft = null;
+    protected ?IllustrationStageData $illustration = null;
 
     /**
      * @param array<string, mixed> $data
@@ -41,6 +43,7 @@ final class StageData implements \App\Contracts\Serializable
             'brief' => $this->brief?->toArray(),
             'outline' => $this->outline?->toArray(),
             'draft' => $this->draft?->toArray(),
+            'illustration' => $this->illustration?->toArray(),
         ], static fn ($v): bool => $v !== null);
     }
 
@@ -100,6 +103,18 @@ final class StageData implements \App\Contracts\Serializable
         return $this;
     }
 
+    public function getIllustrationStageData(): IllustrationStageData
+    {
+        return $this->illustration ??= new IllustrationStageData();
+    }
+
+    public function setIllustrationStageData(IllustrationStageData $illustration): static
+    {
+        $this->illustration = $illustration;
+
+        return $this;
+    }
+
     public function getResearchStageData(): ResearchStageData
     {
         return $this->research ??= new ResearchStageData;
@@ -140,6 +155,10 @@ final class StageData implements \App\Contracts\Serializable
 
         if (isset($data['draft']) && is_array($data['draft'])) {
             $this->setDraft(Draft::fromArray($data['draft']));
+        }
+
+        if (isset($data['illustration']) && is_array($data['illustration'])) {
+            $this->setIllustrationStageData(IllustrationStageData::fromArray($data['illustration']));
         }
     }
 }

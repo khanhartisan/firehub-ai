@@ -23,7 +23,7 @@ class BasicIllustratorDriver extends IllustratorService
 
     public function generate(IllustrationContext $context, IllustrationDirection $direction): IllustrationResult
     {
-        $result = new IllustrationResult();
+        $result = new IllustrationResult;
         $result->setIllustrationContext($context);
 
         $aspectRatio = null;
@@ -33,8 +33,11 @@ class BasicIllustratorDriver extends IllustratorService
         $aspectRatio ??= AspectRatio::FREE;
         $result->setAspectRatio($aspectRatio);
 
+        $contextPayload = $context->toArray();
+        unset($contextPayload['identifier']);
+
         $seedPayload = [
-            'context' => $context->toArray(),
+            'context' => $contextPayload,
             'direction' => $direction->toArray(),
         ];
         $seed = substr(sha1(json_encode($seedPayload) ?: ''), 0, 12);
@@ -50,4 +53,3 @@ class BasicIllustratorDriver extends IllustratorService
         return $result;
     }
 }
-

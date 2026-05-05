@@ -9,5 +9,6 @@ enum ArticleStage: int
     case BRIEF = 3;
     case OUTLINE = 4;
     case DRAFT = 5;
-    case FINAL = 6;
+    case ILLUSTRATION = 6;
+    case FINAL = 7;
 }

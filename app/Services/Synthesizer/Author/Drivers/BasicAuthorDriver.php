@@ -2,8 +2,8 @@
 
 namespace App\Services\Synthesizer\Author\Drivers;
 
-use App\Contracts\DOM\Article;
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\DOM\Article;
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
 use App\Contracts\Synthesizer\Author\Draft;
@@ -104,24 +104,26 @@ class BasicAuthorDriver extends AuthorService
     public function getIllustrationAnchors(Article $article, array $illustrationResults): array
     {
         $candidates = $this->collectIllustrationAnchorCandidates($article);
-        if ($candidates === []) {
-            return [];
-        }
+        $lastIndex = max(0, count($candidates) - 1);
 
         $anchors = [];
-        $lastIndex = count($candidates) - 1;
 
         foreach ($illustrationResults as $result) {
             if (! $result instanceof IllustrationResult) {
                 continue;
             }
 
-            $slot = count($anchors);
-            $element = $candidates[$slot > $lastIndex ? $lastIndex : $slot];
+            if ($candidates !== []) {
+                $slot = count($anchors);
+                $element = $candidates[$slot > $lastIndex ? $lastIndex : $slot];
+                $elementIdentifier = $element->getIdentifier();
+            } else {
+                $elementIdentifier = $article->getIdentifier();
+            }
 
             $anchors[] = new IllustrationAnchor(
                 $result->getIdentifier(),
-                $element->getIdentifier(),
+                $elementIdentifier,
                 true,
             );
         }

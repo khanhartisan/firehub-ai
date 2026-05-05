@@ -7,6 +7,7 @@ use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaExpansionAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
@@ -94,7 +95,7 @@ return [
                         'weight' => 1.0,
                     ],
                     [
-                        'class' => \App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaExpansionAdvisorDriver::class,
+                        'class' => OpenAIIdeaExpansionAdvisorDriver::class,
                         'weight' => 2.0,
                     ],
                 ],
@@ -116,7 +117,7 @@ return [
             'illustration' => [
                 'director' => OpenAIDirectorDriver::class,
                 'illustrators' => [
-                    OpenAIIllustratorDriver::class,
+                    env('SYNTHESIZER_OPENAI_ILLUSTRATOR_DRIVER', OpenAIIllustratorDriver::class),
                 ],
             ],
         ],
@@ -244,6 +245,18 @@ return [
         'count' => (int) env('SYNTHESIZER_OPENAI_ILLUSTRATOR_COUNT', 1),
         'filesystem_disk' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_FILESYSTEM_DISK', env('FILESYSTEM_DISK', 'local')),
         'filesystem_directory' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_FILESYSTEM_DIRECTORY', 'illustrations/generated'),
+    ],
+
+    'openai_debug_illustrator' => [
+        'identifier' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_IDENTIFIER', 'openai-debug-illustrator'),
+        'description' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_DESCRIPTION', 'OpenAI prompt logger with dummy image output for development.'),
+        'model' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_MODEL', 'gpt-image-1'),
+        'quality' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_QUALITY', 'high'),
+        'output_format' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_OUTPUT_FORMAT', 'png'),
+        'count' => 1,
+        'filesystem_disk' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_FILESYSTEM_DISK', env('FILESYSTEM_DISK', 'local')),
+        'filesystem_directory' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_FILESYSTEM_DIRECTORY', 'illustrations/generated'),
+        'debug_log_path' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_LOG_PATH', storage_path('logs/openai-illustrator-debug.log')),
     ],
 
     /*

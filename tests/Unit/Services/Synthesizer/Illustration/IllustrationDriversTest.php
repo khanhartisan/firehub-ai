@@ -8,13 +8,16 @@ use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Enums\AspectRatio;
 use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
+use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAIDebugIllustratorDriver;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class IllustrationDriversTest extends TestCase
 {
     public function test_basic_director_maps_context_into_direction(): void
     {
-        $context = (new IllustrationContext())
+        $context = (new IllustrationContext)
             ->setSubject('A robot helping a developer')
             ->setGoal('Show calm productivity')
             ->setStyle('clean editorial illustration')
@@ -42,11 +45,11 @@ class IllustrationDriversTest extends TestCase
 
     public function test_basic_director_picks_first_provided_illustrator_then_fallback(): void
     {
-        $context = new IllustrationContext();
-        $direction = new IllustrationDirection();
+        $context = new IllustrationContext;
+        $direction = new IllustrationDirection;
 
-        $director = new BasicDirectorDriver();
-        $customIllustrator = new BasicIllustratorDriver();
+        $director = new BasicDirectorDriver;
+        $customIllustrator = new BasicIllustratorDriver;
 
         $picked = $director->determineIllustrator($context, $direction, [$customIllustrator]);
         $fallback = $director->determineIllustrator($context, $direction, []);
@@ -57,13 +60,13 @@ class IllustrationDriversTest extends TestCase
 
     public function test_basic_illustrator_generates_deterministic_seed_and_applies_aspect_ratio(): void
     {
-        $context = (new IllustrationContext())
+        $context = (new IllustrationContext)
             ->setSubject('A focused team at whiteboard')
             ->setGoal('Explain architecture planning')
             ->setAspectRatio(AspectRatio::LANDSCAPE_WIDE);
 
-        $direction = (new BasicDirectorDriver())->direct($context);
-        $illustrator = new BasicIllustratorDriver();
+        $direction = (new BasicDirectorDriver)->direct($context);
+        $illustrator = new BasicIllustratorDriver;
 
         $resultA = $illustrator->generate($context, $direction);
         $resultB = $illustrator->generate($context, $direction);
@@ -76,11 +79,11 @@ class IllustrationDriversTest extends TestCase
 
     public function test_illustration_result_serializes_illustration_context_round_trip(): void
     {
-        $context = (new IllustrationContext())
+        $context = (new IllustrationContext)
             ->setSubject('Test subject')
             ->setGoal('Test goal');
 
-        $original = (new IllustrationResult())
+        $original = (new IllustrationResult)
             ->setIllustrationContext($context)
             ->setAspectRatio(AspectRatio::SQUARE)
             ->setSeed('abc123');
@@ -99,7 +102,7 @@ class IllustrationDriversTest extends TestCase
 
     public function test_illustration_result_from_array_omitted_identifier_assigns_on_first_access(): void
     {
-        $context = (new IllustrationContext())->setSubject('Only context');
+        $context = (new IllustrationContext)->setSubject('Only context');
 
         $restored = IllustrationResult::fromArray([
             'illustration_context' => $context->toArray(),
@@ -110,5 +113,40 @@ class IllustrationDriversTest extends TestCase
         $this->assertNotSame('', $id);
         $this->assertSame('Only context', $restored->getIllustrationContext()?->getSubjectValue());
     }
-}
 
+    public function test_openai_debug_illustrator_logs_prompt_and_returns_dummy_image(): void
+    {
+        Storage::fake();
+        $logPath = storage_path('logs/openai-illustrator-debug-test.log');
+        File::delete($logPath);
+
+        $context = (new IllustrationContext)
+            ->setSubject('Debug subject')
+            ->setGoal('Debug goal')
+            ->setAspectRatio(AspectRatio::LANDSCAPE_STANDARD);
+        $direction = (new BasicDirectorDriver)->direct($context);
+        $illustrator = new OpenAIDebugIllustratorDriver(null, [
+            'filesystem_disk' => config('filesystems.default', 'local'),
+            'filesystem_directory' => 'illustrations/generated',
+            'debug_log_path' => $logPath,
+        ]);
+
+        $result = $illustrator->generate($context, $direction);
+
+        $this->assertInstanceOf(IllustrationResult::class, $result);
+        $this->assertNotEmpty($result->getSeed());
+        $this->assertNotEmpty($result->getFiles());
+        Storage::assertExists($result->getFiles()[0]->getPath());
+
+        $this->assertTrue(File::exists($logPath));
+        $logLines = array_values(array_filter(explode(PHP_EOL, (string) File::get($logPath))));
+        $this->assertNotEmpty($logLines);
+
+        $payload = json_decode($logLines[array_key_last($logLines)], true);
+        $this->assertIsArray($payload);
+        $this->assertSame(OpenAIDebugIllustratorDriver::class, $payload['driver'] ?? null);
+        $this->assertSame('gpt-image-1', $payload['model'] ?? null);
+        $this->assertSame('Debug subject', $result->getIllustrationContext()?->getSubjectValue());
+        $this->assertStringContainsString('Input JSON:', (string) ($payload['prompt'] ?? ''));
+    }
+}

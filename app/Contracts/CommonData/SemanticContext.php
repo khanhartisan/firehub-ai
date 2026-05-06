@@ -143,6 +143,42 @@ class SemanticContext implements Serializable
         return $data;
     }
 
+    /**
+     * Build an empty template context containing all fields exposed
+     * by one-argument `set*` methods on the current object.
+     */
+    public function withEmptyFields(bool $recursive = true): static
+    {
+        $context = new static();
+        $reflection = new \ReflectionClass($this);
+        $setters = array_filter(
+            $reflection->getMethods(\ReflectionMethod::IS_PUBLIC),
+            static function (\ReflectionMethod $method): bool {
+                return str_starts_with($method->getName(), 'set')
+                    && $method->getName() !== 'set'
+                    && $method->getNumberOfParameters() === 1;
+            }
+        );
+
+        usort(
+            $setters,
+            static fn (\ReflectionMethod $a, \ReflectionMethod $b): int => strcmp($a->getName(), $b->getName())
+        );
+
+        foreach ($setters as $setter) {
+            $parameter = $setter->getParameters()[0];
+            $emptyValue = $this->resolveEmptyValueForParameter($parameter, $recursive);
+
+            if ($emptyValue === null && ! $parameter->allowsNull()) {
+                continue;
+            }
+
+            $setter->invoke($context, $emptyValue);
+        }
+
+        return $context;
+    }
+
     public function __call(string $name, array $arguments): mixed
     {
         if (! str_starts_with($name, 'get') || strlen($name) <= 3) {
@@ -183,6 +219,55 @@ class SemanticContext implements Serializable
 
         return array_all($value, fn($nested) => self::isSerializableValue($nested));
 
+    }
+
+    protected function resolveEmptyValueForParameter(\ReflectionParameter $parameter, bool $recursive): mixed
+    {
+        $type = $parameter->getType();
+
+        if ($type instanceof \ReflectionNamedType) {
+            return $this->resolveEmptyValueForNamedType($type, $parameter, $recursive);
+        }
+
+        if ($type instanceof \ReflectionUnionType) {
+            foreach ($type->getTypes() as $namedType) {
+                if (! $namedType instanceof \ReflectionNamedType || $namedType->getName() === 'null') {
+                    continue;
+                }
+
+                $resolved = $this->resolveEmptyValueForNamedType($namedType, $parameter, $recursive);
+                if ($resolved !== null || $namedType->allowsNull()) {
+                    return $resolved;
+                }
+            }
+        }
+
+        return $parameter->allowsNull() ? null : null;
+    }
+
+    protected function resolveEmptyValueForNamedType(
+        \ReflectionNamedType $type,
+        \ReflectionParameter $parameter,
+        bool $recursive
+    ): mixed {
+        $typeName = $type->getName();
+
+        if ($recursive && class_exists($typeName) && is_subclass_of($typeName, self::class)) {
+            return (new $typeName())->withEmptyFields(true);
+        }
+
+        if ($parameter->allowsNull()) {
+            return null;
+        }
+
+        return match ($typeName) {
+            'string' => '',
+            'int' => 0,
+            'float' => 0.0,
+            'array' => [],
+            'bool' => false,
+            default => null,
+        };
     }
 
     protected function normalizeValue(mixed $value): mixed

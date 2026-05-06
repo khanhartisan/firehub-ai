@@ -4,6 +4,7 @@ namespace Tests\Unit\Contracts\CommonData;
 
 use App\Contracts\CommonData\Keyword;
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
 use App\Enums\Language;
 use Tests\TestCase;
 
@@ -172,6 +173,56 @@ class SemanticContextTest extends TestCase
         $this->expectException(\BadMethodCallException::class);
 
         (new SemanticContext)->setSampleKey('desc', 'value');
+    }
+
+    public function test_with_empty_fields_builds_template_with_all_setters(): void
+    {
+        $context = (new class() extends SemanticContext {
+            public function setName(string $name): static
+            {
+                return $this->set('name', 'Human readable name', $name);
+            }
+
+            public function setTags(array $tags): static
+            {
+                return $this->set('tags', 'List of tags', $tags);
+            }
+
+            public function setOptionalNote(?string $note): static
+            {
+                return $this->set('optional_note', 'Optional extra note', $note);
+            }
+        })->withEmptyFields();
+
+        $this->assertSame([
+            'name' => [
+                'description' => 'Human readable name',
+                'value' => '',
+            ],
+            'optional_note' => [
+                'description' => 'Optional extra note',
+                'value' => null,
+            ],
+            'tags' => [
+                'description' => 'List of tags',
+                'value' => [],
+            ],
+        ], $context->toArray());
+    }
+
+    public function test_with_empty_fields_recursively_builds_nested_semantic_contexts_by_default(): void
+    {
+        $context = (new IllustrationDirection)->withEmptyFields();
+
+        $this->assertIsArray($context->getConceptContextValue());
+        $this->assertArrayHasKey('logline', $context->getConceptContextValue());
+    }
+
+    public function test_with_empty_fields_can_disable_recursive_nested_contexts(): void
+    {
+        $context = (new IllustrationDirection)->withEmptyFields(false);
+
+        $this->assertNull($context->getConceptContextValue());
     }
 
     public function test_constructor_executes_all_boot_methods_before_loading_data(): void

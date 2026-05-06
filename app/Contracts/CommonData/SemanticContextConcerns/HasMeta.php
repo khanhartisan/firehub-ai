@@ -20,9 +20,9 @@ trait HasMeta
         $this->keys[] = $this->_metaKey;
     }
 
-    public function setMeta(array $meta): static
+    public function setMeta(array $meta, ?float $weight = null): static
     {
-        $this->set($this->_metaKey, $this->_metaDescription, $meta);
+        $this->set($this->_metaKey, $this->_metaDescription, $meta, $weight);
         return $this;
     }
 

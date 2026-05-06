@@ -32,75 +32,83 @@ use App\Contracts\CommonData\SemanticContext;
  */
 class AbstractionContext extends SemanticContext
 {
-    public function setTheme(string $theme): static
+    public function setTheme(string $theme, ?float $weight = null): static
     {
         return $this->set(
             'theme',
             'Core abstract theme this visual should communicate.',
-            $theme
+            $theme,
+            $weight
         );
     }
 
-    public function setMetaphor(string $metaphor): static
+    public function setMetaphor(string $metaphor, ?float $weight = null): static
     {
         return $this->set(
             'metaphor',
             'Primary metaphor or symbolic mapping used in the concept.',
-            $metaphor
+            $metaphor,
+            $weight
         );
     }
 
-    public function setNarrativeArc(string $narrativeArc): static
+    public function setNarrativeArc(string $narrativeArc, ?float $weight = null): static
     {
         return $this->set(
             'narrative_arc',
             'Abstract story progression represented by the composition.',
-            $narrativeArc
+            $narrativeArc,
+            $weight
         );
     }
 
-    public function setDominantShapes(array $dominantShapes): static
+    public function setDominantShapes(array $dominantShapes, ?float $weight = null): static
     {
         return $this->set(
             'dominant_shapes',
             'Primary geometric or organic shapes that drive the abstract language.',
-            array_values(array_filter($dominantShapes, fn (mixed $shape): bool => is_string($shape) && $shape !== ''))
+            array_values(array_filter($dominantShapes, fn (mixed $shape): bool => is_string($shape) && $shape !== '')),
+            $weight
         );
     }
 
-    public function setSymbolicElements(array $symbolicElements): static
+    public function setSymbolicElements(array $symbolicElements, ?float $weight = null): static
     {
         return $this->set(
             'symbolic_elements',
             'Symbolic elements that must appear to preserve conceptual meaning.',
-            array_values(array_filter($symbolicElements, fn (mixed $element): bool => is_string($element) && $element !== ''))
+            array_values(array_filter($symbolicElements, fn (mixed $element): bool => is_string($element) && $element !== '')),
+            $weight
         );
     }
 
-    public function setMood(string $mood): static
+    public function setMood(string $mood, ?float $weight = null): static
     {
         return $this->set(
             'mood',
             'Emotional atmosphere the abstract concept should evoke.',
-            $mood
+            $mood,
+            $weight
         );
     }
 
-    public function setVisualTension(string $visualTension): static
+    public function setVisualTension(string $visualTension, ?float $weight = null): static
     {
         return $this->set(
             'visual_tension',
             'How contrast, balance, and conflict should be expressed visually.',
-            $visualTension
+            $visualTension,
+            $weight
         );
     }
 
-    public function setConstraints(array $constraints): static
+    public function setConstraints(array $constraints, ?float $weight = null): static
     {
         return $this->set(
             'constraints',
             'Hard constraints for the abstract concept rendering.',
-            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== ''))
+            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== '')),
+            $weight
         );
     }
 }

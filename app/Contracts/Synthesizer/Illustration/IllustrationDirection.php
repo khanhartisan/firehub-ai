@@ -20,30 +20,33 @@ use App\Contracts\Synthesizer\Illustration\DirectionContexts\ConceptContext;
  */
 class IllustrationDirection extends SemanticContext
 {
-    public function setConceptContext(?ConceptContext $conceptContext): static
+    public function setConceptContext(?ConceptContext $conceptContext, ?float $weight = null): static
     {
         return $this->set(
             'concept_context',
             'Top-level concept direction including narrative, subjects, and scene constraints.',
-            $conceptContext
+            $conceptContext,
+            $weight
         );
     }
 
-    public function setArtStyleContext(?ArtStyleContext $artStyleContext): static
+    public function setArtStyleContext(?ArtStyleContext $artStyleContext, ?float $weight = null): static
     {
         return $this->set(
             'art_style_context',
             'Art style direction covering medium, stylistic references, and rendering preferences.',
-            $artStyleContext
+            $artStyleContext,
+            $weight
         );
     }
 
-    public function setCameraAndLightingContext(?CameraAndLightingContext $cameraAndLightingContext): static
+    public function setCameraAndLightingContext(?CameraAndLightingContext $cameraAndLightingContext, ?float $weight = null): static
     {
         return $this->set(
             'camera_and_lighting_context',
             'Camera framing and lighting direction for composition and visual atmosphere.',
-            $cameraAndLightingContext
+            $cameraAndLightingContext,
+            $weight
         );
     }
 }

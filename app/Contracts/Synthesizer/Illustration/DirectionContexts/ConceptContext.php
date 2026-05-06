@@ -50,66 +50,73 @@ class ConceptContext extends SemanticContext
     use HasLandscapeContext;
     use HasObjectContexts;
 
-    public function setLogline(string $logline): static
+    public function setLogline(string $logline, ?float $weight = null): static
     {
         return $this->set(
             'logline',
             'Short, high-level concept summary for the illustration.',
-            $logline
+            $logline,
+            $weight
         );
     }
 
-    public function setPrimarySubject(string $primarySubject): static
+    public function setPrimarySubject(string $primarySubject, ?float $weight = null): static
     {
         return $this->set(
             'primary_subject',
             'Main subject that should dominate the concept.',
-            $primarySubject
+            $primarySubject,
+            $weight
         );
     }
 
-    public function setNarrativeIntent(string $narrativeIntent): static
+    public function setNarrativeIntent(string $narrativeIntent, ?float $weight = null): static
     {
         return $this->set(
             'narrative_intent',
             'What story or message this concept should communicate.',
-            $narrativeIntent
+            $narrativeIntent,
+            $weight
         );
     }
 
-    public function setSceneContext(string $sceneContext): static
+    public function setSceneContext(string $sceneContext, ?float $weight = null): static
     {
         return $this->set(
             'scene_context',
             'Contextual scene framing for where and when the concept happens.',
-            $sceneContext
+            $sceneContext,
+            $weight
         );
     }
 
-    public function setMood(string $mood): static
+    public function setMood(string $mood, ?float $weight = null): static
     {
         return $this->set(
             'mood',
             'Overall emotional tone of the concept direction.',
-            $mood
+            $mood,
+            $weight
         );
     }
 
-    public function setSymbolicNotes(array $symbolicNotes): static
+    public function setSymbolicNotes(array $symbolicNotes, ?float $weight = null): static
     {
         return $this->set(
             'symbolic_notes',
             'Optional symbolism cues that reinforce the concept.',
-            array_values(array_filter($symbolicNotes, fn (mixed $note): bool => is_string($note) && $note !== ''))
+            array_values(array_filter($symbolicNotes, fn (mixed $note): bool => is_string($note) && $note !== '')),
+            $weight
         );
     }
 
-    public function setConstraints(array $constraints): static
+    public function setConstraints(array $constraints, ?float $weight = null): static
     {
         return $this->set(
             'constraints',
             'Top-level concept constraints and non-negotiable requirements.',
-            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== ''))
+            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== '')),
+            $weight
         );
     }
 }

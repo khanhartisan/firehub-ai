@@ -184,7 +184,8 @@ class SemanticContext implements Serializable
             static function (\ReflectionMethod $method): bool {
                 return str_starts_with($method->getName(), 'set')
                     && $method->getName() !== 'set'
-                    && $method->getNumberOfParameters() === 1;
+                    && $method->getName() !== 'setWeight'
+                    && $method->getNumberOfRequiredParameters() === 1;
             }
         );
 

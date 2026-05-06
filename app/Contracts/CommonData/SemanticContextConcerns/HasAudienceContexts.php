@@ -24,12 +24,13 @@ trait HasAudienceContexts
         $this->keys[] = $this->_audienceContextsKey;
     }
 
-    public function setAudienceContexts(array $audienceContexts): static
+    public function setAudienceContexts(array $audienceContexts, ?float $weight = null): static
     {
         return $this->set(
             $this->_audienceContextsKey,
             $this->_audienceContextsDescription,
-            array_filter($audienceContexts, fn ($audienceContext) => $audienceContext instanceof AudienceContext)
+            array_filter($audienceContexts, fn ($audienceContext) => $audienceContext instanceof AudienceContext),
+            $weight
         );
     }
 

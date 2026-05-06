@@ -35,84 +35,93 @@ use App\Contracts\CommonData\SemanticContext;
  */
 class ObjectContext extends SemanticContext
 {
-    public function setName(string $name): static
+    public function setName(string $name, ?float $weight = null): static
     {
         return $this->set(
             'name',
             'Primary object name or label.',
-            $name
+            $name,
+            $weight
         );
     }
 
-    public function setType(string $type): static
+    public function setType(string $type, ?float $weight = null): static
     {
         return $this->set(
             'type',
             'Object category or class (e.g., tool, vehicle, furniture).',
-            $type
+            $type,
+            $weight
         );
     }
 
-    public function setAppearance(string $appearance): static
+    public function setAppearance(string $appearance, ?float $weight = null): static
     {
         return $this->set(
             'appearance',
             'Visual appearance details including form and surface cues.',
-            $appearance
+            $appearance,
+            $weight
         );
     }
 
-    public function setMaterial(string $material): static
+    public function setMaterial(string $material, ?float $weight = null): static
     {
         return $this->set(
             'material',
             'Primary material or texture characteristics of this object.',
-            $material
+            $material,
+            $weight
         );
     }
 
-    public function setCondition(string $condition): static
+    public function setCondition(string $condition, ?float $weight = null): static
     {
         return $this->set(
             'condition',
             'Wear state or condition of the object (new, worn, damaged, etc.).',
-            $condition
+            $condition,
+            $weight
         );
     }
 
-    public function setPosition(string $position): static
+    public function setPosition(string $position, ?float $weight = null): static
     {
         return $this->set(
             'position',
             'Spatial position of the object within the scene or frame.',
-            $position
+            $position,
+            $weight
         );
     }
 
-    public function setScale(string $scale): static
+    public function setScale(string $scale, ?float $weight = null): static
     {
         return $this->set(
             'scale',
             'Relative size of this object compared to nearby elements.',
-            $scale
+            $scale,
+            $weight
         );
     }
 
-    public function setInteraction(string $interaction): static
+    public function setInteraction(string $interaction, ?float $weight = null): static
     {
         return $this->set(
             'interaction',
             'How this object interacts with characters or other objects.',
-            $interaction
+            $interaction,
+            $weight
         );
     }
 
-    public function setConstraints(array $constraints): static
+    public function setConstraints(array $constraints, ?float $weight = null): static
     {
         return $this->set(
             'constraints',
             'Object-specific hard requirements or exclusions.',
-            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== ''))
+            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== '')),
+            $weight
         );
     }
 }

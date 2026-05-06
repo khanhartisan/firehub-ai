@@ -12,48 +12,53 @@ use App\Contracts\Model\Author\AuthorContexts\LinguisticContext;
 
 class AuthorContext extends IdentifiableSemanticContext
 {
-    public function setCognitiveContext(?CognitiveContext $context): static
+    public function setCognitiveContext(?CognitiveContext $context, ?float $weight = null): static
     {
         return $this->set(
             'cognitive_context',
             'Defines the core belief system and logical processing of the author. This prevents the content from falling into the "neutrality trap".',
-            $context
+            $context,
+            $weight
         );
     }
 
-    public function setConstraintContext(?ConstraintContext $context): static
+    public function setConstraintContext(?ConstraintContext $context, ?float $weight = null): static
     {
         return $this->set(
             'constraint_context',
             'Real-time processing constraints for the author agent.',
-            $context
+            $context,
+            $weight
         );
     }
 
-    public function setDemographicContext(?DemographicContext $context): static
+    public function setDemographicContext(?DemographicContext $context, ?float $weight = null): static
     {
         return $this->set(
             'demographic_context',
             'The physical reality of the author',
-            $context
+            $context,
+            $weight
         );
     }
 
-    public function setExperientialContext(?ExperientialContext $context): static
+    public function setExperientialContext(?ExperientialContext $context, ?float $weight = null): static
     {
         return $this->set(
             'experiential_context',
             'Simulates a localized database of memories and cultural anchors. Provides the author with a unique "bag of analogies" so they dont use generic ones.',
-            $context
+            $context,
+            $weight
         );
     }
 
-    public function setLinguisticContext(?LinguisticContext $context): static
+    public function setLinguisticContext(?LinguisticContext $context, ?float $weight = null): static
     {
         return $this->set(
             'linguistic_context',
             'Defines the exact mechanical constraints of how the author outputs text. This overrides the LLM\'s default highly-polished, formulaic writing style.',
-            $context
+            $context,
+            $weight
         );
     }
 }

@@ -38,70 +38,77 @@ use App\Contracts\CommonData\SemanticContext;
  */
 class CameraAndLightingContext extends SemanticContext
 {
-    public function setShotSize(string $shotSize): static
+    public function setShotSize(string $shotSize, ?float $weight = null): static
     {
         return $this->set(
             'shot_size',
             'Framing size of the subject (e.g., close-up, medium shot, wide shot).',
-            $shotSize
+            $shotSize,
+            $weight
         );
     }
 
-    public function setCameraAngle(string $cameraAngle): static
+    public function setCameraAngle(string $cameraAngle, ?float $weight = null): static
     {
         return $this->set(
             'camera_angle',
             'Camera viewpoint angle (e.g., eye-level, low-angle, top-down).',
-            $cameraAngle
+            $cameraAngle,
+            $weight
         );
     }
 
-    public function setLenses(array $lenses): static
+    public function setLenses(array $lenses, ?float $weight = null): static
     {
         return $this->set(
             'lenses',
             'Lens references and focal tendencies (e.g., 24mm wide, 85mm portrait).',
-            array_values(array_filter($lenses, fn (mixed $lens): bool => is_string($lens) && $lens !== ''))
+            array_values(array_filter($lenses, fn (mixed $lens): bool => is_string($lens) && $lens !== '')),
+            $weight
         );
     }
 
-    public function setLighting(string $lighting): static
+    public function setLighting(string $lighting, ?float $weight = null): static
     {
         return $this->set(
             'lighting',
             'Primary lighting setup and quality (soft, hard, directional, rim-lit).',
-            $lighting
+            $lighting,
+            $weight
         );
     }
 
-    public function setFilter(string $filter): static
+    public function setFilter(string $filter, ?float $weight = null): static
     {
         return $this->set(
             'filter',
             'Creative filter or grade direction to apply to the scene.',
-            $filter
+            $filter,
+            $weight
         );
     }
 
-    public function setOptical(string $optical): static
+    public function setOptical(string $optical, ?float $weight = null): static
     {
         return $this->set(
             'optical',
             'Optical behavior cues such as depth of field, bokeh, bloom, or distortion.',
-            $optical
+            $optical,
+            $weight
         );
     }
 
-    public function setColorPalette(string $colorPalette): static
+    public function setColorPalette(string $colorPalette, ?float $weight = null): static
     {
         return $this->set(
             'color_palette',
             'Color and grading direction for camera and lighting treatment.',
-            $colorPalette
+            $colorPalette,
+            $weight
         );
     }
 
-    public function setCompositionalRules(array $compositionalRules): static
+    public function setCompositionalRules(array $compositionalRules, ?float $weight = null): static
     {
         return $this->set(
             'compositional_rules',
@@ -109,20 +116,22 @@ class CameraAndLightingContext extends SemanticContext
             array_values(array_filter(
                 $compositionalRules,
                 fn (mixed $rule): bool => is_string($rule) && $rule !== ''
-            ))
+            )),
+            $weight
         );
     }
 
-    public function setDepthPlan(string $depthPlan): static
+    public function setDepthPlan(string $depthPlan, ?float $weight = null): static
     {
         return $this->set(
             'depth_plan',
             'Foreground, midground, and background separation strategy.',
-            $depthPlan
+            $depthPlan,
+            $weight
         );
     }
 
-    public function setNegativeConstraints(array $negativeConstraints): static
+    public function setNegativeConstraints(array $negativeConstraints, ?float $weight = null): static
     {
         return $this->set(
             'negative_constraints',
@@ -130,7 +139,8 @@ class CameraAndLightingContext extends SemanticContext
             array_values(array_filter(
                 $negativeConstraints,
                 fn (mixed $constraint): bool => is_string($constraint) && $constraint !== ''
-            ))
+            )),
+            $weight
         );
     }
 }

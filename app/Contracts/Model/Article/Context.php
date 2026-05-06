@@ -11,21 +11,23 @@ class Context extends SemanticContext
     use HasAudienceContexts;
     use HasMeta;
 
-    public function setToneOfVoice(string $toneOfVoice): static
+    public function setToneOfVoice(string $toneOfVoice, ?float $weight = null): static
     {
         return $this->set(
             'tone_of_voice',
             'This describes the tone and voice of this article.',
-            $toneOfVoice
+            $toneOfVoice,
+            $weight
         );
     }
 
-    public function setGuidelines(array $guidelines): static
+    public function setGuidelines(array $guidelines, ?float $weight = null): static
     {
         return $this->set(
             'guidelines',
             'A collection of guidelines for this article.',
-            array_filter($guidelines, fn ($guideline) => is_string($guideline))
+            array_filter($guidelines, fn ($guideline) => is_string($guideline)),
+            $weight
         );
     }
 }

@@ -30,61 +30,67 @@ use App\Enums\ArtMedium;
  */
 class ArtStyleContext extends SemanticContext
 {
-    public function setArtMedium(?ArtMedium $artMedium): static
+    public function setArtMedium(?ArtMedium $artMedium, ?float $weight = null): static
     {
         return $this->set(
             'art_medium',
             'Primary image medium choice (photography, 2D illustration, or 3D illustration).',
-            $artMedium?->value
+            $artMedium?->value,
+            $weight
         );
     }
 
-    public function setStyle(string $style): static
+    public function setStyle(string $style, ?float $weight = null): static
     {
         return $this->set(
             'style',
             'Named art style direction (e.g., minimal editorial vector, cinematic realism).',
-            $style
+            $style,
+            $weight
         );
     }
 
-    public function setCreatorReferences(array $references): static
+    public function setCreatorReferences(array $references, ?float $weight = null): static
     {
         return $this->set(
             'creator_references',
             'Creator, studio, or movement references to emulate stylistically.',
-            array_values(array_filter($references, fn (mixed $reference): bool => is_string($reference) && $reference !== ''))
+            array_values(array_filter($references, fn (mixed $reference): bool => is_string($reference) && $reference !== '')),
+            $weight
         );
     }
 
-    public function setColorPalette(string $colorPalette): static
+    public function setColorPalette(string $colorPalette, ?float $weight = null): static
     {
         return $this->set(
             'color_palette',
             'Color direction for the final visual (tones, harmony, contrast).',
-            $colorPalette
+            $colorPalette,
+            $weight
         );
     }
 
-    public function setOverallVibe(string $overallVibe): static
+    public function setOverallVibe(string $overallVibe, ?float $weight = null): static
     {
         return $this->set(
             'overall_vibe',
             'Overall emotional and aesthetic vibe the image should convey.',
-            $overallVibe
+            $overallVibe,
+            $weight
         );
     }
 
-    public function setRenderingDetails(string $renderingDetails): static
+    public function setRenderingDetails(string $renderingDetails, ?float $weight = null): static
     {
         return $this->set(
             'rendering_details',
             'Detail-level and finish instructions (clean lines, painterly brushwork, grain, etc.).',
-            $renderingDetails
+            $renderingDetails,
+            $weight
         );
     }
 
-    public function setNegativeStyleConstraints(array $negativeStyleConstraints): static
+    public function setNegativeStyleConstraints(array $negativeStyleConstraints, ?float $weight = null): static
     {
         return $this->set(
             'negative_style_constraints',
@@ -92,7 +98,8 @@ class ArtStyleContext extends SemanticContext
             array_values(array_filter(
                 $negativeStyleConstraints,
                 fn (mixed $constraint): bool => is_string($constraint) && $constraint !== ''
-            ))
+            )),
+            $weight
         );
     }
 }

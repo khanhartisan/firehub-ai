@@ -55,7 +55,10 @@ class AuthorContextCastTest extends TestCase
         $this->assertInstanceOf(AuthorContext::class, $author->context);
         $contextArray = $author->context->toArray();
         $this->assertIsString($contextArray['identifier'] ?? null);
-        $this->assertSame($payload['cognitive_context'], $contextArray['cognitive_context'] ?? null);
+        $this->assertSame(
+            array_merge($payload['cognitive_context'], ['weight' => null]),
+            $contextArray['cognitive_context'] ?? null
+        );
     }
 
     public function test_it_keeps_context_identifier_after_dehydrate_and_hydrate(): void

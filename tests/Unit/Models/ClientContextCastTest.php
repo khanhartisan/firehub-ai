@@ -45,12 +45,14 @@ class ClientContextCastTest extends TestCase
             'name' => [
                 'description' => 'Brand name of the website',
                 'value' => 'Acme AI',
+                'weight' => 0.2
             ],
             'meta' => [
                 'description' => 'Dynamic, non-standard contextual signals.',
                 'value' => [
                     'region' => 'US',
                 ],
+                'weight' => 0.5,
             ],
         ];
 

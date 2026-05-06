@@ -39,93 +39,103 @@ class IllustrationContext extends IdentifiableSemanticContext
 {
     use HasMeta;
 
-    public function setLanguage(string $language): static
+    public function setLanguage(string $language, ?float $weight = null): static
     {
         return $this->set(
             'language',
             'The primary language for all text elements within the illustration, including labels, headings, and descriptions (if any). Ignore if the illustration does not require text.',
-            $language
+            $language,
+            $weight
         );
     }
 
-    public function setSubject(string $subject): static
+    public function setSubject(string $subject, ?float $weight = null): static
     {
         return $this->set(
             'subject',
             'The primary subject or concept that needs to be illustrated.',
-            $subject
+            $subject,
+            $weight
         );
     }
 
-    public function setGoal(string $goal): static
+    public function setGoal(string $goal, ?float $weight = null): static
     {
         return $this->set(
             'goal',
             'The communication goal of the illustration.',
-            $goal
+            $goal,
+            $weight
         );
     }
 
-    public function setStyle(string $style): static
+    public function setStyle(string $style, ?float $weight = null): static
     {
         return $this->set(
             'style',
             'Preferred visual style for this illustration.',
-            $style
+            $style,
+            $weight
         );
     }
 
-    public function setAspectRatio(AspectRatio $aspectRatio): static
+    public function setAspectRatio(AspectRatio $aspectRatio, ?float $weight = null): static
     {
         return $this->set(
             'aspect_ratio',
             'Preferred aspect ratio for generated illustrations.',
-            $aspectRatio->value
+            $aspectRatio->value,
+            $weight
         );
     }
 
-    public function setReferenceFileIds(array $referenceFileIds): static
+    public function setReferenceFileIds(array $referenceFileIds, ?float $weight = null): static
     {
         return $this->set(
             'reference_file_ids',
             'File IDs used as visual references for generating this illustration.',
-            array_values(array_filter($referenceFileIds, fn (mixed $fileId): bool => is_string($fileId) && $fileId !== ''))
+            array_values(array_filter($referenceFileIds, fn (mixed $fileId): bool => is_string($fileId) && $fileId !== '')),
+            $weight
         );
     }
 
-    public function setMacroContext(string $macroContext): static
+    public function setMacroContext(string $macroContext, ?float $weight = null): static
     {
         return $this->set(
             'macro_context',
             'High-level, big-picture context of what we are working on.',
-            $macroContext
+            $macroContext,
+            $weight
         );
     }
 
-    public function setMicroContext(string $microContext): static
+    public function setMicroContext(string $microContext, ?float $weight = null): static
     {
         return $this->set(
             'micro_context',
             'The specific part, detailed context that we needs to illustrate.',
-            $microContext
+            $microContext,
+            $weight
         );
     }
 
-    public function setConstraints(array $constraints): static
+    public function setConstraints(array $constraints, ?float $weight = null): static
     {
         return $this->set(
             'constraints',
             'Hard requirements or limitations the illustration must satisfy.',
-            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint)))
+            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint))),
+            $weight
         );
     }
 
-    public function setKnowledgeGuidelines(array $knowledgeGuidelines): static
+    public function setKnowledgeGuidelines(array $knowledgeGuidelines, ?float $weight = null): static
     {
         return $this->set(
             'knowledge_guidelines',
             'Specific domain logic and factual rules that must be accurately represented.',
-            $knowledgeGuidelines
+            $knowledgeGuidelines,
+            $weight
         );
     }
 }

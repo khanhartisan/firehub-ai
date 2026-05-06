@@ -38,93 +38,103 @@ use App\Contracts\CommonData\SemanticContext;
  */
 class CharacterContext extends SemanticContext
 {
-    public function setRole(string $role): static
+    public function setRole(string $role, ?float $weight = null): static
     {
         return $this->set(
             'role',
             'Narrative role of this character in the scene (e.g., hero, guide, observer).',
-            $role
+            $role,
+            $weight
         );
     }
 
-    public function setIdentity(string $identity): static
+    public function setIdentity(string $identity, ?float $weight = null): static
     {
         return $this->set(
             'identity',
             'Who this character is, including important archetype or background cues.',
-            $identity
+            $identity,
+            $weight
         );
     }
 
-    public function setAppearance(string $appearance): static
+    public function setAppearance(string $appearance, ?float $weight = null): static
     {
         return $this->set(
             'appearance',
             'Visible physical traits and overall look of this character.',
-            $appearance
+            $appearance,
+            $weight
         );
     }
 
-    public function setWardrobe(string $wardrobe): static
+    public function setWardrobe(string $wardrobe, ?float $weight = null): static
     {
         return $this->set(
             'wardrobe',
             'Clothing and accessories that define this character design.',
-            $wardrobe
+            $wardrobe,
+            $weight
         );
     }
 
-    public function setPose(string $pose): static
+    public function setPose(string $pose, ?float $weight = null): static
     {
         return $this->set(
             'pose',
             'Body posture and stance of this character.',
-            $pose
+            $pose,
+            $weight
         );
     }
 
-    public function setPosition(string $position): static
+    public function setPosition(string $position, ?float $weight = null): static
     {
         return $this->set(
             'position',
             'Spatial placement of this character in the frame or scene.',
-            $position
+            $position,
+            $weight
         );
     }
 
-    public function setExpression(string $expression): static
+    public function setExpression(string $expression, ?float $weight = null): static
     {
         return $this->set(
             'expression',
             'Facial expression and emotional tone of this character.',
-            $expression
+            $expression,
+            $weight
         );
     }
 
-    public function setAction(string $action): static
+    public function setAction(string $action, ?float $weight = null): static
     {
         return $this->set(
             'action',
             'What this character is doing in the scene.',
-            $action
+            $action,
+            $weight
         );
     }
 
-    public function setProps(array $props): static
+    public function setProps(array $props, ?float $weight = null): static
     {
         return $this->set(
             'props',
             'Objects directly associated with this character.',
-            array_values(array_filter($props, fn (mixed $prop): bool => is_string($prop) && $prop !== ''))
+            array_values(array_filter($props, fn (mixed $prop): bool => is_string($prop) && $prop !== '')),
+            $weight
         );
     }
 
-    public function setConstraints(array $constraints): static
+    public function setConstraints(array $constraints, ?float $weight = null): static
     {
         return $this->set(
             'constraints',
             'Character-specific hard requirements or exclusions.',
-            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== ''))
+            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== '')),
+            $weight
         );
     }
 }

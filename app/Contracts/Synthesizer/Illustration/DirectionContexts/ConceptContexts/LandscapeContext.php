@@ -54,93 +54,103 @@ class LandscapeContext extends SemanticContext
     use HasCharacterContexts;
     use HasObjectContexts;
 
-    public function setSetting(string $setting): static
+    public function setSetting(string $setting, ?float $weight = null): static
     {
         return $this->set(
             'setting',
             'Primary environment setting (e.g., city street, forest trail, mountain ridge).',
-            $setting
+            $setting,
+            $weight
         );
     }
 
-    public function setLocation(string $location): static
+    public function setLocation(string $location, ?float $weight = null): static
     {
         return $this->set(
             'location',
             'Specific location identity or regional cues for the landscape.',
-            $location
+            $location,
+            $weight
         );
     }
 
-    public function setTerrain(string $terrain): static
+    public function setTerrain(string $terrain, ?float $weight = null): static
     {
         return $this->set(
             'terrain',
             'Ground and topography characteristics of the scene.',
-            $terrain
+            $terrain,
+            $weight
         );
     }
 
-    public function setVegetation(string $vegetation): static
+    public function setVegetation(string $vegetation, ?float $weight = null): static
     {
         return $this->set(
             'vegetation',
             'Plant life and natural growth details in the landscape.',
-            $vegetation
+            $vegetation,
+            $weight
         );
     }
 
-    public function setStructures(array $structures): static
+    public function setStructures(array $structures, ?float $weight = null): static
     {
         return $this->set(
             'structures',
             'Built structures or architectural elements present in the scene.',
-            array_values(array_filter($structures, fn (mixed $structure): bool => is_string($structure) && $structure !== ''))
+            array_values(array_filter($structures, fn (mixed $structure): bool => is_string($structure) && $structure !== '')),
+            $weight
         );
     }
 
-    public function setWeather(string $weather): static
+    public function setWeather(string $weather, ?float $weight = null): static
     {
         return $this->set(
             'weather',
             'Weather conditions affecting mood and visibility.',
-            $weather
+            $weather,
+            $weight
         );
     }
 
-    public function setTimeOfDay(string $timeOfDay): static
+    public function setTimeOfDay(string $timeOfDay, ?float $weight = null): static
     {
         return $this->set(
             'time_of_day',
             'Time-of-day context shaping light direction and atmosphere.',
-            $timeOfDay
+            $timeOfDay,
+            $weight
         );
     }
 
-    public function setSeason(string $season): static
+    public function setSeason(string $season, ?float $weight = null): static
     {
         return $this->set(
             'season',
             'Seasonal context affecting color, climate, and environment cues.',
-            $season
+            $season,
+            $weight
         );
     }
 
-    public function setMood(string $mood): static
+    public function setMood(string $mood, ?float $weight = null): static
     {
         return $this->set(
             'mood',
             'Overall emotional atmosphere of the landscape scene.',
-            $mood
+            $mood,
+            $weight
         );
     }
 
-    public function setConstraints(array $constraints): static
+    public function setConstraints(array $constraints, ?float $weight = null): static
     {
         return $this->set(
             'constraints',
             'Landscape-specific hard requirements or exclusions.',
-            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== ''))
+            array_values(array_filter($constraints, fn (mixed $constraint): bool => is_string($constraint) && $constraint !== '')),
+            $weight
         );
     }
 }

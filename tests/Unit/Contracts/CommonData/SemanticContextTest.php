@@ -310,5 +310,21 @@ class SemanticContextTest extends TestCase
         $this->assertFalse($context->isKeyAllowed('not_allowed_key'));
         $this->assertSame('ok', $context->getAllowedKeyValue());
     }
+
+    public function test_clone_creates_independent_copy_with_same_payload(): void
+    {
+        $original = (new SemanticContext)
+            ->set('priority', 'Priority score', 'high', 0.8)
+            ->set('tags', 'Tag list', ['a', 'b']);
+
+        $cloned = $original->clone();
+
+        $this->assertNotSame($original, $cloned);
+        $this->assertSame($original->toArray(), $cloned->toArray());
+
+        $cloned->setWeight('priority', 0.2);
+        $this->assertSame(0.8, $original->getPriorityWeight());
+        $this->assertSame(0.2, $cloned->getPriorityWeight());
+    }
 }
 

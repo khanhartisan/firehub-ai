@@ -2,9 +2,10 @@
 
 namespace App\Contracts\CommonData;
 
+use App\Contracts\Clonable;
 use App\Contracts\Serializable;
 
-class SemanticContext implements Serializable
+class SemanticContext implements Clonable, Serializable
 {
     use \App\Concerns\Serializable;
 
@@ -135,6 +136,11 @@ class SemanticContext implements Serializable
         return $context;
     }
 
+    public function clone(): self
+    {
+        return static::fromArray($this->toArray());
+    }
+
     public function loadFromArray(array $data): static
     {
         foreach ($data as $key => $_data) {
@@ -175,13 +181,21 @@ class SemanticContext implements Serializable
      * Build an empty template context containing all fields exposed
      * by one-argument `set*` methods on the current object.
      */
-    public function withEmptyFields(bool $recursive = true): static
+    public function withEmptyFields(bool $recursive = true, bool $clone = true): static
     {
-        $context = new static();
+        $context = $clone ? $this->clone() : $this;
         $reflection = new \ReflectionClass($this);
         $setters = array_filter(
             $reflection->getMethods(\ReflectionMethod::IS_PUBLIC),
-            static function (\ReflectionMethod $method): bool {
+            static function (\ReflectionMethod $method) use ($context) : bool {
+
+                // Exclude special identifier setter
+                if ($context instanceof IdentifiableSemanticContext
+                    and $method->getName() === 'setIdentifier'
+                ) {
+                    return false;
+                }
+
                 return str_starts_with($method->getName(), 'set')
                     && $method->getName() !== 'set'
                     && $method->getName() !== 'setWeight'

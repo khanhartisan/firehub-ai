@@ -21,7 +21,8 @@ class Client extends Model implements ShouldCascade
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            new CascadeDetails($this->articles())
+            new CascadeDetails($this->articles()),
+            new CascadeDetails($this->authors()),
         ];
     }
 
@@ -33,5 +34,10 @@ class Client extends Model implements ShouldCascade
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class);
+    }
+
+    public function authors(): HasMany
+    {
+        return $this->hasMany(Author::class);
     }
 }

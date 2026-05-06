@@ -54,6 +54,11 @@ class Article extends EmbeddableModel implements ShouldCascade
         return true;
     }
 
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(Author::class);
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);

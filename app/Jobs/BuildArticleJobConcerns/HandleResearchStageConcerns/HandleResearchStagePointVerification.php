@@ -50,9 +50,10 @@ trait HandleResearchStagePointVerification
         $filtered = array_values(array_filter(
             $points,
             static function (RelevantPoint $point): bool {
-                $confidence = $point->getVerification()?->getConfidence() ?? 0;
+                $confidence = $point->getVerification()?->getConfidence();
 
-                return $confidence > 0.8;
+                // Whether unable to determine confidence or high confidence
+                return is_null($confidence) or $confidence > 0.8;
             }
         ));
 

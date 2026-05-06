@@ -3,7 +3,7 @@
 namespace App\Services\Synthesizer\BriefBuilder\Drivers;
 
 use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\CommonData\Audience;
+use App\Contracts\CommonData\AudienceContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
@@ -132,8 +132,8 @@ Given an article idea and semantic context, produce a full brief payload:
 - description: clear 1-3 sentence brief.
 - temporal/goal/voice/tone: choose best enums from allowed values.
 - instructions: concise, actionable bullet-style lines.
-- audiences/reference_page_ids: include when confidently inferable, otherwise [].
-- For audiences, follow the schema exactly. Do not output unknown keys.
+- audience_contexts/reference_page_ids: include when confidently inferable, otherwise [].
+- For audience_contexts, follow the schema exactly. Do not output unknown keys.
 - Keep all fields grounded in provided context and do not invent unsupported facts.
 
 Input JSON:
@@ -180,11 +180,11 @@ PROMPT;
                     'items' => ['type' => 'string'],
                     'description' => 'Actionable instructions for authoring this article.',
                 ],
-                'audiences' => [
+                'audience_contexts' => [
                     'type' => 'array',
                     'items' => [
                         'type' => 'object',
-                        'description' => 'Audience payload compatible with Audience::fromArray.',
+                        'description' => 'Audience context payload compatible with AudienceContext semantic keys.',
                         'properties' => $properties = $this->buildAudienceSchemaProperties(),
                         'required' => array_keys($properties),
                         'additionalProperties' => false,
@@ -240,15 +240,23 @@ PROMPT;
         }
         $brief->setInstructions(array_values(array_unique($instructions)));
 
-        $rawAudiences = $payload['audiences'] ?? [];
-        if (is_array($rawAudiences)) {
-            $audiences = [];
-            foreach ($rawAudiences as $row) {
+        $rawAudienceContexts = $payload['audience_contexts'] ?? [];
+        if (is_array($rawAudienceContexts)) {
+            $audienceContexts = [];
+            foreach ($rawAudienceContexts as $row) {
                 if (is_array($row)) {
-                    $audiences[] = Audience::fromArray($row);
+                    $context = new AudienceContext();
+                    foreach ($row as $key => $value) {
+                        if (! is_string($key)) {
+                            continue;
+                        }
+                        $description = $context->getDescription($key) ?? ('Audience context field: '.$key);
+                        $context->set($key, $description, $value);
+                    }
+                    $audienceContexts[] = $context;
                 }
             }
-            $brief->setAudiences($audiences);
+            $brief->setAudienceContexts($audienceContexts);
         }
 
         $rawReferencePageIds = $payload['reference_page_ids'] ?? [];

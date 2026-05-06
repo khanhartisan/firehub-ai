@@ -221,7 +221,7 @@ CTX;
                 ['voice', $brief->getVoice()?->value ?? '—'],
                 ['tone', $brief->getTone()?->value ?? '—'],
                 ['instructions_count', (string) count($brief->getInstructions())],
-                ['audiences_count', (string) count($brief->getAudiences())],
+                ['audience_contexts_count', (string) count($brief->getAudienceContexts())],
                 ['reference_page_ids_count', (string) count($brief->getReferencePageIds())],
             ]
         );
@@ -235,18 +235,19 @@ CTX;
             }
         }
 
-        $audiences = $brief->getAudiences();
-        if ($audiences !== []) {
+        $audienceContexts = $brief->getAudienceContexts();
+        if ($audienceContexts !== []) {
             $this->newLine();
-            $this->comment('Audiences');
+            $this->comment('Audience Contexts');
             $rows = [];
-            foreach ($audiences as $index => $audience) {
+            foreach ($audienceContexts as $index => $audienceContext) {
+                $countries = $audienceContext->getCountriesValue();
                 $rows[] = [
                     (string) ($index + 1),
-                    (string) ($audience->getName() ?? '—'),
-                    (string) ($audience->getKnowledgeLevel()?->value ?? '—'),
-                    (string) ($audience->getLanguage()?->value ?? '—'),
-                    (string) count($audience->getCountries()),
+                    (string) ($audienceContext->getNameValue() ?? '—'),
+                    (string) ($audienceContext->getKnowledgeLevelValue() ?? '—'),
+                    (string) ($audienceContext->getLanguageValue() ?? '—'),
+                    (string) (is_array($countries) ? count($countries) : 0),
                 ];
             }
             $this->table(['#', 'name', 'knowledge_level', 'language', 'countries'], $rows);

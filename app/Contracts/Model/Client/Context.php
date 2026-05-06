@@ -3,7 +3,7 @@
 namespace App\Contracts\Model\Client;
 
 use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\CommonData\SemanticContextConcerns\HasAudiences;
+use App\Contracts\CommonData\SemanticContextConcerns\HasAudienceContexts;
 use App\Contracts\CommonData\SemanticContextConcerns\HasMeta;
 use App\Utils\Str;
 
@@ -21,7 +21,7 @@ use App\Utils\Str;
  */
 class Context extends SemanticContext
 {
-    use HasAudiences;
+    use HasAudienceContexts;
     use HasMeta;
 
     public function setName(string $name): static

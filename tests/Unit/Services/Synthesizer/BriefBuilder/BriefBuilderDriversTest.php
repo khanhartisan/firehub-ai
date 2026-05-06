@@ -66,7 +66,7 @@ class BriefBuilderDriversTest extends TestCase
                 'Prioritize concrete rollout steps with ownership per team.',
                 'Include measurable activation metrics and checkpoints.',
             ],
-            'audiences' => [[
+            'audience_contexts' => [[
                 'priority_weight' => 0.8,
                 'name' => 'SaaS growth managers',
                 'description' => 'Leads growth experiments and onboarding optimization.',
@@ -118,10 +118,10 @@ class BriefBuilderDriversTest extends TestCase
         $this->assertSame(ContentVoice::AUTHORITATIVE, $brief->getVoice());
         $this->assertSame(ContentTone::INSTRUCTIONAL, $brief->getTone());
         $this->assertSame(['page-1', 'page-2'], $brief->getReferencePageIds());
-        $this->assertCount(1, $brief->getAudiences());
-        $this->assertSame(KnowledgeLevel::INTERMEDIATE, $brief->getAudiences()[0]->getKnowledgeLevel());
-        $this->assertSame(Language::EN, $brief->getAudiences()[0]->getLanguage());
-        $this->assertSame([Country::US, Country::GB], $brief->getAudiences()[0]->getCountries());
+        $this->assertCount(1, $brief->getAudienceContexts());
+        $this->assertSame(KnowledgeLevel::INTERMEDIATE->value, $brief->getAudienceContexts()[0]->getKnowledgeLevelValue());
+        $this->assertSame(Language::EN->value, $brief->getAudienceContexts()[0]->getLanguageValue());
+        $this->assertSame([Country::US->value, Country::GB->value], $brief->getAudienceContexts()[0]->getCountriesValue());
     }
 
     protected function makeIntent(string $description = 'How teams adopt AI tools.'): Intent

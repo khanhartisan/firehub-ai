@@ -3,7 +3,7 @@
 namespace App\Contracts\Synthesizer\BriefBuilder;
 
 use App\Concerns\Serializable as SerializableTrait;
-use App\Contracts\CommonData\Audience;
+use App\Contracts\CommonData\AudienceContext;
 use App\Contracts\Serializable;
 use App\Enums\ContentGoal;
 use App\Enums\ContentTone;
@@ -22,8 +22,8 @@ final class Brief implements Serializable
 
     protected ?Temporal $temporal = null;
 
-    /** @var Audience[] */
-    protected array $audiences = [];
+    /** @var AudienceContext[] */
+    protected array $audienceContexts = [];
 
     protected ?string $title = null;
 
@@ -58,35 +58,35 @@ final class Brief implements Serializable
     }
 
     /**
-     * @return Audience[]
+     * @return AudienceContext[]
      */
-    public function getAudiences(): array
+    public function getAudienceContexts(): array
     {
-        return $this->audiences;
+        return $this->audienceContexts;
     }
 
     /**
-     * @param  Audience[]  $audiences
+     * @param  AudienceContext[]  $audienceContexts
      */
-    public function setAudiences(array $audiences): static
+    public function setAudienceContexts(array $audienceContexts): static
     {
-        $this->audiences = [];
-        foreach ($audiences as $index => $audience) {
-            if (! $audience instanceof Audience) {
+        $this->audienceContexts = [];
+        foreach ($audienceContexts as $index => $audienceContext) {
+            if (! $audienceContext instanceof AudienceContext) {
                 throw new \InvalidArgumentException(
-                    sprintf('audiences[%s] must be an instance of %s, %s given.', $index, Audience::class, get_debug_type($audience))
+                    sprintf('audienceContexts[%s] must be an instance of %s, %s given.', $index, AudienceContext::class, get_debug_type($audienceContext))
                 );
             }
 
-            $this->audiences[] = $audience;
+            $this->audienceContexts[] = $audienceContext;
         }
 
         return $this;
     }
 
-    public function addAudience(Audience $audience): static
+    public function addAudienceContext(AudienceContext $audienceContext): static
     {
-        $this->audiences[] = $audience;
+        $this->audienceContexts[] = $audienceContext;
 
         return $this;
     }
@@ -206,7 +206,7 @@ final class Brief implements Serializable
     {
         return [
             'temporal' => $this->getTemporal()?->value ?? null,
-            'audiences' => array_map(static fn (Audience $audience): array => $audience->toArray(), $this->getAudiences()),
+            'audience_contexts' => array_map(static fn (AudienceContext $audienceContext): array => $audienceContext->toArray(), $this->getAudienceContexts()),
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
             'goal' => $this->getGoal()?->value,
@@ -233,20 +233,21 @@ final class Brief implements Serializable
             }
         }
 
-        if (isset($data['audiences']) && is_array($data['audiences'])) {
-            $audiences = [];
-            foreach ($data['audiences'] as $row) {
-                if ($row instanceof Audience) {
-                    $audiences[] = $row;
+        $rawAudienceContexts = $data['audience_contexts'] ?? null;
+        if (is_array($rawAudienceContexts)) {
+            $audienceContexts = [];
+            foreach ($rawAudienceContexts as $row) {
+                if ($row instanceof AudienceContext) {
+                    $audienceContexts[] = $row;
 
                     continue;
                 }
 
                 if (is_array($row)) {
-                    $audiences[] = Audience::fromArray($row);
+                    $audienceContexts[] = (new AudienceContext())->loadFromArray($row);
                 }
             }
-            $brief->setAudiences($audiences);
+            $brief->setAudienceContexts($audienceContexts);
         }
 
         if (isset($data['title'])) {

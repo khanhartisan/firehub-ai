@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Contracts\Synthesizer;
 
-use App\Contracts\CommonData\Audience;
+use App\Contracts\CommonData\AudienceContext;
 use App\Contracts\DOM\Article as DOMArticle;
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
@@ -85,8 +85,8 @@ class SynthesizerDataObjectsTest extends TestCase
     {
         $brief = (new Brief)
             ->setTemporal(Temporal::TRENDING)
-            ->setAudiences([
-                (new Audience)
+            ->setAudienceContexts([
+                (new AudienceContext)
                     ->setName('Engineering leaders')
                     ->setLanguage(Language::EN),
             ])
@@ -103,8 +103,8 @@ class SynthesizerDataObjectsTest extends TestCase
 
         $restoredBrief = Brief::fromArray($briefPayload);
         $this->assertSame(Temporal::TRENDING, $restoredBrief->getTemporal());
-        $this->assertCount(1, $restoredBrief->getAudiences());
-        $this->assertSame('Engineering leaders', $restoredBrief->getAudiences()[0]->getName());
+        $this->assertCount(1, $restoredBrief->getAudienceContexts());
+        $this->assertSame('Engineering leaders', $restoredBrief->getAudienceContexts()[0]->getNameValue());
         $this->assertSame('AI weekly roundup', $restoredBrief->getTitle());
         $this->assertSame(ContentGoal::INFORM, $restoredBrief->getGoal());
         $this->assertSame(ContentVoice::AUTHORITATIVE, $restoredBrief->getVoice());
@@ -201,7 +201,7 @@ class SynthesizerDataObjectsTest extends TestCase
 
     public function test_audience_round_trip_serialization_and_normalization(): void
     {
-        $audience = (new Audience)
+        $audience = (new AudienceContext)
             ->setPriorityWeight(0.65)
             ->setName('SMB Operations Leads')
             ->setDescription('Leads juggling throughput and quality.')
@@ -216,22 +216,23 @@ class SynthesizerDataObjectsTest extends TestCase
             ->setFears(['Losing stakeholders trust']);
 
         $payload = $audience->toArray();
-        $this->assertSame(0.65, $payload['priority_weight']);
-        $this->assertSame('intermediate', $payload['knowledge_level']);
-        $this->assertSame('en', $payload['language']);
-        $this->assertSame(['US', 'CA'], $payload['countries']);
+        $this->assertSame('Audience priority weight between 0 and 1.', $payload['priority_weight']['description']);
+        $this->assertSame(0.65, $payload['priority_weight']['value']);
+        $this->assertSame('intermediate', $payload['knowledge_level']['value']);
+        $this->assertSame('en', $payload['language']['value']);
+        $this->assertSame(['US', 'CA'], $payload['countries']['value']);
 
-        $restored = Audience::fromArray($payload);
+        $restored = (new AudienceContext())->loadFromArray($payload);
         $this->assertSame($payload, $restored->toArray());
 
-        $legacy = Audience::fromArray([
-            'countries' => ['us', 'XX', Country::GB],
-            'knowledge_level' => 'advanced',
-            'language' => Language::FR,
-        ]);
-        $this->assertSame(['US', 'GB'], $legacy->toArray()['countries']);
-        $this->assertSame('advanced', $legacy->toArray()['knowledge_level']);
-        $this->assertSame('fr', $legacy->toArray()['language']);
+        $legacy = (new AudienceContext)
+            ->setCountries([Country::US, Country::GB])
+            ->setKnowledgeLevel(KnowledgeLevel::ADVANCED)
+            ->setLanguage(Language::FR);
+        $legacyPayload = $legacy->toArray();
+        $this->assertSame(['US', 'GB'], $legacyPayload['countries']['value']);
+        $this->assertSame('advanced', $legacyPayload['knowledge_level']['value']);
+        $this->assertSame('fr', $legacyPayload['language']['value']);
     }
 
     protected function makeIntent(): Intent

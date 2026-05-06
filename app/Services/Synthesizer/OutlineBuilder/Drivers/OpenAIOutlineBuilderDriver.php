@@ -120,7 +120,7 @@ PROMPT;
     {
         $itemSchema = [
             'type' => 'object',
-            'description' => 'One outline section containing a core point, writing guidelines, and optional nested sub-points.',
+            'description' => 'One outline section containing a core point, writing guidelines, and optional nested sub-items.',
             'properties' => [
                 'point' => $this->buildRelevantPointSchema(),
                 'guidelines' => [
@@ -128,9 +128,9 @@ PROMPT;
                     'description' => 'Actionable writing directives for this section (style, emphasis, structure, caveats).',
                     'items' => ['type' => 'string'],
                 ],
-                'sub_points' => [
+                'sub_items' => [
                     'type' => 'array',
-                    'description' => 'Supporting child points that should appear under this section.',
+                    'description' => 'Supporting child sections that should appear under this section.',
                     'maxItems' => $this->getMaxItems(),
                     'items' => $depth >= $this->getMaxDepth()
                         ? [
@@ -143,7 +143,7 @@ PROMPT;
                                     'description' => 'Actionable writing directives for this leaf section.',
                                     'items' => ['type' => 'string'],
                                 ],
-                                'sub_points' => [
+                                'sub_items' => [
                                     'type' => 'array',
                                     'description' => 'Must be empty at leaf depth.',
                                     'maxItems' => 0,
@@ -155,13 +155,13 @@ PROMPT;
                                     ],
                                 ],
                             ],
-                            'required' => ['point', 'guidelines', 'sub_points'],
+                            'required' => ['point', 'guidelines', 'sub_items'],
                             'additionalProperties' => false,
                         ]
                         : $this->buildItemSchema($depth + 1),
                 ],
             ],
-            'required' => ['point', 'guidelines', 'sub_points'],
+            'required' => ['point', 'guidelines', 'sub_items'],
             'additionalProperties' => false,
         ];
 
@@ -200,9 +200,9 @@ PROMPT;
                     'description' => 'Actionable writing directives for this section.',
                     'items' => ['type' => 'string'],
                 ],
-                'sub_points' => [
+                'sub_items' => [
                     'type' => 'array',
-                    'description' => 'Supporting child points for this section.',
+                    'description' => 'Supporting child sections for this section.',
                     'maxItems' => $this->getMaxItems(),
                     'items' => $depth >= $this->getMaxDepth()
                         ? [
@@ -215,7 +215,7 @@ PROMPT;
                                     'description' => 'Actionable writing directives for this leaf section.',
                                     'items' => ['type' => 'string'],
                                 ],
-                                'sub_points' => [
+                                'sub_items' => [
                                     'type' => 'array',
                                     'description' => 'Must be empty at leaf depth.',
                                     'maxItems' => 0,
@@ -227,13 +227,13 @@ PROMPT;
                                     ],
                                 ],
                             ],
-                            'required' => ['point', 'guidelines', 'sub_points'],
+                            'required' => ['point', 'guidelines', 'sub_items'],
                             'additionalProperties' => false,
                         ]
                         : $this->buildItemSchema($depth + 1),
                 ],
             ],
-            'required' => ['point', 'guidelines', 'sub_points'],
+            'required' => ['point', 'guidelines', 'sub_items'],
             'additionalProperties' => false,
         ];
 
@@ -269,7 +269,7 @@ PROMPT;
             $item = (new OutlineItem)
                 ->setPoint($point)
                 ->setGuidelines($this->normalizeGuidelines($row['guidelines'] ?? []))
-                ->setSubPoints($this->hydrateSubPoints($row['sub_points'] ?? []));
+                ->setSubItems($this->hydrateSubItems($row['sub_items'] ?? []));
 
             $items[] = $item;
         }
@@ -278,32 +278,38 @@ PROMPT;
     }
 
     /**
-     * @param  mixed  $rawSubPoints
-     * @return list<RelevantPoint>
+     * @param  mixed  $rawSubItems
+     * @return list<OutlineItem>
      */
-    protected function hydrateSubPoints(mixed $rawSubPoints): array
+    protected function hydrateSubItems(mixed $rawSubItems): array
     {
-        if (! is_array($rawSubPoints)) {
+        if (! is_array($rawSubItems)) {
             return [];
         }
 
-        $points = [];
-        foreach ($rawSubPoints as $entry) {
-            if (is_array($entry) && isset($entry['point']) && is_array($entry['point'])) {
-                $entry = $entry['point'];
-            }
-
+        $items = [];
+        foreach ($rawSubItems as $entry) {
             if (! is_array($entry)) {
                 continue;
             }
 
-            $point = RelevantPoint::fromArray($entry);
-            if (trim((string) ($point->getHeadline() ?? '')) !== '') {
-                $points[] = $point;
+            $rawPoint = $entry['point'] ?? null;
+            if (! is_array($rawPoint)) {
+                continue;
             }
+
+            $point = RelevantPoint::fromArray($rawPoint);
+            if (trim((string) ($point->getHeadline() ?? '')) === '') {
+                continue;
+            }
+
+            $items[] = (new OutlineItem)
+                ->setPoint($point)
+                ->setGuidelines($this->normalizeGuidelines($entry['guidelines'] ?? []))
+                ->setSubItems($this->hydrateSubItems($entry['sub_items'] ?? []));
         }
 
-        return $points;
+        return $items;
     }
 
     /**

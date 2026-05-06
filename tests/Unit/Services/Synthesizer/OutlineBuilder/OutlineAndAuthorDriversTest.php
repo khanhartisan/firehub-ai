@@ -302,13 +302,17 @@ class OutlineAndAuthorDriversTest extends TestCase
                         'rationale' => 'High value context for the audience.',
                     ],
                     'guidelines' => ['Keep sections concise', 'Lead with practical implications'],
-                    'sub_points' => [
+                    'sub_items' => [
                         [
-                            'headline' => 'Product launches',
-                            'description' => 'Highlight key launches.',
-                            'evidences' => ['Use bullet points'],
-                            'relevance' => 0.8,
-                            'rationale' => 'Directly supports the section objective.',
+                            'point' => [
+                                'headline' => 'Product launches',
+                                'description' => 'Highlight key launches.',
+                                'evidences' => ['Use bullet points'],
+                                'relevance' => 0.8,
+                                'rationale' => 'Directly supports the section objective.',
+                            ],
+                            'guidelines' => ['Group launches by audience impact'],
+                            'sub_items' => [],
                         ],
                     ],
                 ],
@@ -346,8 +350,8 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertCount(1, $outline->getItems());
         $this->assertSame('Market snapshot', $outline->getItems()[0]->getPoint()->getHeadline());
         $this->assertContains('Keep sections concise', $outline->getItems()[0]->getGuidelines());
-        $this->assertCount(1, $outline->getItems()[0]->getSubPoints());
-        $this->assertSame('Product launches', $outline->getItems()[0]->getSubPoints()[0]->getHeadline());
+        $this->assertCount(1, $outline->getItems()[0]->getSubItems());
+        $this->assertSame('Product launches', $outline->getItems()[0]->getSubItems()[0]->getPoint()->getHeadline());
     }
 
     public function test_openai_outline_builder_throws_when_client_not_configured(): void

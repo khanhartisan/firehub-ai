@@ -286,13 +286,9 @@ CTX;
                 ));
             }
 
-            $subPoints = $item->getSubPoints();
-            if ($subPoints !== []) {
-                $wrappedSubItems = array_map(
-                    static fn (\App\Contracts\Synthesizer\Researcher\RelevantPoint $subPoint): OutlineItem => (new OutlineItem)->setPoint($subPoint),
-                    $subPoints
-                );
-                $this->renderOutlineItems($wrappedSubItems, $depth + 1);
+            $subItems = $item->getSubItems();
+            if ($subItems !== []) {
+                $this->renderOutlineItems($subItems, $depth + 1);
             }
         }
     }

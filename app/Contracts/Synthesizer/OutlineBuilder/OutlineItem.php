@@ -7,7 +7,7 @@ use App\Contracts\Serializable;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 
 /**
- * One node in a synthesizer outline backed by a primary point and optional sub-points.
+ * One node in a synthesizer outline backed by a primary point and optional nested sub-items.
  */
 final class OutlineItem implements Serializable
 {
@@ -15,10 +15,8 @@ final class OutlineItem implements Serializable
 
     protected RelevantPoint $point;
 
-    /**
-     * @var RelevantPoint[]
-     */
-    protected array $subPoints = [];
+    /** @var OutlineItem[] */
+    protected array $subItems = [];
 
     /**
      * @var string[]
@@ -43,29 +41,29 @@ final class OutlineItem implements Serializable
     }
 
     /**
-     * @return RelevantPoint[]
+     * @return OutlineItem[]
      */
-    public function getSubPoints(): array
+    public function getSubItems(): array
     {
-        return $this->subPoints;
+        return $this->subItems;
     }
 
-    public function addSubPoint(RelevantPoint $point): static
+    public function addSubItem(OutlineItem $item): static
     {
-        $this->subPoints[] = $point;
+        $this->subItems[] = $item;
 
         return $this;
     }
 
     /**
-     * @param  RelevantPoint[]  $subPoints
+     * @param  OutlineItem[]  $subItems
      */
-    public function setSubPoints(array $subPoints): static
+    public function setSubItems(array $subItems): static
     {
-        $this->subPoints = [];
-        foreach ($subPoints as $point) {
-            if ($point instanceof RelevantPoint) {
-                $this->addSubPoint($point);
+        $this->subItems = [];
+        foreach ($subItems as $item) {
+            if ($item instanceof OutlineItem) {
+                $this->addSubItem($item);
             }
         }
 
@@ -112,7 +110,7 @@ final class OutlineItem implements Serializable
     {
         return [
             'point' => $this->getPoint()->toArray(),
-            'sub_points' => array_map(static fn (RelevantPoint $point) => $point->toArray(), $this->getSubPoints()),
+            'sub_items' => array_map(static fn (OutlineItem $item) => $item->toArray(), $this->getSubItems()),
             'guidelines' => $this->getGuidelines(),
         ];
     }
@@ -128,14 +126,14 @@ final class OutlineItem implements Serializable
             $item->setPoint(RelevantPoint::fromArray($data['point']));
         }
 
-        if (isset($data['sub_points']) && is_array($data['sub_points'])) {
-            $subPoints = [];
-            foreach ($data['sub_points'] as $row) {
+        if (isset($data['sub_items']) && is_array($data['sub_items'])) {
+            $subItems = [];
+            foreach ($data['sub_items'] as $row) {
                 if (is_array($row)) {
-                    $subPoints[] = RelevantPoint::fromArray($row);
+                    $subItems[] = OutlineItem::fromArray($row);
                 }
             }
-            $item->setSubPoints($subPoints);
+            $item->setSubItems($subItems);
         }
 
         if (isset($data['guidelines']) && is_array($data['guidelines'])) {

@@ -2,15 +2,18 @@
 
 namespace App\Contracts\Synthesizer\OutlineBuilder;
 
+use App\Concerns\AlwaysIdentifiable;
 use App\Concerns\Serializable as SerializableTrait;
+use App\Contracts\Identifiable;
 use App\Contracts\Serializable;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 
 /**
  * One node in a synthesizer outline backed by a primary point and optional nested sub-items.
  */
-final class OutlineItem implements Serializable
+final class OutlineItem implements Identifiable, Serializable
 {
+    use AlwaysIdentifiable;
     use SerializableTrait;
 
     protected RelevantPoint $point;
@@ -109,6 +112,7 @@ final class OutlineItem implements Serializable
     public function toArray(): array
     {
         return [
+            'identifier' => $this->getIdentifier(),
             'point' => $this->getPoint()->toArray(),
             'sub_items' => array_map(static fn (OutlineItem $item) => $item->toArray(), $this->getSubItems()),
             'guidelines' => $this->getGuidelines(),
@@ -121,6 +125,10 @@ final class OutlineItem implements Serializable
     public static function fromArray(array $data): static
     {
         $item = new static;
+
+        if (isset($data['identifier']) and is_string($data['identifier'])) {
+            $item->setIdentifier($data['identifier']);
+        }
 
         if (isset($data['point']) && is_array($data['point'])) {
             $item->setPoint(RelevantPoint::fromArray($data['point']));

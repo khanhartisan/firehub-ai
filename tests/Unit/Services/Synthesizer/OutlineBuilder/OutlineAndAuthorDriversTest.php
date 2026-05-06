@@ -6,13 +6,13 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\DOM\Article;
-use App\Contracts\Synthesizer\Author\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
-use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
-use App\Services\Synthesizer\Author\Drivers\OpenAIAuthorDriver;
+use App\Services\Synthesizer\Writer\Drivers\BasicWriterDriver;
+use App\Services\Synthesizer\Writer\Drivers\OpenAIWriterDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use Mockery;
@@ -44,7 +44,7 @@ class OutlineAndAuthorDriversTest extends TestCase
 
     public function test_author_driver_builds_markdown_sections_from_outline(): void
     {
-        $author = new BasicAuthorDriver;
+        $author = new BasicWriterDriver;
         $brief = (new Brief)
             ->setTitle('AI weekly')
             ->setDescription('Top developments this week.');
@@ -77,9 +77,9 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertStringContainsString('Use context &quot;tone&quot;: &quot;Be practical&quot;', $articleHtml);
     }
 
-    public function test_basic_author_driver_maps_illustration_results_to_dom_anchors(): void
+    public function test_basic_writer_driver_maps_illustration_results_to_dom_anchors(): void
     {
-        $author = new BasicAuthorDriver;
+        $author = new BasicWriterDriver;
         $brief = (new Brief)
             ->setTitle('AI weekly')
             ->setDescription('Top developments this week.');
@@ -115,7 +115,7 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertTrue($anchors[1]->isAfter());
     }
 
-    public function test_openai_author_driver_resolves_illustration_anchors_via_structured_response(): void
+    public function test_openai_writer_driver_resolves_illustration_anchors_via_structured_response(): void
     {
         $article = Article::fromArray([
             'identifier' => 'article-root',
@@ -174,7 +174,7 @@ class OutlineAndAuthorDriversTest extends TestCase
         $client = Mockery::mock(OpenAIClient::class);
         $client->shouldReceive('createResponse')->once()->andReturn($response);
 
-        $author = new OpenAIAuthorDriver($client, ['model' => 'gpt-4o-mini']);
+        $author = new OpenAIWriterDriver($client, ['model' => 'gpt-4o-mini']);
         $anchors = $author->getIllustrationAnchors($article, [$first, $second]);
 
         $this->assertCount(2, $anchors);
@@ -186,9 +186,9 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertFalse($anchors[1]->isAfter());
     }
 
-    public function test_openai_author_driver_throws_when_client_missing_for_illustration_anchors(): void
+    public function test_openai_writer_driver_throws_when_client_missing_for_illustration_anchors(): void
     {
-        $author = new OpenAIAuthorDriver;
+        $author = new OpenAIWriterDriver;
         $article = Article::fromArray([
             'identifier' => 'article-root',
             'type' => 'article',
@@ -209,7 +209,7 @@ class OutlineAndAuthorDriversTest extends TestCase
         $author->getIllustrationAnchors($article, [new IllustrationResult]);
     }
 
-    public function test_openai_author_driver_hydrates_article_from_structured_response(): void
+    public function test_openai_writer_driver_hydrates_article_from_structured_response(): void
     {
         $payload = json_encode([
             'title' => 'AI weekly',
@@ -265,7 +265,7 @@ class OutlineAndAuthorDriversTest extends TestCase
         $client = Mockery::mock(OpenAIClient::class);
         $client->shouldReceive('createResponse')->once()->andReturn($response);
 
-        $author = new OpenAIAuthorDriver($client, ['model' => 'gpt-4o-mini']);
+        $author = new OpenAIWriterDriver($client, ['model' => 'gpt-4o-mini']);
         $brief = (new Brief)
             ->setTitle('Fallback title')
             ->setDescription('Fallback excerpt');

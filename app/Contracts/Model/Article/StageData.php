@@ -6,7 +6,7 @@ use App\Concerns\Serializable;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Model\Article\StageData\IllustrationStageData;
 use App\Contracts\Model\Article\StageData\ResearchStageData;
-use App\Contracts\Synthesizer\Author\Draft;
+use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 

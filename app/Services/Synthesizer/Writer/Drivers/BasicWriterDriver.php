@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Services\Synthesizer\Author\Drivers;
+namespace App\Services\Synthesizer\Writer\Drivers;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
-use App\Contracts\Synthesizer\Author\Draft;
-use App\Contracts\Synthesizer\Author\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\Draft;
+use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
-use App\Services\Synthesizer\Author\AuthorService;
+use App\Services\Synthesizer\Writer\WriterService;
 
-class BasicAuthorDriver extends AuthorService
+class BasicWriterDriver extends WriterService
 {
     public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft
     {

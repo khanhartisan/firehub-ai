@@ -168,7 +168,7 @@ trait HandleIllustrationStage
             return true;
         }
 
-        $anchors = $this->synthesizer()->getAuthor()->getIllustrationAnchors($dom, $results);
+        $anchors = $this->synthesizer()->getWriter()->getIllustrationAnchors($dom, $results);
 
         $stageData->setIllustrationAnchors($anchors);
         $this->touchArticleQuietly();

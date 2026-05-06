@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Synthesizer\Author;
+namespace App\Contracts\Synthesizer\Writer;
 
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;

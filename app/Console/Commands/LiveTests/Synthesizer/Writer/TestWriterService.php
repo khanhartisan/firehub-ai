@@ -1,47 +1,47 @@
 <?php
 
-namespace App\Console\Commands\LiveTests\Synthesizer\Author;
+namespace App\Console\Commands\LiveTests\Synthesizer\Writer;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
-use App\Contracts\Synthesizer\Author\Author;
-use App\Contracts\Synthesizer\Author\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
+use App\Contracts\Synthesizer\Writer\Draft;
+use App\Contracts\Synthesizer\Writer\Writer;
 use App\Facades\Synthesizer;
-use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
-use App\Services\Synthesizer\Author\Drivers\OpenAIAuthorDriver;
+use App\Services\Synthesizer\Writer\Drivers\BasicWriterDriver;
+use App\Services\Synthesizer\Writer\Drivers\OpenAIWriterDriver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
-class TestAuthorService extends Command
+class TestWriterService extends Command
 {
-    protected $signature = 'live-test:synthesizer:test-author-service';
+    protected $signature = 'live-test:synthesizer:test-writer-service';
 
-    protected $description = 'Run an Author in isolation (draft) or load author from a synthesizer driver.';
+    protected $description = 'Run a Writer in isolation (draft) or load writer from a synthesizer driver.';
 
     public function handle(): int
     {
-        $resolution = $this->resolveAuthor();
+        $resolution = $this->resolveWriter();
         if ($resolution === null) {
             return self::FAILURE;
         }
 
-        [$author, $sourceLabel] = $resolution;
+        [$writer, $sourceLabel] = $resolution;
         $brief = $this->buildBrief();
         $outline = $this->buildOutline();
         $context = $this->buildSemanticContext();
 
         $this->newLine();
-        $this->info('Author: '.Str::afterLast($author::class, '\\').' | '.$sourceLabel);
+        $this->info('Writer: '.Str::afterLast($writer::class, '\\').' | '.$sourceLabel);
         $this->line('-----');
 
         try {
-            $draft = $this->timedCall('draft', fn () => $author->draft($brief, $outline, $context));
+            $draft = $this->timedCall('draft', fn () => $writer->draft($brief, $outline, $context));
             $this->displayDraft($draft);
 
             return self::SUCCESS;
@@ -56,15 +56,15 @@ class TestAuthorService extends Command
     }
 
     /**
-     * @return array{0: Author, 1: string}|null
+     * @return array{0: Writer, 1: string}|null
      */
-    private function resolveAuthor(): ?array
+    private function resolveWriter(): ?array
     {
         $mode = $this->choice(
-            'How should the author be loaded?',
+            'How should the writer be loaded?',
             [
-                'Direct: construct author only (no Synthesizer)',
-                'From synthesizer driver: Author (full wiring)',
+                'Direct: construct writer only (no Synthesizer)',
+                'From synthesizer driver: Writer (full wiring)',
             ],
             0
         );
@@ -73,19 +73,19 @@ class TestAuthorService extends Command
             $impl = $this->choice(
                 'Which implementation?',
                 [
-                    'BasicAuthorDriver — deterministic/local',
-                    'OpenAIAuthorDriver — OpenAI Responses API (uses synthesizer.openai_author config)',
+                    'BasicWriterDriver - deterministic/local',
+                    'OpenAIWriterDriver - OpenAI Responses API (uses synthesizer.openai_author config)',
                 ],
                 1
             );
 
             if (str_contains($impl, 'Basic')) {
-                return [new BasicAuthorDriver, 'direct · BasicAuthorDriver'];
+                return [new BasicWriterDriver, 'direct - BasicWriterDriver'];
             }
 
             return [
-                $this->laravel->make(OpenAIAuthorDriver::class),
-                'direct · OpenAIAuthorDriver (container)',
+                $this->laravel->make(OpenAIWriterDriver::class),
+                'direct - OpenAIWriterDriver (container)',
             ];
         }
 
@@ -103,7 +103,7 @@ class TestAuthorService extends Command
             $defaultDriverIndex === false ? 0 : $defaultDriverIndex
         );
 
-        return [Synthesizer::driver($driverName)->getAuthor(), "synthesizer driver «{$driverName}» · Author"];
+        return [Synthesizer::driver($driverName)->getWriter(), "synthesizer driver «{$driverName}» - Writer"];
     }
 
     private function buildBrief(): Brief
@@ -169,7 +169,7 @@ Audience expects actionable onboarding frameworks, KPI examples, and risk contro
 Priority outcomes: faster activation, reduced time-to-value, improved trial-to-paid conversion.
 CTX;
 
-        $defaultAuthorFocus = 'Keep examples concrete and include one compact checklist.';
+        $defaultWriterFocus = 'Keep examples concrete and include one compact checklist.';
 
         $context = new SemanticContext;
         $context->set(
@@ -183,9 +183,9 @@ CTX;
             ['meta' => ['value' => ['raw_text' => (string) $this->ask('Article context', $defaultArticleContext)]]]
         );
         $context->set(
-            'author_focus',
-            'Additional authoring requirements.',
-            (string) $this->ask('Author focus', $defaultAuthorFocus)
+            'writer_focus',
+            'Additional writing requirements.',
+            (string) $this->ask('Writer focus', $defaultWriterFocus)
         );
 
         return $context;
@@ -200,7 +200,7 @@ CTX;
     private function timedCall(string $label, callable $callback): mixed
     {
         $start = microtime(true);
-        $this->info("Calling {$label}…");
+        $this->info("Calling {$label}...");
         $result = $callback();
         $this->info(sprintf('Processing time (%s): %.3f s', $label, microtime(true) - $start));
         $this->line('-----');

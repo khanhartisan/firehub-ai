@@ -5,7 +5,7 @@ namespace Tests\Unit\Models;
 use App\Contracts\DOM\Article as DOMArticle;
 use App\Contracts\Filesystem\File;
 use App\Contracts\Model\Article\IllustrationData;
-use App\Contracts\Synthesizer\Author\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Contracts\Synthesizer\Illustration\IllustrationContext;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Models\Article;

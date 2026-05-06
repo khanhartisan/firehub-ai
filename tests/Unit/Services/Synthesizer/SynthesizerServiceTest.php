@@ -4,8 +4,8 @@ namespace Tests\Unit\Services\Synthesizer;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
-use App\Contracts\Synthesizer\Author\Author;
-use App\Contracts\Synthesizer\Author\Draft;
+use App\Contracts\Synthesizer\Writer\Writer;
+use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
@@ -37,7 +37,7 @@ class SynthesizerServiceTest extends TestCase
         $researcherA = $this->makeResearcher();
         $briefBuilderA = $this->makeBriefBuilder();
         $outlineBuilderA = $this->makeOutlineBuilder();
-        $authorA = $this->makeAuthor();
+        $writerA = $this->makeWriter();
         $illustrationDirectorA = $this->makeIllustrationDirector();
         $illustratorA = $this->makeIllustrator();
         $illustratorB = $this->makeIllustrator();
@@ -47,7 +47,7 @@ class SynthesizerServiceTest extends TestCase
             researcher: $researcherA,
             briefBuilder: $briefBuilderA,
             outlineBuilder: $outlineBuilderA,
-            author: $authorA,
+            writer: $writerA,
             illustrationDirector: $illustrationDirectorA,
             illustrators: [$illustratorA],
         );
@@ -56,7 +56,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($researcherA, $service->getResearcher());
         $this->assertSame($briefBuilderA, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderA, $service->getOutlineBuilder());
-        $this->assertSame($authorA, $service->getAuthor());
+        $this->assertSame($writerA, $service->getWriter());
         $this->assertSame($illustrationDirectorA, $service->getIllustrationDirector());
         $this->assertSame([$illustratorA], $service->getIllustrators());
 
@@ -64,14 +64,14 @@ class SynthesizerServiceTest extends TestCase
         $researcherB = $this->makeResearcher();
         $briefBuilderB = $this->makeBriefBuilder();
         $outlineBuilderB = $this->makeOutlineBuilder();
-        $authorB = $this->makeAuthor();
+        $writerB = $this->makeWriter();
         $illustrationDirectorB = $this->makeIllustrationDirector();
 
         $this->assertSame($service, $service->setIdeaForge($ideaForgeB));
         $this->assertSame($service, $service->setResearcher($researcherB));
         $this->assertSame($service, $service->setBriefBuilder($briefBuilderB));
         $this->assertSame($service, $service->setOutlineBuilder($outlineBuilderB));
-        $this->assertSame($service, $service->setAuthor($authorB));
+        $this->assertSame($service, $service->setWriter($writerB));
         $this->assertSame($service, $service->setIllustrationDirector($illustrationDirectorB));
         $this->assertSame($service, $service->setIllustrators([$illustratorB, new \stdClass()]));
 
@@ -79,7 +79,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($researcherB, $service->getResearcher());
         $this->assertSame($briefBuilderB, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderB, $service->getOutlineBuilder());
-        $this->assertSame($authorB, $service->getAuthor());
+        $this->assertSame($writerB, $service->getWriter());
         $this->assertSame($illustrationDirectorB, $service->getIllustrationDirector());
         $this->assertSame([$illustratorB], $service->getIllustrators());
     }
@@ -187,9 +187,9 @@ class SynthesizerServiceTest extends TestCase
         };
     }
 
-    protected function makeAuthor(): Author
+    protected function makeWriter(): Writer
     {
-        return new class implements Author
+        return new class implements Writer
         {
             public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft
             {

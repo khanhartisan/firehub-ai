@@ -1,7 +1,7 @@
 <?php
 
-use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
-use App\Services\Synthesizer\Author\Drivers\OpenAIAuthorDriver;
+use App\Services\Synthesizer\Writer\Drivers\BasicWriterDriver;
+use App\Services\Synthesizer\Writer\Drivers\OpenAIWriterDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
@@ -75,7 +75,7 @@ return [
                 'driver' => BasicOutlineBuilderDriver::class,
             ],
             'author' => [
-                'driver' => BasicAuthorDriver::class,
+                'driver' => BasicWriterDriver::class,
             ],
             'illustration' => [
                 'director' => BasicDirectorDriver::class,
@@ -112,7 +112,7 @@ return [
                 'driver' => OpenAIOutlineBuilderDriver::class,
             ],
             'author' => [
-                'driver' => OpenAIAuthorDriver::class,
+                'driver' => OpenAIWriterDriver::class,
             ],
             'illustration' => [
                 'director' => OpenAIDirectorDriver::class,
@@ -219,7 +219,7 @@ return [
     | OpenAI author
     |--------------------------------------------------------------------------
     |
-    | Used by {@see OpenAIAuthorDriver} (synthesizer driver "openai").
+    | Used by {@see OpenAIWriterDriver} (synthesizer driver "openai").
     |
     */
 

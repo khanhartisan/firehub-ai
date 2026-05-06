@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static \App\Contracts\Synthesizer\BriefBuilder\BriefBuilder getBriefBuilder()
  * @method static \App\Contracts\Synthesizer\Synthesizer setOutlineBuilder(\App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder $builder)
  * @method static \App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder getOutlineBuilder()
- * @method static \App\Contracts\Synthesizer\Synthesizer setAuthor(\App\Contracts\Synthesizer\Author\Author $author)
- * @method static \App\Contracts\Synthesizer\Author\Author getAuthor()
+ * @method static \App\Contracts\Synthesizer\Synthesizer setWriter(\App\Contracts\Synthesizer\Writer\Writer $writer)
+ * @method static \App\Contracts\Synthesizer\Writer\Writer getWriter()
  * @method static \App\Contracts\Synthesizer\Synthesizer driver(string|null $driver = null)
  *
  * @see \App\Services\Synthesizer\SynthesizerManager

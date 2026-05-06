@@ -5,7 +5,7 @@ namespace App\Contracts\Model\Article\StageData;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Serializable;
 use App\Contracts\Model\Article\StageData\IllustrationStageData\IllustrationTask;
-use App\Contracts\Synthesizer\Author\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Contracts\Synthesizer\Illustration\IllustrationContext;
 use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;

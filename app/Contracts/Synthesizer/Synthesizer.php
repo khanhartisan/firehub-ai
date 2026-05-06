@@ -2,7 +2,7 @@
 
 namespace App\Contracts\Synthesizer;
 
-use App\Contracts\Synthesizer\Author\Author;
+use App\Contracts\Synthesizer\Writer\Writer;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
 use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
 use App\Contracts\Synthesizer\Illustration\Director;
@@ -28,9 +28,9 @@ interface Synthesizer
 
     public function getOutlineBuilder(): OutlineBuilder;
 
-    public function setAuthor(Author $author): static;
+    public function setWriter(Writer $writer): static;
 
-    public function getAuthor(): Author;
+    public function getWriter(): Writer;
 
     public function setIllustrationDirector(Director $director): static;
 

@@ -24,7 +24,7 @@ trait HandleDraftStage
         }
 
         $draft = $this->synthesizer()
-            ->getAuthor()
+            ->getWriter()
             ->draft($brief, $outline, $this->buildSemanticContext());
 
         $this->getStageData()->setDraft($draft);

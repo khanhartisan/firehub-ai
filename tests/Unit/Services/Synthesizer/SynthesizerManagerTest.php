@@ -3,12 +3,12 @@
 namespace Tests\Unit\Services\Synthesizer;
 
 use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\Synthesizer\Author\Draft;
+use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Facades\Synthesizer as SynthesizerFacade;
-use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
-use App\Services\Synthesizer\Author\Drivers\OpenAIAuthorDriver;
+use App\Services\Synthesizer\Writer\Drivers\BasicWriterDriver;
+use App\Services\Synthesizer\Writer\Drivers\OpenAIWriterDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
@@ -52,7 +52,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(BasicResearcherDriver::class, $driver->getResearcher());
         $this->assertInstanceOf(BasicBriefBuilderDriver::class, $driver->getBriefBuilder());
         $this->assertInstanceOf(BasicOutlineBuilderDriver::class, $driver->getOutlineBuilder());
-        $this->assertInstanceOf(BasicAuthorDriver::class, $driver->getAuthor());
+        $this->assertInstanceOf(BasicWriterDriver::class, $driver->getWriter());
         $this->assertInstanceOf(BasicDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertNotEmpty($driver->getIllustrators());
         $this->assertInstanceOf(BasicIllustratorDriver::class, $driver->getIllustrators()[0]);
@@ -98,7 +98,7 @@ class SynthesizerManagerTest extends TestCase
             'Keep tone practical and concise.'
         );
         $outline = $driver->getOutlineBuilder()->outline($brief, $outlineContext);
-        $draft = $driver->getAuthor()->draft($brief, $outline, $authorContext);
+        $draft = $driver->getWriter()->draft($brief, $outline, $authorContext);
 
         $this->assertInstanceOf(Brief::class, $brief);
         $this->assertInstanceOf(Outline::class, $outline);
@@ -129,7 +129,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIIdeaPickerDriver::class, $ideaForge->getIdeaPicker());
         $this->assertInstanceOf(OpenAIResearcherDriver::class, $driver->getResearcher());
         $this->assertInstanceOf(OpenAIOutlineBuilderDriver::class, $driver->getOutlineBuilder());
-        $this->assertInstanceOf(OpenAIAuthorDriver::class, $driver->getAuthor());
+        $this->assertInstanceOf(OpenAIWriterDriver::class, $driver->getWriter());
         $this->assertInstanceOf(OpenAIDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertNotEmpty($driver->getIllustrators());
         $this->assertInstanceOf(OpenAIIllustratorDriver::class, $driver->getIllustrators()[0]);

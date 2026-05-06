@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Synthesizer\Author;
+namespace App\Contracts\Synthesizer\Writer;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
@@ -8,7 +8,7 @@ use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 
-interface Author
+interface Writer
 {
     public function draft(Brief $brief,
                           Outline $outline,

@@ -8,7 +8,7 @@ use App\Contracts\DOM\ElementType;
 use App\Contracts\Model\Article\Context as ArticleContext;
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Client\Context as ClientContext;
-use App\Contracts\Synthesizer\Author\Draft;
+use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;

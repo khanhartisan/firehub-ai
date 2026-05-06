@@ -2,7 +2,7 @@
 
 namespace App\Services\Synthesizer;
 
-use App\Contracts\Synthesizer\Author\Author;
+use App\Contracts\Synthesizer\Writer\Writer;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
 use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
 use App\Contracts\Synthesizer\Illustration\Director;
@@ -18,7 +18,7 @@ class SynthesizerService implements Synthesizer
         protected Researcher $researcher,
         protected BriefBuilder $briefBuilder,
         protected OutlineBuilder $outlineBuilder,
-        protected Author $author,
+        protected Writer $writer,
         protected Director $illustrationDirector,
         protected array $illustrators = [],
     ) {
@@ -72,16 +72,16 @@ class SynthesizerService implements Synthesizer
         return $this->outlineBuilder;
     }
 
-    public function setAuthor(Author $author): static
+    public function setWriter(Writer $writer): static
     {
-        $this->author = $author;
+        $this->writer = $writer;
 
         return $this;
     }
 
-    public function getAuthor(): Author
+    public function getWriter(): Writer
     {
-        return $this->author;
+        return $this->writer;
     }
 
     public function setIllustrationDirector(Director $director): static

@@ -4,7 +4,7 @@ namespace App\Services\Synthesizer;
 
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\Synthesizer as SynthesizerContract;
-use App\Services\Synthesizer\Author\Drivers\BasicAuthorDriver;
+use App\Services\Synthesizer\Writer\Drivers\BasicWriterDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
@@ -65,8 +65,8 @@ class SynthesizerManager extends Manager
             $driverConfig['outline_builder']['driver'] ?? BasicOutlineBuilderDriver::class
         );
 
-        $author = $this->container->make(
-            $driverConfig['author']['driver'] ?? BasicAuthorDriver::class
+        $writer = $this->container->make(
+            $driverConfig['author']['driver'] ?? BasicWriterDriver::class
         );
 
         $illustrationDirector = $this->container->make(
@@ -85,7 +85,7 @@ class SynthesizerManager extends Manager
                 'researcher' => $researcher,
                 'briefBuilder' => $briefBuilder,
                 'outlineBuilder' => $outlineBuilder,
-                'author' => $author,
+                'writer' => $writer,
                 'illustrationDirector' => $illustrationDirector,
                 'illustrators' => $illustrators,
             ]

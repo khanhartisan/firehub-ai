@@ -3,7 +3,7 @@
 namespace App\Contracts\Model\Article;
 
 use App\Concerns\Serializable;
-use App\Contracts\Synthesizer\Author\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 
 final class IllustrationData implements \App\Contracts\Serializable

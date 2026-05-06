@@ -7,7 +7,7 @@ use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
 use App\Contracts\Filesystem\File;
 use App\Contracts\Model\Article\IllustrationData;
-use App\Contracts\Synthesizer\Author\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;

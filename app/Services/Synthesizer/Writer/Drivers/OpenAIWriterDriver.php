@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Synthesizer\Author\Drivers;
+namespace App\Services\Synthesizer\Writer\Drivers;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
@@ -10,15 +10,15 @@ use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
-use App\Contracts\Synthesizer\Author\Draft;
-use App\Contracts\Synthesizer\Author\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\Draft;
+use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
-use App\Services\Synthesizer\Author\AuthorService;
+use App\Services\Synthesizer\Writer\WriterService;
 use RuntimeException;
 
-class OpenAIAuthorDriver extends AuthorService
+class OpenAIWriterDriver extends WriterService
 {
     protected ?OpenAIClient $openAIClient;
 

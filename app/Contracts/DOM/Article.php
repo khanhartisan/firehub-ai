@@ -63,7 +63,8 @@ class Article extends Element implements Illustratable
     {
         $htmlConverter = static::$htmlConverter ??= (function () {
             $converter = new HtmlConverter([
-                'strip_tags' => true
+                'strip_tags' => true,
+                'header_style' => 'atx'
             ]);
             $converter->getEnvironment()->addConverter(new TableConverter());
             return $converter;

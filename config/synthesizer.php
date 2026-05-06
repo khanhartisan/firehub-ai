@@ -96,7 +96,7 @@ return [
                     ],
                     [
                         'class' => OpenAIIdeaExpansionAdvisorDriver::class,
-                        'weight' => 2.0,
+                        'weight' => 1.0,
                     ],
                 ],
                 'auditor' => OpenAIIdeaAuditorDriver::class,

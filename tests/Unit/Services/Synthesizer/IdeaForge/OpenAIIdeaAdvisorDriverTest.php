@@ -69,7 +69,7 @@ class OpenAIIdeaAdvisorDriverTest extends TestCase
                     'title' => 'Weekly digest',
                     'description' => 'A concise recap of the week.',
                     'temporal' => 'topical',
-                    'intent_type' => 1,
+                    'intent_type' => 'informational',
                     'confidence' => 0.82,
                     'reason' => 'Matches informational intent.',
                 ],

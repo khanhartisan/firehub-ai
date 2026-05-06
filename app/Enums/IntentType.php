@@ -4,25 +4,25 @@ namespace App\Enums;
 
 use App\Contracts\DescribableEnum;
 
-enum IntentType: int implements DescribableEnum
+enum IntentType: string implements DescribableEnum
 {
     // Find information about something
-    case INFORMATIONAL = 1;
+    case INFORMATIONAL = 'informational';
 
     // Find a place to purchase a product or service
-    case TRANSACTIONAL = 2;
+    case TRANSACTIONAL = 'transactional';
 
     // Brand search or finding a specific website
-    case NAVIGATIONAL = 3;
+    case NAVIGATIONAL = 'navigational';
 
     // Investigating a product or service before making a purchase
-    case COMMERCIAL = 4;
+    case COMMERCIAL = 'commercial';
 
     // Find a local business or service
-    case LOCAL = 5;
+    case LOCAL = 'local';
 
     // Unknown
-    case UNKNOWN = 6;
+    case UNKNOWN = 'unknown';
 
     public static function describe(DescribableEnum $enum): string
     {

@@ -74,7 +74,7 @@ final class IntentTypeSuggestion implements Serializable
         }
 
         $raw = $data['intent_type'];
-        $intentType = $raw instanceof IntentType ? $raw : (is_numeric($raw) ? IntentType::tryFrom((int) $raw) : null);
+        $intentType = $raw instanceof IntentType ? $raw : (is_string($raw) ? IntentType::tryFrom($raw) : null);
         if (! $intentType instanceof IntentType) {
             throw new \Exception('intent_type is invalid');
         }

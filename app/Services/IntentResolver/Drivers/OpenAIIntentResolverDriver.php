@@ -643,7 +643,7 @@ PROMPT;
     {
         $typeLines = [];
         foreach (IntentType::cases() as $type) {
-            $typeLines[] = sprintf('- %d: %s', $type->value, IntentType::describe($type));
+            $typeLines[] = sprintf('- %s: %s', $type->value, IntentType::describe($type));
         }
         $typeGuide = implode("\n", $typeLines);
 
@@ -656,7 +656,7 @@ Return one or more distinct intents in "intentable_intents". Each row is a full 
 
 If the content clearly satisfies only one search intent, return a single row. When the content genuinely fits multiple distinct user goals (e.g. informational plus commercial), include multiple rows with appropriate relevances.
 
-Classify each intent using one or more intent types (use the numeric codes below). You may assign short human-readable title and description fields summarizing each intent.
+Classify each intent using one or more intent types (use the string values below). You may assign short human-readable title and description fields summarizing each intent.
 
 Only return different intentable_intents if the intents are clearly different and should be separated. If the intents are relevant and can be merged, you should return only one intentable_intent that represent the relevant intents.
 
@@ -677,7 +677,7 @@ Guidelines for the Description:
 - Identify the target audience's goal.
 - Tone: Use professional, analytical, and industry-standard terminology (e.g., "high-quality evaluation," "synthesizing critical insights," "navigating selection").
 
-Intent type codes:
+Intent type values:
 {$typeGuide}
 
 Rules:
@@ -685,7 +685,7 @@ Rules:
 - "title" and "description" must be written in the same language as "language" for that intent.
 - "temporal": temporal nature of the intent as one of the enum values in schema, or null if no temporal framing is implied.
 - "types" may include multiple values when the content clearly fits more than one intent.
-- Use "unknown" (6) only when the intent cannot be determined.
+- Use "unknown" only when the intent cannot be determined.
 - Prefer specific intents over UNKNOWN when possible.
 
 Content:
@@ -738,7 +738,7 @@ PROMPT;
     protected function intentDataJsonSchemaObject(): array
     {
         $intentValues = array_map(
-            static fn (IntentType $type): int => $type->value,
+            static fn (IntentType $type): string => $type->value,
             IntentType::cases()
         );
 
@@ -785,7 +785,7 @@ PROMPT;
                     'type' => 'array',
                     'description' => 'Search intent classification codes',
                     'items' => [
-                        'type' => 'integer',
+                        'type' => 'string',
                         'enum' => $intentValues,
                     ],
                     'minItems' => 0,

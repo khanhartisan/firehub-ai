@@ -103,7 +103,7 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
             if (! is_array($row)) {
                 continue;
             }
-            $intentType = isset($row['intent_type']) ? IntentType::tryFrom((int) $row['intent_type']) : null;
+            $intentType = isset($row['intent_type']) ? IntentType::tryFrom((string) $row['intent_type']) : null;
             if (! $intentType instanceof IntentType) {
                 continue;
             }
@@ -162,7 +162,7 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
             }
 
             $temporal = isset($row['temporal']) ? Temporal::tryFrom((string) $row['temporal']) : null;
-            $intentType = isset($row['intent_type']) ? IntentType::tryFrom((int) $row['intent_type']) : null;
+            $intentType = isset($row['intent_type']) ? IntentType::tryFrom((string) $row['intent_type']) : null;
             if (! $temporal instanceof Temporal || ! $intentType instanceof IntentType) {
                 continue;
             }
@@ -297,14 +297,14 @@ PROMPT;
         $contextJson = $this->encodeContext($context);
         $lines = [];
         foreach (IntentType::cases() as $case) {
-            $lines[] = sprintf('- %d: %s', $case->value, IntentType::describe($case));
+            $lines[] = sprintf('- %s: %s', $case->value, IntentType::describe($case));
         }
         $catalog = implode("\n", $lines);
 
         return <<<PROMPT
 You help plan search-intent coverage for content. Given a client id and context, suggest ranked search intent types for the next article idea.
 
-Allowed intent_type integers (use these exact numbers in output):
+Allowed intent_type values (use these exact strings in output):
 {$catalog}
 
 Client id: {$clientId}
@@ -414,7 +414,7 @@ PROMPT;
                         'type' => 'object',
                         'properties' => [
                             'intent_type' => [
-                                'type' => 'integer',
+                                'type' => 'string',
                                 'enum' => $enum,
                             ],
                             'confidence' => ['type' => 'number', 'minimum' => 0, 'maximum' => 1],
@@ -455,7 +455,7 @@ PROMPT;
                                 'enum' => $temporalEnum,
                             ],
                             'intent_type' => [
-                                'type' => 'integer',
+                                'type' => 'string',
                                 'enum' => $intentEnum,
                             ],
                             'confidence' => ['type' => 'number', 'minimum' => 0, 'maximum' => 1],

@@ -102,7 +102,7 @@ final class Intent implements Serializable
     /**
      * {@inheritdoc}
      *
-     * @return array{title: string|null, description: string|null, language: string|null, temporal: string|null, types: list<int>}
+     * @return array{title: string|null, description: string|null, language: string|null, temporal: string|null, types: list<string>}
      */
     public function toArray(): array
     {
@@ -112,7 +112,7 @@ final class Intent implements Serializable
             'language' => $this->language?->value,
             'temporal' => $this->temporal?->value,
             'types' => array_map(
-                static fn (IntentType $type): int => $type->value,
+                static fn (IntentType $type): string => $type->value,
                 $this->types,
             ),
         ];
@@ -167,10 +167,8 @@ final class Intent implements Serializable
 
                     continue;
                 }
-                if (is_int($value)) {
+                if (is_string($value)) {
                     $type = IntentType::tryFrom($value);
-                } elseif (is_string($value) && ctype_digit($value)) {
-                    $type = IntentType::tryFrom((int) $value);
                 } else {
                     continue;
                 }

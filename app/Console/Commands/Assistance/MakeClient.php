@@ -2,13 +2,10 @@
 
 namespace App\Console\Commands\Assistance;
 
-use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\CommonData\Audience;
+use App\Contracts\CommonData\AudienceContext;
 use App\Contracts\Model\Client\Context as ClientContext;
-use App\Contracts\OpenAI\ResponseInput;
-use App\Contracts\OpenAI\ResponseOptions;
+use App\Facades\SemanticContextBuilder;
 use App\Enums\Language;
-use App\Facades\OpenAI;
 use App\Models\Client;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -20,53 +17,58 @@ use RuntimeException;
 class MakeClient extends Command
 {
     protected const int MAX_ROUNDS = 10;
+    protected const int MAX_AUDIENCE_ROUNDS = 6;
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $driver = $this->chooseDriver();
-        if ($driver === null) {
+        $builderDriver = $this->chooseBuilderDriver();
+        if ($builderDriver === null) {
             return self::FAILURE;
         }
-
-        $model = $this->ask(
-            'Model',
-            (string) config("openai.drivers.{$driver}.default_model", 'gpt-4o')
-        );
-        $model = is_string($model) && trim($model) !== '' ? trim($model) : 'gpt-4o';
 
         $seed = (string) $this->ask(
             'Describe the publishing channel brand you want to create',
             'A personal blog of a 25 yo dude named John traveling around Japan'
         );
 
-        $context = new SemanticContext;
-        $draft = $this->emptyDraftData();
-        $conversation = [
-            [
-                'role' => 'user',
-                'text' => $seed,
-            ],
-        ];
+        $baseContext = (new ClientContext())->withEmptyFields();
+        $builder = SemanticContextBuilder::driver($builderDriver)
+            ->setContext($baseContext)
+            ->start($seed);
 
         for ($round = 1; $round <= self::MAX_ROUNDS; $round++) {
-            $this->syncContext($context, $draft, $conversation);
             $this->newLine();
             $this->info("Round {$round}/".self::MAX_ROUNDS);
 
-            $ai = $this->runAssistant($driver, $model, $context, $conversation);
-            $draft = $this->mergeDraft($draft, $ai['updates'] ?? []);
+            if (! $builder->getContext() instanceof ClientContext) {
+                throw new RuntimeException('Builder context must remain a ClientContext during client phase.');
+            }
 
-            $this->line('');
-            $this->comment('Assistant');
-            $this->line((string) ($ai['assistant_message'] ?? ''));
-            $this->displayDraftSummary($draft);
+            $assistantMessage = $this->latestAssistantMessage($builder->getConversation());
+            if ($assistantMessage !== null) {
+                $this->line('');
+                $this->comment('Assistant');
+                $this->line($assistantMessage);
+            }
 
-            if (($ai['is_ready'] ?? false) === true) {
+            $this->displayContextSummary($builder->getContext());
+
+            if ($builder->isFulfilled()) {
                 try {
-                    $client = $this->createClientFromDraft($draft);
+                    $audienceContexts = $this->runAudienceBuildPhase(
+                        $builderDriver,
+                        $builder->getConversation(),
+                        $builder->getContext(),
+                        is_array($builder->getContext()->getAudienceContextsValue() ?? null)
+                            ? $builder->getContext()->getAudienceContextsValue()
+                            : []
+                    );
+                    $referenceId = $this->normalizeOptionalString((string) $this->ask('Reference ID (optional)', ''));
+                    $languageInput = $this->normalizeOptionalString((string) $this->ask('Language code (optional, e.g. en)', ''));
+                    $client = $this->createClientFromContext($builder->getContext(), $audienceContexts, $referenceId, $languageInput);
                     $this->newLine();
                     $this->info("Client created successfully: {$client->id}");
                     $this->table(
@@ -81,17 +83,15 @@ class MakeClient extends Command
 
                     return self::SUCCESS;
                 } catch (\Throwable $e) {
-                    $context->set('creation_error', 'Last creation error', $e->getMessage());
-                    $conversation[] = [
-                        'role' => 'user',
-                        'text' => 'Creation failed: '.$e->getMessage().'. Please refine the data and ask me for missing/fix inputs.',
-                    ];
                     $this->error('Creation failed: '.$e->getMessage());
+                    $builder->continueWith(
+                        'Creation failed: '.$e->getMessage().'. Please refine data and ask concise follow-up questions.'
+                    );
                     continue;
                 }
             }
 
-            $questions = is_array($ai['questions'] ?? null) ? $ai['questions'] : [];
+            $questions = $builder->getPendingQuestions();
             if ($questions !== []) {
                 $this->line('');
                 $this->comment('Questions');
@@ -107,10 +107,7 @@ class MakeClient extends Command
                 return self::FAILURE;
             }
 
-            $conversation[] = [
-                'role' => 'user',
-                'text' => $reply,
-            ];
+            $builder->continueWith($reply);
         }
 
         $this->error('Stopped: maximum rounds reached before successful client creation.');
@@ -118,379 +115,114 @@ class MakeClient extends Command
         return self::FAILURE;
     }
 
-    private function chooseDriver(): ?string
+    private function chooseBuilderDriver(): ?string
     {
-        $drivers = array_keys((array) config('openai.drivers', []));
+        $drivers = array_keys((array) config('semantic_context_builder.drivers', []));
         if ($drivers === []) {
-            $this->error('No OpenAI drivers configured.');
+            $this->error('No semantic context builder drivers configured.');
 
             return null;
         }
 
-        $defaultDriver = (string) config('openai.default', $drivers[0]);
+        $defaultDriver = (string) config('semantic_context_builder.default', $drivers[0]);
         $defaultIndex = array_search($defaultDriver, $drivers, true);
         if (! is_int($defaultIndex)) {
             $defaultIndex = 0;
         }
 
-        return $this->choice('Choose OpenAI driver', $drivers, $defaultIndex);
+        return $this->choice('Choose semantic context builder driver', $drivers, $defaultIndex);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function runAssistant(string $driver, string $model, SemanticContext $context, array $conversation): array
+    private function latestAssistantMessage(array $conversation): ?string
     {
-        $payload = [
-            'context' => $context->toArray(),
-            'conversation' => $conversation,
-        ];
-        $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        if (! is_string($json)) {
-            throw new RuntimeException('Unable to encode assistant input payload.');
-        }
+        for ($i = count($conversation) - 1; $i >= 0; $i--) {
+            $turn = $conversation[$i] ?? null;
+            if (! is_array($turn) || ($turn['role'] ?? null) !== 'assistant') {
+                continue;
+            }
 
-        $prompt = <<<PROMPT
-You are helping a user create a Client record.
-Here "Client" means a publishing channel brand entity.
-
-Goals:
-1) Collaboratively gather and refine publishing channel brand data.
-2) Propose structured updates to the draft data.
-3) Ask concise follow-up questions for missing/unclear fields.
-4) Set is_ready=true only when data is sufficiently complete and consistent for creation.
-
-Draft fields:
-- reference_id (optional string)
-- language (optional BCP47-like code, e.g. en, vi, fr)
-- name (recommended unique publishing channel brand name)
-- description (editorial channel summary)
-- tone_of_voice (editorial voice)
-- industry (content domain)
-- niches (audience/content subtopics)
-- core_mission (why this channel exists)
-- guidelines (editorial do/don't rules)
-- meta_entries (extra channel signals as key/value pairs)
-- audiences (target audience profiles)
-
-Use the latest conversation and context. Be practical and concise.
-
-INPUT JSON:
-{$json}
-PROMPT;
-
-        $schema = $this->buildAssistantSchema();
-
-        $response = OpenAI::driver($driver)->createResponse(
-            ResponseInput::text($prompt),
-            ResponseOptions::create()
-                ->model($model)
-                ->temperature(0.2)
-                ->responseFormat([
-                    'type' => 'json_schema',
-                    'name' => 'make_client_assistant',
-                    'schema' => $schema,
-                    'strict' => true,
-                ])
-        );
-
-        $text = $response->getFirstOutputText();
-        if (! is_string($text) || trim($text) === '') {
-            throw new RuntimeException('Assistant returned empty output.');
-        }
-
-        $decoded = json_decode($text, true);
-        if (! is_array($decoded)) {
-            throw new RuntimeException('Assistant returned invalid JSON: '.json_last_error_msg());
-        }
-
-        return $decoded;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function buildAssistantSchema(): array
-    {
-        return [
-            'type' => 'object',
-            'properties' => $properties = [
-                'assistant_message' => ['type' => 'string'],
-                'is_ready' => ['type' => 'boolean'],
-                'questions' => [
-                    'type' => 'array',
-                    'items' => ['type' => 'string'],
-                ],
-                'updates' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'reference_id' => ['type' => ['string', 'null']],
-                        'language' => ['type' => ['string', 'null']],
-                        'name' => ['type' => ['string', 'null']],
-                        'description' => ['type' => ['string', 'null']],
-                        'tone_of_voice' => ['type' => ['string', 'null']],
-                        'industry' => ['type' => ['string', 'null']],
-                        'niches' => [
-                            'type' => 'array',
-                            'items' => ['type' => 'string'],
-                        ],
-                        'core_mission' => ['type' => ['string', 'null']],
-                        'guidelines' => [
-                            'type' => 'array',
-                            'items' => ['type' => 'string'],
-                        ],
-                        'meta' => [
-                            'type' => 'array',
-                            'items' => [
-                                'type' => 'object',
-                                'properties' => $metaEntryProperties = [
-                                    'key' => ['type' => 'string'],
-                                    'value' => ['type' => 'string'],
-                                ],
-                                'required' => array_keys($metaEntryProperties),
-                                'additionalProperties' => false,
-                            ],
-                        ],
-                        'audiences' => [
-                            'type' => 'array',
-                            'items' => [
-                                'type' => 'object',
-                                'properties' => $audienceProperties = [
-                                    'priority_weight' => ['type' => ['number', 'null']],
-                                    'name' => ['type' => ['string', 'null']],
-                                    'description' => ['type' => ['string', 'null']],
-                                    'age_from' => ['type' => ['integer', 'null']],
-                                    'age_to' => ['type' => ['integer', 'null']],
-                                    'knowledge_level' => ['type' => ['string', 'null']],
-                                    'language' => ['type' => ['string', 'null']],
-                                    'countries' => [
-                                        'type' => 'array',
-                                        'items' => ['type' => 'string'],
-                                    ],
-                                    'pain_points' => [
-                                        'type' => 'array',
-                                        'items' => ['type' => 'string'],
-                                    ],
-                                    'concerns' => [
-                                        'type' => 'array',
-                                        'items' => ['type' => 'string'],
-                                    ],
-                                    'aspirations' => [
-                                        'type' => 'array',
-                                        'items' => ['type' => 'string'],
-                                    ],
-                                    'fears' => [
-                                        'type' => 'array',
-                                        'items' => ['type' => 'string'],
-                                    ],
-                                ],
-                                'required' => array_keys($audienceProperties),
-                                'additionalProperties' => false,
-                            ],
-                        ],
-                    ],
-                    'required' => ['reference_id', 'language', 'name', 'description', 'tone_of_voice', 'industry', 'niches', 'core_mission', 'guidelines', 'meta', 'audiences'],
-                    'additionalProperties' => false,
-                ],
-            ],
-            'required' => array_keys($properties),
-            'additionalProperties' => false,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function emptyDraftData(): array
-    {
-        return [
-            'reference_id' => null,
-            'language' => null,
-            'name' => null,
-            'description' => null,
-            'tone_of_voice' => null,
-            'industry' => null,
-            'niches' => [],
-            'core_mission' => null,
-            'guidelines' => [],
-            'meta' => [],
-            'audiences' => [],
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $draft
-     * @param  array<string, mixed>  $updates
-     * @return array<string, mixed>
-     */
-    private function mergeDraft(array $draft, array $updates): array
-    {
-        foreach (['reference_id', 'language', 'name', 'description', 'tone_of_voice', 'industry', 'core_mission'] as $key) {
-            if (array_key_exists($key, $updates)) {
-                $value = is_string($updates[$key]) ? trim($updates[$key]) : null;
-                $draft[$key] = $value !== '' ? $value : null;
+            $text = trim((string) ($turn['text'] ?? ''));
+            if ($text !== '') {
+                return $text;
             }
         }
 
-        if (array_key_exists('niches', $updates) && is_array($updates['niches'])) {
-            $draft['niches'] = array_values(array_unique(array_filter(
-                array_map(static fn ($v): string => trim((string) $v), $updates['niches']),
-                static fn (string $v): bool => $v !== ''
-            )));
-        }
-
-        if (array_key_exists('guidelines', $updates) && is_array($updates['guidelines'])) {
-            $draft['guidelines'] = array_values(array_unique(array_filter(
-                array_map(static fn ($v): string => trim((string) $v), $updates['guidelines']),
-                static fn (string $v): bool => $v !== ''
-            )));
-        }
-
-        if (array_key_exists('meta', $updates) && is_array($updates['meta'])) {
-            $meta = [];
-            foreach ($updates['meta'] as $entry) {
-                if (! is_array($entry)) {
-                    continue;
-                }
-
-                $key = trim((string) ($entry['key'] ?? ''));
-                $value = trim((string) ($entry['value'] ?? ''));
-                if ($key === '' || $value === '') {
-                    continue;
-                }
-
-                $meta[$key] = $value;
-            }
-            $draft['meta'] = $meta;
-        }
-
-        if (array_key_exists('audiences', $updates) && is_array($updates['audiences'])) {
-            $audiences = [];
-            foreach ($updates['audiences'] as $audience) {
-                if (! is_array($audience)) {
-                    continue;
-                }
-
-                $audiences[] = [
-                    'priority_weight' => isset($audience['priority_weight']) ? (float) $audience['priority_weight'] : null,
-                    'name' => isset($audience['name']) ? trim((string) $audience['name']) : null,
-                    'description' => isset($audience['description']) ? trim((string) $audience['description']) : null,
-                    'age_from' => isset($audience['age_from']) ? (int) $audience['age_from'] : null,
-                    'age_to' => isset($audience['age_to']) ? (int) $audience['age_to'] : null,
-                    'knowledge_level' => isset($audience['knowledge_level']) ? trim((string) $audience['knowledge_level']) : null,
-                    'language' => isset($audience['language']) ? trim((string) $audience['language']) : null,
-                    'countries' => is_array($audience['countries'] ?? null) ? array_values(array_filter(array_map(static fn ($v): string => trim((string) $v), $audience['countries']), static fn (string $v): bool => $v !== '')) : [],
-                    'pain_points' => is_array($audience['pain_points'] ?? null) ? array_values(array_filter(array_map(static fn ($v): string => trim((string) $v), $audience['pain_points']), static fn (string $v): bool => $v !== '')) : [],
-                    'concerns' => is_array($audience['concerns'] ?? null) ? array_values(array_filter(array_map(static fn ($v): string => trim((string) $v), $audience['concerns']), static fn (string $v): bool => $v !== '')) : [],
-                    'aspirations' => is_array($audience['aspirations'] ?? null) ? array_values(array_filter(array_map(static fn ($v): string => trim((string) $v), $audience['aspirations']), static fn (string $v): bool => $v !== '')) : [],
-                    'fears' => is_array($audience['fears'] ?? null) ? array_values(array_filter(array_map(static fn ($v): string => trim((string) $v), $audience['fears']), static fn (string $v): bool => $v !== '')) : [],
-                ];
-            }
-
-            $draft['audiences'] = $audiences;
-        }
-
-        return $draft;
+        return null;
     }
 
-    private function syncContext(SemanticContext $context, array $draft, array $conversation): void
+    private function normalizeOptionalString(string $value): ?string
     {
-        $context->set('task', 'Current task', 'Create a publishing channel brand Client collaboratively with user + AI.');
-        $context->set('required_fields', 'Fields typically needed for robust client creation', [
-            'name',
-            'description',
-            'tone_of_voice',
-            'industry',
-            'niches',
-            'core_mission',
-            'guidelines',
-            'audiences',
-        ]);
-        $context->set('entity_definition', 'What Client means in this flow', [
-            'type' => 'publishing_channel_brand',
-            'notes' => [
-                'Client is a publishing channel brand entity',
-                'Data should emphasize editorial identity, audience focus, and content direction',
-            ],
-        ]);
-        $context->set('draft_client_data', 'Current draft data for client creation', $draft);
-        $context->set('conversation', 'Conversation history for iterative enrichment', $conversation);
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
     }
 
-    private function displayDraftSummary(array $draft): void
+    private function displayContextSummary(ClientContext $context): void
     {
         $this->table(
             ['field', 'value'],
             [
-                ['reference_id', (string) ($draft['reference_id'] ?? '')],
-                ['language', (string) ($draft['language'] ?? '')],
-                ['name', (string) ($draft['name'] ?? '')],
-                ['description', (string) ($draft['description'] ?? '')],
-                ['tone_of_voice', (string) ($draft['tone_of_voice'] ?? '')],
-                ['industry', (string) ($draft['industry'] ?? '')],
-                ['core_mission', (string) ($draft['core_mission'] ?? '')],
-                ['niches_count', (string) count((array) ($draft['niches'] ?? []))],
-                ['guidelines_count', (string) count((array) ($draft['guidelines'] ?? []))],
-                ['audiences_count', (string) count((array) ($draft['audiences'] ?? []))],
-                ['meta_keys', implode(', ', array_keys((array) ($draft['meta'] ?? [])))],
+                ['name', (string) ($context->getNameValue() ?? '')],
+                ['description', (string) ($context->getDescriptionValue() ?? '')],
+                ['tone_of_voice', (string) ($context->getToneOfVoiceValue() ?? '')],
+                ['industry', (string) ($context->getIndustryValue() ?? '')],
+                ['core_mission', (string) ($context->getCoreMissionValue() ?? '')],
+                ['niches_count', (string) count((array) ($context->getNichesValue() ?? []))],
+                ['guidelines_count', (string) count((array) ($context->getGuidelinesValue() ?? []))],
+                ['audience_contexts_count', (string) count((array) ($context->getAudienceContextsValue() ?? []))],
+                ['meta_keys', implode(', ', array_keys((array) ($context->getMetaValue() ?? [])))],
             ]
         );
     }
 
-    /**
-     * @param  array<string, mixed>  $draft
-     */
-    private function createClientFromDraft(array $draft): Client
+    private function createClientFromContext(
+        ClientContext $context,
+        array $audienceContexts,
+        ?string $referenceId = null,
+        ?string $languageCode = null
+    ): Client
     {
-        $name = trim((string) ($draft['name'] ?? ''));
+        $name = trim((string) ($context->getNameValue() ?? ''));
         if ($name === '') {
             throw new RuntimeException('name is required.');
         }
 
-        $description = trim((string) ($draft['description'] ?? ''));
+        $description = trim((string) ($context->getDescriptionValue() ?? ''));
         if ($description === '') {
             throw new RuntimeException('description is required.');
         }
 
-        $context = (new ClientContext)
+        $clientContext = (new ClientContext)
             ->setName($name)
             ->setDescription($description);
 
-        if (($draft['tone_of_voice'] ?? null) !== null) {
-            $context->setToneOfVoice((string) $draft['tone_of_voice']);
+        if (($context->getToneOfVoiceValue() ?? null) !== null) {
+            $clientContext->setToneOfVoice((string) $context->getToneOfVoiceValue());
         }
-        if (($draft['industry'] ?? null) !== null) {
-            $context->setIndustry((string) $draft['industry']);
+        if (($context->getIndustryValue() ?? null) !== null) {
+            $clientContext->setIndustry((string) $context->getIndustryValue());
         }
-        if (($draft['core_mission'] ?? null) !== null) {
-            $context->setCoreMission((string) $draft['core_mission']);
+        if (($context->getCoreMissionValue() ?? null) !== null) {
+            $clientContext->setCoreMission((string) $context->getCoreMissionValue());
         }
-        if (is_array($draft['niches'] ?? null)) {
-            $context->setNiches($draft['niches']);
+        if (is_array($context->getNichesValue() ?? null)) {
+            $clientContext->setNiches($context->getNichesValue());
         }
-        if (is_array($draft['guidelines'] ?? null)) {
-            $context->setGuidelines($draft['guidelines']);
+        if (is_array($context->getGuidelinesValue() ?? null)) {
+            $clientContext->setGuidelines($context->getGuidelinesValue());
         }
-        if (is_array($draft['meta'] ?? null)) {
-            $context->setMeta($draft['meta']);
+        if (is_array($context->getMetaValue() ?? null)) {
+            $clientContext->setMeta($context->getMetaValue());
         }
-        if (is_array($draft['audiences'] ?? null)) {
-            $audiences = [];
-            foreach ($draft['audiences'] as $audienceData) {
-                if (is_array($audienceData)) {
-                    $audiences[] = Audience::fromArray($audienceData);
-                }
-            }
-            $context->setAudiences($audiences);
-        }
+        $clientContext->setAudienceContexts($audienceContexts);
 
         $client = new Client;
-        $client->reference_id = $draft['reference_id'] ?? null;
+        $client->reference_id = $referenceId;
         $client->name = $name;
-        $client->context = $context;
+        $client->context = $clientContext;
 
-        $language = isset($draft['language']) && is_string($draft['language']) ? Language::tryFrom($draft['language']) : null;
-        if (isset($draft['language']) && $draft['language'] !== null && ! $language instanceof Language) {
+        $language = $languageCode !== null ? Language::tryFrom($languageCode) : null;
+        if ($languageCode !== null && ! $language instanceof Language) {
             throw new RuntimeException('language must be a valid Language enum value.');
         }
         $client->language = $language;
@@ -498,4 +230,87 @@ PROMPT;
 
         return $client;
     }
+
+    /**
+     * @param  array<int, array{role: string, text: string}>  $clientConversation
+     * @param  ClientContext  $clientContext
+     * @param  array<int, mixed>  $seedAudiences
+     * @return array<int, AudienceContext>
+     */
+    private function runAudienceBuildPhase(
+        string $builderDriver,
+        array $clientConversation,
+        ClientContext $clientContext,
+        array $seedAudiences
+    ): array
+    {
+        $this->newLine();
+        $this->info('Audience phase');
+
+        $requestedCount = (int) $this->ask(
+            'How many audience profiles should we build?',
+            (string) max(1, count($seedAudiences))
+        );
+        $requestedCount = max(0, min(10, $requestedCount));
+
+        $audienceContexts = [];
+        for ($index = 0; $index < $requestedCount; $index++) {
+            $seed = $seedAudiences[$index] ?? [];
+            $seedText = is_array($seed) && $seed !== []
+                ? json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+                : null;
+            $clientContextText = json_encode($clientContext->toArray(), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '{}';
+            $conversationText = json_encode($clientConversation, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '[]';
+
+            $initialPrompt = "Build audience #".($index + 1)." for this client.\n\n"
+                ."Client current context:\n{$clientContextText}\n\n"
+                ."Previous client-building conversation:\n{$conversationText}";
+            if ($seedText) {
+                $initialPrompt .= "\n\nSeed audience draft:\n{$seedText}";
+            }
+
+            $builder = clone SemanticContextBuilder::driver($builderDriver);
+            $builder
+                ->setContext((new AudienceContext())->withEmptyFields(true))
+                ->start($initialPrompt);
+
+            for ($round = 1; $round <= self::MAX_AUDIENCE_ROUNDS; $round++) {
+                $this->newLine();
+                $this->info('Audience #'.($index + 1).' - Round '.$round.'/'.self::MAX_AUDIENCE_ROUNDS);
+
+                $assistantMessage = $this->latestAssistantMessage($builder->getConversation());
+                if ($assistantMessage !== null) {
+                    $this->comment('Assistant');
+                    $this->line($assistantMessage);
+                }
+
+                $questions = $builder->getPendingQuestions();
+                if ($questions !== []) {
+                    $this->comment('Questions');
+                    foreach ($questions as $qIndex => $question) {
+                        $this->line(($qIndex + 1).'. '.(string) $question);
+                    }
+                }
+
+                if ($builder->isFulfilled()) {
+                    break;
+                }
+
+                $reply = (string) $this->ask('Your audience reply (/skip to skip this audience)');
+                if (trim($reply) === '/skip') {
+                    continue 2;
+                }
+
+                $builder->continueWith($reply);
+            }
+
+            if (! $builder->getContext() instanceof AudienceContext) {
+                throw new RuntimeException('Audience builder must return an AudienceContext.');
+            }
+            $audienceContexts[] = clone $builder->getContext();
+        }
+
+        return $audienceContexts;
+    }
+
 }

@@ -11,6 +11,7 @@ use App\Contracts\PageParser\Parser;
 use App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine;
 use App\Contracts\Scraper\Scraper;
 use App\Contracts\SearchEngine\SearchEngine;
+use App\Contracts\SemanticContextBuilder\ConversationalSemanticContextBuilder;
 use App\Contracts\Synthesizer\Synthesizer as SynthesizerContract;
 use App\Contracts\TextEmbedding\TextEmbedding as TextEmbeddingContract;
 use App\Contracts\VectorDB\VectorDB;
@@ -46,6 +47,7 @@ use App\Services\PageParser\PageParserManager;
 use App\Services\ScrapePolicyEngine\ScrapePolicyEngineManager;
 use App\Services\Scraper\ScraperManager;
 use App\Services\SearchEngine\SearchEngineManager;
+use App\Services\SemanticContextBuilder\SemanticContextBuilderManager;
 use App\Services\TextEmbedding\TextEmbeddingManager;
 use App\Services\VectorDB\VectorDBManager;
 use App\Services\VerticalResolver\VerticalResolverManager;
@@ -75,6 +77,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('text_embedding.manager', TextEmbeddingManager::class);
         $this->app->singleton('search_engine.manager', SearchEngineManager::class);
         $this->app->singleton('synthesizer.manager', SynthesizerManager::class);
+        $this->app->singleton('semantic_context_builder.manager', SemanticContextBuilderManager::class);
 
         // Bind interfaces to the default driver (type-safe for dependency injection)
         $this->app->singleton(OpenAIClient::class, fn ($app) => $app['openai.manager']->driver());
@@ -90,6 +93,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TextEmbeddingContract::class, fn ($app) => $app['text_embedding.manager']->driver());
         $this->app->singleton(SearchEngine::class, fn ($app) => $app['search_engine.manager']->driver());
         $this->app->singleton(SynthesizerContract::class, fn ($app) => $app['synthesizer.manager']->driver());
+        $this->app->singleton(ConversationalSemanticContextBuilder::class, fn ($app) => $app['semantic_context_builder.manager']->driver());
     }
 
     /**

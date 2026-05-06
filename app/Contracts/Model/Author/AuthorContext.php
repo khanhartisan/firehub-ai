@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Contracts\Synthesizer\Author;
+namespace App\Contracts\Model\Author;
 
 use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\Synthesizer\Author\AuthorContexts\CognitiveContext;
-use App\Contracts\Synthesizer\Author\AuthorContexts\ConstraintContext;
-use App\Contracts\Synthesizer\Author\AuthorContexts\DemographicContext;
-use App\Contracts\Synthesizer\Author\AuthorContexts\ExperientialContext;
-use App\Contracts\Synthesizer\Author\AuthorContexts\LinguisticContext;
+use App\Contracts\Model\Author\AuthorContexts\CognitiveContext;
+use App\Contracts\Model\Author\AuthorContexts\ConstraintContext;
+use App\Contracts\Model\Author\AuthorContexts\DemographicContext;
+use App\Contracts\Model\Author\AuthorContexts\ExperientialContext;
+use App\Contracts\Model\Author\AuthorContexts\LinguisticContext;
 
 class AuthorContext extends SemanticContext
 {

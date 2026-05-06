@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Synthesizer\Author\AuthorContexts;
+namespace App\Contracts\Model\Author\AuthorContexts;
 
 use App\Contracts\CommonData\SemanticContext;
 

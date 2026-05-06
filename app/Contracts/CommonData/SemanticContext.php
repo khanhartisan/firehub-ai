@@ -87,7 +87,8 @@ class SemanticContext implements Serializable
     public function set(
         string $key,
         string $description,
-        string|int|float|array|Serializable|null $value): static
+        string|int|float|array|Serializable|null $value,
+        ?float $weight = null): static
     {
         if (!$this->isKeyAllowed($key)) {
             throw new \InvalidArgumentException('Key: "'.$key.'" is not allowed.');
@@ -100,8 +101,30 @@ class SemanticContext implements Serializable
         $this->data[$key] = [
             'description' => $description,
             'value' => $value,
+            'weight' => $weight,
         ];
 
+        return $this;
+    }
+
+    public function getWeight(string $key): ?float
+    {
+        if (! $this->has($key)) {
+            return null;
+        }
+
+        $weight = $this->data[$key]['weight'] ?? null;
+
+        return is_numeric($weight) ? (float) $weight : null;
+    }
+
+    public function setWeight(string $key, ?float $weight = null): static
+    {
+        if (!isset($this->data[$key])) {
+            throw new \InvalidArgumentException('Key: "'.$key.'" is not allowed.');
+        }
+
+        $this->data[$key]['weight'] = $weight;
         return $this;
     }
 
@@ -126,7 +149,12 @@ class SemanticContext implements Serializable
                 continue;
             }
 
-            $this->set($key, $_data['description'], $_data['value']);
+            $weight = null;
+            if (array_key_exists('weight', $_data) && is_numeric($_data['weight'])) {
+                $weight = (float) $_data['weight'];
+            }
+
+            $this->set($key, $_data['description'], $_data['value'], $weight);
         }
 
         return $this;
@@ -193,6 +221,9 @@ class SemanticContext implements Serializable
         } elseif (str_ends_with($suffix, 'Description') && strlen($suffix) > 11) {
             $returnType = 'description';
             $suffix = substr($suffix, 0, -11);
+        } elseif (str_ends_with($suffix, 'Weight') && strlen($suffix) > 6) {
+            $returnType = 'weight';
+            $suffix = substr($suffix, 0, -6);
         }
 
         $key = ltrim(strtolower((string) preg_replace('/(?<!^)[A-Z]/', '_$0', $suffix)), '_');
@@ -203,6 +234,7 @@ class SemanticContext implements Serializable
         return match ($returnType) {
             'value' => $this->getValue($key),
             'description' => $this->getDescription($key),
+            'weight' => $this->getWeight($key),
             default => $this->get($key),
         };
     }

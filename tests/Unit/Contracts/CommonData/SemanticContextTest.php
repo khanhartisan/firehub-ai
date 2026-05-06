@@ -39,6 +39,7 @@ class SemanticContextTest extends TestCase
             'seed_keyword' => [
                 'description' => 'Main query seed',
                 'value' => $expectedKeyword,
+                'weight' => null,
             ],
         ], $context->toArray());
     }
@@ -138,7 +139,7 @@ class SemanticContextTest extends TestCase
     public function test_magic_getters_resolve_get_and_get_value_by_method_name(): void
     {
         $context = (new SemanticContext)
-            ->set('sample_key', 'Sample description', 'sample value')
+            ->set('sample_key', 'Sample description', 'sample value', 0.8)
             ->set('nested_key', 'Nested description', [
                 'keyword' => (new Keyword('ai agent'))->setLanguage(Language::EN),
             ]);
@@ -150,6 +151,7 @@ class SemanticContextTest extends TestCase
 
         $this->assertSame('sample value', $context->getSampleKeyValue());
         $this->assertSame('Sample description', $context->getSampleKeyDescription());
+        $this->assertSame(0.8, $context->getSampleKeyWeight());
         $this->assertSame([
             'keyword' => [
                 'keyword' => 'ai agent',
@@ -166,6 +168,7 @@ class SemanticContextTest extends TestCase
         $this->assertNull($context->getMissingKey());
         $this->assertNull($context->getMissingKeyValue());
         $this->assertNull($context->getMissingKeyDescription());
+        $this->assertNull($context->getMissingKeyWeight());
     }
 
     public function test_magic_call_throws_for_non_getter_methods(): void
@@ -173,6 +176,56 @@ class SemanticContextTest extends TestCase
         $this->expectException(\BadMethodCallException::class);
 
         (new SemanticContext)->setSampleKey('desc', 'value');
+    }
+
+    public function test_set_and_get_weight_with_entry_and_magic_getter(): void
+    {
+        $context = (new SemanticContext)->set('priority', 'Priority score', 'high', 0.65);
+
+        $this->assertSame([
+            'description' => 'Priority score',
+            'value' => 'high',
+        ], $context->get('priority'));
+        $this->assertSame(0.65, $context->getWeight('priority'));
+        $this->assertSame(0.65, $context->getPriorityWeight());
+    }
+
+    public function test_set_weight_updates_existing_entry_weight(): void
+    {
+        $context = (new SemanticContext)
+            ->set('priority', 'Priority score', 'high')
+            ->setWeight('priority', 0.9);
+
+        $this->assertSame(0.9, $context->getWeight('priority'));
+        $this->assertSame(0.9, $context->getPriorityWeight());
+        $this->assertSame([
+            'priority' => [
+                'description' => 'Priority score',
+                'value' => 'high',
+                'weight' => 0.9,
+            ],
+        ], $context->toArray());
+    }
+
+    public function test_from_array_and_round_trip_preserve_weight(): void
+    {
+        $context = SemanticContext::fromArray([
+            'priority' => [
+                'description' => 'Priority score',
+                'value' => 'high',
+                'weight' => 0.4,
+            ],
+        ]);
+
+        $this->assertSame(0.4, $context->getWeight('priority'));
+        $this->assertSame(0.4, $context->getPriorityWeight());
+        $this->assertSame([
+            'priority' => [
+                'description' => 'Priority score',
+                'value' => 'high',
+                'weight' => 0.4,
+            ],
+        ], $context->toArray());
     }
 
     public function test_with_empty_fields_builds_template_with_all_setters(): void
@@ -198,14 +251,17 @@ class SemanticContextTest extends TestCase
             'name' => [
                 'description' => 'Human readable name',
                 'value' => '',
+                'weight' => null,
             ],
             'optional_note' => [
                 'description' => 'Optional extra note',
                 'value' => null,
+                'weight' => null,
             ],
             'tags' => [
                 'description' => 'List of tags',
                 'value' => [],
+                'weight' => null,
             ],
         ], $context->toArray());
     }

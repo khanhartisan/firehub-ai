@@ -5,6 +5,7 @@ namespace Tests\Unit\Models;
 use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Model\Author\AuthorContexts\CognitiveContext;
 use App\Models\Author;
+use App\Utils\Str;
 use Tests\TestCase;
 
 class AuthorContextCastTest extends TestCase
@@ -52,6 +53,34 @@ class AuthorContextCastTest extends TestCase
         $author->context = $payload;
 
         $this->assertInstanceOf(AuthorContext::class, $author->context);
-        $this->assertSame($payload, $author->context->toArray());
+        $contextArray = $author->context->toArray();
+        $this->assertIsString($contextArray['identifier'] ?? null);
+        $this->assertSame($payload['cognitive_context'], $contextArray['cognitive_context'] ?? null);
+    }
+
+    public function test_it_keeps_context_identifier_after_dehydrate_and_hydrate(): void
+    {
+        $context = (new AuthorContext)
+            ->setCognitiveContext(
+                (new CognitiveContext)->setWorldview('Long-term consistency beats short-term novelty.')
+            );
+        $identifier = $context->getIdentifier();
+        $this->assertNotNull($identifier);
+        $this->assertTrue(Str::isuuid($identifier));
+
+        $author = new Author;
+        $author->context = $context;
+
+        $stored = $author->getAttributes()['context'];
+        $this->assertIsString($stored);
+        $this->assertSame($identifier, json_decode($stored, true)['identifier'] ?? null);
+
+        $rehydrated = new Author;
+        $rehydrated->setRawAttributes([
+            'context' => $stored,
+        ], true);
+
+        $this->assertInstanceOf(AuthorContext::class, $rehydrated->context);
+        $this->assertSame($identifier, $rehydrated->context->getIdentifier());
     }
 }

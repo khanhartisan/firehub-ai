@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Model\Author;
 
+use App\Contracts\CommonData\IdentifiableSemanticContext;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Model\Author\AuthorContexts\CognitiveContext;
 use App\Contracts\Model\Author\AuthorContexts\ConstraintContext;
@@ -9,7 +10,7 @@ use App\Contracts\Model\Author\AuthorContexts\DemographicContext;
 use App\Contracts\Model\Author\AuthorContexts\ExperientialContext;
 use App\Contracts\Model\Author\AuthorContexts\LinguisticContext;
 
-class AuthorContext extends SemanticContext
+class AuthorContext extends IdentifiableSemanticContext
 {
     public function setCognitiveContext(?CognitiveContext $context): static
     {

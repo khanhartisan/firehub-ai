@@ -43,7 +43,12 @@ class ElementTest extends TestCase
             )
             ->addChild(' world');
 
-        $this->assertSame('<div class="container"><p>Hello</p> world</div>', $element->toHtml());
+        $html = $element->toHtml();
+        $this->assertStringContainsString('<div ', $html);
+        $this->assertStringContainsString('class="container"', $html);
+        $this->assertStringContainsString('<p ', $html);
+        $this->assertStringContainsString('>Hello</p> world</div>', $html);
+        $this->assertMatchesRegularExpression('/data-identifier="[^"]+"/', $html);
     }
 
     public function test_it_escapes_text_and_attribute_values_when_rendering_html(): void
@@ -54,10 +59,12 @@ class ElementTest extends TestCase
             ->setProp('href', 'https://example.com/?q=a&b=c')
             ->addChild('Use "quotes" & tags <here>');
 
-        $this->assertSame(
-            '<a title="3 &gt; 2 &quot;quoted&quot;" href="https://example.com/?q=a&amp;b=c">Use &quot;quotes&quot; &amp; tags &lt;here&gt;</a>',
-            $element->toHtml()
-        );
+        $html = $element->toHtml();
+        $this->assertStringContainsString('<a ', $html);
+        $this->assertStringContainsString('title="3 &gt; 2 &quot;quoted&quot;"', $html);
+        $this->assertStringContainsString('href="https://example.com/?q=a&amp;b=c"', $html);
+        $this->assertStringContainsString('Use &quot;quotes&quot; &amp; tags &lt;here&gt;</a>', $html);
+        $this->assertMatchesRegularExpression('/data-identifier="[^"]+"/', $html);
     }
 
     public function test_it_renders_fragment_when_type_is_missing(): void
@@ -68,7 +75,10 @@ class ElementTest extends TestCase
                 (new Element)->setType(ElementType::STRONG)->addChild('B'),
             ]);
 
-        $this->assertSame('A<strong>B</strong>', $fragment->toHtml());
+        $html = $fragment->toHtml();
+        $this->assertStringContainsString('A<strong ', $html);
+        $this->assertStringContainsString('>B</strong>', $html);
+        $this->assertMatchesRegularExpression('/<strong data-identifier="[^"]+">/', $html);
     }
 
     public function test_it_renders_void_elements_as_self_closing_tags(): void
@@ -80,10 +90,12 @@ class ElementTest extends TestCase
                 'alt' => 'Hero image',
             ]);
 
-        $this->assertSame(
-            '<img src="https://example.com/image.jpg" alt="Hero image" />',
-            $image->toHtml()
-        );
+        $html = $image->toHtml();
+        $this->assertStringStartsWith('<img ', $html);
+        $this->assertStringContainsString('src="https://example.com/image.jpg"', $html);
+        $this->assertStringContainsString('alt="Hero image"', $html);
+        $this->assertStringEndsWith(' />', $html);
+        $this->assertMatchesRegularExpression('/data-identifier="[^"]+"/', $html);
     }
 
     public function test_it_returns_inner_html_of_children_only(): void
@@ -93,7 +105,10 @@ class ElementTest extends TestCase
             ->addChild('Hello ')
             ->addChild((new Element)->setType(ElementType::STRONG)->addChild('World'));
 
-        $this->assertSame('Hello <strong>World</strong>', $element->getInnerHtml());
+        $html = $element->getInnerHtml();
+        $this->assertStringContainsString('Hello <strong ', $html);
+        $this->assertStringContainsString('>World</strong>', $html);
+        $this->assertMatchesRegularExpression('/<strong data-identifier="[^"]+">/', $html);
     }
 
     public function test_it_returns_escaped_inner_html_for_text_nodes(): void
@@ -271,5 +286,80 @@ class ElementTest extends TestCase
         $this->expectExceptionMessage('Child with the provided identifier was not found.');
 
         $root->insertAfter('missing-identifier', 'insert me');
+    }
+
+    public function test_it_builds_element_tree_from_single_root_html(): void
+    {
+        $element = Element::fromHtml(
+            '<div data-identifier="root-1" class="wrapper"><p data-identifier="p-1">Hello <strong>world</strong></p></div>'
+        );
+
+        $this->assertSame(ElementType::DIV, $element->getType());
+        $this->assertSame('root-1', $element->getIdentifier());
+        $this->assertSame('wrapper', $element->getProps()['class'] ?? null);
+
+        $children = $element->getChildren();
+        $this->assertCount(1, $children);
+        $this->assertInstanceOf(Element::class, $children[0]);
+
+        /** @var Element $paragraph */
+        $paragraph = $children[0];
+        $this->assertSame(ElementType::P, $paragraph->getType());
+        $this->assertSame('p-1', $paragraph->getIdentifier());
+
+        $paragraphChildren = $paragraph->getChildren();
+        $this->assertCount(2, $paragraphChildren);
+        $this->assertSame('Hello ', $paragraphChildren[0]);
+        $this->assertInstanceOf(Element::class, $paragraphChildren[1]);
+        $this->assertSame(ElementType::STRONG, $paragraphChildren[1]->getType());
+        $this->assertSame('world', $paragraphChildren[1]->getChildren()[0]);
+    }
+
+    public function test_it_builds_fragment_children_when_html_has_multiple_roots(): void
+    {
+        $fragment = Element::fromHtml('A<span class="x">B</span><br />C');
+
+        $this->assertNull($fragment->getType());
+        $children = $fragment->getChildren();
+
+        $this->assertCount(4, $children);
+        $this->assertSame('A', $children[0]);
+        $this->assertInstanceOf(Element::class, $children[1]);
+        $this->assertSame(ElementType::SPAN, $children[1]->getType());
+        $this->assertSame('x', $children[1]->getProps()['class'] ?? null);
+        $this->assertSame('B', $children[1]->getChildren()[0]);
+        $this->assertInstanceOf(Element::class, $children[2]);
+        $this->assertSame(ElementType::BR, $children[2]->getType());
+        $this->assertSame('C', $children[3]);
+    }
+
+    public function test_it_roundtrips_html_with_escaping_and_identifiers(): void
+    {
+        $html = '<a data-identifier="a-1" href="https://example.com/?q=a&amp;b=c">Use &quot;quotes&quot; &amp; tags &lt;here&gt;</a>';
+
+        $element = Element::fromHtml($html);
+        $rendered = $element->toHtml();
+
+        $this->assertStringContainsString('data-identifier="a-1"', $rendered);
+        $this->assertStringContainsString('href="https://example.com/?q=a&amp;b=c"', $rendered);
+        $this->assertStringContainsString('Use &quot;quotes&quot; &amp; tags &lt;here&gt;', $rendered);
+        $this->assertStringStartsWith('<a ', $rendered);
+        $this->assertStringEndsWith('</a>', $rendered);
+    }
+
+    public function test_it_ignores_unknown_tags_not_in_element_type_enum(): void
+    {
+        $element = Element::fromHtml('<section data-identifier="sec-1" class="hero">Lead <em>text</em></section>');
+
+        $this->assertNull($element->getType());
+        $this->assertSame('sec-1', $element->getIdentifier());
+        $this->assertSame('hero', $element->getProps()['class'] ?? null);
+
+        $children = $element->getChildren();
+        $this->assertCount(2, $children);
+        $this->assertSame('Lead ', $children[0]);
+        $this->assertInstanceOf(Element::class, $children[1]);
+        $this->assertSame(ElementType::EM, $children[1]->getType());
+        $this->assertSame('text', $children[1]->getChildren()[0]);
     }
 }

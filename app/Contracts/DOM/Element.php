@@ -6,6 +6,9 @@ use App\Concerns\AlwaysIdentifiable;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Identifiable;
 use App\Contracts\Serializable;
+use DOMDocument;
+use DOMElement as NativeDomElement;
+use DOMNode;
 use Exception;
 
 class Element implements Serializable, Identifiable
@@ -156,7 +159,7 @@ class Element implements Serializable, Identifiable
             return $this->getInnerHtml();
         }
 
-        $attrs = '';
+        $attrs = ' data-identifier="'.$this->getIdentifier().'"';
         foreach ($this->props as $key => $value) {
             if (! is_string($key) || ! is_string($value) || $value === '') {
                 continue;
@@ -172,6 +175,107 @@ class Element implements Serializable, Identifiable
         $childrenHtml = $this->getInnerHtml();
 
         return "<{$tag}{$attrs}>{$childrenHtml}</{$tag}>";
+    }
+
+    public static function fromHtml(string $html): static
+    {
+        $dom = new DOMDocument('1.0', 'UTF-8');
+
+        libxml_use_internal_errors(true);
+        $dom->loadHTML(
+            '<div data-parser-root="1">'.$html.'</div>',
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+        );
+        libxml_clear_errors();
+
+        $parserRoot = $dom->documentElement;
+        $instance = new static;
+
+        if (! $parserRoot instanceof NativeDomElement) {
+            return $instance;
+        }
+
+        $rootNodes = [];
+        foreach ($parserRoot->childNodes as $childNode) {
+            $rootNodes[] = $childNode;
+        }
+
+        if (count($rootNodes) === 1 && $rootNodes[0] instanceof NativeDomElement) {
+            $instance->hydrateFromDomElement($rootNodes[0], true);
+
+            return $instance;
+        }
+
+        $instance->setChildren(self::parseDomChildren($rootNodes));
+
+        return $instance;
+    }
+
+    /**
+     * @param  array<int, DOMNode>  $nodes
+     * @return array<int, Element|string>
+     */
+    private static function parseDomChildren(array $nodes): array
+    {
+        $children = [];
+
+        foreach ($nodes as $node) {
+            if ($node instanceof NativeDomElement) {
+                $children[] = self::fromDomElement($node);
+                continue;
+            }
+
+            if ($node->nodeType === XML_TEXT_NODE || $node->nodeType === XML_CDATA_SECTION_NODE) {
+                $children[] = $node->nodeValue ?? '';
+            }
+        }
+
+        return $children;
+    }
+
+    private static function fromDomElement(NativeDomElement $domElement): self
+    {
+        $element = new self;
+        $element->hydrateFromDomElement($domElement, false);
+
+        return $element;
+    }
+
+    private function hydrateFromDomElement(NativeDomElement $domElement, bool $isRoot): void
+    {
+        $tag = strtolower($domElement->tagName);
+        $type = ElementType::tryFrom($tag);
+        if ($type !== null) {
+            try {
+                $this->setType($type);
+            } catch (Exception) {
+                // Some subclasses disallow overriding type.
+            }
+        }
+
+        if ($domElement->hasAttributes()) {
+            foreach ($domElement->attributes as $attribute) {
+                if (! isset($attribute->name, $attribute->value)) {
+                    continue;
+                }
+
+                if ($attribute->name === 'data-identifier') {
+                    $this->setIdentifier($attribute->value);
+                    continue;
+                }
+
+                $this->setProp($attribute->name, $attribute->value);
+            }
+        }
+
+        $nodes = [];
+        foreach ($domElement->childNodes as $childNode) {
+            $nodes[] = $childNode;
+        }
+
+        if (! $isRoot || $nodes !== []) {
+            $this->setChildren(self::parseDomChildren($nodes));
+        }
     }
 
     public function getInnerHtml(): string

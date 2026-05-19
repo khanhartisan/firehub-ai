@@ -234,12 +234,16 @@ Given:
 - verified facts (source of truth)
 
 Return exactly one resolved relevant point that:
-- aligns with verified facts
-- keeps only evidence supported by verified facts
+- aligns with verified facts if provided
+- keeps only evidence supported by verified facts if provided
 - has concise rationale
 - includes relevance (to the given idea) in [0,1]
 
+Sometimes conflicted points are not about right or wrong but depending on the perspective, and the provided AuthorContext doesn't have a bias that is strong enough to pick a side. In that case, we can merge the conflicted points/facts into a unified, higher-level thesis. Frame the conflict as a matter of perspective or conditional reality.
+
 It is very important to keep the real numbers, analytics, examples, proofs... of the point in the evidences.
+
+---
 
 Idea JSON:
 {$ideaJson}

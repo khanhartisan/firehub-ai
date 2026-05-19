@@ -27,13 +27,6 @@ trait HandleResearchStageConflictResolution
             }
         ));
 
-        if ($highConfidenceFacts === []) {
-            $researchData->addUnresolvableConflict($conflict);
-            $this->touchArticleQuietly();
-
-            return true;
-        }
-
         $resolvedPoint = $this->synthesizer()
             ->getResearcher()
             ->resolveIdeaConflictedPoints($pickedIdea, $conflict, $highConfidenceFacts);

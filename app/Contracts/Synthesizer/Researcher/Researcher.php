@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Synthesizer\Researcher;
 
+use App\Contracts\CommonData\Fact;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 
 interface Researcher
@@ -31,7 +32,7 @@ interface Researcher
      *
      * @param Idea $idea
      * @param ConflictedPoints $conflictedPoints
-     * @param array $facts
+     * @param Fact[] $facts
      * @return RelevantPoint
      */
     public function resolveIdeaConflictedPoints(Idea $idea,

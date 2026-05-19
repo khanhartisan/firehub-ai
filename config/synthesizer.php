@@ -17,6 +17,7 @@ use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAIDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAIIllustratorDriver;
 use App\Services\Synthesizer\Editor\Drivers\BasicEditorDriver;
+use App\Services\Synthesizer\Editor\Drivers\OpenAIEditorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
@@ -129,7 +130,7 @@ return [
                 'driver' => OpenAIOutlineBuilderDriver::class,
             ],
             'editor' => [
-                'driver' => BasicEditorDriver::class,
+                'driver' => OpenAIEditorDriver::class,
             ],
             'author' => [
                 'driver' => OpenAIWriterDriver::class,
@@ -236,6 +237,20 @@ return [
         'temperature' => 0.2,
         'max_items' => 20,
         'max_depth' => 6,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI editor
+    |--------------------------------------------------------------------------
+    |
+    | Used by {@see OpenAIEditorDriver} (synthesizer driver "openai").
+    |
+    */
+
+    'openai_editor' => [
+        'model' => env('SYNTHESIZER_OPENAI_EDITOR_MODEL', 'gpt-4o-mini'),
+        'temperature' => 0.2,
     ],
 
     /*

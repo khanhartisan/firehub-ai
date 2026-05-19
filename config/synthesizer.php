@@ -48,23 +48,28 @@ return [
 
     'drivers' => [
         'basic' => [
-            'service' => SynthesizerService::class,
+            'service' => [
+                'driver' => SynthesizerService::class,
+            ],
             'idea_forge' => [
                 'driver' => BasicIdeaForgeDriver::class,
                 /*
-                | Idea advisors: each entry is either a class-string, or:
-                |   ['class' => SomeIdeaAdvisor::class, 'weight' => 2.0]
+                | Idea advisors: each entry is ['driver' => SomeIdeaAdvisor::class, 'weight' => 2.0]
                 | Weight is optional (defaults to 1 on the advisor). Relative weights affect
                 | top suggestion selection in the article idea stage.
                 */
                 'advisors' => [
                     [
-                        'class' => BasicIdeaAdvisorDriver::class,
+                        'driver' => BasicIdeaAdvisorDriver::class,
                         'weight' => 1.0,
                     ],
                 ],
-                'auditor' => BasicIdeaAuditorDriver::class,
-                'picker' => BasicIdeaPickerDriver::class,
+                'auditor' => [
+                    'driver' => BasicIdeaAuditorDriver::class,
+                ],
+                'picker' => [
+                    'driver' => BasicIdeaPickerDriver::class,
+                ],
             ],
             'researcher' => [
                 'driver' => BasicResearcherDriver::class,
@@ -82,29 +87,37 @@ return [
                 'driver' => BasicWriterDriver::class,
             ],
             'illustration' => [
-                'director' => BasicDirectorDriver::class,
+                'director' => [
+                    'driver' => BasicDirectorDriver::class,
+                ],
                 'illustrators' => [
-                    BasicIllustratorDriver::class,
+                    ['driver' => BasicIllustratorDriver::class],
                 ],
             ],
         ],
 
         'openai' => [
-            'service' => SynthesizerService::class,
+            'service' => [
+                'driver' => SynthesizerService::class,
+            ],
             'idea_forge' => [
                 'driver' => BasicIdeaForgeDriver::class,
                 'advisors' => [
                     [
-                        'class' => OpenAIIdeaAdvisorDriver::class,
+                        'driver' => OpenAIIdeaAdvisorDriver::class,
                         'weight' => 1.0,
                     ],
                     [
-                        'class' => OpenAIIdeaExpansionAdvisorDriver::class,
+                        'driver' => OpenAIIdeaExpansionAdvisorDriver::class,
                         'weight' => 1.0,
                     ],
                 ],
-                'auditor' => OpenAIIdeaAuditorDriver::class,
-                'picker' => OpenAIIdeaPickerDriver::class,
+                'auditor' => [
+                    'driver' => OpenAIIdeaAuditorDriver::class,
+                ],
+                'picker' => [
+                    'driver' => OpenAIIdeaPickerDriver::class,
+                ],
             ],
             'researcher' => [
                 'driver' => OpenAIResearcherDriver::class,
@@ -122,9 +135,13 @@ return [
                 'driver' => OpenAIWriterDriver::class,
             ],
             'illustration' => [
-                'director' => OpenAIDirectorDriver::class,
+                'director' => [
+                    'driver' => OpenAIDirectorDriver::class,
+                ],
                 'illustrators' => [
-                    env('SYNTHESIZER_OPENAI_ILLUSTRATOR_DRIVER', OpenAIIllustratorDriver::class),
+                    [
+                        'driver' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_DRIVER', OpenAIIllustratorDriver::class),
+                    ],
                 ],
             ],
         ],

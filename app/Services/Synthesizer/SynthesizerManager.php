@@ -40,13 +40,17 @@ class SynthesizerManager extends Manager
     {
         $ideaForgeConfig = $driverConfig['idea_forge'] ?? [];
         $ideaAdvisors = $this->makeIdeaAdvisorsFromConfig(
-            $ideaForgeConfig['advisors'] ?? [BasicIdeaAdvisorDriver::class]
+            $ideaForgeConfig['advisors'] ?? [['driver' => BasicIdeaAdvisorDriver::class]]
         );
-        $ideaAuditor = $this->container->make($ideaForgeConfig['auditor'] ?? BasicIdeaAuditorDriver::class);
-        $ideaPicker = $this->container->make($ideaForgeConfig['picker'] ?? BasicIdeaPickerDriver::class);
+        $ideaAuditor = $this->container->make(
+            $this->resolveImplementationDriver($ideaForgeConfig['auditor'] ?? null, BasicIdeaAuditorDriver::class)
+        );
+        $ideaPicker = $this->container->make(
+            $this->resolveImplementationDriver($ideaForgeConfig['picker'] ?? null, BasicIdeaPickerDriver::class)
+        );
 
         $ideaForge = $this->container->make(
-            $ideaForgeConfig['driver'] ?? BasicIdeaForgeDriver::class,
+            $this->resolveImplementationDriver($ideaForgeConfig, BasicIdeaForgeDriver::class),
             [
                 'ideaAdvisors' => $ideaAdvisors,
                 'ideaAuditor' => $ideaAuditor,
@@ -55,36 +59,39 @@ class SynthesizerManager extends Manager
         );
 
         $briefBuilder = $this->container->make(
-            $driverConfig['brief_builder']['driver'] ?? BasicBriefBuilderDriver::class
+            $this->resolveImplementationDriver($driverConfig['brief_builder'] ?? null, BasicBriefBuilderDriver::class)
         );
 
         $researcher = $this->container->make(
-            $driverConfig['researcher']['driver'] ?? BasicResearcherDriver::class
+            $this->resolveImplementationDriver($driverConfig['researcher'] ?? null, BasicResearcherDriver::class)
         );
 
         $outlineBuilder = $this->container->make(
-            $driverConfig['outline_builder']['driver'] ?? BasicOutlineBuilderDriver::class
+            $this->resolveImplementationDriver($driverConfig['outline_builder'] ?? null, BasicOutlineBuilderDriver::class)
         );
 
         $editor = $this->container->make(
-            $driverConfig['editor']['driver'] ?? BasicEditorDriver::class
+            $this->resolveImplementationDriver($driverConfig['editor'] ?? null, BasicEditorDriver::class)
         );
 
         $writer = $this->container->make(
-            $driverConfig['author']['driver'] ?? BasicWriterDriver::class
+            $this->resolveImplementationDriver($driverConfig['author'] ?? null, BasicWriterDriver::class)
         );
 
+        $illustrationConfig = $driverConfig['illustration'] ?? [];
         $illustrationDirector = $this->container->make(
-            $driverConfig['illustration']['director'] ?? BasicDirectorDriver::class
+            $this->resolveImplementationDriver($illustrationConfig['director'] ?? null, BasicDirectorDriver::class)
         );
         $illustrators = array_values(array_map(
-            fn (string $driver) => $this->container->make($driver),
-            $driverConfig['illustration']['illustrators'] ?? [BasicIllustratorDriver::class]
+            fn (array $entry) => $this->container->make(
+                $this->resolveImplementationDriver($entry, BasicIllustratorDriver::class)
+            ),
+            $illustrationConfig['illustrators'] ?? [['driver' => BasicIllustratorDriver::class]]
         ));
 
         /** @var SynthesizerContract */
         return $this->container->make(
-            $driverConfig['service'] ?? SynthesizerService::class,
+            $this->resolveImplementationDriver($driverConfig['service'] ?? null, SynthesizerService::class),
             [
                 'ideaForge' => $ideaForge,
                 'researcher' => $researcher,
@@ -99,7 +106,7 @@ class SynthesizerManager extends Manager
     }
 
     /**
-     * @param  list<string|array{class: string, weight?: float|int|string}>  $entries
+     * @param  list<array{driver: string, weight?: float|int|string}>  $entries
      * @return list<IdeaAdvisor>
      */
     protected function makeIdeaAdvisorsFromConfig(array $entries): array
@@ -113,34 +120,22 @@ class SynthesizerManager extends Manager
     }
 
     /**
-     * @param  string|array{class: string, weight?: float|int|string}  $entry
+     * @param  array{driver: string, weight?: float|int|string}  $entry
      */
-    protected function makeIdeaAdvisorFromConfigEntry(string|array $entry): IdeaAdvisor
+    protected function makeIdeaAdvisorFromConfigEntry(array $entry): IdeaAdvisor
     {
-        if (is_string($entry)) {
-            $advisor = $this->container->make($entry);
-            if (! $advisor instanceof IdeaAdvisor) {
-                throw new \InvalidArgumentException(sprintf(
-                    'Idea advisor class "%s" must implement %s.',
-                    $entry,
-                    IdeaAdvisor::class
-                ));
-            }
-
-            return $advisor;
-        }
-
-        if (! is_array($entry) || ! isset($entry['class']) || ! is_string($entry['class'])) {
+        $class = $this->resolveImplementationDriver($entry, '');
+        if ($class === '') {
             throw new \InvalidArgumentException(
-                'Idea advisor config must be a class string or an array with a string "class" key.'
+                'Idea advisor config must be an array with a string "driver" key.'
             );
         }
 
-        $advisor = $this->container->make($entry['class']);
+        $advisor = $this->container->make($class);
         if (! $advisor instanceof IdeaAdvisor) {
             throw new \InvalidArgumentException(sprintf(
                 'Idea advisor class "%s" must implement %s.',
-                $entry['class'],
+                $class,
                 IdeaAdvisor::class
             ));
         }
@@ -150,5 +145,17 @@ class SynthesizerManager extends Manager
         }
 
         return $advisor;
+    }
+
+    /**
+     * @param  array{driver?: string}|null  $config
+     */
+    protected function resolveImplementationDriver(?array $config, string $default): string
+    {
+        if (is_array($config) && isset($config['driver']) && is_string($config['driver']) && $config['driver'] !== '') {
+            return $config['driver'];
+        }
+
+        return $default;
     }
 }

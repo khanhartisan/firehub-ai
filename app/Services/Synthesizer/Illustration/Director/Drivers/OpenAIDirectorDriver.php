@@ -20,6 +20,7 @@ use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
 use App\Contracts\Synthesizer\Illustration\Illustratable;
 use App\Contracts\Synthesizer\Illustration\Illustrator;
 use App\Enums\AspectRatio;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\Illustration\Director\DirectorService;
 use RuntimeException;
 
@@ -34,7 +35,7 @@ class OpenAIDirectorDriver extends DirectorService implements Director
     public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_illustration_director', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('illustration_director'), $config);
     }
 
     public function resolveIllustrationContexts(

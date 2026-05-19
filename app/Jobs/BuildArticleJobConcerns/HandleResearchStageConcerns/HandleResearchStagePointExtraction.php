@@ -96,7 +96,7 @@ trait HandleResearchStagePointExtraction
 
     protected function getResearchExtractionPageLimit(): int
     {
-        return max(1, (int) config('synthesizer.research.max_pages', 20));
+        return max(1, (int) config('synthesizer.researcher.max_pages', 20));
     }
 
     protected function buildResearchContentFromPage(Page $page): string

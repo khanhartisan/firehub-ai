@@ -89,7 +89,7 @@ CTX;
                 'Which implementation?',
                 [
                     'BasicIdeaPickerDriver — deterministic score sort',
-                    'OpenAIIdeaPickerDriver — OpenAI Responses API (uses synthesizer.openai_idea_picker config)',
+                    'OpenAIIdeaPickerDriver — OpenAI Responses API (uses synthesizer.idea_picker.drivers.openai config)',
                 ],
                 0
             );

@@ -12,6 +12,7 @@ use App\Contracts\OpenAI\ResponseOptions;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\Editor\EditorService;
 use RuntimeException;
 
@@ -33,7 +34,7 @@ class OpenAIEditorDriver extends EditorService
         ?BasicEditorDriver $fallback = null,
     ) {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_editor', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('editor'), $config);
         $this->fallback = $fallback ?? new BasicEditorDriver;
     }
 

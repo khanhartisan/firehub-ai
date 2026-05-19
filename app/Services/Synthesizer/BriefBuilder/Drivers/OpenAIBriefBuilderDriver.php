@@ -17,6 +17,7 @@ use App\Enums\Language;
 use App\Enums\Temporal;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\BriefBuilder\BriefBuilderService;
 use RuntimeException;
 
@@ -33,7 +34,7 @@ class OpenAIBriefBuilderDriver extends BriefBuilderService
     public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_brief_builder', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('brief_builder'), $config);
     }
 
     public function conceive(Idea $idea, SemanticContext $context): Brief

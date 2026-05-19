@@ -51,7 +51,18 @@ use App\Services\SemanticContextBuilder\SemanticContextBuilderManager;
 use App\Services\TextEmbedding\TextEmbeddingManager;
 use App\Services\VectorDB\VectorDBManager;
 use App\Services\VerticalResolver\VerticalResolverManager;
+use App\Services\Synthesizer\BriefBuilder\BriefBuilderManager;
+use App\Services\Synthesizer\Editor\EditorManager;
+use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\IdeaAdvisorManager;
+use App\Services\Synthesizer\IdeaForge\IdeaAuditor\IdeaAuditorManager;
+use App\Services\Synthesizer\IdeaForge\IdeaForgeManager;
+use App\Services\Synthesizer\IdeaForge\IdeaPicker\IdeaPickerManager;
+use App\Services\Synthesizer\Illustration\Director\IllustrationDirectorManager;
+use App\Services\Synthesizer\Illustration\Illustrator\IllustratorManager;
+use App\Services\Synthesizer\OutlineBuilder\OutlineBuilderManager;
+use App\Services\Synthesizer\Researcher\ResearcherManager;
 use App\Services\Synthesizer\SynthesizerManager;
+use App\Services\Synthesizer\Writer\WriterManager;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -77,6 +88,17 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('text_embedding.manager', TextEmbeddingManager::class);
         $this->app->singleton('search_engine.manager', SearchEngineManager::class);
         $this->app->singleton('synthesizer.manager', SynthesizerManager::class);
+        $this->app->singleton(WriterManager::class);
+        $this->app->singleton(EditorManager::class);
+        $this->app->singleton(ResearcherManager::class);
+        $this->app->singleton(BriefBuilderManager::class);
+        $this->app->singleton(OutlineBuilderManager::class);
+        $this->app->singleton(IdeaAdvisorManager::class);
+        $this->app->singleton(IdeaAuditorManager::class);
+        $this->app->singleton(IdeaPickerManager::class);
+        $this->app->singleton(IdeaForgeManager::class);
+        $this->app->singleton(IllustrationDirectorManager::class);
+        $this->app->singleton(IllustratorManager::class);
         $this->app->singleton('semantic_context_builder.manager', SemanticContextBuilderManager::class);
 
         // Bind interfaces to the default driver (type-safe for dependency injection)

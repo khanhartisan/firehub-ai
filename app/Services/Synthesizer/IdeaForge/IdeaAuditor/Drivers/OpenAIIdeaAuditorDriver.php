@@ -10,6 +10,7 @@ use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Contracts\Synthesizer\IdeaForge\IdeaUniquenessReport;
 use App\Models\Article;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\IdeaAuditorService;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Support\IdeaUniquenessFromVector;
 use JsonException;
@@ -32,7 +33,7 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
     public function __construct(OpenAIClient $openAIClient, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_idea_auditor', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('idea_auditor'), $config);
     }
 
     /**
@@ -52,7 +53,7 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
                 ->setSimilarArticles([]);
         }
 
-        $limit = max(1, min(100, (int) (config('synthesizer.idea_uniqueness.vector_search_limit') ?? 20)));
+        $limit = max(1, min(100, (int) (config('synthesizer.idea_auditor.uniqueness.vector_search_limit') ?? 20)));
         $matches = IdeaUniquenessFromVector::candidateArticlesWithSimilarityScores($clientId, $text, $limit);
 
         if ($matches === []) {

@@ -8,6 +8,7 @@ use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\IdeaPickerService;
 use RuntimeException;
 
@@ -28,7 +29,7 @@ class OpenAIIdeaPickerDriver extends IdeaPickerService
     public function __construct(OpenAIClient $openAIClient, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_idea_picker', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('idea_picker'), $config);
     }
 
     /**

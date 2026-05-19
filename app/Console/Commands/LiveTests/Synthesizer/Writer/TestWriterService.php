@@ -13,8 +13,7 @@ use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\Writer\Writer;
 use App\Facades\Synthesizer;
-use App\Services\Synthesizer\Writer\Drivers\BasicWriterDriver;
-use App\Services\Synthesizer\Writer\Drivers\OpenAIWriterDriver;
+use App\Services\Synthesizer\Writer\WriterManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
@@ -70,22 +69,16 @@ class TestWriterService extends Command
         );
 
         if (str_starts_with($mode, 'Direct')) {
-            $impl = $this->choice(
-                'Which implementation?',
-                [
-                    'BasicWriterDriver - deterministic/local',
-                    'OpenAIWriterDriver - OpenAI Responses API (uses synthesizer.openai_writer config)',
-                ],
-                1
+            $manager = $this->laravel->make(WriterManager::class);
+            $driverName = $this->choice(
+                'Which driver?',
+                array_keys(config('synthesizer.writer.drivers', ['basic' => [], 'openai' => []])),
+                array_search('openai', array_keys(config('synthesizer.writer.drivers', [])), true) ?: 0
             );
 
-            if (str_contains($impl, 'Basic')) {
-                return [new BasicWriterDriver, 'direct - BasicWriterDriver'];
-            }
-
             return [
-                $this->laravel->make(OpenAIWriterDriver::class),
-                'direct - OpenAIWriterDriver (container)',
+                $manager->driver($driverName),
+                "direct - WriterManager::driver('{$driverName}')",
             ];
         }
 

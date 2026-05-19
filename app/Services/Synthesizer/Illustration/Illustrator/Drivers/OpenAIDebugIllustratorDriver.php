@@ -16,7 +16,7 @@ class OpenAIDebugIllustratorDriver extends OpenAIIllustratorDriver
     /** @param array<string, mixed> $config */
     public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
-        parent::__construct($openAIClient, array_merge(config('synthesizer.openai_debug_illustrator', []), $config));
+        parent::__construct($openAIClient, $config);
     }
 
     /** @return array{files: array<int, string>, seed: string|null} */

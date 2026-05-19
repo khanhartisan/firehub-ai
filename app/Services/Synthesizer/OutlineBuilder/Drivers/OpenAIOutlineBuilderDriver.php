@@ -11,6 +11,7 @@ use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\OutlineBuilder\OutlineBuilderService;
 use RuntimeException;
 
@@ -27,7 +28,7 @@ class OpenAIOutlineBuilderDriver extends OutlineBuilderService
     public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_outline_builder', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('outline_builder'), $config);
     }
 
     public function outline(Brief $brief, ?SemanticContext $context): Outline

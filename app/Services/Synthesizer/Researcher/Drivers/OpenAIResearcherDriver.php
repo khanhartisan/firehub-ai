@@ -11,6 +11,7 @@ use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
 use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\Researcher\ResearcherService;
 use RuntimeException;
 
@@ -27,7 +28,7 @@ class OpenAIResearcherDriver extends ResearcherService
     public function __construct(OpenAIClient $openAIClient, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_researcher', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('researcher'), $config);
     }
 
     public function extractIdeaPoints(Idea $idea, string $content): array

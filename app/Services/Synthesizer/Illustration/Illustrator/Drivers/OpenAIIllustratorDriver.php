@@ -8,6 +8,7 @@ use App\Contracts\Synthesizer\Illustration\IllustrationContext;
 use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Enums\AspectRatio;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\Illustration\Illustrator\IllustratorService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -26,7 +27,9 @@ class OpenAIIllustratorDriver extends IllustratorService
     public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_illustrator', []), $config);
+        $this->config = $config !== []
+            ? $config
+            : SynthesizerSubserviceConfig::settings('illustrator');
 
         $this->setIdentifier((string) ($this->config['identifier'] ?? 'openai-illustrator'));
         $this->setDescription((string) ($this->config['description'] ?? 'OpenAI-backed illustration generator.'));

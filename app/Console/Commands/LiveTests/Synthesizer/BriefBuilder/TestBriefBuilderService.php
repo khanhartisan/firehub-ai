@@ -83,7 +83,7 @@ class TestBriefBuilderService extends Command
                 'Which implementation?',
                 [
                     'BasicBriefBuilderDriver — deterministic/local',
-                    'OpenAIBriefBuilderDriver — OpenAI Responses API (uses synthesizer.openai_brief_builder config)',
+                    'OpenAIBriefBuilderDriver — OpenAI Responses API (uses synthesizer.brief_builder.drivers.openai config)',
                 ],
                 1
             );

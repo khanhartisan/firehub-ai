@@ -14,6 +14,7 @@ use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 use App\Enums\IntentType;
 use App\Enums\Language;
 use App\Enums\Temporal;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\IdeaAdvisorService;
 use RuntimeException;
 
@@ -34,7 +35,7 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
     public function __construct(OpenAIClient $openAIClient, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_idea_advisor', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('idea_advisor'), $config);
 
         $this->setIdentifier((string) ($this->config['identifier'] ?? 'openai-idea-advisor'));
         $this->setDescription((string) ($this->config['description'] ?? 'OpenAI-backed advisor for temporal, intent-type, and idea suggestions.'));

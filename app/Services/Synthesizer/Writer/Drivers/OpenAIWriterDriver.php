@@ -14,6 +14,7 @@ use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
+use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\Writer\WriterService;
 use League\CommonMark\Exception\CommonMarkException;
 use RuntimeException;
@@ -31,7 +32,7 @@ class OpenAIWriterDriver extends WriterService
     public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_writer', []), $config);
+        $this->config = array_merge(SynthesizerSubserviceConfig::settings('writer'), $config);
     }
 
     public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft

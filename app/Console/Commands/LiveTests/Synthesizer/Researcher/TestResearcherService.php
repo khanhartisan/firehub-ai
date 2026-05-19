@@ -124,7 +124,7 @@ class TestResearcherService extends Command
                 'Which implementation?',
                 [
                     'BasicResearcherDriver — local deterministic extraction',
-                    'OpenAIResearcherDriver — OpenAI Responses API (uses synthesizer.openai_researcher config)',
+                    'OpenAIResearcherDriver — OpenAI Responses API (uses synthesizer.researcher.drivers.openai config)',
                 ],
                 0
             );

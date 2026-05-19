@@ -12,7 +12,7 @@ use App\Models\Article;
 /**
  * Helpers for OpenAI-driven uniqueness: {@see OpenAIIdeaAuditorDriver} uses
  * {@see searchTextForIdea()} plus {@see candidateArticlesWithSimilarityScores()} (VectorDB
- * retrieval with scores). Config under `synthesizer.idea_uniqueness` applies to limits.
+ * retrieval with scores). Config under `synthesizer.idea_auditor.uniqueness` applies to limits.
  */
 final class IdeaUniquenessFromVector
 {

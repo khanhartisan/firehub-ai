@@ -113,7 +113,7 @@ class SynthesizerManagerTest extends TestCase
 
     public function test_it_selects_sub_service_driver_from_configuration(): void
     {
-        Config::set('synthesizer.drivers.basic.brief_builder.driver', OpenAIBriefBuilderDriver::class);
+        Config::set('synthesizer.drivers.basic.brief_builder', 'openai');
 
         $driver = SynthesizerFacade::driver('basic');
 

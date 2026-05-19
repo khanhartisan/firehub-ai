@@ -4,17 +4,18 @@ namespace App\Services\Synthesizer;
 
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\Synthesizer as SynthesizerContract;
-use App\Services\Synthesizer\Writer\Drivers\BasicWriterDriver;
-use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
-use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
-use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
-use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
-use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
-use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
-use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
-use App\Services\Synthesizer\Editor\Drivers\BasicEditorDriver;
-use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
-use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
+use App\Services\Synthesizer\BriefBuilder\BriefBuilderManager;
+use App\Services\Synthesizer\Editor\EditorManager;
+use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\IdeaAdvisorManager;
+use App\Services\Synthesizer\IdeaForge\IdeaAuditor\IdeaAuditorManager;
+use App\Services\Synthesizer\IdeaForge\IdeaForgeManager;
+use App\Services\Synthesizer\IdeaForge\IdeaForgeService;
+use App\Services\Synthesizer\IdeaForge\IdeaPicker\IdeaPickerManager;
+use App\Services\Synthesizer\Illustration\Director\IllustrationDirectorManager;
+use App\Services\Synthesizer\Illustration\Illustrator\IllustratorManager;
+use App\Services\Synthesizer\OutlineBuilder\OutlineBuilderManager;
+use App\Services\Synthesizer\Researcher\ResearcherManager;
+use App\Services\Synthesizer\Writer\WriterManager;
 use Illuminate\Support\Manager;
 
 class SynthesizerManager extends Manager
@@ -40,69 +41,61 @@ class SynthesizerManager extends Manager
     {
         $ideaForgeConfig = $driverConfig['idea_forge'] ?? [];
         $ideaAdvisors = $this->makeIdeaAdvisorsFromConfig(
-            $ideaForgeConfig['advisors'] ?? [['driver' => BasicIdeaAdvisorDriver::class]]
+            $ideaForgeConfig['advisors'] ?? [['driver' => 'basic']]
         );
-        $ideaAuditor = $this->container->make(
-            $this->resolveImplementationDriver($ideaForgeConfig['auditor'] ?? null, BasicIdeaAuditorDriver::class)
+        $ideaAuditor = $this->container->make(IdeaAuditorManager::class)->driver(
+            $this->resolveDriverName($ideaForgeConfig['auditor'] ?? null, 'basic')
         );
-        $ideaPicker = $this->container->make(
-            $this->resolveImplementationDriver($ideaForgeConfig['picker'] ?? null, BasicIdeaPickerDriver::class)
-        );
-
-        $ideaForge = $this->container->make(
-            $this->resolveImplementationDriver($ideaForgeConfig, BasicIdeaForgeDriver::class),
-            [
-                'ideaAdvisors' => $ideaAdvisors,
-                'ideaAuditor' => $ideaAuditor,
-                'ideaPicker' => $ideaPicker,
-            ]
+        $ideaPicker = $this->container->make(IdeaPickerManager::class)->driver(
+            $this->resolveDriverName($ideaForgeConfig['picker'] ?? null, 'basic')
         );
 
-        $briefBuilder = $this->container->make(
-            $this->resolveImplementationDriver($driverConfig['brief_builder'] ?? null, BasicBriefBuilderDriver::class)
+        /** @var IdeaForgeService $ideaForge */
+        $ideaForge = $this->container->make(IdeaForgeManager::class)->driver(
+            $this->resolveDriverName($ideaForgeConfig['driver'] ?? $ideaForgeConfig, 'basic')
         );
+        $ideaForge->setIdeaAdvisors($ideaAdvisors);
+        $ideaForge->setIdeaAuditor($ideaAuditor);
+        $ideaForge->setIdeaPicker($ideaPicker);
 
-        $researcher = $this->container->make(
-            $this->resolveImplementationDriver($driverConfig['researcher'] ?? null, BasicResearcherDriver::class)
+        $briefBuilder = $this->container->make(BriefBuilderManager::class)->driver(
+            $this->resolveDriverName($driverConfig['brief_builder'] ?? null, 'basic')
         );
-
-        $outlineBuilder = $this->container->make(
-            $this->resolveImplementationDriver($driverConfig['outline_builder'] ?? null, BasicOutlineBuilderDriver::class)
+        $researcher = $this->container->make(ResearcherManager::class)->driver(
+            $this->resolveDriverName($driverConfig['researcher'] ?? null, 'basic')
         );
-
-        $editor = $this->container->make(
-            $this->resolveImplementationDriver($driverConfig['editor'] ?? null, BasicEditorDriver::class)
+        $outlineBuilder = $this->container->make(OutlineBuilderManager::class)->driver(
+            $this->resolveDriverName($driverConfig['outline_builder'] ?? null, 'basic')
         );
-
-        $writer = $this->container->make(
-            $this->resolveImplementationDriver($driverConfig['writer'] ?? null, BasicWriterDriver::class)
+        $editor = $this->container->make(EditorManager::class)->driver(
+            $this->resolveDriverName($driverConfig['editor'] ?? null, 'basic')
+        );
+        $writer = $this->container->make(WriterManager::class)->driver(
+            $this->resolveDriverName($driverConfig['writer'] ?? null, 'basic')
         );
 
         $illustrationConfig = $driverConfig['illustration'] ?? [];
-        $illustrationDirector = $this->container->make(
-            $this->resolveImplementationDriver($illustrationConfig['director'] ?? null, BasicDirectorDriver::class)
+        $illustrationDirector = $this->container->make(IllustrationDirectorManager::class)->driver(
+            $this->resolveDriverName($illustrationConfig['director'] ?? null, 'basic')
         );
+        $illustratorEntries = $illustrationConfig['illustrators'] ?? ['basic'];
         $illustrators = array_values(array_map(
-            fn (array $entry) => $this->container->make(
-                $this->resolveImplementationDriver($entry, BasicIllustratorDriver::class)
+            fn (mixed $entry) => $this->container->make(IllustratorManager::class)->driver(
+                $this->resolveDriverName($entry, 'basic')
             ),
-            $illustrationConfig['illustrators'] ?? [['driver' => BasicIllustratorDriver::class]]
+            $illustratorEntries
         ));
 
-        /** @var SynthesizerContract */
-        return $this->container->make(
-            $this->resolveImplementationDriver($driverConfig['service'] ?? null, SynthesizerService::class),
-            [
-                'ideaForge' => $ideaForge,
-                'researcher' => $researcher,
-                'briefBuilder' => $briefBuilder,
-                'outlineBuilder' => $outlineBuilder,
-                'editor' => $editor,
-                'writer' => $writer,
-                'illustrationDirector' => $illustrationDirector,
-                'illustrators' => $illustrators,
-            ]
-        );
+        return $this->container->make(SynthesizerService::class, [
+            'ideaForge' => $ideaForge,
+            'researcher' => $researcher,
+            'briefBuilder' => $briefBuilder,
+            'outlineBuilder' => $outlineBuilder,
+            'editor' => $editor,
+            'writer' => $writer,
+            'illustrationDirector' => $illustrationDirector,
+            'illustrators' => $illustrators,
+        ]);
     }
 
     /**
@@ -111,9 +104,11 @@ class SynthesizerManager extends Manager
      */
     protected function makeIdeaAdvisorsFromConfig(array $entries): array
     {
+        $manager = $this->container->make(IdeaAdvisorManager::class);
         $advisors = [];
+
         foreach ($entries as $entry) {
-            $advisors[] = $this->makeIdeaAdvisorFromConfigEntry($entry);
+            $advisors[] = $this->makeIdeaAdvisorFromConfigEntry($manager, $entry);
         }
 
         return $advisors;
@@ -122,20 +117,20 @@ class SynthesizerManager extends Manager
     /**
      * @param  array{driver: string, weight?: float|int|string}  $entry
      */
-    protected function makeIdeaAdvisorFromConfigEntry(array $entry): IdeaAdvisor
+    protected function makeIdeaAdvisorFromConfigEntry(IdeaAdvisorManager $manager, array $entry): IdeaAdvisor
     {
-        $class = $this->resolveImplementationDriver($entry, '');
-        if ($class === '') {
+        $driverName = $this->resolveDriverName($entry, '');
+        if ($driverName === '') {
             throw new \InvalidArgumentException(
-                'Idea advisor config must be an array with a string "driver" key.'
+                'Idea advisor config must include a "driver" name.'
             );
         }
 
-        $advisor = $this->container->make($class);
+        $advisor = $manager->driver($driverName);
         if (! $advisor instanceof IdeaAdvisor) {
             throw new \InvalidArgumentException(sprintf(
-                'Idea advisor class "%s" must implement %s.',
-                $class,
+                'Idea advisor driver "%s" must implement %s.',
+                $driverName,
                 IdeaAdvisor::class
             ));
         }
@@ -147,15 +142,32 @@ class SynthesizerManager extends Manager
         return $advisor;
     }
 
-    /**
-     * @param  array{driver?: string}|null  $config
-     */
-    protected function resolveImplementationDriver(?array $config, string $default): string
+    protected function resolveDriverName(mixed $config, string $default): string
     {
+        if (is_string($config) && $config !== '') {
+            return $this->normalizeDriverName($config);
+        }
+
         if (is_array($config) && isset($config['driver']) && is_string($config['driver']) && $config['driver'] !== '') {
-            return $config['driver'];
+            return $this->normalizeDriverName($config['driver']);
         }
 
         return $default;
+    }
+
+    /**
+     * Map legacy orchestrator config that stored implementation class names.
+     */
+    protected function normalizeDriverName(string $name): string
+    {
+        if (! str_contains($name, '\\')) {
+            return $name;
+        }
+
+        return match (class_basename($name)) {
+            'OpenAIDebugIllustratorDriver' => 'debug',
+            'OpenAIIdeaExpansionAdvisorDriver' => 'openai_expansion',
+            default => str_starts_with(class_basename($name), 'OpenAI') ? 'openai' : 'basic',
+        };
     }
 }

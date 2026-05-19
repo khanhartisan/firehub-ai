@@ -132,7 +132,7 @@ CTX;
                 'Which implementation?',
                 [
                     'BasicIdeaAdvisorDriver — local / deterministic',
-                    'OpenAIIdeaAdvisorDriver — OpenAI Responses API (uses synthesizer.openai_idea_advisor config)',
+                    'OpenAIIdeaAdvisorDriver — OpenAI Responses API (uses synthesizer.idea_advisor.drivers.openai config)',
                 ],
                 0
             );

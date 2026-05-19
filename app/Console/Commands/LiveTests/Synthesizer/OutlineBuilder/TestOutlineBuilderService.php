@@ -71,7 +71,7 @@ class TestOutlineBuilderService extends Command
                 'Which implementation?',
                 [
                     'BasicOutlineBuilderDriver — deterministic/local',
-                    'OpenAIOutlineBuilderDriver — OpenAI Responses API (uses synthesizer.openai_outline_builder config)',
+                    'OpenAIOutlineBuilderDriver — OpenAI Responses API (uses synthesizer.outline_builder.drivers.openai config)',
                 ],
                 1
             );

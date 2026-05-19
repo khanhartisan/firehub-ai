@@ -99,7 +99,7 @@ class TestIdeaAuditorService extends Command
                 'Which implementation?',
                 [
                     'BasicIdeaAuditorDriver — stub uniqueness (tests / local; no vector)',
-                    'OpenAIIdeaAuditorDriver — OpenAI Responses API (uses synthesizer.openai_idea_auditor config)',
+                    'OpenAIIdeaAuditorDriver — OpenAI Responses API (uses synthesizer.idea_auditor.drivers.openai config)',
                 ],
                 0
             );

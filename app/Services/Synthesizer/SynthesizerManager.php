@@ -12,6 +12,7 @@ use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDrive
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
 use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
+use App\Services\Synthesizer\Editor\Drivers\BasicEditorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
 use Illuminate\Support\Manager;
@@ -65,6 +66,10 @@ class SynthesizerManager extends Manager
             $driverConfig['outline_builder']['driver'] ?? BasicOutlineBuilderDriver::class
         );
 
+        $editor = $this->container->make(
+            $driverConfig['editor']['driver'] ?? BasicEditorDriver::class
+        );
+
         $writer = $this->container->make(
             $driverConfig['author']['driver'] ?? BasicWriterDriver::class
         );
@@ -85,6 +90,7 @@ class SynthesizerManager extends Manager
                 'researcher' => $researcher,
                 'briefBuilder' => $briefBuilder,
                 'outlineBuilder' => $outlineBuilder,
+                'editor' => $editor,
                 'writer' => $writer,
                 'illustrationDirector' => $illustrationDirector,
                 'illustrators' => $illustrators,

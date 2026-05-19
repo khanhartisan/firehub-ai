@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Synthesizer;
 
+use App\Contracts\Synthesizer\Editor\Editor;
 use App\Contracts\Synthesizer\Writer\Writer;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
 use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
@@ -27,6 +28,10 @@ interface Synthesizer
     public function setOutlineBuilder(OutlineBuilder $builder): static;
 
     public function getOutlineBuilder(): OutlineBuilder;
+
+    public function setEditor(Editor $editor): static;
+
+    public function getEditor(): Editor;
 
     public function setWriter(Writer $writer): static;
 

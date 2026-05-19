@@ -22,6 +22,7 @@ use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
 use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAIDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAIIllustratorDriver;
+use App\Services\Synthesizer\Editor\Drivers\BasicEditorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
@@ -52,6 +53,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(BasicResearcherDriver::class, $driver->getResearcher());
         $this->assertInstanceOf(BasicBriefBuilderDriver::class, $driver->getBriefBuilder());
         $this->assertInstanceOf(BasicOutlineBuilderDriver::class, $driver->getOutlineBuilder());
+        $this->assertInstanceOf(BasicEditorDriver::class, $driver->getEditor());
         $this->assertInstanceOf(BasicWriterDriver::class, $driver->getWriter());
         $this->assertInstanceOf(BasicDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertNotEmpty($driver->getIllustrators());
@@ -129,6 +131,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIIdeaPickerDriver::class, $ideaForge->getIdeaPicker());
         $this->assertInstanceOf(OpenAIResearcherDriver::class, $driver->getResearcher());
         $this->assertInstanceOf(OpenAIOutlineBuilderDriver::class, $driver->getOutlineBuilder());
+        $this->assertInstanceOf(BasicEditorDriver::class, $driver->getEditor());
         $this->assertInstanceOf(OpenAIWriterDriver::class, $driver->getWriter());
         $this->assertInstanceOf(OpenAIDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertNotEmpty($driver->getIllustrators());

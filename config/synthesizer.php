@@ -16,6 +16,7 @@ use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
 use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAIDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAIIllustratorDriver;
+use App\Services\Synthesizer\Editor\Drivers\BasicEditorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
@@ -74,6 +75,9 @@ return [
             'outline_builder' => [
                 'driver' => BasicOutlineBuilderDriver::class,
             ],
+            'editor' => [
+                'driver' => BasicEditorDriver::class,
+            ],
             'author' => [
                 'driver' => BasicWriterDriver::class,
             ],
@@ -110,6 +114,9 @@ return [
             ],
             'outline_builder' => [
                 'driver' => OpenAIOutlineBuilderDriver::class,
+            ],
+            'editor' => [
+                'driver' => BasicEditorDriver::class,
             ],
             'author' => [
                 'driver' => OpenAIWriterDriver::class,

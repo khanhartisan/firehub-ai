@@ -20,6 +20,7 @@ use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
 use App\Contracts\Synthesizer\Illustration\Illustratable;
 use App\Contracts\Synthesizer\Illustration\Illustrator;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
+use App\Contracts\Synthesizer\Editor\Editor;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
 use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
@@ -37,6 +38,7 @@ class SynthesizerServiceTest extends TestCase
         $researcherA = $this->makeResearcher();
         $briefBuilderA = $this->makeBriefBuilder();
         $outlineBuilderA = $this->makeOutlineBuilder();
+        $editorA = $this->makeEditor();
         $writerA = $this->makeWriter();
         $illustrationDirectorA = $this->makeIllustrationDirector();
         $illustratorA = $this->makeIllustrator();
@@ -47,6 +49,7 @@ class SynthesizerServiceTest extends TestCase
             researcher: $researcherA,
             briefBuilder: $briefBuilderA,
             outlineBuilder: $outlineBuilderA,
+            editor: $editorA,
             writer: $writerA,
             illustrationDirector: $illustrationDirectorA,
             illustrators: [$illustratorA],
@@ -56,6 +59,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($researcherA, $service->getResearcher());
         $this->assertSame($briefBuilderA, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderA, $service->getOutlineBuilder());
+        $this->assertSame($editorA, $service->getEditor());
         $this->assertSame($writerA, $service->getWriter());
         $this->assertSame($illustrationDirectorA, $service->getIllustrationDirector());
         $this->assertSame([$illustratorA], $service->getIllustrators());
@@ -64,6 +68,7 @@ class SynthesizerServiceTest extends TestCase
         $researcherB = $this->makeResearcher();
         $briefBuilderB = $this->makeBriefBuilder();
         $outlineBuilderB = $this->makeOutlineBuilder();
+        $editorB = $this->makeEditor();
         $writerB = $this->makeWriter();
         $illustrationDirectorB = $this->makeIllustrationDirector();
 
@@ -71,6 +76,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($service, $service->setResearcher($researcherB));
         $this->assertSame($service, $service->setBriefBuilder($briefBuilderB));
         $this->assertSame($service, $service->setOutlineBuilder($outlineBuilderB));
+        $this->assertSame($service, $service->setEditor($editorB));
         $this->assertSame($service, $service->setWriter($writerB));
         $this->assertSame($service, $service->setIllustrationDirector($illustrationDirectorB));
         $this->assertSame($service, $service->setIllustrators([$illustratorB, new \stdClass()]));
@@ -79,6 +85,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($researcherB, $service->getResearcher());
         $this->assertSame($briefBuilderB, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderB, $service->getOutlineBuilder());
+        $this->assertSame($editorB, $service->getEditor());
         $this->assertSame($writerB, $service->getWriter());
         $this->assertSame($illustrationDirectorB, $service->getIllustrationDirector());
         $this->assertSame([$illustratorB], $service->getIllustrators());
@@ -183,6 +190,26 @@ class SynthesizerServiceTest extends TestCase
             public function outline(Brief $brief, ?SemanticContext $context): Outline
             {
                 return new Outline;
+            }
+        };
+    }
+
+    protected function makeEditor(): Editor
+    {
+        return new class implements Editor
+        {
+            public function determineAuthorContext(Idea $idea, array $authorContexts): SemanticContext
+            {
+                return $authorContexts[0] ?? new SemanticContext;
+            }
+
+            public function distillOutlineAuthorContext(
+                Outline $outline,
+                string $outlineItemIdentifier,
+                SemanticContext $authorContext,
+                ?SemanticContext $generalContext = null
+            ): SemanticContext {
+                return $authorContext;
             }
         };
     }

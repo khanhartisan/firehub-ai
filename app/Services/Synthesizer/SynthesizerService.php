@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer;
 
+use App\Contracts\Synthesizer\Editor\Editor;
 use App\Contracts\Synthesizer\Writer\Writer;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
 use App\Contracts\Synthesizer\IdeaForge\IdeaForge;
@@ -18,6 +19,7 @@ class SynthesizerService implements Synthesizer
         protected Researcher $researcher,
         protected BriefBuilder $briefBuilder,
         protected OutlineBuilder $outlineBuilder,
+        protected Editor $editor,
         protected Writer $writer,
         protected Director $illustrationDirector,
         protected array $illustrators = [],
@@ -70,6 +72,18 @@ class SynthesizerService implements Synthesizer
     public function getOutlineBuilder(): OutlineBuilder
     {
         return $this->outlineBuilder;
+    }
+
+    public function setEditor(Editor $editor): static
+    {
+        $this->editor = $editor;
+
+        return $this;
+    }
+
+    public function getEditor(): Editor
+    {
+        return $this->editor;
     }
 
     public function setWriter(Writer $writer): static

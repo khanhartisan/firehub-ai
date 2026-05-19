@@ -75,7 +75,7 @@ class SynthesizerManager extends Manager
         );
 
         $writer = $this->container->make(
-            $this->resolveImplementationDriver($driverConfig['author'] ?? null, BasicWriterDriver::class)
+            $this->resolveImplementationDriver($driverConfig['writer'] ?? null, BasicWriterDriver::class)
         );
 
         $illustrationConfig = $driverConfig['illustration'] ?? [];

@@ -84,7 +84,7 @@ return [
             'editor' => [
                 'driver' => BasicEditorDriver::class,
             ],
-            'author' => [
+            'writer' => [
                 'driver' => BasicWriterDriver::class,
             ],
             'illustration' => [
@@ -132,7 +132,7 @@ return [
             'editor' => [
                 'driver' => OpenAIEditorDriver::class,
             ],
-            'author' => [
+            'writer' => [
                 'driver' => OpenAIWriterDriver::class,
             ],
             'illustration' => [
@@ -255,15 +255,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | OpenAI author
+    | OpenAI writer
     |--------------------------------------------------------------------------
     |
     | Used by {@see OpenAIWriterDriver} (synthesizer driver "openai").
     |
     */
 
-    'openai_author' => [
-        'model' => env('SYNTHESIZER_OPENAI_AUTHOR_MODEL', 'gpt-4o-mini'),
+    'openai_writer' => [
+        'model' => env('SYNTHESIZER_OPENAI_WRITER_MODEL', env('SYNTHESIZER_OPENAI_AUTHOR_MODEL', 'gpt-4o-mini')),
         'temperature' => 0.5,
         'max_children' => 1000,
         'max_depth' => 20,

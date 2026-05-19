@@ -74,7 +74,7 @@ class TestWriterService extends Command
                 'Which implementation?',
                 [
                     'BasicWriterDriver - deterministic/local',
-                    'OpenAIWriterDriver - OpenAI Responses API (uses synthesizer.openai_author config)',
+                    'OpenAIWriterDriver - OpenAI Responses API (uses synthesizer.openai_writer config)',
                 ],
                 1
             );

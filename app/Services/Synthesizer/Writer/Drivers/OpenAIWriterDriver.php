@@ -31,7 +31,7 @@ class OpenAIWriterDriver extends WriterService
     public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
-        $this->config = array_merge(config('synthesizer.openai_author', []), $config);
+        $this->config = array_merge(config('synthesizer.openai_writer', []), $config);
     }
 
     public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft

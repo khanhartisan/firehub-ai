@@ -5,7 +5,6 @@ namespace App\Services\Synthesizer\Writer\Drivers;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
 use App\Contracts\DOM\Element;
-use App\Contracts\DOM\ElementType;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
@@ -16,6 +15,7 @@ use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Services\Synthesizer\Writer\WriterService;
+use League\CommonMark\Exception\CommonMarkException;
 use RuntimeException;
 
 class OpenAIWriterDriver extends WriterService
@@ -287,16 +287,6 @@ PROMPT;
         return (float) ($this->config['temperature'] ?? 0.2);
     }
 
-    public function getMaxChildren(): int
-    {
-        return (int) ($this->config['max_children'] ?? 100);
-    }
-
-    protected function getMaxDepth(): int
-    {
-        return max(1, min(8, (int) ($this->config['max_depth'] ?? 8)));
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -324,10 +314,11 @@ PROMPT;
         return <<<PROMPT
 You are a senior editorial writer.
 
-Given a brief, outline, and optional semantic context, produce structured article draft content:
+Given a brief, outline, and optional semantic context, produce a publication-ready article draft:
 - You have the freedom to express and organize the article by your way, but make sure you make use of all the points provided by the outline, as well as the related sub-points and evidences.
 - Keep title and excerpt concise, specific, and publish-ready.
-- Do not include h1 in article content; h1 is handled by CMS.
+- Return the article body as Markdown (not HTML or JSON DOM). Use h2 and below for section headings; do not include h1 because the CMS handles the page title.
+- Use standard Markdown for paragraphs, lists, links, emphasis, and code blocks as appropriate.
 - Keep tone and voice aligned with the brief.
 
 Input JSON:
@@ -342,7 +333,7 @@ PROMPT;
     {
         return [
             'type' => 'object',
-            'properties' => $properties = [
+            'properties' => [
                 'title' => [
                     'type' => 'string',
                     'description' => 'Publication-ready article title.',
@@ -351,28 +342,12 @@ PROMPT;
                     'type' => 'string',
                     'description' => 'Short article excerpt/summary.',
                 ],
-                'article' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'type' => [
-                            'type' => 'string',
-                            'enum' => [ElementType::ARTICLE->value],
-                        ],
-                        'props' => [
-                            'type' => 'object',
-                            'additionalProperties' => ['type' => 'string'],
-                        ],
-                        'children' => [
-                            'type' => 'array',
-                            'maxItems' => $this->getMaxChildren(),
-                            'items' => $this->buildElementOrTextSchema(1),
-                        ],
-                    ],
-                    'required' => ['type', 'children'],
-                    'additionalProperties' => false,
+                'markdown' => [
+                    'type' => 'string',
+                    'description' => 'Article body in Markdown. Use h2+ for sections; do not include h1.',
                 ],
             ],
-            'required' => array_keys($properties),
+            'required' => ['title', 'excerpt', 'markdown'],
             'additionalProperties' => false,
         ];
     }
@@ -382,63 +357,20 @@ PROMPT;
      */
     protected function buildArticleFromPayload(array $payload): Article
     {
-        $rawArticle = $payload['article'] ?? null;
-        if (! is_array($rawArticle)) {
+        $markdown = $payload['markdown'] ?? null;
+        if (! is_string($markdown) || trim($markdown) === '') {
             return new Article;
         }
 
-        return Article::fromArray($rawArticle);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function buildElementOrTextSchema(int $depth): array
-    {
-        return [
-            'anyOf' => [
-                [
-                    'type' => 'string',
-                    'description' => 'Used for raw text only (NOT HTML tag)'
-                ],
-                $this->buildElementSchema($depth),
-            ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function buildElementSchema(int $depth): array
-    {
-        $childrenItems = $depth >= $this->getMaxDepth()
-            ? ['type' => 'string']
-            : $this->buildElementOrTextSchema($depth + 1);
-
-        return [
-            'type' => 'object',
-            'description' => 'Represent HTML element',
-            'properties' => [
-                'type' => [
-                    'type' => 'string',
-                    'enum' => array_values(array_map(
-                        static fn (ElementType $type): string => $type->value,
-                        array_filter(ElementType::cases(), static fn (ElementType $type): bool => $type !== ElementType::H1)
-                    )),
-                ],
-                'props' => [
-                    'type' => 'object',
-                    'additionalProperties' => ['type' => 'string'],
-                ],
-                'children' => [
-                    'type' => 'array',
-                    'maxItems' => $this->getMaxChildren(),
-                    'items' => $childrenItems,
-                ],
-            ],
-            'required' => ['type', 'children'],
-            'additionalProperties' => false,
-        ];
+        try {
+            return Article::fromMarkdown($markdown);
+        } catch (CommonMarkException $e) {
+            throw new RuntimeException(
+                'Failed to build author draft with OpenAI: invalid markdown ('.$e->getMessage().').',
+                0,
+                $e
+            );
+        }
     }
 
     protected function sanitizeNullableString(mixed $value): ?string

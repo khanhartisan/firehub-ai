@@ -209,43 +209,19 @@ class OutlineAndAuthorDriversTest extends TestCase
         $author->getIllustrationAnchors($article, [new IllustrationResult]);
     }
 
-    public function test_openai_writer_driver_hydrates_article_from_structured_response(): void
+    public function test_openai_writer_driver_hydrates_article_from_markdown_response(): void
     {
         $payload = json_encode([
             'title' => 'AI weekly',
             'excerpt' => 'Top developments this week.',
-            'article' => [
-                'type' => 'article',
-                'props' => [],
-                'children' => [
-                    [
-                        'type' => 'h2',
-                        'props' => [],
-                        'children' => ['Intro'],
-                    ],
-                    [
-                        'type' => 'p',
-                        'props' => [],
-                        'children' => ['Opening paragraph'],
-                    ],
-                    [
-                        'type' => 'ul',
-                        'props' => [],
-                        'children' => [
-                            [
-                                'type' => 'li',
-                                'props' => [],
-                                'children' => ['First signal'],
-                            ],
-                            [
-                                'type' => 'li',
-                                'props' => [],
-                                'children' => ['Second signal'],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            'markdown' => <<<'MD'
+## Intro
+
+Opening paragraph
+
+- First signal
+- Second signal
+MD,
         ], JSON_THROW_ON_ERROR);
 
         $response = Response::fromArray([

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\LiveTests\Synthesizer\IdeaForge;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
@@ -33,7 +34,11 @@ class TestIdeaPickerService extends Command
         $defaultContext = <<<'CTX'
 A practical B2B editorial stream for SaaS operators: product launches, pricing moves, hiring signals, and tactical playbooks.
 CTX;
-        $context = (string) $this->ask('Editorial / business context', $defaultContext);
+        $context = (new SemanticContext)->set(
+            'article_context',
+            'Editorial / business context',
+            (string) $this->ask('Editorial / business context', $defaultContext)
+        );
         $limit = max(1, min(10, (int) $this->ask('Pick limit', '2')));
         $reports = $this->makeFixtureReports();
 

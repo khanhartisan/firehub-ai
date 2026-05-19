@@ -152,20 +152,24 @@ class Element implements Serializable, Identifiable
         return false;
     }
 
-    public function toHtml(): string
+    public function toHtml(bool $withIdentifier = false): string
     {
         $tag = $this->type?->value;
         if ($tag === null || $tag === '') {
-            return $this->getInnerHtml();
+            return $this->getInnerHtml($withIdentifier);
         }
 
-        $attrs = ' data-identifier="'.$this->getIdentifier().'"';
+        $attrs = $withIdentifier ? ' data-identifier="'.$this->getIdentifier().'"' : ' ';
         foreach ($this->props as $key => $value) {
             if (! is_string($key) || ! is_string($value) || $value === '') {
                 continue;
             }
 
             $attrs .= ' '.$key.'="'.htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'"';
+        }
+
+        if (!trim($attrs)) {
+            $attrs = '';
         }
 
         if (in_array($tag, ['img', 'br', 'hr'], true)) {
@@ -278,11 +282,11 @@ class Element implements Serializable, Identifiable
         }
     }
 
-    public function getInnerHtml(): string
+    public function getInnerHtml(bool $withIdentifier = false): string
     {
-        return implode('', array_map(function (Element|string $child): string {
+        return implode('', array_map(function (Element|string $child) use ($withIdentifier): string {
             if ($child instanceof self) {
-                return $child->toHtml();
+                return $child->toHtml($withIdentifier);
             }
 
             return htmlspecialchars($child, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

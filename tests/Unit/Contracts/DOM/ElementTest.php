@@ -43,10 +43,10 @@ class ElementTest extends TestCase
             )
             ->addChild(' world');
 
-        $html = $element->toHtml();
+        $html = $element->toHtml(true);
         $this->assertStringContainsString('<div ', $html);
         $this->assertStringContainsString('class="container"', $html);
-        $this->assertStringContainsString('<p ', $html);
+        $this->assertStringContainsString('<p', $html);
         $this->assertStringContainsString('>Hello</p> world</div>', $html);
         $this->assertMatchesRegularExpression('/data-identifier="[^"]+"/', $html);
     }
@@ -59,7 +59,7 @@ class ElementTest extends TestCase
             ->setProp('href', 'https://example.com/?q=a&b=c')
             ->addChild('Use "quotes" & tags <here>');
 
-        $html = $element->toHtml();
+        $html = $element->toHtml(true);
         $this->assertStringContainsString('<a ', $html);
         $this->assertStringContainsString('title="3 &gt; 2 &quot;quoted&quot;"', $html);
         $this->assertStringContainsString('href="https://example.com/?q=a&amp;b=c"', $html);
@@ -75,8 +75,8 @@ class ElementTest extends TestCase
                 (new Element)->setType(ElementType::STRONG)->addChild('B'),
             ]);
 
-        $html = $fragment->toHtml();
-        $this->assertStringContainsString('A<strong ', $html);
+        $html = $fragment->toHtml(true);
+        $this->assertStringContainsString('A<strong', $html);
         $this->assertStringContainsString('>B</strong>', $html);
         $this->assertMatchesRegularExpression('/<strong data-identifier="[^"]+">/', $html);
     }
@@ -90,7 +90,7 @@ class ElementTest extends TestCase
                 'alt' => 'Hero image',
             ]);
 
-        $html = $image->toHtml();
+        $html = $image->toHtml(true);
         $this->assertStringStartsWith('<img ', $html);
         $this->assertStringContainsString('src="https://example.com/image.jpg"', $html);
         $this->assertStringContainsString('alt="Hero image"', $html);
@@ -105,7 +105,7 @@ class ElementTest extends TestCase
             ->addChild('Hello ')
             ->addChild((new Element)->setType(ElementType::STRONG)->addChild('World'));
 
-        $html = $element->getInnerHtml();
+        $html = $element->getInnerHtml(true);
         $this->assertStringContainsString('Hello <strong ', $html);
         $this->assertStringContainsString('>World</strong>', $html);
         $this->assertMatchesRegularExpression('/<strong data-identifier="[^"]+">/', $html);
@@ -338,7 +338,7 @@ class ElementTest extends TestCase
         $html = '<a data-identifier="a-1" href="https://example.com/?q=a&amp;b=c">Use &quot;quotes&quot; &amp; tags &lt;here&gt;</a>';
 
         $element = Element::fromHtml($html);
-        $rendered = $element->toHtml();
+        $rendered = $element->toHtml(true);
 
         $this->assertStringContainsString('data-identifier="a-1"', $rendered);
         $this->assertStringContainsString('href="https://example.com/?q=a&amp;b=c"', $rendered);

@@ -3,6 +3,7 @@
 namespace App\Contracts\Model\Article\StageData;
 
 use App\Concerns\Serializable;
+use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Model\Article\StageData\IdeaStageData\AdvisorData;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
@@ -23,6 +24,8 @@ final class IdeaStageData implements \App\Contracts\Serializable
     protected array $selectedIntentTypeSuggestions = [];
 
     protected ?IdeaAuditReport $pickedIdeaAuditReport = null;
+
+    protected ?AuthorContext $selectedAuthorContext = null;
 
     /** @var Idea[] */
     protected array $ideas = [];
@@ -122,6 +125,23 @@ final class IdeaStageData implements \App\Contracts\Serializable
     public function getPickedIdea(): ?Idea
     {
         return $this->getPickedIdeaAuditReport()?->getIdea();
+    }
+
+    public function hasSelectedAuthorContext(): bool
+    {
+        return $this->getSelectedAuthorContext() instanceof AuthorContext;
+    }
+
+    public function getSelectedAuthorContext(): ?AuthorContext
+    {
+        return $this->selectedAuthorContext;
+    }
+
+    public function setSelectedAuthorContext(?AuthorContext $selectedAuthorContext): static
+    {
+        $this->selectedAuthorContext = $selectedAuthorContext;
+
+        return $this;
     }
 
     /** @return Idea[] */
@@ -397,6 +417,7 @@ final class IdeaStageData implements \App\Contracts\Serializable
                 $this->getSelectedIntentTypeSuggestions()
             ),
             'picked_idea_audit_report' => $this->getPickedIdeaAuditReport()?->toArray(),
+            'selected_author_context' => $this->getSelectedAuthorContext()?->toArray(),
             'ideas' => array_map(static fn (Idea $v) => $v->toArray(), $this->getIdeas()),
             'unique_idea_identifier_pairs' => $this->getUniqueIdeaIdentifierPairs(),
             'idea_uniqueness_reports' => array_map(
@@ -440,6 +461,10 @@ final class IdeaStageData implements \App\Contracts\Serializable
 
         if (isset($data['picked_idea_audit_report']) && is_array($data['picked_idea_audit_report'])) {
             $dto->setPickedIdeaAuditReport(IdeaAuditReport::fromArray($data['picked_idea_audit_report']));
+        }
+
+        if (isset($data['selected_author_context']) && is_array($data['selected_author_context'])) {
+            $dto->setSelectedAuthorContext(AuthorContext::fromArray($data['selected_author_context']));
         }
 
         if (isset($data['ideas']) && is_array($data['ideas'])) {

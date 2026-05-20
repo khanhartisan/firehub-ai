@@ -17,7 +17,7 @@ class Author extends Model
         return $this->hasMany(Article::class);
     }
 
-    public function clients(): BelongsTo
+    public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
     }

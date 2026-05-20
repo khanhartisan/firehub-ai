@@ -2,6 +2,8 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
+use App\Contracts\Model\Author\AuthorContext;
+use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageBrainstorm;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageContext;
@@ -9,10 +11,11 @@ use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageInte
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageSuggestionCollection;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageUniquenessAndAudit;
 use App\Models\Article;
+use App\Models\Author;
 use App\Utils\Str;
 
 /**
- * IDEA stage: suggestions → weighted top picks → brainstorm → merge intents → uniqueness → audit → pick one idea.
+ * IDEA stage: suggestions → weighted top picks → brainstorm → merge intents → uniqueness → audit → pick one idea → author context.
  *
  * Sub-steps are split across {@see HandleIdeaStageConcerns} traits. Most substeps use checkpoints:
  * return null after one expensive/persisted unit of work so the queue can run the next job
@@ -110,28 +113,82 @@ trait HandleIdeaStage
         $ideaData = $this->getIdeaStageData();
         $ideaAuditReports = $ideaData->getIdeaAuditReports();
 
-        // Resume path: we already persisted the final choice on a previous run.
-        if ($ideaData->getPickedIdeaAuditReport() instanceof IdeaAuditReport) {
+        // 7) Pick one winning idea if not picked (limit 1).
+        if (! $ideaData->getPickedIdeaAuditReport() instanceof IdeaAuditReport) {
+            $pickedList = $this->getIdeaForgeService()->getIdeaPicker()->pick($ideaAuditReports, $ideaBrainstormContext, 1) ?? [];
+            $pickedReport = $pickedList[0] ?? null;
+            if (! $pickedReport instanceof IdeaAuditReport) {
+                return false;
+            }
+
+            $ideaData->setPickedIdeaAuditReport($pickedReport);
+
+            $this->article->temporal = $pickedReport
+                ->getIdea()
+                ->getIntent()
+                ->getTemporal();
+
+            $this->touchArticleQuietly();
+            return null;
+        }
+
+        // 8) Pick author context for the winning idea when the client has authors.
+        $authorContextProgress = $this->processAuthorContextSelection();
+        if ($authorContextProgress !== true) {
+            return $authorContextProgress;
+        }
+
+        return true;
+    }
+
+    /**
+     * Resolves {@see IdeaStageData::getSelectedAuthorContext()} from client authors via the editor.
+     *
+     * @return ?true when selection is done or not needed; false on hard failure
+     */
+    protected function processAuthorContextSelection(): ?bool
+    {
+        $ideaData = $this->getIdeaStageData();
+
+        if ($ideaData->hasSelectedAuthorContext()) {
             return true;
         }
 
-        // 7) Pick one winning idea (limit 1).
-        $pickedList = $this->getIdeaForgeService()->getIdeaPicker()->pick($ideaAuditReports, $ideaBrainstormContext, 1) ?? [];
-        $pickedReport = $pickedList[0] ?? null;
-        if (! $pickedReport instanceof IdeaAuditReport) {
+        $pickedIdea = $ideaData->getPickedIdea();
+        if (! $pickedIdea instanceof Idea) {
             return false;
         }
 
-        $ideaData->setPickedIdeaAuditReport($pickedReport);
+        $authorContexts = $this->collectClientAuthorContexts();
+        if ($authorContexts === []) {
+            return true;
+        }
 
-        $this->article->temporal = $pickedReport
-            ->getIdea()
-            ->getIntent()
-            ->getTemporal();
+        $selected = $this->synthesizer()
+            ->getEditor()
+            ->determineAuthorContext($pickedIdea, $authorContexts);
 
+        if (! $selected instanceof AuthorContext) {
+            $selected = AuthorContext::fromArray($selected->toArray());
+        }
+
+        $ideaData->setSelectedAuthorContext($selected);
         $this->touchArticleQuietly();
 
         return true;
+    }
+
+    /**
+     * @return list<AuthorContext>
+     */
+    protected function collectClientAuthorContexts(): array
+    {
+        return $this->client
+            ->authors()
+            ->get()
+            ->map(static fn (Author $author): AuthorContext => $author->context)
+            ->values()
+            ->all();
     }
 
 }

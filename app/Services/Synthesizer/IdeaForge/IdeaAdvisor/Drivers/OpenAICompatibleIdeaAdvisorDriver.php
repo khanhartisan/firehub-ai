@@ -6,7 +6,7 @@ use App\Services\OpenAI\OpenAICompatibleChatCompletionsClient;
 use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 
 /**
- * Idea advisor that calls OpenAI-compatible /chat/completions endpoints (Ollama, vLLM, Grok, etc.)
+ * Idea advisor that calls OpenAI-compatible /chat/completions endpoints.
  * instead of the Responses API used by {@see OpenAIIdeaAdvisorDriver}.
  */
 class OpenAICompatibleIdeaAdvisorDriver extends OpenAIIdeaAdvisorDriver

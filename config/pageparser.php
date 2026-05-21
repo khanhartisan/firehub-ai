@@ -24,7 +24,7 @@ return [
     | driver used by your application. An example configuration is provided
     | for each driver supported. You're also free to add more drivers.
     |
-    | Supported drivers: "openai", "gemma3"
+    | Supported drivers: "openai", "openai_compatible"
     |
     */
 
@@ -35,9 +35,9 @@ return [
             'max_html_length' => env('PAGEPARSER_MAX_HTML_LENGTH', 100000),
         ],
 
-        'gemma3' => [
-            'model' => env('PAGEPARSER_GEMMA3_MODEL', env('GEMMA3_DEFAULT_MODEL', 'gemma-3-27b-it')),
-            'max_html_length' => env('PAGEPARSER_GEMMA3_MAX_HTML_LENGTH', env('PAGEPARSER_MAX_HTML_LENGTH', 100000)),
+        'openai_compatible' => [
+            'model' => env('PAGEPARSER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+            'max_html_length' => (int) env('PAGEPARSER_OPENAI_COMPATIBLE_MAX_HTML_LENGTH', env('PAGEPARSER_MAX_HTML_LENGTH', 100000)),
         ],
 
     ],

@@ -29,13 +29,13 @@ class IntentResolverManager extends Manager
     }
 
     /**
-     * Create a Gemma 3 driver instance (uses OpenAI manager's gemma3 backend).
+     * Create an OpenAI-compatible driver instance (uses OpenAI manager's openai_compatible backend).
      */
-    protected function createGemma3Driver(): Drivers\Gemma3IntentResolverDriver
+    protected function createOpenaiCompatibleDriver(): Drivers\OpenAICompatibleIntentResolverDriver
     {
-        $config = $this->config->get('intentresolver.drivers.gemma3', []);
+        $config = $this->config->get('intentresolver.drivers.openai_compatible', []);
 
-        return new Drivers\Gemma3IntentResolverDriver(
+        return new Drivers\OpenAICompatibleIntentResolverDriver(
             $this->container->make('openai.manager'),
             $config
         );

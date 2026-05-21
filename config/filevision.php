@@ -24,7 +24,7 @@ return [
     | driver used by your application. An example configuration is provided
     | for each driver supported. You're also free to add more drivers.
     |
-    | Supported drivers: "basic", "openai", "gemma3"
+    | Supported drivers: "basic", "openai", "openai_compatible"
     |
     */
 
@@ -38,8 +38,8 @@ return [
             'model' => env('FILEVISION_OPENAI_MODEL', 'gpt-4o-mini'),
         ],
 
-        'gemma3' => [
-            'model' => env('FILEVISION_GEMMA3_MODEL', env('GEMMA3_DEFAULT_MODEL', 'gemma-3-27b-it')),
+        'openai_compatible' => [
+            'model' => env('FILEVISION_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
         ],
 
     ],

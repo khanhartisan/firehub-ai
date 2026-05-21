@@ -6,7 +6,7 @@ use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\ScrapePolicyEngine;
 use App\Services\OpenAI\OpenAIManager;
 use App\Services\ScrapePolicyEngine\Drivers\DummyScrapePolicyEngineDriver;
-use App\Services\ScrapePolicyEngine\Drivers\Gemma3ScrapePolicyEngineDriver;
+use App\Services\ScrapePolicyEngine\Drivers\OpenAICompatibleScrapePolicyEngineDriver;
 use App\Services\ScrapePolicyEngine\Drivers\OpenAIScrapePolicyEngineDriver;
 use App\Services\ScrapePolicyEngine\ScrapePolicyEngineManager;
 use Illuminate\Support\Facades\Config;
@@ -44,18 +44,18 @@ class ScrapePolicyEngineManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIScrapePolicyEngineDriver::class, $driver);
     }
 
-    public function test_it_returns_gemma3_driver(): void
+    public function test_it_returns_openai_compatible_driver(): void
     {
         $mockOpenAIManager = Mockery::mock(OpenAIManager::class);
         $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
-        $mockOpenAIManager->shouldReceive('driver')->with('gemma3')->andReturn($mockOpenAIClient);
+        $mockOpenAIManager->shouldReceive('driver')->with('openai_compatible')->andReturn($mockOpenAIClient);
         $this->app->instance('openai.manager', $mockOpenAIManager);
 
         $manager = ScrapePolicyEngine::getFacadeRoot();
 
-        $driver = $manager->driver('gemma3');
+        $driver = $manager->driver('openai_compatible');
 
-        $this->assertInstanceOf(Gemma3ScrapePolicyEngineDriver::class, $driver);
+        $this->assertInstanceOf(OpenAICompatibleScrapePolicyEngineDriver::class, $driver);
     }
 
     public function test_get_default_driver_returns_configured_value(): void

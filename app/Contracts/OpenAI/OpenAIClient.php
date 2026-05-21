@@ -3,7 +3,7 @@
 namespace App\Contracts\OpenAI;
 
 /**
- * Client for OpenAI Responses API–compatible endpoints (e.g. OpenAI, Grok).
+ * Client for OpenAI Responses API–compatible endpoints.
  *
  * Used by PageClassifier, PageParser, ScrapePolicyEngine, and FileVision drivers
  * to send prompts and receive model output. Configure via config/openai.php.

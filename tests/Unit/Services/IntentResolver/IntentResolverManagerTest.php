@@ -4,7 +4,7 @@ namespace Tests\Unit\Services\IntentResolver;
 
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\IntentResolver;
-use App\Services\IntentResolver\Drivers\Gemma3IntentResolverDriver;
+use App\Services\IntentResolver\Drivers\OpenAICompatibleIntentResolverDriver;
 use App\Services\IntentResolver\Drivers\OpenAIIntentResolverDriver;
 use App\Services\IntentResolver\IntentResolverManager;
 use App\Services\OpenAI\OpenAIManager;
@@ -46,27 +46,27 @@ class IntentResolverManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIIntentResolverDriver::class, $driver);
     }
 
-    public function test_it_returns_gemma3_driver(): void
+    public function test_it_returns_openai_compatible_driver(): void
     {
         $mockOpenAIManager = Mockery::mock(OpenAIManager::class);
         $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
-        $mockOpenAIManager->shouldReceive('driver')->with('gemma3')->andReturn($mockOpenAIClient);
+        $mockOpenAIManager->shouldReceive('driver')->with('openai_compatible')->andReturn($mockOpenAIClient);
         $this->app->instance('openai.manager', $mockOpenAIManager);
 
         $manager = IntentResolver::getFacadeRoot();
 
-        $driver = $manager->driver('gemma3');
+        $driver = $manager->driver('openai_compatible');
 
-        $this->assertInstanceOf(Gemma3IntentResolverDriver::class, $driver);
+        $this->assertInstanceOf(OpenAICompatibleIntentResolverDriver::class, $driver);
     }
 
     public function test_get_default_driver_returns_configured_value(): void
     {
-        Config::set('intentresolver.default', 'gemma3');
+        Config::set('intentresolver.default', 'openai_compatible');
 
         $manager = IntentResolver::getFacadeRoot();
 
-        $this->assertEquals('gemma3', $manager->getDefaultDriver());
+        $this->assertEquals('openai_compatible', $manager->getDefaultDriver());
     }
 
     public function test_facade_returns_intent_resolver_manager_instance(): void

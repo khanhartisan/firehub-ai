@@ -25,7 +25,7 @@ An application that schedules and runs web scraping for configured **sources**, 
 - **Admin UI:** [Filament](https://filamentphp.com) 5 at `/admin`
 - **Queue:** Queues (default: database); scheduler and scraping run as queued jobs
 - **Storage:** Snapshots (raw HTML) stored on the default disk (local or S3 via `FILESYSTEM_DISK`)
-- **AI/APIs:** Optional OpenAI-compatible and Grok drivers for PageClassifier, PageParser, ScrapePolicyEngine, and FileVision
+- **AI/APIs:** OpenAI and OpenAI-compatible drivers for PageClassifier, PageParser, ScrapePolicyEngine, and FileVision
 
 The app does not expose public HTTP APIs for scraping; all scraping is driven by the **scheduler** and the **admin** (e.g. creating sources/entities). The web route is a simple welcome view; the main behaviour lives in **console/scheduler** and **queue workers**.
 
@@ -133,7 +133,7 @@ app/
 config/
 ├── queue.php                  # Queue connection, size limits, scrape attempts, ScrapeSourcesJob chunk/timeout
 ├── scraper.php                # Guzzle timeout, redirects, headers
-├── openai.php                 # OpenAI/Grok drivers
+├── openai.php                 # OpenAI + openai_compatible drivers
 ├── pageclassifier.php, pageparser.php, scrapepolicyengine.php, filevision.php
 └── filesystems.php            # local / s3 for snapshots
 
@@ -156,14 +156,14 @@ Copy `.env.example` to `.env` and set at least:
 - **Cache / session:** Typically `CACHE_STORE`, `SESSION_DRIVER` (e.g. database)
 - **Filesystem:** `FILESYSTEM_DISK=local` (or `s3`). Snapshots go to the default disk (local root: `storage/app/private`).
 - **Scraper:** Optional: `SCRAPER_TIMEOUT`, `SCRAPER_USER_AGENT`, etc. in `config/scraper.php`
-- **OpenAI/Grok:** For AI features set `OPENAI_DRIVER`, `OPENAI_API_KEY`, `OPENAI_DEFAULT_MODEL`, etc.; optionally `GROK_*` in `config/openai.php`
+- **OpenAI:** For AI features set `OPENAI_DRIVER`, `OPENAI_API_KEY`, `OPENAI_DEFAULT_MODEL`, etc.; for third-party OpenAI-style APIs use `OPENAI_COMPATIBLE_*` in `config/openai.php`
 - **ScrapePolicyEngine:** `SCRAPE_POLICY_ENGINE_DRIVER=dummy` (default) or `openai`; dummy uses `SCRAPE_POLICY_ENGINE_DUMMY_INTERVAL_HOURS`
 
 Relevant config keys:
 
 - **config/queue.php:** `max_scrape_attempts`, `max_scraping_queue_size`, `max_scheduler_queue_size`, `scrape_sources_chunk_size`, `scrape_sources_max_seconds`
 - **config/scraper.php:** default driver `guzzle`, timeouts and headers
-- **config/openai.php:** drivers `openai`, `grok`
+- **config/openai.php:** drivers `openai`, `openai_compatible`
 - **config/scrapepolicyengine.php:** drivers `dummy`, `openai`
 
 ---

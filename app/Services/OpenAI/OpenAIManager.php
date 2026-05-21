@@ -25,22 +25,12 @@ class OpenAIManager extends Manager
     }
 
     /**
-     * Create a Grok driver instance.
+     * Create an OpenAI-compatible API driver instance (any vendor exposing an OpenAI-style API).
      */
-    protected function createGrokDriver(): Drivers\GrokDriver
+    protected function createOpenaiCompatibleDriver(): Drivers\OpenAICompatibleDriver
     {
-        $config = $this->config->get('openai.drivers.grok', []);
+        $config = $this->config->get('openai.drivers.openai_compatible', []);
 
-        return new Drivers\GrokDriver($config);
-    }
-
-    /**
-     * Create a Gemma 3 (Gemini API OpenAI-compatible) driver instance.
-     */
-    protected function createGemma3Driver(): Drivers\Gemma3Driver
-    {
-        $config = $this->config->get('openai.drivers.gemma3', []);
-
-        return new Drivers\Gemma3Driver($config);
+        return new Drivers\OpenAICompatibleDriver($config);
     }
 }

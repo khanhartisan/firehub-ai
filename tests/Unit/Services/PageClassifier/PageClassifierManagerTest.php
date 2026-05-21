@@ -4,7 +4,7 @@ namespace Tests\Unit\Services\PageClassifier;
 
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\PageClassifier;
-use App\Services\PageClassifier\Drivers\Gemma3PageClassifierDriver;
+use App\Services\PageClassifier\Drivers\OpenAICompatiblePageClassifierDriver;
 use App\Services\PageClassifier\Drivers\OpenAIPageClassifierDriver;
 use App\Services\PageClassifier\PageClassifierManager;
 use App\Services\OpenAI\OpenAIManager;
@@ -66,18 +66,18 @@ class PageClassifierManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIPageClassifierDriver::class, $driver);
     }
 
-    public function test_it_returns_gemma3_driver(): void
+    public function test_it_returns_openai_compatible_driver(): void
     {
         $mockOpenAIManager = Mockery::mock(OpenAIManager::class);
         $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
-        $mockOpenAIManager->shouldReceive('driver')->with('gemma3')->andReturn($mockOpenAIClient);
+        $mockOpenAIManager->shouldReceive('driver')->with('openai_compatible')->andReturn($mockOpenAIClient);
         $this->app->instance('openai.manager', $mockOpenAIManager);
 
         $manager = PageClassifier::getFacadeRoot();
 
-        $driver = $manager->driver('gemma3');
+        $driver = $manager->driver('openai_compatible');
 
-        $this->assertInstanceOf(Gemma3PageClassifierDriver::class, $driver);
+        $this->assertInstanceOf(OpenAICompatiblePageClassifierDriver::class, $driver);
     }
 
     public function test_get_default_driver_returns_openai(): void

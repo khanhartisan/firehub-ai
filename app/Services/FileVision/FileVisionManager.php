@@ -36,13 +36,13 @@ class FileVisionManager extends Manager
     }
 
     /**
-     * Create a Gemma 3 driver instance (uses OpenAI manager's gemma3 backend).
+     * Create an OpenAI-compatible driver instance (uses OpenAI manager's openai_compatible backend).
      */
-    protected function createGemma3Driver(): Drivers\Gemma3FileVisionDriver
+    protected function createOpenaiCompatibleDriver(): Drivers\OpenAICompatibleFileVisionDriver
     {
-        $config = $this->config->get('filevision.drivers.gemma3', []);
+        $config = $this->config->get('filevision.drivers.openai_compatible', []);
 
-        return new Drivers\Gemma3FileVisionDriver(
+        return new Drivers\OpenAICompatibleFileVisionDriver(
             $this->container->make('openai.manager'),
             $config
         );

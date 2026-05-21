@@ -25,7 +25,7 @@ class TestIntentResolverService extends Command
      *
      * @var string
      */
-    protected $description = 'Run IntentResolver against sample HTML (interactive driver; calls OpenAI/Gemma).';
+    protected $description = 'Run IntentResolver against sample HTML (interactive driver; calls OpenAI or OpenAI-compatible APIs).';
 
     /**
      * Execute the console command.

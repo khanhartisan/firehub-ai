@@ -24,7 +24,7 @@ return [
     | API driver used by your application. An example configuration is provided
     | for each driver supported. You're also free to add more drivers.
     |
-    | Supported drivers: "openai", "grok", "gemma3"
+    | Supported drivers: "openai", "openai_compatible"
     |
     */
 
@@ -38,20 +38,12 @@ return [
             'beta_header' => env('OPENAI_BETA_HEADER', 'responses=v1'),
         ],
 
-        'grok' => [
-            'api_key' => env('GROK_API_KEY'),
-            'base_url' => env('GROK_BASE_URL', 'https://api.x.ai/v1/'),
-            'default_model' => env('GROK_DEFAULT_MODEL', 'grok-beta'),
-            'timeout' => env('GROK_TIMEOUT', 60),
-            'beta_header' => env('GROK_BETA_HEADER', null),
-        ],
-
-        'gemma3' => [
-            'api_key' => env('GEMMA3_API_KEY', env('GEMINI_API_KEY')),
-            'base_url' => env('GEMMA3_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta/openai/'),
-            'default_model' => env('GEMMA3_DEFAULT_MODEL', 'gemma-3-27b-it'),
-            'timeout' => env('GEMMA3_TIMEOUT', 60),
-            'beta_header' => env('GEMMA3_BETA_HEADER', null),
+        'openai_compatible' => [
+            'api_key' => env('OPENAI_COMPATIBLE_API_KEY'),
+            'base_url' => env('OPENAI_COMPATIBLE_BASE_URL', 'https://api.openai.com/v1/'),
+            'default_model' => env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini'),
+            'timeout' => (int) env('OPENAI_COMPATIBLE_TIMEOUT', 60),
+            'beta_header' => env('OPENAI_COMPATIBLE_BETA_HEADER'),
         ],
 
     ],

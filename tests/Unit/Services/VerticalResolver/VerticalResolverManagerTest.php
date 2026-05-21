@@ -5,7 +5,7 @@ namespace Tests\Unit\Services\VerticalResolver;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\VerticalResolver;
 use App\Services\OpenAI\OpenAIManager;
-use App\Services\VerticalResolver\Drivers\Gemma3VerticalResolverDriver;
+use App\Services\VerticalResolver\Drivers\OpenAICompatibleVerticalResolverDriver;
 use App\Services\VerticalResolver\Drivers\KeywordVerticalResolverDriver;
 use App\Services\VerticalResolver\Drivers\OpenAIVerticalResolverDriver;
 use App\Services\VerticalResolver\VerticalResolverManager;
@@ -56,18 +56,18 @@ class VerticalResolverManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIVerticalResolverDriver::class, $driver);
     }
 
-    public function test_it_returns_gemma3_driver(): void
+    public function test_it_returns_openai_compatible_driver(): void
     {
         $mockOpenAIManager = Mockery::mock(OpenAIManager::class);
         $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
-        $mockOpenAIManager->shouldReceive('driver')->with('gemma3')->andReturn($mockOpenAIClient);
+        $mockOpenAIManager->shouldReceive('driver')->with('openai_compatible')->andReturn($mockOpenAIClient);
         $this->app->instance('openai.manager', $mockOpenAIManager);
 
         $manager = VerticalResolver::getFacadeRoot();
 
-        $driver = $manager->driver('gemma3');
+        $driver = $manager->driver('openai_compatible');
 
-        $this->assertInstanceOf(Gemma3VerticalResolverDriver::class, $driver);
+        $this->assertInstanceOf(OpenAICompatibleVerticalResolverDriver::class, $driver);
     }
 
     public function test_get_default_driver_returns_configured_value(): void

@@ -3,8 +3,7 @@
 namespace Tests\Unit\Services\OpenAI;
 
 use App\Facades\OpenAI;
-use App\Services\OpenAI\Drivers\Gemma3Driver;
-use App\Services\OpenAI\Drivers\GrokDriver;
+use App\Services\OpenAI\Drivers\OpenAICompatibleDriver;
 use App\Services\OpenAI\Drivers\OpenAIDriver;
 use App\Services\OpenAI\OpenAIManager;
 use Illuminate\Support\Facades\Config;
@@ -32,22 +31,13 @@ class OpenAIManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIDriver::class, $driver);
     }
 
-    public function test_it_returns_grok_driver(): void
+    public function test_it_returns_openai_compatible_driver(): void
     {
         $manager = OpenAI::getFacadeRoot();
 
-        $driver = $manager->driver('grok');
+        $driver = $manager->driver('openai_compatible');
 
-        $this->assertInstanceOf(GrokDriver::class, $driver);
-    }
-
-    public function test_it_returns_gemma3_driver(): void
-    {
-        $manager = OpenAI::getFacadeRoot();
-
-        $driver = $manager->driver('gemma3');
-
-        $this->assertInstanceOf(Gemma3Driver::class, $driver);
+        $this->assertInstanceOf(OpenAICompatibleDriver::class, $driver);
     }
 
     public function test_it_uses_config_for_driver_creation(): void
@@ -77,11 +67,11 @@ class OpenAIManagerTest extends TestCase
 
     public function test_get_default_driver_uses_config(): void
     {
-        Config::set('openai.default', 'grok');
+        Config::set('openai.default', 'openai_compatible');
 
         $manager = OpenAI::getFacadeRoot();
 
-        $this->assertEquals('grok', $manager->getDefaultDriver());
+        $this->assertEquals('openai_compatible', $manager->getDefaultDriver());
     }
 
     public function test_facade_returns_openai_manager_instance(): void

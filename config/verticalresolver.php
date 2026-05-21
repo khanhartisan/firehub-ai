@@ -24,7 +24,7 @@ return [
     | driver used by your application. An example configuration is provided
     | for each driver supported. You're also free to add more drivers.
     |
-    | Supported drivers: "openai", "keyword", "gemma3"
+    | Supported drivers: "openai", "keyword", "openai_compatible"
     |
     */
 
@@ -41,9 +41,9 @@ return [
             'max_content_length' => (int) env('VERTICALRESOLVER_MAX_CONTENT_LENGTH', 50000),
         ],
 
-        'gemma3' => [
-            'model' => env('VERTICALRESOLVER_GEMMA3_MODEL', env('GEMMA3_DEFAULT_MODEL', 'gemma-3-27b-it')),
-            'max_content_length' => (int) env('VERTICALRESOLVER_GEMMA3_MAX_CONTENT_LENGTH', env('VERTICALRESOLVER_MAX_CONTENT_LENGTH', 50000)),
+        'openai_compatible' => [
+            'model' => env('VERTICALRESOLVER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+            'max_content_length' => (int) env('VERTICALRESOLVER_OPENAI_COMPATIBLE_MAX_CONTENT_LENGTH', env('VERTICALRESOLVER_MAX_CONTENT_LENGTH', 50000)),
         ],
 
     ],

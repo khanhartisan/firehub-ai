@@ -18,6 +18,16 @@ interface Editor
     public function determineAuthorContext(Idea $idea, array $authorContexts): SemanticContext;
 
     /**
+     * Transforms and reorganizes the given generic outline
+     * to match the author's unique identity, style, and content strategy.
+     *
+     * @param Outline $outline
+     * @param SemanticContext $authorContext
+     * @return Outline
+     */
+    public function tailorOutlineForAuthor(Outline $outline, SemanticContext $authorContext): Outline;
+
+    /**
      * Refine the given author context, reset weights, remove unnecessary fields...
      *
      * @param Outline $outline The outline we are working on

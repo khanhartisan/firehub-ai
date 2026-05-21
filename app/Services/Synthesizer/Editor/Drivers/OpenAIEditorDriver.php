@@ -12,6 +12,7 @@ use App\Contracts\OpenAI\ResponseOptions;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
+use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 use App\Services\Synthesizer\Editor\EditorService;
 use RuntimeException;
@@ -23,19 +24,15 @@ class OpenAIEditorDriver extends EditorService
     /** @var array<string, mixed> */
     protected array $config;
 
-    protected BasicEditorDriver $fallback;
-
     /**
      * @param  array<string, mixed>  $config
      */
     public function __construct(
         ?OpenAIClient $openAIClient = null,
         array $config = [],
-        ?BasicEditorDriver $fallback = null,
     ) {
         $this->openAIClient = $openAIClient;
         $this->config = array_merge(SynthesizerSubserviceConfig::settings('editor'), $config);
-        $this->fallback = $fallback ?? new BasicEditorDriver;
     }
 
     public function determineAuthorContext(Idea $idea, array $authorContexts): SemanticContext
@@ -53,20 +50,19 @@ class OpenAIEditorDriver extends EditorService
             return $contexts[0]->clone();
         }
 
-        if (! $this->openAIClient instanceof OpenAIClient) {
-            return $this->fallback->determineAuthorContext($idea, $contexts);
+        $picked = $this->pickAuthorContextWithOpenAI($idea, $contexts);
+        if (! $picked instanceof SemanticContext) {
+            throw new RuntimeException(
+                'Failed to determine author context with OpenAI: model did not return a valid author_context_identifier.'
+            );
         }
 
-        try {
-            $picked = $this->pickAuthorContextWithOpenAI($idea, $contexts);
-            if ($picked instanceof SemanticContext) {
-                return $picked->clone();
-            }
-        } catch (RuntimeException) {
-            // Fall through to deterministic picker.
-        }
+        return $picked->clone();
+    }
 
-        return $this->fallback->determineAuthorContext($idea, $contexts);
+    public function tailorOutlineForAuthor(Outline $outline, SemanticContext $authorContext): Outline
+    {
+        return $this->tailorOutlineWithOpenAI($outline, $authorContext);
     }
 
     public function distillAuthorContextForOutlineItem(
@@ -75,35 +71,283 @@ class OpenAIEditorDriver extends EditorService
         SemanticContext $authorContext,
         ?SemanticContext $generalContext = null
     ): SemanticContext {
-        if (! $this->openAIClient instanceof OpenAIClient) {
-            return $this->fallback->distillAuthorContextForOutlineItem(
-                $outline,
-                $outlineItemIdentifier,
-                $authorContext,
-                $generalContext
-            );
-        }
-
-        try {
-            $distilled = $this->distillWithOpenAI(
-                $outline,
-                $outlineItemIdentifier,
-                $authorContext,
-                $generalContext
-            );
-            if ($distilled instanceof SemanticContext) {
-                return $distilled;
-            }
-        } catch (RuntimeException) {
-            // Fall through to deterministic distillation.
-        }
-
-        return $this->fallback->distillAuthorContextForOutlineItem(
+        return $this->distillWithOpenAI(
             $outline,
             $outlineItemIdentifier,
             $authorContext,
             $generalContext
         );
+    }
+
+    /**
+     * @param  list<SemanticContext>  $contexts
+     */
+    protected function tailorOutlineWithOpenAI(Outline $outline, SemanticContext $authorContext): Outline
+    {
+        $payload = [
+            'outline' => $outline->toArray(),
+            'author_context' => $authorContext->toArray(),
+        ];
+
+        $data = $this->requestStructuredJson(
+            $this->buildTailorOutlinePrompt($payload),
+            'editor_tailor_outline_for_author',
+            $this->buildTailorOutlineSchema(),
+            'Failed to tailor outline for author with OpenAI',
+        );
+
+        $tailored = $this->hydrateTailoredOutline($outline, $data);
+        if (! $tailored instanceof Outline) {
+            throw new RuntimeException(
+                'Failed to tailor outline for author with OpenAI: no valid outline items returned.'
+            );
+        }
+
+        return $tailored;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    protected function buildTailorOutlinePrompt(array $payload): string
+    {
+        $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        return <<<PROMPT
+You are an editorial director reshaping a generic article outline for a specific author persona.
+
+Given the input outline and author context:
+- Reorganize sections when needed so the flow matches the author's identity, expertise, and content strategy.
+- Refine headlines and descriptions to fit the author's voice while preserving factual grounding from point.evidences.
+- Update guidelines so each section reflects how this author would approach the topic.
+- Remove redundant or off-brand sections; merge overlapping ones when appropriate.
+- Keep the outline publication-ready and reader-focused.
+
+Return a complete tailored outline (title + items). Do not invent unsupported facts.
+
+Input JSON:
+{$json}
+PROMPT;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildTailorOutlineSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => $properties = [
+                'title' => [
+                    'type' => 'string',
+                    'description' => 'Tailored article outline title.',
+                ],
+                'items' => [
+                    'type' => 'array',
+                    'minItems' => 1,
+                    'maxItems' => $this->getMaxOutlineItems(),
+                    'description' => 'Top-level tailored outline sections.',
+                    'items' => $this->buildTailorOutlineItemSchema(1),
+                ],
+            ],
+            'required' => array_keys($properties),
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildTailorOutlineItemSchema(int $depth): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'point' => $this->buildRelevantPointSchema(),
+                'guidelines' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string'],
+                    'description' => 'Author-specific writing directives for this section.',
+                ],
+                'sub_items' => [
+                    'type' => 'array',
+                    'maxItems' => $this->getMaxOutlineItems(),
+                    'items' => $depth >= $this->getMaxOutlineDepth()
+                        ? [
+                            'type' => 'object',
+                            'properties' => [
+                                'point' => $this->buildRelevantPointSchema(),
+                                'guidelines' => [
+                                    'type' => 'array',
+                                    'items' => ['type' => 'string'],
+                                ],
+                                'sub_items' => [
+                                    'type' => 'array',
+                                    'maxItems' => 0,
+                                    'items' => [
+                                        'type' => 'object',
+                                        'properties' => (object) [],
+                                        'required' => [],
+                                        'additionalProperties' => false,
+                                    ],
+                                ],
+                            ],
+                            'required' => ['point', 'guidelines', 'sub_items'],
+                            'additionalProperties' => false,
+                        ]
+                        : $this->buildTailorOutlineItemSchema($depth + 1),
+                ],
+            ],
+            'required' => ['point', 'guidelines', 'sub_items'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildRelevantPointSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'headline' => ['type' => 'string'],
+                'description' => ['type' => ['string', 'null']],
+                'evidences' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string'],
+                ],
+                'relevance' => [
+                    'type' => ['number', 'null'],
+                    'minimum' => 0,
+                    'maximum' => 1,
+                ],
+                'rationale' => ['type' => ['string', 'null']],
+            ],
+            'required' => ['headline', 'description', 'evidences', 'relevance', 'rationale'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hydrateTailoredOutline(Outline $sourceOutline, array $data): ?Outline
+    {
+        $items = $this->hydrateOutlineItems($data['items'] ?? []);
+        if ($items === []) {
+            return null;
+        }
+
+        $title = trim((string) ($data['title'] ?? ''));
+        if ($title === '') {
+            $title = trim((string) ($sourceOutline->getTitle() ?? ''));
+        }
+
+        return (new Outline)
+            ->setTitle($title !== '' ? $title : 'Untitled draft')
+            ->setItems($items);
+    }
+
+    /**
+     * @param  mixed  $rawItems
+     * @return list<OutlineItem>
+     */
+    protected function hydrateOutlineItems(mixed $rawItems): array
+    {
+        if (! is_array($rawItems)) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($rawItems as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $rawPoint = $row['point'] ?? null;
+            if (! is_array($rawPoint)) {
+                continue;
+            }
+
+            $point = RelevantPoint::fromArray($rawPoint);
+            if (trim((string) ($point->getHeadline() ?? '')) === '') {
+                continue;
+            }
+
+            $items[] = (new OutlineItem)
+                ->setPoint($point)
+                ->setGuidelines($this->normalizeGuidelines($row['guidelines'] ?? []))
+                ->setSubItems($this->hydrateOutlineSubItems($row['sub_items'] ?? []));
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param  mixed  $rawSubItems
+     * @return list<OutlineItem>
+     */
+    protected function hydrateOutlineSubItems(mixed $rawSubItems): array
+    {
+        if (! is_array($rawSubItems)) {
+            return [];
+        }
+
+        $items = [];
+        foreach ($rawSubItems as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $rawPoint = $entry['point'] ?? null;
+            if (! is_array($rawPoint)) {
+                continue;
+            }
+
+            $point = RelevantPoint::fromArray($rawPoint);
+            if (trim((string) ($point->getHeadline() ?? '')) === '') {
+                continue;
+            }
+
+            $items[] = (new OutlineItem)
+                ->setPoint($point)
+                ->setGuidelines($this->normalizeGuidelines($entry['guidelines'] ?? []))
+                ->setSubItems($this->hydrateOutlineSubItems($entry['sub_items'] ?? []));
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param  mixed  $rawGuidelines
+     * @return list<string>
+     */
+    protected function normalizeGuidelines(mixed $rawGuidelines): array
+    {
+        if (! is_array($rawGuidelines)) {
+            return [];
+        }
+
+        $guidelines = [];
+        foreach ($rawGuidelines as $line) {
+            $text = trim((string) $line);
+            if ($text !== '') {
+                $guidelines[] = $text;
+            }
+        }
+
+        return array_values(array_unique($guidelines));
+    }
+
+    protected function getMaxOutlineItems(): int
+    {
+        return (int) ($this->config['max_items'] ?? 20);
+    }
+
+    protected function getMaxOutlineDepth(): int
+    {
+        return (int) ($this->config['max_depth'] ?? 6);
     }
 
     /**
@@ -150,7 +394,7 @@ class OpenAIEditorDriver extends EditorService
         string $outlineItemIdentifier,
         SemanticContext $authorContext,
         ?SemanticContext $generalContext,
-    ): ?SemanticContext {
+    ): SemanticContext {
         $item = $this->findOutlineItem($outline, $outlineItemIdentifier);
         if (! $item instanceof OutlineItem) {
             throw new \InvalidArgumentException(sprintf(

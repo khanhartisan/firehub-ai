@@ -36,6 +36,22 @@ class BasicEditorDriver extends EditorService
         return $best->clone();
     }
 
+    public function tailorOutlineForAuthor(Outline $outline, SemanticContext $authorContext): Outline
+    {
+        $tailored = Outline::fromArray($outline->toArray());
+        $directives = $this->collectAuthorTailoringDirectives($authorContext);
+
+        if ($directives === []) {
+            return $tailored;
+        }
+
+        foreach ($tailored->getItems() as $item) {
+            $this->applyAuthorDirectivesToOutlineItem($item, $directives);
+        }
+
+        return $tailored;
+    }
+
     public function distillAuthorContextForOutlineItem(
         Outline $outline,
         string $outlineItemIdentifier,
@@ -111,6 +127,62 @@ class BasicEditorDriver extends EditorService
         }
 
         return $distilled;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function collectAuthorTailoringDirectives(SemanticContext $authorContext): array
+    {
+        $directives = [];
+
+        foreach ($authorContext->toArray() as $key => $entry) {
+            if (! is_array($entry) || ! array_key_exists('value', $entry) || ! $this->contextEntryHasContent($entry['value'])) {
+                continue;
+            }
+
+            $label = trim((string) ($entry['description'] ?? ''));
+            if ($label === '') {
+                $label = str_replace('_', ' ', (string) $key);
+            }
+
+            $value = $entry['value'];
+            if (is_string($value)) {
+                $text = trim($value);
+                if ($text !== '') {
+                    $directives[] = "{$label}: {$text}";
+                }
+
+                continue;
+            }
+
+            $encoded = trim((string) json_encode($value, JSON_UNESCAPED_UNICODE));
+            if ($encoded !== '' && $encoded !== 'null' && $encoded !== '[]' && $encoded !== '{}') {
+                $directives[] = "{$label}: {$encoded}";
+            }
+        }
+
+        return array_values(array_unique($directives));
+    }
+
+    /**
+     * @param  list<string>  $directives
+     */
+    protected function applyAuthorDirectivesToOutlineItem(OutlineItem $item, array $directives): void
+    {
+        $prefixed = array_map(
+            static fn (string $line): string => '[Author] '.$line,
+            $directives
+        );
+
+        $item->setGuidelines(array_values(array_unique(array_merge(
+            $prefixed,
+            $item->getGuidelines()
+        ))));
+
+        foreach ($item->getSubItems() as $subItem) {
+            $this->applyAuthorDirectivesToOutlineItem($subItem, $directives);
+        }
     }
 
     protected function scoreAuthorContextForIdea(Idea $idea, SemanticContext $context): float

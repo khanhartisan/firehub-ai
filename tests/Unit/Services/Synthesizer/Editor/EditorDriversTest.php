@@ -51,6 +51,31 @@ class EditorDriversTest extends TestCase
         $driver->determineAuthorContext($idea, []);
     }
 
+    public function test_tailor_outline_for_author_prepends_author_directives_to_guidelines(): void
+    {
+        $driver = new BasicEditorDriver;
+        $item = (new OutlineItem)->setPoint(
+            (new RelevantPoint)
+                ->setHeadline('Main insights')
+                ->setDescription('Core body section.')
+        );
+        $item->setGuidelines(['Prioritize practical takeaways.']);
+        $outline = (new Outline)->setTitle('Draft')->setItems([$item]);
+
+        $authorContext = (new SemanticContext)->set(
+            'voice',
+            'Author voice',
+            'Practical operator tone with concrete metrics'
+        );
+
+        $tailored = $driver->tailorOutlineForAuthor($outline, $authorContext);
+        $guidelines = $tailored->getItems()[0]->getGuidelines();
+
+        $this->assertStringContainsString('[Author]', $guidelines[0]);
+        $this->assertStringContainsString('Practical operator tone', $guidelines[0]);
+        $this->assertContains('Prioritize practical takeaways.', $guidelines);
+    }
+
     public function test_distill_author_context_for_outline_item_focuses_section_and_resets_weights(): void
     {
         $driver = new BasicEditorDriver;

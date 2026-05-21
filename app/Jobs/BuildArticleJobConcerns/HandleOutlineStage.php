@@ -32,6 +32,13 @@ trait HandleOutlineStage
             ->getOutlineBuilder()
             ->outline($brief, $context);
 
+        $selectedAuthorContext = $this->getStageData()->getIdeaStageData()->getSelectedAuthorContext();
+        if ($selectedAuthorContext instanceof SemanticContext) {
+            $outline = $this->synthesizer()
+                ->getEditor()
+                ->tailorOutlineForAuthor($outline, $selectedAuthorContext);
+        }
+
         $this->getStageData()->setOutline($outline);
         $this->touchArticleQuietly();
 

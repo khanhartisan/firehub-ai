@@ -24,7 +24,7 @@ class TestEditorService extends Command
 {
     protected $signature = 'live-test:synthesizer:test-editor-service';
 
-    protected $description = 'Run an Editor in isolation (determineAuthorContext, distillAuthorContextForOutlineItem) or load editor from a synthesizer driver.';
+    protected $description = 'Run an Editor in isolation (determineAuthorContext, tailorOutlineForAuthor, distillAuthorContextForOutlineItem) or load editor from a synthesizer driver.';
 
     public function handle(): int
     {
@@ -44,6 +44,7 @@ class TestEditorService extends Command
             'What to run',
             [
                 'determine_author_context',
+                'tailor_outline_for_author',
                 'distill_author_context_for_outline_item',
                 'full_pipeline',
             ],
@@ -62,6 +63,14 @@ class TestEditorService extends Command
                 return $this->runDetermineAuthorContext($editor, $idea, $authorContexts);
             }
 
+            if ($action === 'tailor_outline_for_author') {
+                return $this->runTailorOutlineForAuthor(
+                    $editor,
+                    $outline,
+                    $this->pickAuthorContext($authorContexts)
+                );
+            }
+
             if ($action === 'distill_author_context_for_outline_item') {
                 return $this->runDistillAuthorContextForOutlineItem(
                     $editor,
@@ -77,7 +86,13 @@ class TestEditorService extends Command
             );
             $this->displaySemanticContext('Picked author context', $picked);
 
-            return $this->runDistillAuthorContextForOutlineItem($editor, $outline, $picked, $generalContext, false);
+            $tailoredOutline = $this->timedCall(
+                'tailorOutlineForAuthor',
+                fn () => $editor->tailorOutlineForAuthor($outline, $picked)
+            );
+            $this->displayOutlineSummary($tailoredOutline);
+
+            return $this->runDistillAuthorContextForOutlineItem($editor, $tailoredOutline, $picked, $generalContext, false);
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
             if ($this->output->isVerbose()) {
@@ -241,6 +256,23 @@ class TestEditorService extends Command
         $index = array_search($pickedLabel, $labels, true);
 
         return $authorContexts[$index === false ? 0 : $index];
+    }
+
+    private function runTailorOutlineForAuthor(
+        Editor $editor,
+        Outline $outline,
+        SemanticContext $authorContext,
+        bool $timed = true
+    ): int {
+        $tailor = fn () => $editor->tailorOutlineForAuthor($outline, $authorContext);
+
+        $tailored = $timed
+            ? $this->timedCall('tailorOutlineForAuthor', $tailor)
+            : $tailor();
+
+        $this->displayOutlineSummary($tailored);
+
+        return self::SUCCESS;
     }
 
     private function runDistillAuthorContextForOutlineItem(

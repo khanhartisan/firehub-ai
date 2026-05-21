@@ -15,14 +15,14 @@ use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Enums\IntentType;
 use App\Enums\Language;
 use App\Enums\Temporal;
-use App\Services\Synthesizer\Editor\Drivers\BasicEditorDriver;
 use App\Services\Synthesizer\Editor\Drivers\OpenAIEditorDriver;
+use RuntimeException;
 use Mockery;
 use Tests\TestCase;
 
 class OpenAIEditorDriverTest extends TestCase
 {
-    public function test_determine_author_context_without_client_falls_back_to_basic_driver(): void
+    public function test_determine_author_context_without_client_throws(): void
     {
         $driver = new OpenAIEditorDriver;
         $idea = new Idea($this->makeIntent(), 0.8, 'Practical SaaS onboarding playbook');
@@ -34,12 +34,10 @@ class OpenAIEditorDriverTest extends TestCase
             'Practical SaaS onboarding guidance for operators'
         );
 
-        $picked = $driver->determineAuthorContext($idea, [$weakMatch, $strongMatch]);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('OpenAI client is not configured');
 
-        $this->assertSame(
-            'Practical SaaS onboarding guidance for operators',
-            $picked->getVoiceValue()
-        );
+        $driver->determineAuthorContext($idea, [$weakMatch, $strongMatch]);
     }
 
     public function test_determine_author_context_uses_structured_openai_response(): void
@@ -94,31 +92,102 @@ class OpenAIEditorDriverTest extends TestCase
         $this->assertSame('Only persona', $picked->getVoiceValue());
     }
 
-    public function test_distill_author_context_for_outline_item_without_client_falls_back_to_basic_driver(): void
+    public function test_tailor_outline_for_author_without_client_throws(): void
     {
-        $driver = new OpenAIEditorDriver(null, [], new BasicEditorDriver);
+        $driver = new OpenAIEditorDriver;
+        $item = (new OutlineItem)->setPoint(
+            (new RelevantPoint)->setHeadline('Activation tactics')->setDescription('Body')
+        );
+        $outline = (new Outline)->setItems([$item]);
+        $authorContext = (new SemanticContext)->set('voice', 'Author voice', 'Operator-first tone');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('OpenAI client is not configured');
+
+        $driver->tailorOutlineForAuthor($outline, $authorContext);
+    }
+
+    public function test_tailor_outline_for_author_uses_structured_openai_response(): void
+    {
+        $outline = (new Outline)
+            ->setTitle('Generic draft')
+            ->setItems([
+                (new OutlineItem)->setPoint(
+                    (new RelevantPoint)
+                        ->setHeadline('Introduction')
+                        ->setDescription('Set context.')
+                ),
+            ]);
+
+        $authorContext = (new AuthorContext)->set(
+            'voice',
+            'Author voice',
+            'Practical operator tone'
+        );
+
+        $payload = json_encode([
+            'title' => 'Operator playbook outline',
+            'items' => [[
+                'point' => [
+                    'headline' => 'Operator-first opening',
+                    'description' => 'Lead with pain, then metrics.',
+                    'evidences' => [],
+                    'relevance' => null,
+                    'rationale' => null,
+                ],
+                'guidelines' => ['Use concrete SaaS examples.'],
+                'sub_items' => [],
+            ]],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_editor_3',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $driver = new OpenAIEditorDriver($client, ['model' => 'gpt-4o-mini']);
+        $tailored = $driver->tailorOutlineForAuthor($outline, $authorContext);
+
+        $this->assertSame('Operator playbook outline', $tailored->getTitle());
+        $this->assertSame('Operator-first opening', $tailored->getItems()[0]->getPoint()->getHeadline());
+        $this->assertSame(['Use concrete SaaS examples.'], $tailored->getItems()[0]->getGuidelines());
+    }
+
+    public function test_distill_author_context_for_outline_item_without_client_throws(): void
+    {
+        $driver = new OpenAIEditorDriver;
         $item = (new OutlineItem)->setPoint(
             (new RelevantPoint)
                 ->setHeadline('Activation tactics')
                 ->setDescription('Explain onboarding experiments.')
         );
-        $item->setGuidelines(['Use concrete metrics.']);
         $outline = (new Outline)->setItems([$item]);
-
         $authorContext = (new AuthorContext)
             ->setLinguisticContext(
                 (new LinguisticContext)->setVocabularyTier('Colloquial', 2.0)
             );
 
-        $distilled = $driver->distillAuthorContextForOutlineItem(
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('OpenAI client is not configured');
+
+        $driver->distillAuthorContextForOutlineItem(
             $outline,
             $item->getIdentifier(),
             $authorContext,
             null
         );
-
-        $this->assertNull($distilled->getLinguisticContextWeight());
-        $this->assertSame('Activation tactics', $distilled->getSectionHeadlineValue());
     }
 
     public function test_distill_author_context_for_outline_item_uses_structured_openai_response(): void

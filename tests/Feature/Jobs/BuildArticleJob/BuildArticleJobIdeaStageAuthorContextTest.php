@@ -229,7 +229,7 @@ final class TrackingEditor implements Editor
         return $authorContexts[1] ?? $authorContexts[0];
     }
 
-    public function distillOutlineAuthorContext(
+    public function distillAuthorContextForOutlineItem(
         Outline $outline,
         string $outlineItemIdentifier,
         SemanticContext $authorContext,

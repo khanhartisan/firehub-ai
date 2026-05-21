@@ -69,14 +69,14 @@ class OpenAIEditorDriver extends EditorService
         return $this->fallback->determineAuthorContext($idea, $contexts);
     }
 
-    public function distillOutlineAuthorContext(
+    public function distillAuthorContextForOutlineItem(
         Outline $outline,
         string $outlineItemIdentifier,
         SemanticContext $authorContext,
         ?SemanticContext $generalContext = null
     ): SemanticContext {
         if (! $this->openAIClient instanceof OpenAIClient) {
-            return $this->fallback->distillOutlineAuthorContext(
+            return $this->fallback->distillAuthorContextForOutlineItem(
                 $outline,
                 $outlineItemIdentifier,
                 $authorContext,
@@ -98,7 +98,7 @@ class OpenAIEditorDriver extends EditorService
             // Fall through to deterministic distillation.
         }
 
-        return $this->fallback->distillOutlineAuthorContext(
+        return $this->fallback->distillAuthorContextForOutlineItem(
             $outline,
             $outlineItemIdentifier,
             $authorContext,
@@ -178,7 +178,7 @@ class OpenAIEditorDriver extends EditorService
 
         $data = $this->requestStructuredJson(
             $this->buildDistillPrompt($payload),
-            'editor_distill_outline_author_context',
+            'editor_distill_author_context_for_outline_item',
             $this->buildDistillSchema($authorKeys, $generalKeys),
             'Failed to distill outline author context with OpenAI',
         );
@@ -349,10 +349,6 @@ PROMPT;
                 'Editorial notes for the outline section being written.',
                 $notes
             );
-        }
-
-        if ($distilled->toArray() === []) {
-            return null;
         }
 
         return $distilled;

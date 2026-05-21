@@ -51,7 +51,7 @@ class EditorDriversTest extends TestCase
         $driver->determineAuthorContext($idea, []);
     }
 
-    public function test_distill_outline_author_context_focuses_section_and_resets_weights(): void
+    public function test_distill_author_context_for_outline_item_focuses_section_and_resets_weights(): void
     {
         $driver = new BasicEditorDriver;
         $item = (new OutlineItem)->setPoint(
@@ -77,7 +77,7 @@ class EditorDriversTest extends TestCase
             'Emphasize trade-offs'
         );
 
-        $distilled = $driver->distillOutlineAuthorContext(
+        $distilled = $driver->distillAuthorContextForOutlineItem(
             $outline,
             $itemId,
             $authorContext,
@@ -93,14 +93,14 @@ class EditorDriversTest extends TestCase
         $this->assertFalse($distilled->has('empty_field'));
     }
 
-    public function test_distill_outline_author_context_throws_when_item_missing(): void
+    public function test_distill_author_context_for_outline_item_throws_when_item_missing(): void
     {
         $driver = new BasicEditorDriver;
         $outline = (new Outline)->setItems([]);
         $authorContext = (new SemanticContext)->set('tone', 'Tone', 'Practical');
 
         $this->expectException(\InvalidArgumentException::class);
-        $driver->distillOutlineAuthorContext($outline, 'missing-id', $authorContext);
+        $driver->distillAuthorContextForOutlineItem($outline, 'missing-id', $authorContext);
     }
 
     protected function makeIntent(): Intent

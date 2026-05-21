@@ -94,7 +94,7 @@ class OpenAIEditorDriverTest extends TestCase
         $this->assertSame('Only persona', $picked->getVoiceValue());
     }
 
-    public function test_distill_outline_author_context_without_client_falls_back_to_basic_driver(): void
+    public function test_distill_author_context_for_outline_item_without_client_falls_back_to_basic_driver(): void
     {
         $driver = new OpenAIEditorDriver(null, [], new BasicEditorDriver);
         $item = (new OutlineItem)->setPoint(
@@ -110,7 +110,7 @@ class OpenAIEditorDriverTest extends TestCase
                 (new LinguisticContext)->setVocabularyTier('Colloquial', 2.0)
             );
 
-        $distilled = $driver->distillOutlineAuthorContext(
+        $distilled = $driver->distillAuthorContextForOutlineItem(
             $outline,
             $item->getIdentifier(),
             $authorContext,
@@ -121,7 +121,7 @@ class OpenAIEditorDriverTest extends TestCase
         $this->assertSame('Activation tactics', $distilled->getSectionHeadlineValue());
     }
 
-    public function test_distill_outline_author_context_uses_structured_openai_response(): void
+    public function test_distill_author_context_for_outline_item_uses_structured_openai_response(): void
     {
         $item = (new OutlineItem)->setPoint(
             (new RelevantPoint)
@@ -167,7 +167,7 @@ class OpenAIEditorDriverTest extends TestCase
         $client->shouldReceive('createResponse')->once()->andReturn($response);
 
         $driver = new OpenAIEditorDriver($client, ['model' => 'gpt-4o-mini']);
-        $distilled = $driver->distillOutlineAuthorContext(
+        $distilled = $driver->distillAuthorContextForOutlineItem(
             $outline,
             $item->getIdentifier(),
             $authorContext,

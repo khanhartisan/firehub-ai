@@ -213,7 +213,7 @@ class SynthesizerServiceTest extends TestCase
                 return $authorContexts[0] ?? new SemanticContext;
             }
 
-            public function distillOutlineAuthorContext(
+            public function distillAuthorContextForOutlineItem(
                 Outline $outline,
                 string $outlineItemIdentifier,
                 SemanticContext $authorContext,

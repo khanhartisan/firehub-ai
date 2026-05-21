@@ -24,7 +24,7 @@ class TestEditorService extends Command
 {
     protected $signature = 'live-test:synthesizer:test-editor-service';
 
-    protected $description = 'Run an Editor in isolation (determineAuthorContext, distillOutlineAuthorContext) or load editor from a synthesizer driver.';
+    protected $description = 'Run an Editor in isolation (determineAuthorContext, distillAuthorContextForOutlineItem) or load editor from a synthesizer driver.';
 
     public function handle(): int
     {
@@ -44,7 +44,7 @@ class TestEditorService extends Command
             'What to run',
             [
                 'determine_author_context',
-                'distill_outline_author_context',
+                'distill_author_context_for_outline_item',
                 'full_pipeline',
             ],
             2
@@ -62,8 +62,8 @@ class TestEditorService extends Command
                 return $this->runDetermineAuthorContext($editor, $idea, $authorContexts);
             }
 
-            if ($action === 'distill_outline_author_context') {
-                return $this->runDistillOutlineAuthorContext(
+            if ($action === 'distill_author_context_for_outline_item') {
+                return $this->runDistillAuthorContextForOutlineItem(
                     $editor,
                     $outline,
                     $this->pickAuthorContext($authorContexts),
@@ -77,7 +77,7 @@ class TestEditorService extends Command
             );
             $this->displaySemanticContext('Picked author context', $picked);
 
-            return $this->runDistillOutlineAuthorContext($editor, $outline, $picked, $generalContext, false);
+            return $this->runDistillAuthorContextForOutlineItem($editor, $outline, $picked, $generalContext, false);
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
             if ($this->output->isVerbose()) {
@@ -243,7 +243,7 @@ class TestEditorService extends Command
         return $authorContexts[$index === false ? 0 : $index];
     }
 
-    private function runDistillOutlineAuthorContext(
+    private function runDistillAuthorContextForOutlineItem(
         Editor $editor,
         Outline $outline,
         SemanticContext $authorContext,
@@ -252,7 +252,7 @@ class TestEditorService extends Command
     ): int {
         $outlineItemId = $this->pickOutlineItemId($outline);
 
-        $distill = fn () => $editor->distillOutlineAuthorContext(
+        $distill = fn () => $editor->distillAuthorContextForOutlineItem(
             $outline,
             $outlineItemId,
             $authorContext,
@@ -260,7 +260,7 @@ class TestEditorService extends Command
         );
 
         $distilled = $timed
-            ? $this->timedCall('distillOutlineAuthorContext', $distill)
+            ? $this->timedCall('distillAuthorContextForOutlineItem', $distill)
             : $distill();
 
         $this->displaySemanticContext('Distilled author context', $distilled);

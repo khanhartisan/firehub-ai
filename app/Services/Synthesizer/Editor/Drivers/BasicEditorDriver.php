@@ -36,7 +36,7 @@ class BasicEditorDriver extends EditorService
         return $best->clone();
     }
 
-    public function distillOutlineAuthorContext(
+    public function distillAuthorContextForOutlineItem(
         Outline $outline,
         string $outlineItemIdentifier,
         SemanticContext $authorContext,

@@ -26,7 +26,7 @@ interface Editor
      * @param ?SemanticContext $generalContext General context to help the agent understand better
      * @return SemanticContext Distilled author context
      */
-    public function distillOutlineAuthorContext(Outline $outline,
+    public function distillAuthorContextForOutlineItem(Outline $outline,
                                          string $outlineItemIdentifier,
                                          SemanticContext $authorContext,
                                          ?SemanticContext $generalContext = null): SemanticContext;

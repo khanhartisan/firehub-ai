@@ -24,7 +24,7 @@ class TestEditorService extends Command
 {
     protected $signature = 'live-test:synthesizer:test-editor-service';
 
-    protected $description = 'Run an Editor in isolation (determineAuthorContext, tailorOutlineForAuthor, distillAuthorContextForOutlineItem) or load editor from a synthesizer driver.';
+    protected $description = 'Run an Editor in isolation (determineAuthorContext, tailorOutlineForAuthor, distillAuthorContextForOutline, distillAuthorContextForOutlineItem) or load editor from a synthesizer driver.';
 
     public function handle(): int
     {
@@ -45,6 +45,7 @@ class TestEditorService extends Command
             [
                 'determine_author_context',
                 'tailor_outline_for_author',
+                'distill_author_context_for_outline',
                 'distill_author_context_for_outline_item',
                 'full_pipeline',
             ],
@@ -68,6 +69,15 @@ class TestEditorService extends Command
                     $editor,
                     $outline,
                     $this->pickAuthorContext($authorContexts)
+                );
+            }
+
+            if ($action === 'distill_author_context_for_outline') {
+                return $this->runDistillAuthorContextForOutline(
+                    $editor,
+                    $outline,
+                    $this->pickAuthorContext($authorContexts),
+                    $generalContext
                 );
             }
 
@@ -271,6 +281,28 @@ class TestEditorService extends Command
             : $tailor();
 
         $this->displayOutlineSummary($tailored);
+
+        return self::SUCCESS;
+    }
+
+    private function runDistillAuthorContextForOutline(
+        Editor $editor,
+        Outline $outline,
+        SemanticContext $authorContext,
+        SemanticContext $generalContext,
+        bool $timed = true
+    ): int {
+        $distill = fn () => $editor->distillAuthorContextForOutline(
+            $outline,
+            $authorContext,
+            $generalContext
+        );
+
+        $distilled = $timed
+            ? $this->timedCall('distillAuthorContextForOutline', $distill)
+            : $distill();
+
+        $this->displaySemanticContext('Distilled author context (outline)', $distilled);
 
         return self::SUCCESS;
     }

@@ -5,6 +5,7 @@ namespace Tests\Unit\Contracts\Model\Article;
 use App\Contracts\CommonData\Keyword as KeywordData;
 use App\Contracts\IntentResolver\Intent;
 use App\Contracts\Model\Article\StageData;
+use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
@@ -77,6 +78,23 @@ class ResearchStageDataTest extends TestCase
         $this->assertSame(
             'ROI magnitude differs across sources.',
             $research->getAuthorContextUnresolvableConflicts()[0]->getRationale()
+        );
+    }
+
+    public function test_stage_data_round_trip_keeps_distilled_author_context_for_draft(): void
+    {
+        $distilled = (new AuthorContext)
+            ->set('voice', 'Author voice', 'Practical operator tone');
+
+        $stageData = new StageData;
+        $stageData->setDistilledAuthorContextForDraft($distilled);
+
+        $restored = StageData::fromArray($stageData->toArray());
+
+        $this->assertTrue($restored->hasDistilledAuthorContextForDraft());
+        $this->assertSame(
+            $distilled->toArray(),
+            $restored->getDistilledAuthorContextForDraft()->toArray()
         );
     }
 

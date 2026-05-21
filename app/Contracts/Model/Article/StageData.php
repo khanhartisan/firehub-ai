@@ -6,6 +6,7 @@ use App\Concerns\Serializable;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Model\Article\StageData\IllustrationStageData;
 use App\Contracts\Model\Article\StageData\ResearchStageData;
+use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
@@ -18,6 +19,7 @@ final class StageData implements \App\Contracts\Serializable
     protected ?ResearchStageData $research = null;
     protected ?Brief $brief = null;
     protected ?Outline $outline = null;
+    protected ?AuthorContext $distilledAuthorContextForDraft = null;
     protected ?Draft $draft = null;
     protected ?IllustrationStageData $illustration = null;
 
@@ -42,6 +44,7 @@ final class StageData implements \App\Contracts\Serializable
             'research' => $this->research?->toArray(),
             'brief' => $this->brief?->toArray(),
             'outline' => $this->outline?->toArray(),
+            'distilled_author_context_for_draft' => $this->distilledAuthorContextForDraft?->toArray(),
             'draft' => $this->draft?->toArray(),
             'illustration' => $this->illustration?->toArray(),
         ], static fn ($v): bool => $v !== null);
@@ -87,6 +90,23 @@ final class StageData implements \App\Contracts\Serializable
     public function setOutline(Outline $outline): static
     {
         $this->outline = $outline;
+
+        return $this;
+    }
+
+    public function hasDistilledAuthorContextForDraft(): bool
+    {
+        return $this->distilledAuthorContextForDraft instanceof AuthorContext;
+    }
+
+    public function getDistilledAuthorContextForDraft(): ?AuthorContext
+    {
+        return $this->distilledAuthorContextForDraft;
+    }
+
+    public function setDistilledAuthorContextForDraft(?AuthorContext $distilledAuthorContextForDraft): static
+    {
+        $this->distilledAuthorContextForDraft = $distilledAuthorContextForDraft;
 
         return $this;
     }
@@ -151,6 +171,10 @@ final class StageData implements \App\Contracts\Serializable
 
         if (isset($data['outline']) && is_array($data['outline'])) {
             $this->setOutline(Outline::fromArray($data['outline']));
+        }
+
+        if (isset($data['distilled_author_context_for_draft']) && is_array($data['distilled_author_context_for_draft'])) {
+            $this->setDistilledAuthorContextForDraft(AuthorContext::fromArray($data['distilled_author_context_for_draft']));
         }
 
         if (isset($data['draft']) && is_array($data['draft'])) {

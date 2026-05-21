@@ -29,6 +29,20 @@ interface Editor
 
     /**
      * Refine the given author context, reset weights, remove unnecessary fields...
+     * to fit the best with the given outline
+     *
+     * @param Outline $outline
+     * @param SemanticContext $authorContext
+     * @param SemanticContext|null $generalContext
+     * @return SemanticContext
+     */
+    public function distillAuthorContextForOutline(Outline $outline,
+                                                   SemanticContext $authorContext,
+                                                   ?SemanticContext $generalContext = null): SemanticContext;
+
+    /**
+     * Refine the given author context, reset weights, remove unnecessary fields...
+     * to fit the best with the given outline item
      *
      * @param Outline $outline The outline we are working on
      * @param string $outlineItemIdentifier The identifier of the outline item that we are focusing on

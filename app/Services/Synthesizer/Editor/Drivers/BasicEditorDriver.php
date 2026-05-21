@@ -52,6 +52,18 @@ class BasicEditorDriver extends EditorService
         return $tailored;
     }
 
+    public function distillAuthorContextForOutline(
+        Outline $outline,
+        SemanticContext $authorContext,
+        ?SemanticContext $generalContext = null,
+    ): SemanticContext {
+        $distilled = $this->copyAuthorContextEntries($authorContext);
+        $this->applyOutlineFields($distilled, $outline);
+        $this->appendGeneralContextEntries($distilled, $generalContext);
+
+        return $distilled;
+    }
+
     public function distillAuthorContextForOutlineItem(
         Outline $outline,
         string $outlineItemIdentifier,
@@ -66,19 +78,7 @@ class BasicEditorDriver extends EditorService
             ));
         }
 
-        $distilled = $this->newContextLike($authorContext);
-
-        foreach ($authorContext->toArray() as $key => $entry) {
-            if (! is_array($entry) || ! array_key_exists('value', $entry) || ! is_string($entry['description'] ?? null)) {
-                continue;
-            }
-
-            if (! $this->contextEntryHasContent($entry['value'])) {
-                continue;
-            }
-
-            $distilled->set($key, $entry['description'], $entry['value']);
-        }
+        $distilled = $this->copyAuthorContextEntries($authorContext);
 
         $point = $item->getPoint();
         $headline = trim((string) ($point->getHeadline() ?? ''));
@@ -111,22 +111,102 @@ class BasicEditorDriver extends EditorService
             );
         }
 
-        if ($generalContext instanceof SemanticContext) {
-            foreach (['article_context', 'client_context', 'outline_focus'] as $key) {
-                $entry = $generalContext->get($key);
-                if ($entry === null || ! $this->contextEntryHasContent($entry['value'] ?? null)) {
-                    continue;
-                }
+        $this->appendGeneralContextEntries($distilled, $generalContext);
 
-                $distilled->set(
-                    'general_'.$key,
-                    'General pipeline context relevant to this section.',
-                    $entry['value']
-                );
+        return $distilled;
+    }
+
+    protected function copyAuthorContextEntries(SemanticContext $authorContext): SemanticContext
+    {
+        $distilled = $this->newContextLike($authorContext);
+
+        foreach ($authorContext->toArray() as $key => $entry) {
+            if (! is_array($entry) || ! array_key_exists('value', $entry) || ! is_string($entry['description'] ?? null)) {
+                continue;
             }
+
+            if (! $this->contextEntryHasContent($entry['value'])) {
+                continue;
+            }
+
+            $distilled->set($key, $entry['description'], $entry['value']);
         }
 
         return $distilled;
+    }
+
+    protected function appendGeneralContextEntries(
+        SemanticContext $distilled,
+        ?SemanticContext $generalContext,
+    ): void {
+        if (! $generalContext instanceof SemanticContext) {
+            return;
+        }
+
+        foreach (['article_context', 'client_context', 'outline_focus'] as $key) {
+            $entry = $generalContext->get($key);
+            if ($entry === null || ! $this->contextEntryHasContent($entry['value'] ?? null)) {
+                continue;
+            }
+
+            $distilled->set(
+                'general_'.$key,
+                'General pipeline context relevant to this section.',
+                $entry['value']
+            );
+        }
+    }
+
+    protected function applyOutlineFields(SemanticContext $distilled, Outline $outline): void
+    {
+        $title = trim((string) ($outline->getTitle() ?? ''));
+        if ($title !== '') {
+            $distilled->set(
+                'outline_title',
+                'Title of the article outline.',
+                $title
+            );
+        }
+
+        $sections = $this->collectOutlineSectionSummaries($outline);
+        if ($sections !== []) {
+            $distilled->set(
+                'outline_sections',
+                'Summary of outline sections for the full article.',
+                $sections
+            );
+        }
+    }
+
+    /**
+     * @return list<array{headline: ?string, description: ?string}>
+     */
+    protected function collectOutlineSectionSummaries(Outline $outline): array
+    {
+        $sections = [];
+
+        $collect = function (OutlineItem $item) use (&$collect, &$sections): void {
+            $point = $item->getPoint();
+            $headline = trim((string) ($point->getHeadline() ?? ''));
+            $description = trim((string) $point->getDescription());
+
+            if ($headline !== '' || $description !== '') {
+                $sections[] = array_filter([
+                    'headline' => $headline !== '' ? $headline : null,
+                    'description' => $description !== '' ? $description : null,
+                ]);
+            }
+
+            foreach ($item->getSubItems() as $subItem) {
+                $collect($subItem);
+            }
+        };
+
+        foreach ($outline->getItems() as $item) {
+            $collect($item);
+        }
+
+        return $sections;
     }
 
     /**

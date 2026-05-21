@@ -65,6 +65,14 @@ class OpenAIEditorDriver extends EditorService
         return $this->tailorOutlineWithOpenAI($outline, $authorContext);
     }
 
+    public function distillAuthorContextForOutline(
+        Outline $outline,
+        SemanticContext $authorContext,
+        ?SemanticContext $generalContext = null,
+    ): SemanticContext {
+        return $this->distillOutlineWithOpenAI($outline, $authorContext, $generalContext);
+    }
+
     public function distillAuthorContextForOutlineItem(
         Outline $outline,
         string $outlineItemIdentifier,
@@ -389,6 +397,42 @@ PROMPT;
         return null;
     }
 
+    protected function distillOutlineWithOpenAI(
+        Outline $outline,
+        SemanticContext $authorContext,
+        ?SemanticContext $generalContext,
+    ): SemanticContext {
+        $authorKeys = array_keys($authorContext->toArray());
+        $generalKeys = $generalContext instanceof SemanticContext
+            ? array_intersect(
+                ['article_context', 'client_context', 'outline_focus'],
+                array_keys($generalContext->toArray())
+            )
+            : [];
+
+        $payload = [
+            'outline' => $outline->toArray(),
+            'author_context' => $authorContext->toArray(),
+            'author_context_keys' => array_values($authorKeys),
+            'general_context' => $generalContext?->toArray(),
+            'general_context_keys' => array_values($generalKeys),
+        ];
+
+        $data = $this->requestStructuredJson(
+            $this->buildDistillOutlinePrompt($payload),
+            'editor_distill_author_context_for_outline',
+            $this->buildDistillSchema($authorKeys, $generalKeys),
+            'Failed to distill author context for outline with OpenAI',
+        );
+
+        return $this->hydrateDistilledContextForOutline(
+            $authorContext,
+            $outline,
+            $generalContext,
+            $data
+        );
+    }
+
     protected function distillWithOpenAI(
         Outline $outline,
         string $outlineItemIdentifier,
@@ -457,6 +501,25 @@ PROMPT;
     /**
      * @param  array<string, mixed>  $payload
      */
+    protected function buildDistillOutlinePrompt(array $payload): string
+    {
+        $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        return <<<PROMPT
+You are an editorial director preparing a focused author brief for an entire article outline.
+
+Given the full outline, the full author context, and optional general pipeline context:
+- Choose which top-level author_context keys to retain for writing the full article ("retained_keys"). Omit keys that are irrelevant or distracting.
+- Choose which general_context keys to surface ("general_keys"). Only use keys listed in general_context_keys.
+- Write concise "section_editorial_notes" telling the writer how to approach the article overall in the author's voice (structure, emphasis, what to avoid).
+
+Do not invent facts. Do not include weights. Keep retained_keys and general_keys as subsets of the provided key lists.
+
+Input JSON:
+{$json}
+PROMPT;
+    }
+
     protected function buildDistillPrompt(array $payload): string
     {
         $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
@@ -540,9 +603,37 @@ PROMPT;
     /**
      * @param  array<string, mixed>  $data
      */
+    protected function hydrateDistilledContextForOutline(
+        SemanticContext $authorContext,
+        Outline $outline,
+        ?SemanticContext $generalContext,
+        array $data,
+    ): SemanticContext {
+        $distilled = $this->hydrateRetainedAuthorAndGeneralContext($authorContext, $generalContext, $data);
+        $this->applyOutlineFields($distilled, $outline);
+        $this->applyEditorialNotes($distilled, $data, 'outline_editorial_notes', 'Editorial notes for the full article outline.');
+
+        return $distilled;
+    }
+
     protected function hydrateDistilledContext(
         SemanticContext $authorContext,
         OutlineItem $item,
+        ?SemanticContext $generalContext,
+        array $data,
+    ): SemanticContext {
+        $distilled = $this->hydrateRetainedAuthorAndGeneralContext($authorContext, $generalContext, $data);
+        $this->applySectionFields($distilled, $item);
+        $this->applyEditorialNotes($distilled, $data, 'section_editorial_notes', 'Editorial notes for the outline section being written.');
+
+        return $distilled;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function hydrateRetainedAuthorAndGeneralContext(
+        SemanticContext $authorContext,
         ?SemanticContext $generalContext,
         array $data,
     ): SemanticContext {
@@ -565,8 +656,6 @@ PROMPT;
             $distilled->set($key, $entry['description'], $entry['value']);
         }
 
-        $this->applySectionFields($distilled, $item);
-
         if ($generalContext instanceof SemanticContext) {
             $generalKeys = $this->filterSchemaKeys(
                 $data['general_keys'] ?? [],
@@ -586,16 +675,74 @@ PROMPT;
             }
         }
 
+        return $distilled;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function applyEditorialNotes(
+        SemanticContext $distilled,
+        array $data,
+        string $key,
+        string $description,
+    ): void {
         $notes = trim((string) ($data['section_editorial_notes'] ?? ''));
         if ($notes !== '') {
+            $distilled->set($key, $description, $notes);
+        }
+    }
+
+    protected function applyOutlineFields(SemanticContext $distilled, Outline $outline): void
+    {
+        $title = trim((string) ($outline->getTitle() ?? ''));
+        if ($title !== '') {
             $distilled->set(
-                'section_editorial_notes',
-                'Editorial notes for the outline section being written.',
-                $notes
+                'outline_title',
+                'Title of the article outline.',
+                $title
             );
         }
 
-        return $distilled;
+        $sections = $this->collectOutlineSectionSummaries($outline);
+        if ($sections !== []) {
+            $distilled->set(
+                'outline_sections',
+                'Summary of outline sections for the full article.',
+                $sections
+            );
+        }
+    }
+
+    /**
+     * @return list<array{headline: ?string, description: ?string}>
+     */
+    protected function collectOutlineSectionSummaries(Outline $outline): array
+    {
+        $sections = [];
+
+        $collect = function (OutlineItem $item) use (&$collect, &$sections): void {
+            $point = $item->getPoint();
+            $headline = trim((string) ($point->getHeadline() ?? ''));
+            $description = trim((string) $point->getDescription());
+
+            if ($headline !== '' || $description !== '') {
+                $sections[] = array_filter([
+                    'headline' => $headline !== '' ? $headline : null,
+                    'description' => $description !== '' ? $description : null,
+                ]);
+            }
+
+            foreach ($item->getSubItems() as $subItem) {
+                $collect($subItem);
+            }
+        };
+
+        foreach ($outline->getItems() as $item) {
+            $collect($item);
+        }
+
+        return $sections;
     }
 
     protected function applySectionFields(SemanticContext $distilled, OutlineItem $item): void

@@ -165,6 +165,80 @@ class OpenAIEditorDriverTest extends TestCase
         $this->assertSame(['Use concrete SaaS examples.'], $tailored->getItems()[0]->getGuidelines());
     }
 
+    public function test_distill_author_context_for_outline_without_client_throws(): void
+    {
+        $driver = new OpenAIEditorDriver;
+        $outline = (new Outline)->setTitle('SaaS onboarding playbook');
+        $authorContext = (new AuthorContext)
+            ->setLinguisticContext(
+                (new LinguisticContext)->setVocabularyTier('Colloquial', 2.0)
+            );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('OpenAI client is not configured');
+
+        $driver->distillAuthorContextForOutline($outline, $authorContext, null);
+    }
+
+    public function test_distill_author_context_for_outline_uses_structured_openai_response(): void
+    {
+        $item = (new OutlineItem)->setPoint(
+            (new RelevantPoint)
+                ->setHeadline('Activation tactics')
+                ->setDescription('Explain onboarding experiments.')
+        );
+        $outline = (new Outline)
+            ->setTitle('SaaS onboarding playbook')
+            ->setItems([$item]);
+
+        $authorContext = (new AuthorContext)
+            ->setLinguisticContext(
+                (new LinguisticContext)->setVocabularyTier('Colloquial')
+            )
+            ->set('cognitive_context', 'Cognitive lens', ['worldview' => ['value' => 'Pragmatic']], 1.0);
+
+        $generalContext = (new SemanticContext)->set(
+            'outline_focus',
+            'Additional outline focus.',
+            'Emphasize trade-offs'
+        );
+
+        $payload = json_encode([
+            'retained_keys' => ['linguistic_context'],
+            'general_keys' => ['outline_focus'],
+            'section_editorial_notes' => 'Keep a practical operator-first arc across sections.',
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_editor_outline_1',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $driver = new OpenAIEditorDriver($client, ['model' => 'gpt-4o-mini']);
+        $distilled = $driver->distillAuthorContextForOutline($outline, $authorContext, $generalContext);
+
+        $this->assertSame('Colloquial', $distilled->getLinguisticContextValue()['vocabulary_tier']['value'] ?? null);
+        $this->assertFalse($distilled->has('cognitive_context'));
+        $this->assertSame('Emphasize trade-offs', $distilled->getGeneralOutlineFocusValue());
+        $this->assertSame(
+            'Keep a practical operator-first arc across sections.',
+            $distilled->getOutlineEditorialNotesValue()
+        );
+        $this->assertSame('SaaS onboarding playbook', $distilled->getOutlineTitleValue());
+    }
+
     public function test_distill_author_context_for_outline_item_without_client_throws(): void
     {
         $driver = new OpenAIEditorDriver;

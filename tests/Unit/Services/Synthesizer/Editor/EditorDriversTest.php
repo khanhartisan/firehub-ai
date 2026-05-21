@@ -76,6 +76,42 @@ class EditorDriversTest extends TestCase
         $this->assertContains('Prioritize practical takeaways.', $guidelines);
     }
 
+    public function test_distill_author_context_for_outline_includes_outline_summary_and_general_context(): void
+    {
+        $driver = new BasicEditorDriver;
+        $item = (new OutlineItem)->setPoint(
+            (new RelevantPoint)
+                ->setHeadline('Activation tactics')
+                ->setDescription('Explain onboarding experiments.')
+        );
+        $outline = (new Outline)
+            ->setTitle('SaaS onboarding playbook')
+            ->setItems([$item]);
+
+        $authorContext = (new AuthorContext)
+            ->setLinguisticContext(
+                (new LinguisticContext)
+                    ->setVocabularyTier('Colloquial', 2.0)
+            );
+
+        $generalContext = (new SemanticContext)->set(
+            'outline_focus',
+            'Additional outline focus.',
+            'Emphasize trade-offs'
+        );
+
+        $distilled = $driver->distillAuthorContextForOutline($outline, $authorContext, $generalContext);
+
+        $this->assertInstanceOf(AuthorContext::class, $distilled);
+        $this->assertNull($distilled->getLinguisticContextWeight());
+        $this->assertSame('SaaS onboarding playbook', $distilled->getOutlineTitleValue());
+        $this->assertSame(
+            [['headline' => 'Activation tactics', 'description' => 'Explain onboarding experiments.']],
+            $distilled->getOutlineSectionsValue()
+        );
+        $this->assertSame('Emphasize trade-offs', $distilled->getGeneralOutlineFocusValue());
+    }
+
     public function test_distill_author_context_for_outline_item_focuses_section_and_resets_weights(): void
     {
         $driver = new BasicEditorDriver;

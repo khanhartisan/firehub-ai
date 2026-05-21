@@ -92,13 +92,33 @@ TEXT;
                     ->setRelevance(0.7),
             ]);
 
-        $resolved = $driver->resolveIdeaConflictedPoints($idea, $conflictedPoints, [
+        $resolved = $driver->resolveIdeaConflictedPointsByFacts($idea, $conflictedPoints, [
             ['fact' => 'Verified growth is 12% YoY.'],
         ]);
 
         $this->assertInstanceOf(RelevantPoint::class, $resolved);
         $this->assertSame(['Verified growth is 12% YoY.'], $resolved->getEvidences());
         $this->assertSame('Resolved from conflicted points using provided verified facts.', $resolved->getRationale());
+    }
+
+    public function test_basic_researcher_resolve_conflicted_points_returns_null_without_facts(): void
+    {
+        $driver = new BasicResearcherDriver;
+        $idea = new Idea($this->makeIntent(), 0.8, 'Resolve conflict test');
+        $conflictedPoints = (new ConflictedPoints)
+            ->setRationale('Claims conflict on growth rate.')
+            ->setPoints([
+                (new RelevantPoint)
+                    ->setHeadline('Growth is 20%')
+                    ->setDescription('Source A indicates 20% growth.')
+                    ->setEvidences(['Source A'])
+                    ->setRationale('Based on Source A')
+                    ->setRelevance(0.7),
+            ]);
+
+        $resolved = $driver->resolveIdeaConflictedPointsByFacts($idea, $conflictedPoints, []);
+
+        $this->assertNull($resolved);
     }
 
     protected function makeIntent(): Intent

@@ -37,7 +37,7 @@ class TestResearcherService extends Command
             [
                 'extractIdeaPoints',
                 'consolidateIdeaPoints (simulated input)',
-                'resolveIdeaConflictedPoints (simulated conflict + facts)',
+                'resolveIdeaConflictedPointsByFacts (simulated conflict + facts)',
             ],
             0
         );
@@ -86,12 +86,16 @@ class TestResearcherService extends Command
                 }
 
                 $resolvedPoint = $this->timedCall(
-                    'resolveIdeaConflictedPoints',
-                    fn () => $researcher->resolveIdeaConflictedPoints($idea, $conflicted, $facts)
+                    'resolveIdeaConflictedPointsByFacts',
+                    fn () => $researcher->resolveIdeaConflictedPointsByFacts($idea, $conflicted, $facts)
                 );
                 $this->newLine();
-                $this->info('Resolved point');
-                $this->displayPoints([$resolvedPoint]);
+                if ($resolvedPoint === null) {
+                    $this->warn('Conflict could not be resolved (returned null).');
+                } else {
+                    $this->info('Resolved point');
+                    $this->displayPoints([$resolvedPoint]);
+                }
             }
 
             return self::SUCCESS;

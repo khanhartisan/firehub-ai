@@ -207,13 +207,52 @@ class OpenAIResearcherDriverTest extends TestCase
                     ->setRelevance(0.68),
             ]);
 
-        $result = $driver->resolveIdeaConflictedPoints($idea, $conflicted, [
+        $result = $driver->resolveIdeaConflictedPointsByFacts($idea, $conflicted, [
             ['fact' => 'Verified benchmark dataset'],
         ]);
 
         $this->assertInstanceOf(RelevantPoint::class, $result);
         $this->assertSame('Verified ROI is 1.3x', $result->getHeadline());
         $this->assertSame(['Verified benchmark dataset'], $result->getEvidences());
+    }
+
+    public function test_resolve_conflicted_points_returns_null_when_model_cannot_resolve(): void
+    {
+        $payload = json_encode(['point' => null], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_research_resolve_null_1',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $driver = new OpenAIResearcherDriver($client, ['model' => 'gpt-4o-mini']);
+        $idea = new Idea($this->makeIntent(), 0.7, 'fit');
+        $conflicted = (new ConflictedPoints)
+            ->setRationale('Sources disagree on ROI.')
+            ->setPoints([
+                (new RelevantPoint)
+                    ->setHeadline('ROI is 2x')
+                    ->setDescription('Vendor survey estimate.')
+                    ->setEvidences(['Vendor survey'])
+                    ->setRationale('Vendor benchmark')
+                    ->setRelevance(0.7),
+            ]);
+
+        $result = $driver->resolveIdeaConflictedPointsByFacts($idea, $conflicted, []);
+
+        $this->assertNull($result);
     }
 
     protected function makeIntent(): Intent

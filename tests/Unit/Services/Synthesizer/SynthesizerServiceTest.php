@@ -176,7 +176,17 @@ class SynthesizerServiceTest extends TestCase
                 return new ConsolidationResult;
             }
 
-            public function resolveIdeaConflictedPoints(Idea $idea, ConflictedPoints $conflictedPoints, array $facts): RelevantPoint
+            public function resolveIdeaConflictedPointsByFacts(Idea $idea, ConflictedPoints $conflictedPoints, array $facts): ?RelevantPoint
+            {
+                return new RelevantPoint;
+            }
+
+            public function resolveIdeaConflictedPointsByAuthorContext(
+                SemanticContext $authorContext,
+                Idea $idea,
+                ConflictedPoints $conflictedPoints,
+                array $facts = []
+            ): ?RelevantPoint
             {
                 return new RelevantPoint;
             }

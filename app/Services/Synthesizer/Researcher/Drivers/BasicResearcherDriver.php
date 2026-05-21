@@ -3,6 +3,7 @@
 namespace App\Services\Synthesizer\Researcher\Drivers;
 
 use App\Contracts\CommonData\Fact;
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
 use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
@@ -35,11 +36,11 @@ class BasicResearcherDriver extends ResearcherService
             ->setPoints($points);
     }
 
-    public function resolveIdeaConflictedPoints(
+    public function resolveIdeaConflictedPointsByFacts(
         Idea $idea,
         ConflictedPoints $conflictedPoints,
         array $facts
-    ): RelevantPoint {
+    ): ?RelevantPoint {
         $fallbackPoint = $conflictedPoints->getPoints()[0] ?? new RelevantPoint;
 
         $evidences = [];
@@ -66,7 +67,7 @@ class BasicResearcherDriver extends ResearcherService
         }
 
         if ($evidences === []) {
-            $evidences = $fallbackPoint->getEvidences();
+            return null;
         }
 
         return (new RelevantPoint)
@@ -75,6 +76,15 @@ class BasicResearcherDriver extends ResearcherService
             ->setEvidences($evidences)
             ->setRelevance($fallbackPoint->getRelevance())
             ->setRationale('Resolved from conflicted points using provided verified facts.');
+    }
+
+    public function resolveIdeaConflictedPointsByAuthorContext(
+        SemanticContext $authorContext,
+        Idea $idea,
+        ConflictedPoints $conflictedPoints,
+        array $facts = []
+    ): ?RelevantPoint {
+        return $this->resolveIdeaConflictedPointsByFacts($idea, $conflictedPoints, $facts);
     }
 
     /**

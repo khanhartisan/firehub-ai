@@ -3,6 +3,7 @@
 namespace App\Services\Synthesizer\Researcher\Drivers;
 
 use App\Contracts\CommonData\Fact;
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
@@ -148,11 +149,11 @@ class OpenAIResearcherDriver extends ResearcherService
     /**
      * @throws \JsonException
      */
-    public function resolveIdeaConflictedPoints(
+    public function resolveIdeaConflictedPointsByFacts(
         Idea $idea,
         ConflictedPoints $conflictedPoints,
         array $facts
-    ): RelevantPoint {
+    ): ?RelevantPoint {
         $prompt = $this->buildResolveConflictedPointsPrompt($idea, $conflictedPoints, $facts);
         $schema = $this->buildResolveConflictedPointsJsonSchema();
         $data = $this->requestStructuredJson(
@@ -162,8 +163,42 @@ class OpenAIResearcherDriver extends ResearcherService
             'Failed to resolve conflicted points with OpenAI'
         );
 
-        if (! isset($data['point']) || ! is_array($data['point'])) {
+        return $this->parseResolvedPointFromResponse($data);
+    }
+
+    /**
+     * @throws \JsonException
+     */
+    public function resolveIdeaConflictedPointsByAuthorContext(
+        SemanticContext $authorContext,
+        Idea $idea,
+        ConflictedPoints $conflictedPoints,
+        array $facts = []
+    ): ?RelevantPoint {
+        $prompt = $this->buildResolveConflictedPointsByAuthorContextPrompt($authorContext, $idea, $conflictedPoints, $facts);
+        $schema = $this->buildResolveConflictedPointsJsonSchema();
+        $data = $this->requestStructuredJson(
+            $prompt,
+            'research_resolve_conflicted_points_by_author_context',
+            $schema,
+            'Failed to resolve conflicted points with OpenAI'
+        );
+
+        return $this->parseResolvedPointFromResponse($data);
+    }
+
+    protected function parseResolvedPointFromResponse(array $data): ?RelevantPoint
+    {
+        if (! array_key_exists('point', $data)) {
             throw new RuntimeException('Failed to resolve conflicted points with OpenAI: missing point output.');
+        }
+
+        if ($data['point'] === null) {
+            return null;
+        }
+
+        if (! is_array($data['point'])) {
+            throw new RuntimeException('Failed to resolve conflicted points with OpenAI: invalid point output.');
         }
 
         return RelevantPoint::fromArray($data['point']);
@@ -234,13 +269,14 @@ Given:
 - one conflicted points group
 - verified facts (source of truth)
 
-Return exactly one resolved relevant point that:
+Return one resolved relevant point, or null when the conflict cannot be resolved from the verified facts alone.
+When returning a point:
 - aligns with verified facts if provided
 - keeps only evidence supported by verified facts if provided
 - has concise rationale
 - includes relevance (to the given idea) in [0,1]
 
-Sometimes conflicted points are not about right or wrong but depending on the perspective, and the provided AuthorContext doesn't have a bias that is strong enough to pick a side. In that case, we can merge the conflicted points/facts into a unified, higher-level thesis. Frame the conflict as a matter of perspective or conditional reality.
+If verified facts are insufficient and the conflict cannot be merged into a defensible point, return `"point": null`.
 
 It is very important to keep the real numbers, analytics, examples, proofs... of the point in the evidences.
 
@@ -248,6 +284,58 @@ It is very important to keep the real numbers, analytics, examples, proofs... of
 
 Idea JSON:
 {$ideaJson}
+
+Conflicted points JSON:
+{$conflictsJson}
+
+Verified facts JSON:
+{$factsJson}
+
+Return JSON only using the provided schema.
+PROMPT;
+    }
+
+    /**
+     * @throws \JsonException
+     */
+    protected function buildResolveConflictedPointsByAuthorContextPrompt(
+        SemanticContext $authorContext,
+        Idea $idea,
+        ConflictedPoints $conflictedPoints,
+        array $facts
+    ): string {
+        $ideaJson = json_encode($idea->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $authorContextJson = json_encode($authorContext->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $conflictsJson = json_encode($conflictedPoints->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $factsJson = json_encode($this->normalizeFacts($facts), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        return <<<PROMPT
+You are a research resolver.
+
+Given:
+- one editorial idea
+- one author context (for perspective and bias)
+- one conflicted points group
+- optional verified facts
+
+Return one resolved relevant point, or null when the conflict cannot be resolved.
+When returning a point:
+- aligns with verified facts when provided
+- follows the author context perspective when choosing among conflicting interpretations
+- has concise rationale
+- includes relevance (to the given idea) in [0,1]
+
+Sometimes conflicted points are not about right or wrong but depending on the perspective, or neither the facts nor author context can decisively pick a side. In that case, if the conflicted points are not directly conflicted against each others, we can consider to merge the conflicted points/facts into a unified, higher-level thesis when possible. Frame the conflict as a matter of perspective or conditional reality.
+
+If the conflict still cannot be resolved into a defensible point, return `"point": null`.
+
+---
+
+Idea JSON:
+{$ideaJson}
+
+Author context JSON:
+{$authorContextJson}
 
 Conflicted points JSON:
 {$conflictsJson}
@@ -397,7 +485,13 @@ PROMPT;
         return [
             'type' => 'object',
             'properties' => $properties = [
-                'point' => $this->buildRelevantPointSchema(),
+                'point' => [
+                    'description' => 'Resolved point, or null when the conflict cannot be resolved.',
+                    'anyOf' => [
+                        $this->buildRelevantPointSchema(),
+                        ['type' => 'null'],
+                    ],
+                ],
             ],
             'required' => array_keys($properties),
             'additionalProperties' => false,

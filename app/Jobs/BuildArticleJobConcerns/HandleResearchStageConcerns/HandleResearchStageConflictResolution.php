@@ -29,9 +29,14 @@ trait HandleResearchStageConflictResolution
 
         $resolvedPoint = $this->synthesizer()
             ->getResearcher()
-            ->resolveIdeaConflictedPoints($pickedIdea, $conflict, $highConfidenceFacts);
+            ->resolveIdeaConflictedPointsByFacts($pickedIdea, $conflict, $highConfidenceFacts);
 
-        $researchData->addResolvedConflictedPoint($resolvedPoint);
+        if ($resolvedPoint === null) {
+            $researchData->addUnresolvableConflict($conflict);
+        } else {
+            $researchData->addResolvedConflictedPoint($resolvedPoint);
+        }
+
         $this->touchArticleQuietly();
 
         return true;

@@ -33,14 +33,14 @@ class TestWriterService extends Command
         [$writer, $sourceLabel] = $resolution;
         $brief = $this->buildBrief();
         $outline = $this->buildOutline();
-        $context = $this->buildSemanticContext();
+        $generalContext = $this->buildSemanticContext();
 
         $this->newLine();
         $this->info('Writer: '.Str::afterLast($writer::class, '\\').' | '.$sourceLabel);
         $this->line('-----');
 
         try {
-            $draft = $this->timedCall('draft', fn () => $writer->draft($brief, $outline, $context));
+            $draft = $this->timedCall('draft', fn () => $writer->draft($brief, $outline, null, $generalContext));
             $this->displayDraft($draft);
 
             return self::SUCCESS;

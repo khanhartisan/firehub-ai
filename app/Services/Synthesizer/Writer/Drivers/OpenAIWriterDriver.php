@@ -35,13 +35,18 @@ class OpenAIWriterDriver extends WriterService
         $this->config = array_merge(SynthesizerSubserviceConfig::settings('writer'), $config);
     }
 
-    public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft
+    public function draft(
+        Brief $brief,
+        Outline $outline,
+        ?SemanticContext $authorContext = null,
+        ?SemanticContext $generalContext = null,
+    ): Draft
     {
         if (! $this->openAIClient instanceof OpenAIClient) {
             throw new RuntimeException('OpenAI author driver requires an OpenAI client instance.');
         }
 
-        $payload = $this->generateDraftPayload($brief, $outline, $context);
+        $payload = $this->generateDraftPayload($brief, $outline, $authorContext, $generalContext);
 
         $article = $this->buildArticleFromPayload($payload);
         if ($article->getChildren() === []) {
@@ -291,10 +296,15 @@ PROMPT;
     /**
      * @return array<string, mixed>
      */
-    protected function generateDraftPayload(Brief $brief, Outline $outline, ?SemanticContext $context): array
+    protected function generateDraftPayload(
+        Brief $brief,
+        Outline $outline,
+        ?SemanticContext $authorContext,
+        ?SemanticContext $generalContext,
+    ): array
     {
         $data = $this->requestStructuredJson(
-            $this->buildPrompt($brief, $outline, $context),
+            $this->buildPrompt($brief, $outline, $authorContext, $generalContext),
             'author_draft',
             $this->buildDraftSchema(),
             'Failed to build author draft with OpenAI'
@@ -303,19 +313,25 @@ PROMPT;
         return is_array($data) ? $data : [];
     }
 
-    protected function buildPrompt(Brief $brief, Outline $outline, ?SemanticContext $context): string
+    protected function buildPrompt(
+        Brief $brief,
+        Outline $outline,
+        ?SemanticContext $authorContext,
+        ?SemanticContext $generalContext,
+    ): string
     {
         $payload = [
             'brief' => $brief->toArray(),
             'outline' => $outline->toArray(),
-            'semantic_context' => $context?->toArray(),
+            'author_context' => $authorContext?->toArray(),
+            'general_context' => $generalContext?->toArray(),
         ];
         $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         return <<<PROMPT
 You are a senior editorial writer.
 
-Given a brief, outline, and optional semantic context, produce a publication-ready article draft:
+Given a brief, outline, and optional author and general context, produce a publication-ready article draft:
 - You have the freedom to express and organize the article by your way, but make sure you make use of all the points provided by the outline, as well as the related sub-points and evidences.
 - Keep title and excerpt concise, specific, and publish-ready.
 - Return the article body as Markdown (not HTML or JSON DOM). Use h2 and below for section headings; do not include h1 because the CMS handles the page title.

@@ -15,7 +15,12 @@ use App\Services\Synthesizer\Writer\WriterService;
 
 class BasicWriterDriver extends WriterService
 {
-    public function draft(Brief $brief, Outline $outline, ?SemanticContext $context = null): Draft
+    public function draft(
+        Brief $brief,
+        Outline $outline,
+        ?SemanticContext $authorContext = null,
+        ?SemanticContext $generalContext = null,
+    ): Draft
     {
         $article = new Article;
         foreach ($outline->getItems() as $item) {
@@ -68,7 +73,10 @@ class BasicWriterDriver extends WriterService
             }
         }
 
-        $contextLines = $this->contextToLines($context);
+        $contextLines = array_merge(
+            $this->contextToLines($authorContext),
+            $this->contextToLines($generalContext),
+        );
         if ($contextLines !== []) {
             $contextSection = (new Element)
                 ->setType(ElementType::DIV)

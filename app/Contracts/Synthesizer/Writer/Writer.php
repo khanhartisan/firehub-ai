@@ -12,7 +12,8 @@ interface Writer
 {
     public function draft(Brief $brief,
                           Outline $outline,
-                          ?SemanticContext $context = null): Draft;
+                          ?SemanticContext $authorContext = null,
+                          ?SemanticContext $generalContext = null): Draft;
 
     /**
      * @param Article $article

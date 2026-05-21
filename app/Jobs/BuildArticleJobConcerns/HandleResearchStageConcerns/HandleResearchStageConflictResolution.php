@@ -42,6 +42,39 @@ trait HandleResearchStageConflictResolution
         return true;
     }
 
+    protected function resolveOneUnresolvableConflictByAuthorContext(Idea $pickedIdea): bool
+    {
+        $researchData = $this->getStageData()->getResearchStageData();
+        $conflict = $researchData->shiftUnresolvableConflict();
+        if ($conflict === null) {
+            return false;
+        }
+
+        $ideaData = $this->getStageData()->getIdeaStageData();
+        if ($ideaData->hasSelectedAuthorContext()) {
+            $resolvedPoint = $this->synthesizer()
+                ->getResearcher()
+                ->resolveIdeaConflictedPointsByAuthorContext(
+                    $ideaData->getSelectedAuthorContext(),
+                    $pickedIdea,
+                    $conflict
+                );
+
+            if ($resolvedPoint !== null) {
+                $researchData->addResolvedConflictedPoint($resolvedPoint);
+                $this->touchArticleQuietly();
+
+                return true;
+            }
+        }
+
+        $researchData->addAuthorContextUnresolvableConflict($conflict);
+
+        $this->touchArticleQuietly();
+
+        return true;
+    }
+
     protected function consolidateResolvedConflictPoints(Idea $pickedIdea): bool
     {
         $researchData = $this->getStageData()->getResearchStageData();

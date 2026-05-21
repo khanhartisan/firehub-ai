@@ -56,6 +56,13 @@ final class ResearchStageData implements \App\Contracts\Serializable
      */
     protected array $unresolvableConflicts = [];
 
+    /**
+     * Final resting place for fact-unresolvable conflicts after author-context processing
+     * (attempted when author context exists, otherwise moved here directly).
+     *
+     * @var ConflictedPoints[]
+     */
+    protected array $authorContextUnresolvableConflicts = [];
 
     /**
      * @return Keyword[]
@@ -285,6 +292,44 @@ final class ResearchStageData implements \App\Contracts\Serializable
         return $this->setUnresolvableConflicts($conflicts);
     }
 
+    public function shiftUnresolvableConflict(): ?ConflictedPoints
+    {
+        return array_shift($this->unresolvableConflicts);
+    }
+
+    /**
+     * @return ConflictedPoints[]
+     */
+    public function getAuthorContextUnresolvableConflicts(): array
+    {
+        return $this->authorContextUnresolvableConflicts;
+    }
+
+    /**
+     * @param  ConflictedPoints[]  $conflicts
+     */
+    public function setAuthorContextUnresolvableConflicts(array $conflicts): static
+    {
+        $normalizedConflicts = [];
+        foreach ($conflicts as $conflict) {
+            if ($conflict instanceof ConflictedPoints) {
+                $normalizedConflicts[] = $conflict;
+            }
+        }
+
+        $this->authorContextUnresolvableConflicts = array_values($normalizedConflicts);
+
+        return $this;
+    }
+
+    public function addAuthorContextUnresolvableConflict(ConflictedPoints $conflict): static
+    {
+        $conflicts = $this->getAuthorContextUnresolvableConflicts();
+        $conflicts[] = $conflict;
+
+        return $this->setAuthorContextUnresolvableConflicts($conflicts);
+    }
+
     public function removePagePoints(string $url): static
     {
         $canonicalUrl = UrlNormalizer::normalize($url);
@@ -324,6 +369,10 @@ final class ResearchStageData implements \App\Contracts\Serializable
             'unresolvable_conflicts' => array_map(
                 static fn (ConflictedPoints $conflict): array => $conflict->toArray(),
                 $this->getUnresolvableConflicts()
+            ),
+            'author_context_unresolvable_conflicts' => array_map(
+                static fn (ConflictedPoints $conflict): array => $conflict->toArray(),
+                $this->getAuthorContextUnresolvableConflicts()
             ),
         ];
     }
@@ -434,6 +483,21 @@ final class ResearchStageData implements \App\Contracts\Serializable
                 }
             }
             $dto->setUnresolvableConflicts($unresolvableConflicts);
+        }
+
+        if (isset($data['author_context_unresolvable_conflicts']) && is_array($data['author_context_unresolvable_conflicts'])) {
+            $authorContextUnresolvableConflicts = [];
+            foreach ($data['author_context_unresolvable_conflicts'] as $row) {
+                if ($row instanceof ConflictedPoints) {
+                    $authorContextUnresolvableConflicts[] = $row;
+                    continue;
+                }
+
+                if (is_array($row)) {
+                    $authorContextUnresolvableConflicts[] = ConflictedPoints::fromArray($row);
+                }
+            }
+            $dto->setAuthorContextUnresolvableConflicts($authorContextUnresolvableConflicts);
         }
 
         return $dto;

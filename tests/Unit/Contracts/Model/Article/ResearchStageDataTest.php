@@ -54,7 +54,8 @@ class ResearchStageDataTest extends TestCase
             ->setPoints($points)
             ->setConflicts([$conflict])
             ->setResolvedConflictedPoints($points)
-            ->setUnresolvableConflicts([$conflict]);
+            ->setUnresolvableConflicts([$conflict])
+            ->setAuthorContextUnresolvableConflicts([$conflict]);
 
         $restored = StageData::fromArray($stageData->toArray());
         $research = $restored->getResearchStageData();
@@ -72,6 +73,26 @@ class ResearchStageDataTest extends TestCase
         $this->assertSame('ROI magnitude differs across sources.', $research->getConflicts()[0]->getRationale());
         $this->assertCount(1, $research->getResolvedConflictedPoints());
         $this->assertCount(1, $research->getUnresolvableConflicts());
+        $this->assertCount(1, $research->getAuthorContextUnresolvableConflicts());
+        $this->assertSame(
+            'ROI magnitude differs across sources.',
+            $research->getAuthorContextUnresolvableConflicts()[0]->getRationale()
+        );
+    }
+
+    public function test_shift_unresolvable_conflict_removes_from_queue(): void
+    {
+        $conflict = (new ConflictedPoints)
+            ->setRationale('Conflicting adoption rates.')
+            ->setPoints([]);
+
+        $research = (new StageData)->getResearchStageData()
+            ->setUnresolvableConflicts([$conflict]);
+
+        $shifted = $research->shiftUnresolvableConflict();
+
+        $this->assertSame($conflict, $shifted);
+        $this->assertSame([], $research->getUnresolvableConflicts());
     }
 
     protected function makeIntent(): Intent

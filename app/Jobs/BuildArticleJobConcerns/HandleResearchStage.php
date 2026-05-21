@@ -70,6 +70,13 @@ trait HandleResearchStage
             return null;
         }
 
+        $didProcessOneUnresolvableConflict = $this->resolveOneUnresolvableConflictByAuthorContext($pickedIdea);
+        if ($didProcessOneUnresolvableConflict) {
+            Debugger::devConsoleDump('Did process one unresolvable conflict. Re-dispatching...');
+            // Drain unresolvable conflicts (resolve via author context when present, else finalize).
+            return null;
+        }
+
         $didConsolidateResolvedConflicts = $this->consolidateResolvedConflictPoints($pickedIdea);
         if ($didConsolidateResolvedConflicts) {
             Debugger::devConsoleDump('Did consolidate resolved conflicts. Re-dispatching...');

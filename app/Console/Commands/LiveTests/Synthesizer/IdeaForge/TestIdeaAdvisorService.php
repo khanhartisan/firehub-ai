@@ -8,6 +8,7 @@ use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Facades\Synthesizer;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAICompatibleIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
@@ -133,6 +134,7 @@ CTX;
                 [
                     'BasicIdeaAdvisorDriver — local / deterministic',
                     'OpenAIIdeaAdvisorDriver — OpenAI Responses API (uses synthesizer.idea_advisor.drivers.openai config)',
+                    'OpenAICompatibleIdeaAdvisorDriver — chat/completions (uses synthesizer.idea_advisor.drivers.openai_compatible config)',
                 ],
                 0
             );
@@ -141,6 +143,12 @@ CTX;
                 $advisor = new BasicIdeaAdvisorDriver;
 
                 return [$advisor, 'direct · BasicIdeaAdvisorDriver'];
+            }
+
+            if (str_contains($impl, 'Compatible')) {
+                $advisor = $this->laravel->make(OpenAICompatibleIdeaAdvisorDriver::class);
+
+                return [$advisor, 'direct · OpenAICompatibleIdeaAdvisorDriver (container)'];
             }
 
             $advisor = $this->laravel->make(OpenAIIdeaAdvisorDriver::class);

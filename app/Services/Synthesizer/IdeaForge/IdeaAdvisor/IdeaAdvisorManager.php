@@ -4,6 +4,7 @@ namespace App\Services\Synthesizer\IdeaForge\IdeaAdvisor;
 
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAICompatibleIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaExpansionAdvisorDriver;
 use App\Services\Synthesizer\Support\SubserviceManager;
@@ -33,6 +34,13 @@ class IdeaAdvisorManager extends SubserviceManager
         return new OpenAIIdeaExpansionAdvisorDriver(
             $this->container->make(OpenAIClient::class),
             $this->driverConfiguration('openai'),
+        );
+    }
+
+    protected function createOpenaiCompatibleDriver(): OpenAICompatibleIdeaAdvisorDriver
+    {
+        return new OpenAICompatibleIdeaAdvisorDriver(
+            $this->driverConfiguration('openai_compatible'),
         );
     }
 }

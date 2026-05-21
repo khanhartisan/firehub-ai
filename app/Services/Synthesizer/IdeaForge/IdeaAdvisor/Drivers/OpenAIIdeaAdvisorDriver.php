@@ -24,7 +24,7 @@ use RuntimeException;
  */
 class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
 {
-    protected OpenAIClient $openAIClient;
+    protected ?OpenAIClient $openAIClient;
 
     /** @var array<string, mixed> */
     protected array $config;
@@ -32,7 +32,7 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
     /**
      * @param  array<string, mixed>  $config
      */
-    public function __construct(OpenAIClient $openAIClient, array $config = [])
+    public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
         $this->config = array_merge(SynthesizerSubserviceConfig::settings('idea_advisor'), $config);
@@ -205,6 +205,10 @@ class OpenAIIdeaAdvisorDriver extends IdeaAdvisorService
                 'schema' => $jsonSchema,
                 'strict' => true,
             ]);
+
+        if (! $this->openAIClient instanceof OpenAIClient) {
+            throw new RuntimeException("{$failureMessage}: OpenAI client is not configured.");
+        }
 
         try {
             $response = $this->openAIClient->createResponse($input, $options);

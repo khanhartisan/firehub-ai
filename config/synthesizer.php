@@ -94,6 +94,16 @@ return [
                 'max_temporal_suggestions' => 8,
                 'max_intent_type_suggestions' => 8,
             ],
+            'openai_compatible' => [
+                'api_key' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_API_KEY', env('OPENAI_API_KEY')),
+                'base_url' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_BASE_URL', env('OPENAI_BASE_URL', 'https://api.openai.com/v1/')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_MODEL', 'gpt-4o-mini'),
+                'temperature' => (float) env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_TEMPERATURE', 1.2),
+                'timeout' => (int) env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_TIMEOUT', 120),
+                'structured_output' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_STRUCTURED_OUTPUT', 'json_schema'),
+                'max_temporal_suggestions' => 8,
+                'max_intent_type_suggestions' => 8,
+            ],
         ],
     ],
 

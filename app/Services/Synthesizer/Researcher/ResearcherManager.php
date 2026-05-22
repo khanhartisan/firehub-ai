@@ -4,6 +4,7 @@ namespace App\Services\Synthesizer\Researcher;
 
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
+use App\Services\Synthesizer\Researcher\Drivers\OpenAICompatibleResearcherDriver;
 use App\Services\Synthesizer\Researcher\Drivers\OpenAIResearcherDriver;
 use App\Services\Synthesizer\Support\SubserviceManager;
 
@@ -24,6 +25,13 @@ class ResearcherManager extends SubserviceManager
         return new OpenAIResearcherDriver(
             $this->container->make(OpenAIClient::class),
             $this->driverConfiguration('openai'),
+        );
+    }
+
+    protected function createOpenaiCompatibleDriver(): OpenAICompatibleResearcherDriver
+    {
+        return new OpenAICompatibleResearcherDriver(
+            $this->driverConfiguration('openai_compatible'),
         );
     }
 }

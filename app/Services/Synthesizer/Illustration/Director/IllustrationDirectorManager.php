@@ -4,6 +4,7 @@ namespace App\Services\Synthesizer\Illustration\Director;
 
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
+use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAICompatibleDirectorDriver;
 use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAIDirectorDriver;
 use App\Services\Synthesizer\Support\SubserviceManager;
 
@@ -24,6 +25,13 @@ class IllustrationDirectorManager extends SubserviceManager
         return new OpenAIDirectorDriver(
             $this->container->make(OpenAIClient::class),
             $this->driverConfiguration('openai'),
+        );
+    }
+
+    protected function createOpenaiCompatibleDriver(): OpenAICompatibleDirectorDriver
+    {
+        return new OpenAICompatibleDirectorDriver(
+            $this->driverConfiguration('openai_compatible'),
         );
     }
 }

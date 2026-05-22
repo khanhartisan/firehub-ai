@@ -13,10 +13,14 @@ use App\Services\Synthesizer\BriefBuilder\Drivers\BasicBriefBuilderDriver;
 use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAIBriefBuilderDriver;
 use App\Services\Synthesizer\IdeaForge\Drivers\BasicIdeaForgeDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\BasicIdeaAdvisorDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAICompatibleIdeaAdvisorDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAICompatibleIdeaExpansionAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAIIdeaAdvisorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\BasicIdeaAuditorDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAICompatibleIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\Drivers\OpenAIIdeaAuditorDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAICompatibleIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
 use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAIDirectorDriver;
@@ -27,7 +31,14 @@ use App\Services\Synthesizer\Editor\Drivers\OpenAIEditorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\BasicResearcherDriver;
+use App\Services\Synthesizer\BriefBuilder\Drivers\OpenAICompatibleBriefBuilderDriver;
+use App\Services\Synthesizer\Editor\Drivers\OpenAICompatibleEditorDriver;
+use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAICompatibleDirectorDriver;
+use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAICompatibleIllustratorDriver;
+use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAICompatibleOutlineBuilderDriver;
+use App\Services\Synthesizer\Researcher\Drivers\OpenAICompatibleResearcherDriver;
 use App\Services\Synthesizer\Researcher\Drivers\OpenAIResearcherDriver;
+use App\Services\Synthesizer\Writer\Drivers\OpenAICompatibleWriterDriver;
 use App\Services\Synthesizer\SynthesizerManager;
 use App\Services\Synthesizer\SynthesizerService;
 use Illuminate\Support\Facades\Config;
@@ -137,5 +148,36 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertNotEmpty($driver->getIllustrators());
         $this->assertInstanceOf(OpenAIIllustratorDriver::class, $driver->getIllustrators()[0]);
+    }
+
+    public function test_openai_compatible_driver_wires_compatible_subservices(): void
+    {
+        Config::set('synthesizer.default', 'openai_compatible');
+
+        $driver = SynthesizerFacade::driver('openai_compatible');
+        $ideaForge = $driver->getIdeaForge();
+
+        $this->assertInstanceOf(OpenAICompatibleIdeaAdvisorDriver::class, $ideaForge->getIdeaAdvisors()[0]);
+        $this->assertInstanceOf(OpenAICompatibleIdeaExpansionAdvisorDriver::class, $ideaForge->getIdeaAdvisors()[1]);
+        $this->assertInstanceOf(OpenAICompatibleIdeaAuditorDriver::class, $ideaForge->getIdeaAuditor());
+        $this->assertInstanceOf(OpenAICompatibleIdeaPickerDriver::class, $ideaForge->getIdeaPicker());
+        $this->assertInstanceOf(OpenAICompatibleResearcherDriver::class, $driver->getResearcher());
+        $this->assertInstanceOf(OpenAICompatibleBriefBuilderDriver::class, $driver->getBriefBuilder());
+        $this->assertInstanceOf(OpenAICompatibleOutlineBuilderDriver::class, $driver->getOutlineBuilder());
+        $this->assertInstanceOf(OpenAICompatibleEditorDriver::class, $driver->getEditor());
+        $this->assertInstanceOf(OpenAICompatibleWriterDriver::class, $driver->getWriter());
+        $this->assertInstanceOf(OpenAICompatibleDirectorDriver::class, $driver->getIllustrationDirector());
+        $this->assertInstanceOf(OpenAICompatibleIllustratorDriver::class, $driver->getIllustrators()[0]);
+    }
+
+    public function test_driver_profiles_openai_compatible_lists_compatible_subservice_drivers(): void
+    {
+        $profile = \App\Services\Synthesizer\Support\SynthesizerDriverProfiles::openaiCompatible();
+
+        $this->assertSame('openai_compatible', $profile['researcher']);
+        $this->assertSame('openai_compatible', $profile['brief_builder']);
+        $this->assertSame('openai_compatible', $profile['idea_forge']['auditor']);
+        $this->assertSame('openai_compatible', $profile['idea_forge']['advisors'][0]['driver']);
+        $this->assertSame('openai_compatible_expansion', $profile['idea_forge']['advisors'][1]['driver']);
     }
 }

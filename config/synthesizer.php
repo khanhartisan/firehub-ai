@@ -1,5 +1,14 @@
 <?php
 
+use App\Services\Synthesizer\Support\SynthesizerDriverProfiles;
+
+$openaiCompatibleConnection = [
+    'api_key' => env('SYNTHESIZER_OPENAI_COMPATIBLE_API_KEY', env('OPENAI_COMPATIBLE_API_KEY')),
+    'base_url' => env('SYNTHESIZER_OPENAI_COMPATIBLE_BASE_URL', env('OPENAI_COMPATIBLE_BASE_URL', 'https://api.openai.com/v1/')),
+    'timeout' => (int) env('SYNTHESIZER_OPENAI_COMPATIBLE_TIMEOUT', env('OPENAI_COMPATIBLE_TIMEOUT', 120)),
+    'structured_output' => env('SYNTHESIZER_OPENAI_COMPATIBLE_STRUCTURED_OUTPUT', 'json_schema'),
+];
+
 return [
 
     /*
@@ -24,48 +33,9 @@ return [
     */
 
     'drivers' => [
-        'basic' => [
-            'idea_forge' => [
-                'driver' => 'basic',
-                'advisors' => [
-                    ['driver' => 'basic', 'weight' => 1.0],
-                ],
-                'auditor' => 'basic',
-                'picker' => 'basic',
-            ],
-            'researcher' => 'basic',
-            'brief_builder' => 'basic',
-            'outline_builder' => 'basic',
-            'editor' => 'basic',
-            'writer' => 'basic',
-            'illustration' => [
-                'director' => 'basic',
-                'illustrators' => ['basic'],
-            ],
-        ],
-
-        'openai' => [
-            'idea_forge' => [
-                'driver' => 'basic',
-                'advisors' => [
-                    ['driver' => 'openai', 'weight' => 1.0],
-                    ['driver' => 'openai_expansion', 'weight' => 1.0],
-                ],
-                'auditor' => 'openai',
-                'picker' => 'openai',
-            ],
-            'researcher' => 'openai',
-            'brief_builder' => 'openai',
-            'outline_builder' => 'openai',
-            'editor' => 'openai',
-            'writer' => 'openai',
-            'illustration' => [
-                'director' => 'openai',
-                'illustrators' => [
-                    env('SYNTHESIZER_OPENAI_ILLUSTRATOR_DRIVER', 'openai'),
-                ],
-            ],
-        ],
+        'basic' => SynthesizerDriverProfiles::basic(),
+        'openai' => SynthesizerDriverProfiles::openai(),
+        'openai_compatible' => SynthesizerDriverProfiles::openaiCompatible(),
     ],
 
     /*
@@ -94,16 +64,12 @@ return [
                 'max_temporal_suggestions' => 8,
                 'max_intent_type_suggestions' => 8,
             ],
-            'openai_compatible' => [
-                'api_key' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_API_KEY', env('OPENAI_API_KEY')),
-                'base_url' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_BASE_URL', env('OPENAI_BASE_URL', 'https://api.openai.com/v1/')),
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_MODEL', 'gpt-4o-mini'),
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
                 'temperature' => (float) env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_TEMPERATURE', 1.2),
-                'timeout' => (int) env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_TIMEOUT', 120),
-                'structured_output' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_STRUCTURED_OUTPUT', 'json_schema'),
                 'max_temporal_suggestions' => 8,
                 'max_intent_type_suggestions' => 8,
-            ],
+            ]),
         ],
     ],
 
@@ -115,6 +81,11 @@ return [
                 'temperature_uniqueness' => 0.1,
                 'temperature_audit' => 0.3,
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_AUDITOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature_uniqueness' => 0.1,
+                'temperature_audit' => 0.3,
+            ]),
         ],
         'uniqueness' => [
             'vector_search_limit' => 20,
@@ -130,6 +101,10 @@ return [
                 'model' => env('SYNTHESIZER_OPENAI_IDEA_PICKER_MODEL', 'gpt-4o-mini'),
                 'temperature' => 0.2,
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_PICKER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature' => 0.2,
+            ]),
         ],
     ],
 
@@ -142,6 +117,11 @@ return [
                 'temperature' => 0.2,
                 'max_points' => 8,
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_RESEARCHER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature' => 0.2,
+                'max_points' => 8,
+            ]),
         ],
     ],
 
@@ -153,6 +133,11 @@ return [
                 'temperature' => 0.2,
                 'max_instructions' => 6,
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_BRIEF_BUILDER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature' => 0.2,
+                'max_instructions' => 6,
+            ]),
         ],
     ],
 
@@ -165,6 +150,12 @@ return [
                 'max_items' => 20,
                 'max_depth' => 6,
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_OUTLINE_BUILDER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature' => 0.2,
+                'max_items' => 20,
+                'max_depth' => 6,
+            ]),
         ],
     ],
 
@@ -175,6 +166,10 @@ return [
                 'model' => env('SYNTHESIZER_OPENAI_EDITOR_MODEL', 'gpt-4o-mini'),
                 'temperature' => 0.2,
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_EDITOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature' => 0.2,
+            ]),
         ],
     ],
 
@@ -187,6 +182,12 @@ return [
                 'max_children' => 1000,
                 'max_depth' => 20,
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_WRITER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature' => 0.5,
+                'max_children' => 1000,
+                'max_depth' => 20,
+            ]),
         ],
     ],
 
@@ -198,6 +199,11 @@ return [
                 'temperature' => 0.2,
                 'max_contexts' => 8,
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATION_DIRECTOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature' => 0.2,
+                'max_contexts' => 8,
+            ]),
         ],
     ],
 
@@ -214,6 +220,17 @@ return [
                 'filesystem_disk' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_FILESYSTEM_DISK', env('FILESYSTEM_DISK', 'local')),
                 'filesystem_directory' => env('SYNTHESIZER_OPENAI_ILLUSTRATOR_FILESYSTEM_DIRECTORY', 'illustrations/generated'),
             ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'base_url' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_BASE_URL'),
+                'identifier' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_IDENTIFIER', 'openai-compatible-illustrator'),
+                'description' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_DESCRIPTION', 'OpenAI-compatible illustration generator.'),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-image-1')),
+                'quality' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_QUALITY', 'low'),
+                'output_format' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_OUTPUT_FORMAT', 'png'),
+                'count' => (int) env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_COUNT', 1),
+                'filesystem_disk' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_FILESYSTEM_DISK', env('FILESYSTEM_DISK', 'local')),
+                'filesystem_directory' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATOR_FILESYSTEM_DIRECTORY', 'illustrations/generated'),
+            ]),
             'debug' => [
                 'identifier' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_IDENTIFIER', 'openai-debug-illustrator'),
                 'description' => env('SYNTHESIZER_OPENAI_DEBUG_ILLUSTRATOR_DESCRIPTION', 'OpenAI prompt logger with dummy image output for development.'),

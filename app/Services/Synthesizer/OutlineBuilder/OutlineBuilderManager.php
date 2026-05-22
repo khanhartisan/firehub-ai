@@ -4,6 +4,7 @@ namespace App\Services\Synthesizer\OutlineBuilder;
 
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
+use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAICompatibleOutlineBuilderDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAIOutlineBuilderDriver;
 use App\Services\Synthesizer\Support\SubserviceManager;
 
@@ -24,6 +25,13 @@ class OutlineBuilderManager extends SubserviceManager
         return new OpenAIOutlineBuilderDriver(
             $this->container->make(OpenAIClient::class),
             $this->driverConfiguration('openai'),
+        );
+    }
+
+    protected function createOpenaiCompatibleDriver(): OpenAICompatibleOutlineBuilderDriver
+    {
+        return new OpenAICompatibleOutlineBuilderDriver(
+            $this->driverConfiguration('openai_compatible'),
         );
     }
 }

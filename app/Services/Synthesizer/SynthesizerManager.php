@@ -17,6 +17,7 @@ use App\Services\Synthesizer\OutlineBuilder\OutlineBuilderManager;
 use App\Services\Synthesizer\Researcher\ResearcherManager;
 use App\Services\Synthesizer\Writer\WriterManager;
 use Illuminate\Support\Manager;
+use Illuminate\Support\Str;
 
 class SynthesizerManager extends Manager
 {
@@ -27,7 +28,28 @@ class SynthesizerManager extends Manager
 
     protected function createDriver($driver): SynthesizerContract
     {
+        $method = 'create'.Str::studly($driver).'Driver';
+
+        if (method_exists($this, $method)) {
+            return $this->{$method}();
+        }
+
         return $this->createConfiguredDriver($driver);
+    }
+
+    protected function createBasicDriver(): SynthesizerContract
+    {
+        return $this->createConfiguredDriver('basic');
+    }
+
+    protected function createOpenaiDriver(): SynthesizerContract
+    {
+        return $this->createConfiguredDriver('openai');
+    }
+
+    protected function createOpenaiCompatibleDriver(): SynthesizerContract
+    {
+        return $this->createConfiguredDriver('openai_compatible');
     }
 
     protected function createConfiguredDriver(string $driver): SynthesizerContract
@@ -164,10 +186,14 @@ class SynthesizerManager extends Manager
             return $name;
         }
 
-        return match (class_basename($name)) {
+        $base = class_basename($name);
+
+        return match ($base) {
             'OpenAIDebugIllustratorDriver' => 'debug',
             'OpenAIIdeaExpansionAdvisorDriver' => 'openai_expansion',
-            default => str_starts_with(class_basename($name), 'OpenAI') ? 'openai' : 'basic',
+            'OpenAICompatibleIdeaExpansionAdvisorDriver' => 'openai_compatible_expansion',
+            default => str_starts_with($base, 'OpenAICompatible') ? 'openai_compatible'
+                : (str_starts_with($base, 'OpenAI') ? 'openai' : 'basic'),
         };
     }
 }

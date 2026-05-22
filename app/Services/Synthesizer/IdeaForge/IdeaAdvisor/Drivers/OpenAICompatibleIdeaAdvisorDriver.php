@@ -2,16 +2,16 @@
 
 namespace App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers;
 
-use App\Services\OpenAI\OpenAICompatibleChatCompletionsClient;
+use App\Services\Synthesizer\Support\Concerns\UsesOpenAICompatibleChatCompletions;
 use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 
 /**
- * Idea advisor that calls OpenAI-compatible /chat/completions endpoints.
+ * Idea advisor that calls OpenAI-compatible /chat/completions endpoints
  * instead of the Responses API used by {@see OpenAIIdeaAdvisorDriver}.
  */
 class OpenAICompatibleIdeaAdvisorDriver extends OpenAIIdeaAdvisorDriver
 {
-    protected OpenAICompatibleChatCompletionsClient $chatClient;
+    use UsesOpenAICompatibleChatCompletions;
 
     /**
      * @param  array<string, mixed>  $config
@@ -22,12 +22,7 @@ class OpenAICompatibleIdeaAdvisorDriver extends OpenAIIdeaAdvisorDriver
 
         parent::__construct(null, $merged);
 
-        $this->chatClient = new OpenAICompatibleChatCompletionsClient([
-            'api_key' => $merged['api_key'] ?? null,
-            'base_url' => $merged['base_url'] ?? null,
-            'model' => $merged['model'] ?? null,
-            'timeout' => $merged['timeout'] ?? null,
-        ]);
+        $this->bootOpenAICompatibleChatCompletions('idea_advisor', $merged);
 
         $this->setIdentifier((string) ($merged['identifier'] ?? 'openai-compatible-idea-advisor'));
         $this->setDescription((string) ($merged['description'] ?? 'OpenAI-compatible chat-completions advisor for temporal, intent-type, and idea suggestions.'));

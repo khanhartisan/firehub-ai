@@ -4,6 +4,7 @@ namespace App\Services\Synthesizer\IdeaForge\IdeaPicker;
 
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\BasicIdeaPickerDriver;
+use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAICompatibleIdeaPickerDriver;
 use App\Services\Synthesizer\IdeaForge\IdeaPicker\Drivers\OpenAIIdeaPickerDriver;
 use App\Services\Synthesizer\Support\SubserviceManager;
 
@@ -24,6 +25,13 @@ class IdeaPickerManager extends SubserviceManager
         return new OpenAIIdeaPickerDriver(
             $this->container->make(OpenAIClient::class),
             $this->driverConfiguration('openai'),
+        );
+    }
+
+    protected function createOpenaiCompatibleDriver(): OpenAICompatibleIdeaPickerDriver
+    {
+        return new OpenAICompatibleIdeaPickerDriver(
+            $this->driverConfiguration('openai_compatible'),
         );
     }
 }

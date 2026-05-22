@@ -255,7 +255,10 @@ PROMPT;
         return [
             'type' => 'object',
             'properties' => $properties = [
-                'assistant_message' => ['type' => 'string'],
+                'assistant_message' => [
+                    'type' => 'string',
+                    'description' => 'The assistant message, no need to include questions here, questions live in the "questions" data section.',
+                ],
                 'is_fulfilled' => ['type' => 'boolean'],
                 'questions' => [
                     'type' => 'array',

@@ -158,12 +158,6 @@ PROMPT;
     protected function applyAssistantStep(array $step): void
     {
         $assistantMessage = trim((string) ($step['assistant_message'] ?? ''));
-        if ($assistantMessage !== '') {
-            $this->conversation[] = [
-                'role' => 'assistant',
-                'text' => $assistantMessage,
-            ];
-        }
 
         $this->pendingQuestions = [];
         if (is_array($step['questions'] ?? null)) {
@@ -172,6 +166,8 @@ PROMPT;
                 static fn (string $q): bool => $q !== ''
             ));
         }
+
+        $this->appendAssistantTurnToConversation($assistantMessage, $this->pendingQuestions);
 
         $suggestedUpdates = is_array($step['suggested_updates'] ?? null) ? $step['suggested_updates'] : [];
         foreach ($suggestedUpdates as $entry) {
@@ -209,6 +205,36 @@ PROMPT;
         }
 
         $this->isFulfilled = (bool) ($step['is_fulfilled'] ?? false);
+    }
+
+    /**
+     * @param  string[]  $questions
+     */
+    protected function appendAssistantTurnToConversation(string $assistantMessage, array $questions): void
+    {
+        $parts = [];
+
+        if ($assistantMessage !== '') {
+            $parts[] = $assistantMessage;
+        }
+
+        if ($questions !== []) {
+            $formattedQuestions = [];
+            foreach ($questions as $index => $question) {
+                $formattedQuestions[] = ($index + 1).'. '.$question;
+            }
+
+            $parts[] = implode("\n", $formattedQuestions);
+        }
+
+        if ($parts === []) {
+            return;
+        }
+
+        $this->conversation[] = [
+            'role' => 'assistant',
+            'text' => implode("\n\n", $parts),
+        ];
     }
 
     protected function getModel(): string

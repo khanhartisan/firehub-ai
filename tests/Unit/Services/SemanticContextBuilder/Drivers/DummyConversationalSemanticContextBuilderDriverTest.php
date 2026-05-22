@@ -52,6 +52,6 @@ class DummyConversationalSemanticContextBuilderDriverTest extends TestCase
         $this->assertCount(2, $conversation);
         $this->assertSame('user', $conversation[0]['role']);
         $this->assertSame('assistant', $conversation[1]['role']);
-        $this->assertSame('What is the channel name?', $conversation[1]['text']);
+        $this->assertSame('1. What is the channel name?', $conversation[1]['text']);
     }
 }

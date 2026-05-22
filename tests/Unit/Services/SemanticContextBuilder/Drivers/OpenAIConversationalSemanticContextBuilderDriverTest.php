@@ -70,6 +70,42 @@ class OpenAIConversationalSemanticContextBuilderDriverTest extends TestCase
         $this->assertSame('What niches does this cover?', $driver->getNextQuestion());
         $this->assertCount(2, $driver->getConversation());
         $this->assertSame('assistant', $driver->getConversation()[1]['role']);
+        $this->assertStringContainsString('Great start. I still need one detail.', $driver->getConversation()[1]['text']);
+        $this->assertStringContainsString('What niches does this cover?', $driver->getConversation()[1]['text']);
+    }
+
+    public function test_it_includes_questions_in_conversation_when_assistant_message_is_empty(): void
+    {
+        $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
+        $mockOpenAIClient->shouldReceive('createResponse')
+            ->once()
+            ->andReturn(ResponseObject::fromArray([
+                'id' => 'resp_ctx_2',
+                'status' => 'completed',
+                'output' => [
+                    [
+                        'type' => 'message',
+                        'content' => [
+                            [
+                                'type' => 'output_text',
+                                'text' => json_encode([
+                                    'assistant_message' => '',
+                                    'is_fulfilled' => false,
+                                    'questions' => ['Try niches like ai, automation, or robotics.'],
+                                    'suggested_updates' => [],
+                                ], JSON_THROW_ON_ERROR),
+                            ],
+                        ],
+                    ],
+                ],
+            ]));
+
+        $driver = new OpenAIConversationalSemanticContextBuilderDriver($mockOpenAIClient);
+        $driver->start('seed');
+
+        $this->assertCount(2, $driver->getConversation());
+        $this->assertSame('assistant', $driver->getConversation()[1]['role']);
+        $this->assertSame('1. Try niches like ai, automation, or robotics.', $driver->getConversation()[1]['text']);
     }
 
     public function test_it_throws_when_openai_returns_empty_output(): void

@@ -51,10 +51,16 @@ class DummyConversationalSemanticContextBuilderDriver implements ConversationalS
 
         $this->applyUserMessageToContext($text);
 
-        if (! $this->isFulfilled() && ($question = $this->getNextQuestion())) {
+        $pendingQuestions = $this->getPendingQuestions();
+        if ($pendingQuestions !== []) {
+            $formattedQuestions = [];
+            foreach ($pendingQuestions as $index => $question) {
+                $formattedQuestions[] = ($index + 1).'. '.$question;
+            }
+
             $this->conversation[] = [
                 'role' => 'assistant',
-                'text' => $question,
+                'text' => implode("\n", $formattedQuestions),
             ];
         }
 

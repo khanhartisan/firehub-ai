@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('PAGEPARSER_DRIVER', 'openai'),
+    'default' => env('PAGEPARSER_DRIVER', 'openai_compatible'),
 
     /*
     |--------------------------------------------------------------------------

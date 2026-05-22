@@ -15,7 +15,7 @@ class OpenAICompatibleOutlineBuilderDriver extends OpenAIOutlineBuilderDriver
         $merged = SynthesizerSubserviceConfig::driver('outline_builder', 'openai_compatible', $config);
 
         parent::__construct(
-            SynthesizerOpenAICompatibleClient::responsesClient('outline_builder', $merged),
+            SynthesizerOpenAICompatibleClient::client('outline_builder', $merged),
             $merged,
         );
     }

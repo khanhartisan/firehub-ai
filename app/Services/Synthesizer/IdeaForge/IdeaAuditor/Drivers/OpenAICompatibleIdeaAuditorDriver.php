@@ -15,7 +15,7 @@ class OpenAICompatibleIdeaAuditorDriver extends OpenAIIdeaAuditorDriver
         $merged = SynthesizerSubserviceConfig::driver('idea_auditor', 'openai_compatible', $config);
 
         parent::__construct(
-            SynthesizerOpenAICompatibleClient::responsesClient('idea_auditor', $merged),
+            SynthesizerOpenAICompatibleClient::client('idea_auditor', $merged),
             $merged,
         );
     }

@@ -15,7 +15,7 @@ class OpenAICompatibleIdeaPickerDriver extends OpenAIIdeaPickerDriver
         $merged = SynthesizerSubserviceConfig::driver('idea_picker', 'openai_compatible', $config);
 
         parent::__construct(
-            SynthesizerOpenAICompatibleClient::responsesClient('idea_picker', $merged),
+            SynthesizerOpenAICompatibleClient::client('idea_picker', $merged),
             $merged,
         );
     }

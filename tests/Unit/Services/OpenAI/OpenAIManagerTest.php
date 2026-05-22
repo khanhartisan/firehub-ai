@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services\OpenAI;
 
 use App\Facades\OpenAI;
-use App\Services\OpenAI\Drivers\OpenAICompatibleDriver;
+use App\Services\OpenAI\Drivers\ChatCompletionsDriver;
 use App\Services\OpenAI\Drivers\OpenAIDriver;
 use App\Services\OpenAI\OpenAIManager;
 use Illuminate\Support\Facades\Config;
@@ -37,7 +37,7 @@ class OpenAIManagerTest extends TestCase
 
         $driver = $manager->driver('openai_compatible');
 
-        $this->assertInstanceOf(OpenAICompatibleDriver::class, $driver);
+        $this->assertInstanceOf(ChatCompletionsDriver::class, $driver);
     }
 
     public function test_it_uses_config_for_driver_creation(): void

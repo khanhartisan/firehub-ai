@@ -15,7 +15,7 @@ class OpenAICompatibleBriefBuilderDriver extends OpenAIBriefBuilderDriver
         $merged = SynthesizerSubserviceConfig::driver('brief_builder', 'openai_compatible', $config);
 
         parent::__construct(
-            SynthesizerOpenAICompatibleClient::responsesClient('brief_builder', $merged),
+            SynthesizerOpenAICompatibleClient::client('brief_builder', $merged),
             $merged,
         );
     }

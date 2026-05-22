@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('FILEVISION_DRIVER', 'basic'),
+    'default' => env('FILEVISION_DRIVER', 'openai_compatible'),
 
     /*
     |--------------------------------------------------------------------------

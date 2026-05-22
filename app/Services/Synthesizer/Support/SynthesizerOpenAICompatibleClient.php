@@ -3,8 +3,7 @@
 namespace App\Services\Synthesizer\Support;
 
 use App\Contracts\OpenAI\OpenAIClient;
-use App\Services\OpenAI\Drivers\OpenAICompatibleDriver;
-use App\Services\OpenAI\OpenAICompatibleChatCompletionsClient;
+use App\Services\OpenAI\Drivers\ChatCompletionsDriver;
 
 /**
  * Builds HTTP clients for synthesizer openai_compatible drivers.
@@ -33,16 +32,8 @@ final class SynthesizerOpenAICompatibleClient
     /**
      * @param  array<string, mixed>  $configOverrides
      */
-    public static function responsesClient(string $subservice, array $configOverrides = []): OpenAIClient
+    public static function client(string $subservice, array $configOverrides = []): OpenAIClient
     {
-        return new OpenAICompatibleDriver(self::connectionConfig($subservice, $configOverrides));
-    }
-
-    /**
-     * @param  array<string, mixed>  $configOverrides
-     */
-    public static function chatCompletionsClient(string $subservice, array $configOverrides = []): OpenAICompatibleChatCompletionsClient
-    {
-        return new OpenAICompatibleChatCompletionsClient(self::connectionConfig($subservice, $configOverrides));
+        return new ChatCompletionsDriver(self::connectionConfig($subservice, $configOverrides));
     }
 }

@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('PAGECLASSIFIER_DRIVER', 'openai'),
+    'default' => env('PAGECLASSIFIER_DRIVER', 'openai_compatible'),
 
     /*
     |--------------------------------------------------------------------------

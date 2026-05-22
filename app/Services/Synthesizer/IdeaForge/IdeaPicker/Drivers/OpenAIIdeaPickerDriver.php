@@ -18,7 +18,7 @@ use RuntimeException;
  */
 class OpenAIIdeaPickerDriver extends IdeaPickerService
 {
-    protected OpenAIClient $openAIClient;
+    protected ?OpenAIClient $openAIClient;
 
     /** @var array<string, mixed> */
     protected array $config;
@@ -26,7 +26,7 @@ class OpenAIIdeaPickerDriver extends IdeaPickerService
     /**
      * @param  array<string, mixed>  $config
      */
-    public function __construct(OpenAIClient $openAIClient, array $config = [])
+    public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
         $this->config = array_merge(SynthesizerSubserviceConfig::settings('idea_picker'), $config);

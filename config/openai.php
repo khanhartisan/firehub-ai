@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('OPENAI_DRIVER', 'openai'),
+    'default' => env('OPENAI_DRIVER', 'openai_compatible'),
 
     /*
     |--------------------------------------------------------------------------
@@ -24,7 +24,7 @@ return [
     | API driver used by your application. An example configuration is provided
     | for each driver supported. You're also free to add more drivers.
     |
-    | Supported drivers: "openai", "openai_compatible"
+    | Supported drivers: "openai" (Responses API), "openai_compatible" (Chat Completions API)
     |
     */
 

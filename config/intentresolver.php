@@ -12,7 +12,7 @@ return [
     |
     */
 
-    'default' => env('INTENTRESOLVER_DRIVER', 'openai'),
+    'default' => env('INTENTRESOLVER_DRIVER', 'openai_compatible'),
 
     /*
     |--------------------------------------------------------------------------

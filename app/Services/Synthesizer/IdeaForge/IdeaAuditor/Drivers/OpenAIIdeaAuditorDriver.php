@@ -22,7 +22,7 @@ use RuntimeException;
  */
 class OpenAIIdeaAuditorDriver extends IdeaAuditorService
 {
-    protected OpenAIClient $openAIClient;
+    protected ?OpenAIClient $openAIClient;
 
     /** @var array<string, mixed> */
     protected array $config;
@@ -30,7 +30,7 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
     /**
      * @param  array<string, mixed>  $config
      */
-    public function __construct(OpenAIClient $openAIClient, array $config = [])
+    public function __construct(?OpenAIClient $openAIClient = null, array $config = [])
     {
         $this->openAIClient = $openAIClient;
         $this->config = array_merge(SynthesizerSubserviceConfig::settings('idea_auditor'), $config);

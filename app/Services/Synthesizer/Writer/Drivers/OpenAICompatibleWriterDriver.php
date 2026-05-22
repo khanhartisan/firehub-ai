@@ -15,7 +15,7 @@ class OpenAICompatibleWriterDriver extends OpenAIWriterDriver
         $merged = SynthesizerSubserviceConfig::driver('writer', 'openai_compatible', $config);
 
         parent::__construct(
-            SynthesizerOpenAICompatibleClient::responsesClient('writer', $merged),
+            SynthesizerOpenAICompatibleClient::client('writer', $merged),
             $merged,
         );
     }

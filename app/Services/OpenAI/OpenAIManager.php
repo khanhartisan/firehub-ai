@@ -25,12 +25,12 @@ class OpenAIManager extends Manager
     }
 
     /**
-     * Create an OpenAI-compatible API driver instance (any vendor exposing an OpenAI-style API).
+     * Create a chat-completions driver for OpenAI-compatible providers (Ollama, vLLM, etc.).
      */
-    protected function createOpenaiCompatibleDriver(): Drivers\OpenAICompatibleDriver
+    protected function createOpenaiCompatibleDriver(): Drivers\ChatCompletionsDriver
     {
         $config = $this->config->get('openai.drivers.openai_compatible', []);
 
-        return new Drivers\OpenAICompatibleDriver($config);
+        return new Drivers\ChatCompletionsDriver($config);
     }
 }

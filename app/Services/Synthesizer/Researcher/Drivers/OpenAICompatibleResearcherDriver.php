@@ -15,7 +15,7 @@ class OpenAICompatibleResearcherDriver extends OpenAIResearcherDriver
         $merged = SynthesizerSubserviceConfig::driver('researcher', 'openai_compatible', $config);
 
         parent::__construct(
-            SynthesizerOpenAICompatibleClient::responsesClient('researcher', $merged),
+            SynthesizerOpenAICompatibleClient::client('researcher', $merged),
             $merged,
         );
     }

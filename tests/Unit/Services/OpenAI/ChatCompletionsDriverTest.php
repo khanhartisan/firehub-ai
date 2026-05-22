@@ -2,14 +2,14 @@
 
 namespace Tests\Unit\Services\OpenAI;
 
-use App\Services\OpenAI\OpenAICompatibleChatCompletionsClient;
+use App\Services\OpenAI\Drivers\ChatCompletionsDriver;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 use Tests\TestCase;
 
-class OpenAICompatibleChatCompletionsClientTest extends TestCase
+class ChatCompletionsDriverTest extends TestCase
 {
     public function test_request_structured_json_parses_chat_completion_message(): void
     {
@@ -28,18 +28,18 @@ class OpenAICompatibleChatCompletionsClientTest extends TestCase
             new Response(200, [], $body),
         ]);
 
-        $client = new OpenAICompatibleChatCompletionsClient([
+        $driver = new ChatCompletionsDriver([
             'api_key' => 'test-key',
             'base_url' => 'https://example.test/v1/',
             'model' => 'test-model',
         ]);
 
         $http = new Client(['handler' => HandlerStack::create($mock), 'base_uri' => 'https://example.test/v1/']);
-        $ref = new \ReflectionProperty(OpenAICompatibleChatCompletionsClient::class, 'client');
+        $ref = new \ReflectionProperty(ChatCompletionsDriver::class, 'client');
         $ref->setAccessible(true);
-        $ref->setValue($client, $http);
+        $ref->setValue($driver, $http);
 
-        $data = $client->requestStructuredJson(
+        $data = $driver->requestStructuredJson(
             'Return ok',
             'test_schema',
             ['type' => 'object', 'properties' => ['answer' => ['type' => 'string']], 'required' => ['answer']],

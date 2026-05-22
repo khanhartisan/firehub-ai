@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('VERTICALRESOLVER_DRIVER', 'openai'),
+    'default' => env('VERTICALRESOLVER_DRIVER', 'openai_compatible'),
 
     /*
     |--------------------------------------------------------------------------

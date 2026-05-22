@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('SCRAPE_POLICY_ENGINE_DRIVER', 'dummy'),
+    'default' => env('SCRAPE_POLICY_ENGINE_DRIVER', 'openai_compatible'),
 
     /*
     |--------------------------------------------------------------------------

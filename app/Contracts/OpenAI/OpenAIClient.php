@@ -3,10 +3,11 @@
 namespace App\Contracts\OpenAI;
 
 /**
- * Client for OpenAI Responses API–compatible endpoints.
+ * Client for model inference with a unified response shape.
  *
- * Used by PageClassifier, PageParser, ScrapePolicyEngine, and FileVision drivers
- * to send prompts and receive model output. Configure via config/openai.php.
+ * Implemented by {@see \App\Services\OpenAI\OpenAIService} (Responses API) and
+ * {@see \App\Services\OpenAI\Drivers\ChatCompletionsDriver} (/chat/completions).
+ * Configure via config/openai.php.
  */
 interface OpenAIClient
 {

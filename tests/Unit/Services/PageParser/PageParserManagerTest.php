@@ -69,7 +69,7 @@ class PageParserManagerTest extends TestCase
     public function test_it_returns_openai_compatible_driver(): void
     {
         $mockOpenAIManager = Mockery::mock(OpenAIManager::class);
-        $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
+        $mockOpenAIClient = Mockery::mock(\App\Contracts\OpenAI\OpenAIClient::class);
         $mockOpenAIManager->shouldReceive('driver')->with('openai_compatible')->andReturn($mockOpenAIClient);
         $this->app->instance('openai.manager', $mockOpenAIManager);
 

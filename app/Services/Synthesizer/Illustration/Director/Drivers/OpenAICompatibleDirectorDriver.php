@@ -15,7 +15,7 @@ class OpenAICompatibleDirectorDriver extends OpenAIDirectorDriver
         $merged = SynthesizerSubserviceConfig::driver('illustration_director', 'openai_compatible', $config);
 
         parent::__construct(
-            SynthesizerOpenAICompatibleClient::responsesClient('illustration_director', $merged),
+            SynthesizerOpenAICompatibleClient::client('illustration_director', $merged),
             $merged,
         );
     }

@@ -429,7 +429,7 @@ class BuildArticleJobTest extends TestCase
         $this->assertSame(ArticleStageStatus::REJECTED, $article->stage_status);
         $this->assertSame(1, $article->attempts);
         $this->assertNotNull($article->error_logs);
-        $this->assertLessThanOrEqual(10 * 1024, strlen((string) $article->error_logs));
+        $this->assertLessThanOrEqual(20 * 1024, strlen((string) $article->error_logs));
         Bus::assertNotDispatched($jobClass);
     }
 

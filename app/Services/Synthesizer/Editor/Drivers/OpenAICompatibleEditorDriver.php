@@ -15,7 +15,7 @@ class OpenAICompatibleEditorDriver extends OpenAIEditorDriver
         $merged = SynthesizerSubserviceConfig::driver('editor', 'openai_compatible', $config);
 
         parent::__construct(
-            SynthesizerOpenAICompatibleClient::responsesClient('editor', $merged),
+            SynthesizerOpenAICompatibleClient::client('editor', $merged),
             $merged,
         );
     }

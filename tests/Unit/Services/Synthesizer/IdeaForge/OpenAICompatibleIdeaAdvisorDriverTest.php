@@ -8,7 +8,7 @@ use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
 use App\Enums\IntentType;
 use App\Enums\Temporal;
-use App\Services\OpenAI\OpenAICompatibleChatCompletionsClient;
+use App\Contracts\OpenAI\OpenAIClient;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\Drivers\OpenAICompatibleIdeaAdvisorDriver;
 use Mockery;
 use Tests\TestCase;
@@ -27,10 +27,10 @@ class OpenAICompatibleIdeaAdvisorDriverTest extends TestCase
             ],
         ];
 
-        $client = Mockery::mock(OpenAICompatibleChatCompletionsClient::class);
-        $client->shouldReceive('requestStructuredJson')
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')
             ->once()
-            ->andReturn($payload);
+            ->andReturn($this->responseFromJson($payload));
 
         $driver = $this->makeDriver($client);
         $suggestions = $driver->suggestTemporal(
@@ -59,10 +59,10 @@ class OpenAICompatibleIdeaAdvisorDriverTest extends TestCase
             ],
         ];
 
-        $client = Mockery::mock(OpenAICompatibleChatCompletionsClient::class);
-        $client->shouldReceive('requestStructuredJson')
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')
             ->once()
-            ->andReturn($payload);
+            ->andReturn($this->responseFromJson($payload));
 
         $driver = $this->makeDriver($client);
 
@@ -91,13 +91,37 @@ class OpenAICompatibleIdeaAdvisorDriverTest extends TestCase
         $this->assertSame('openai-compatible-idea-advisor', $advisor->getIdentifier());
     }
 
-    protected function makeDriver(OpenAICompatibleChatCompletionsClient $client): OpenAICompatibleIdeaAdvisorDriver
+    protected function makeDriver(OpenAIClient $client): OpenAICompatibleIdeaAdvisorDriver
     {
         $driver = new OpenAICompatibleIdeaAdvisorDriver(['model' => 'test-model']);
-        $ref = new \ReflectionProperty(OpenAICompatibleIdeaAdvisorDriver::class, 'chatClient');
+        $ref = new \ReflectionProperty(OpenAICompatibleIdeaAdvisorDriver::class, 'openAIClient');
         $ref->setAccessible(true);
         $ref->setValue($driver, $client);
 
         return $driver;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function responseFromJson(array $data): \App\Contracts\OpenAI\Response
+    {
+        return \App\Contracts\OpenAI\Response::fromArray([
+            'id' => 'test',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'test-model',
+            'output' => [
+                [
+                    'type' => 'message',
+                    'content' => [
+                        [
+                            'type' => 'output_text',
+                            'text' => json_encode($data, JSON_THROW_ON_ERROR),
+                        ],
+                    ],
+                ],
+            ],
+        ]);
     }
 }

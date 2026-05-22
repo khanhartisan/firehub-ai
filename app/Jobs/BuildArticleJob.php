@@ -242,7 +242,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         $logs .= "\n---\n".$e->getMessage()."\n---\n".$e->getTraceAsString();
 
         // Cap size so the DB column and logs stay bounded.
-        $maxLength = 10 * 1024;
+        $maxLength = 20 * 1024;
         if (strlen($logs) > $maxLength) {
             $prefix = '...trimmed...'."\n";
             $logs = $prefix.substr($logs, -($maxLength - strlen($prefix)));

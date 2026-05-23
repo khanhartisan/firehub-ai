@@ -125,6 +125,11 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 
             // Stage asked to pause (e.g. IDEA checkpoint): re-queue same stage, do not advance.
             if (is_null($stageResult)) {
+
+                // Reset attempts count
+                $article->attempts = 0;
+                $article->saveQuietly();
+
                 $this->reDispatch();
                 return;
             }

@@ -8,9 +8,12 @@ use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Enums\AspectRatio;
 use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
+use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAICompatibleIllustratorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAIDebugIllustratorDriver;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class IllustrationDriversTest extends TestCase
@@ -112,6 +115,105 @@ class IllustrationDriversTest extends TestCase
         $this->assertIsString($id);
         $this->assertNotSame('', $id);
         $this->assertSame('Only context', $restored->getIllustrationContext()?->getSubjectValue());
+    }
+
+    public function test_openai_compatible_illustrator_persists_direct_image_response(): void
+    {
+        Storage::fake('local');
+
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            true
+        );
+        $this->assertIsString($png);
+
+        $driver = new OpenAICompatibleIllustratorDriver([
+            'filesystem_disk' => 'local',
+            'filesystem_directory' => 'illustrations/generated',
+            'output_format' => 'png',
+        ]);
+
+        $parsed = $this->parseCompatibleIllustratorResponse(
+            $driver,
+            new Response(200, ['Content-Type' => 'image/png'], $png)
+        );
+
+        $this->assertNull($parsed['seed']);
+        $this->assertCount(1, $parsed['files']);
+        Storage::disk('local')->assertExists($parsed['files'][0]);
+        $this->assertStringEndsWith('.png', $parsed['files'][0]);
+    }
+
+    public function test_openai_compatible_illustrator_persists_json_b64_response(): void
+    {
+        Storage::fake('local');
+
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            true
+        );
+        $this->assertIsString($png);
+
+        $driver = new OpenAICompatibleIllustratorDriver([
+            'filesystem_disk' => 'local',
+            'filesystem_directory' => 'illustrations/generated',
+            'output_format' => 'png',
+        ]);
+
+        $parsed = $this->parseCompatibleIllustratorResponse(
+            $driver,
+            new Response(200, ['Content-Type' => 'application/json'], json_encode([
+                'data' => [
+                    ['b64_json' => base64_encode($png)],
+                ],
+                'seed' => 42,
+            ], JSON_THROW_ON_ERROR))
+        );
+
+        $this->assertSame('42', $parsed['seed']);
+        $this->assertCount(1, $parsed['files']);
+        Storage::disk('local')->assertExists($parsed['files'][0]);
+    }
+
+    public function test_openai_compatible_illustrator_detects_binary_without_image_content_type(): void
+    {
+        Storage::fake('local');
+
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            true
+        );
+        $this->assertIsString($png);
+
+        $driver = new OpenAICompatibleIllustratorDriver([
+            'filesystem_disk' => 'local',
+            'filesystem_directory' => 'illustrations/generated',
+            'output_format' => 'png',
+        ]);
+
+        $parsed = $this->parseCompatibleIllustratorResponse(
+            $driver,
+            new Response(200, ['Content-Type' => 'application/octet-stream'], $png)
+        );
+
+        $this->assertCount(1, $parsed['files']);
+        Storage::disk('local')->assertExists($parsed['files'][0]);
+    }
+
+    /**
+     * @return array{files: array<int, string>, seed: string|null}
+     */
+    private function parseCompatibleIllustratorResponse(
+        OpenAICompatibleIllustratorDriver $driver,
+        Response $response
+    ): array {
+        $method = new ReflectionMethod($driver, 'parseImageGenerationResponse');
+        $method->setAccessible(true);
+
+        /** @var array{files: array<int, string>, seed: string|null} $parsed */
+        $parsed = $method->invoke($driver, $response);
+
+        return $parsed;
     }
 
     public function test_openai_debug_illustrator_logs_prompt_and_returns_dummy_image(): void

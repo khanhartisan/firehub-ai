@@ -183,6 +183,7 @@ class ChatCompletionsDriver implements OpenAIClient
 
         $message = $data['choices'][0]['message'] ?? null;
         if (! is_array($message)) {
+            Debugger::devConsoleDump($data);
             throw new RuntimeException("{$failureMessage}: missing chat completion message.");
         }
 

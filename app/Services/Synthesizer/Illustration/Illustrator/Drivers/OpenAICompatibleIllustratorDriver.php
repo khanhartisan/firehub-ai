@@ -10,6 +10,7 @@ use App\Utils\Str;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Storage;
+use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 
 class OpenAICompatibleIllustratorDriver extends OpenAIIllustratorDriver
@@ -62,13 +63,38 @@ class OpenAICompatibleIllustratorDriver extends OpenAIIllustratorDriver
 
         try {
             $response = $client->post('images/generations', ['json' => $payload]);
-            $data = json_decode((string) $response->getBody(), true);
         } catch (GuzzleException $e) {
             throw new RuntimeException('Failed to generate illustration image: '.$e->getMessage(), 0, $e);
         }
 
+        return $this->parseImageGenerationResponse($response);
+    }
+
+    /** @return array{files: array<int, string>, seed: string|null} */
+    protected function parseImageGenerationResponse(ResponseInterface $response): array
+    {
+        $body = (string) $response->getBody();
+        $contentType = strtolower($response->getHeaderLine('Content-Type'));
+
+        if ($this->isDirectImageResponse($contentType, $body)) {
+            return [
+                'files' => [$this->persistGeneratedImage($body, 1, $contentType)],
+                'seed' => null,
+            ];
+        }
+
+        $data = json_decode($body, true);
         if (! is_array($data)) {
             throw new RuntimeException('Failed to generate illustration image: invalid JSON payload.');
+        }
+
+        if (isset($data['error'])) {
+            $error = $data['error'];
+            $message = is_array($error)
+                ? (string) ($error['message'] ?? json_encode($error, JSON_UNESCAPED_UNICODE))
+                : (string) $error;
+
+            throw new RuntimeException('Failed to generate illustration image: '.$message);
         }
 
         $rows = $data['data'] ?? null;
@@ -91,21 +117,7 @@ class OpenAICompatibleIllustratorDriver extends OpenAIIllustratorDriver
                 continue;
             }
 
-            $ext = strtolower($this->getOutputFormat()) === 'jpeg' ? 'jpg' : strtolower($this->getOutputFormat());
-            $path = sprintf(
-                '%s/%s-%d.%s',
-                $this->getStorageDirectory(),
-                Str::ulid(),
-                $index + 1,
-                $ext
-            );
-
-            $saved = Storage::disk($this->getStorageDisk())->put($path, $binary);
-            if (! $saved) {
-                throw new RuntimeException('Failed to persist generated illustration image to filesystem.');
-            }
-
-            $paths[] = $path;
+            $paths[] = $this->persistGeneratedImage($binary, $index + 1);
         }
 
         if ($paths === []) {
@@ -116,5 +128,80 @@ class OpenAICompatibleIllustratorDriver extends OpenAIIllustratorDriver
             'files' => $paths,
             'seed' => is_scalar($data['seed'] ?? null) ? (string) $data['seed'] : null,
         ];
+    }
+
+    protected function isDirectImageResponse(string $contentType, string $body): bool
+    {
+        if (str_contains($contentType, 'image/')) {
+            return $body !== '';
+        }
+
+        if (str_contains($contentType, 'application/json') || str_contains($contentType, 'text/json')) {
+            return false;
+        }
+
+        if ($body === '') {
+            return false;
+        }
+
+        $data = json_decode($body, true);
+        if (is_array($data) && array_key_exists('data', $data)) {
+            return false;
+        }
+
+        return $this->looksLikeImageBinary($body);
+    }
+
+    protected function looksLikeImageBinary(string $body): bool
+    {
+        return str_starts_with($body, "\x89PNG\r\n\x1a\n")
+            || str_starts_with($body, "\xFF\xD8\xFF")
+            || str_starts_with($body, 'GIF87a')
+            || str_starts_with($body, 'GIF89a')
+            || (str_starts_with($body, 'RIFF') && strlen($body) >= 12 && substr($body, 8, 4) === 'WEBP');
+    }
+
+    protected function persistGeneratedImage(string $binary, int $index, ?string $contentType = null): string
+    {
+        $ext = $this->resolveImageExtension($contentType);
+        $path = sprintf(
+            '%s/%s-%d.%s',
+            $this->getStorageDirectory(),
+            Str::ulid(),
+            $index,
+            $ext
+        );
+
+        $saved = Storage::disk($this->getStorageDisk())->put($path, $binary);
+        if (! $saved) {
+            throw new RuntimeException('Failed to persist generated illustration image to filesystem.');
+        }
+
+        return $path;
+    }
+
+    protected function resolveImageExtension(?string $contentType = null): string
+    {
+        $contentType = strtolower((string) $contentType);
+
+        if (str_contains($contentType, 'jpeg') || str_contains($contentType, 'jpg')) {
+            return 'jpg';
+        }
+
+        if (str_contains($contentType, 'webp')) {
+            return 'webp';
+        }
+
+        if (str_contains($contentType, 'gif')) {
+            return 'gif';
+        }
+
+        if (str_contains($contentType, 'png')) {
+            return 'png';
+        }
+
+        $configured = strtolower($this->getOutputFormat());
+
+        return $configured === 'jpeg' ? 'jpg' : $configured;
     }
 }

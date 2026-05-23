@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\OpenAI;
 use App\Contracts\OpenAI\Response as ResponseObject;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
+use App\Services\OpenAI\Drivers\OpenAIDriver;
 use App\Services\OpenAI\OpenAIService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -332,7 +333,7 @@ class OpenAIServiceTest extends TestCase
             'timeout' => 60,
         ];
 
-        $service = new OpenAIService($config);
+        $service = new OpenAIDriver($config);
 
         // Use reflection to check the client was configured correctly
         $reflection = new \ReflectionClass($service);
@@ -358,7 +359,7 @@ class OpenAIServiceTest extends TestCase
         ];
 
         $config = array_merge($defaultConfig, $config);
-        $service = new OpenAIService($config);
+        $service = new OpenAIDriver($config);
 
         // Use reflection to inject the mock client
         $reflection = new \ReflectionClass($service);

@@ -5,6 +5,7 @@ namespace App\Services\Synthesizer\Illustration\Illustrator\Drivers;
 use App\Enums\AspectRatio;
 use App\Services\Synthesizer\Support\SynthesizerOpenAICompatibleClient;
 use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
+use App\Utils\Debugger;
 use App\Utils\Str;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -53,6 +54,11 @@ class OpenAICompatibleIllustratorDriver extends OpenAIIllustratorDriver
             'n' => $this->getCount(),
             'output_format' => $this->getOutputFormat(),
         ];
+
+        Debugger::devConsoleDump('
+            -- Sending image generation request to: '.$baseUrl.'images/generations
+            / Payload: '.json_encode($payload).'
+        ');
 
         try {
             $response = $client->post('images/generations', ['json' => $payload]);

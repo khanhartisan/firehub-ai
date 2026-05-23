@@ -7,8 +7,11 @@ use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
 use App\Enums\OpenAI\ResponseStatus;
+use App\Utils\Debugger;
+use App\Utils\Str;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
@@ -20,10 +23,12 @@ class ChatCompletionsDriver implements OpenAIClient
 
     protected string $defaultModel;
 
+    protected ?string $baseUrl = null;
+
     public function __construct(array $config = [])
     {
         $apiKey = (string) ($config['api_key'] ?? '');
-        $baseUrl = (string) ($config['base_url'] ?? 'https://api.openai.com/v1/');
+        $this->baseUrl = (string) ($config['base_url'] ?? 'https://api.openai.com/v1/');
         $this->defaultModel = (string) ($config['default_model'] ?? $config['model'] ?? 'gpt-4o-mini');
 
         $headers = [
@@ -32,7 +37,7 @@ class ChatCompletionsDriver implements OpenAIClient
         ];
 
         $this->client = new Client([
-            'base_uri' => $baseUrl,
+            'base_uri' => $this->baseUrl,
             'headers' => $headers,
             'timeout' => (int) ($config['timeout'] ?? 120),
         ]);
@@ -49,6 +54,17 @@ class ChatCompletionsDriver implements OpenAIClient
             $schema = $format['schema'] ?? [];
             $schemaName = (string) ($format['name'] ?? 'structured_output');
 
+            Debugger::devConsoleDump(
+                '-- Sending request to OpenAI (compatible) API: '.$this->baseUrl.' 
+                / Model: '.($options?->getModel() ?? $this->defaultModel).' 
+                / Payload length: '.($payloadLength = strlen($prompt)).'
+                / Payload: '.($payloadLength <= 5000 ? $prompt : (function () use ($prompt) {
+                    $payloadDumpPath = 'logs/debugger/dumps/'.Str::ulid().'.txt';
+                    Storage::disk('local')->put($payloadDumpPath, $prompt);
+                    return 'Too long to dump. Dumped to: '.$payloadDumpPath;
+                })())
+            );
+
             $data = $this->requestStructuredJson(
                 $prompt,
                 $schemaName,
@@ -58,10 +74,39 @@ class ChatCompletionsDriver implements OpenAIClient
                 $temperature,
             );
 
+            Debugger::devConsoleDump(
+                '---- Response payload length: '.($outputLength = strlen(json_encode($data))).'
+                / Payload JSON: '.($outputLength <= 5000 ? json_encode($data) : (function () use ($data) {
+                    $payloadDumpPath = 'logs/debugger/dumps/'.Str::ulid().'.txt';
+                    Storage::disk('local')->put($payloadDumpPath, json_encode($data));
+                    return 'Too long to dump. Dumped to: '.$payloadDumpPath;
+                })())
+            );
+
             return $this->responseFromText(json_encode($data, JSON_THROW_ON_ERROR), $model);
         }
 
+        Debugger::devConsoleDump(
+            '-- Sending request to OpenAI (compatible) API: '.$this->baseUrl.' 
+                / Model: '.($options?->getModel() ?? $this->defaultModel).' 
+                / Payload length: '.($payloadLength = strlen($input->toJson())).'
+                / Payload: '.($payloadLength <= 5000 ? $input->toJson() : (function () use ($input) {
+                $payloadDumpPath = 'logs/debugger/dumps/'.Str::ulid().'.txt';
+                Storage::disk('local')->put($payloadDumpPath, $input->toJson());
+                return 'Too long to dump. Dumped to: '.$payloadDumpPath;
+            })())
+        );
+
         $text = $this->requestUnstructuredCompletion($input, $model, $temperature);
+
+        Debugger::devConsoleDump(
+            '---- Response payload length: '.($outputLength = strlen($text)).'
+                / Payload JSON: '.($outputLength <= 5000 ? json_encode($text) : (function () use ($text) {
+                $payloadDumpPath = 'logs/debugger/dumps/'.Str::ulid().'.txt';
+                Storage::disk('local')->put($payloadDumpPath, $text);
+                return 'Too long to dump. Dumped to: '.$payloadDumpPath;
+            })())
+        );
 
         return $this->responseFromText($text, $model);
     }

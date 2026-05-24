@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('OPENAI_DRIVER', 'openai_compatible'),
+    'default' => env('OPENAI_DRIVER', 'openai'),
 
     /*
     |--------------------------------------------------------------------------

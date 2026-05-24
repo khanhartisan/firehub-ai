@@ -187,7 +187,7 @@ class Element implements Serializable, Identifiable
 
         libxml_use_internal_errors(true);
         $dom->loadHTML(
-            '<div data-parser-root="1">'.$html.'</div>',
+            '<?xml encoding="utf-8" ?><div data-parser-root="1">'.$html.'</div>',
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
         );
         libxml_clear_errors();

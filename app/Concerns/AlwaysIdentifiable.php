@@ -4,13 +4,20 @@ namespace App\Concerns;
 
 use App\Utils\Str;
 
+/**
+ * Can define protected property int $maxIdentifierLength
+ */
 trait AlwaysIdentifiable
 {
     protected ?string $identifier;
 
     public function getIdentifier(): ?string
     {
-        return $this->identifier ??= Str::uuid()->toString();
+        if (isset($this->identifier)) {
+            return $this->identifier;
+        }
+
+        return $this->setIdentifier(strtolower(Str::random($this->maxIdentifierLength ?? 32)))->getIdentifier();
     }
 
     public function setIdentifier(?string $identifier): static
@@ -19,7 +26,7 @@ trait AlwaysIdentifiable
             throw new \InvalidArgumentException('Identifier cannot be empty');
         }
 
-        $this->identifier = $identifier;
+        $this->identifier = substr($identifier, 0, $this->maxIdentifierLength ?? 40);
         return $this;
     }
 }

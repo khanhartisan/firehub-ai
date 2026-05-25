@@ -295,7 +295,7 @@ class ElementTest extends TestCase
         );
 
         $this->assertSame(ElementType::DIV, $element->getType());
-        $this->assertSame('root-1', $element->getIdentifier());
+        $this->assertSame('root1', $element->getIdentifier());
         $this->assertSame('wrapper', $element->getProps()['class'] ?? null);
 
         $children = $element->getChildren();
@@ -352,7 +352,7 @@ class ElementTest extends TestCase
         $element = Element::fromHtml('<section data-identifier="sec-1" class="hero">Lead <em>text</em></section>');
 
         $this->assertNull($element->getType());
-        $this->assertSame('sec-1', $element->getIdentifier());
+        $this->assertSame('sec1', $element->getIdentifier());
         $this->assertSame('hero', $element->getProps()['class'] ?? null);
 
         $children = $element->getChildren();

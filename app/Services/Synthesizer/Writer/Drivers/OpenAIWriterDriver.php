@@ -5,12 +5,16 @@ namespace App\Services\Synthesizer\Writer\Drivers;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
 use App\Contracts\DOM\Element;
+use App\Contracts\DOM\ElementType;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\OpenAI\ResponseInput;
 use App\Contracts\OpenAI\ResponseOptions;
+use App\Contracts\Synthesizer\Critic\Criticism;
+use App\Contracts\Synthesizer\Critic\Rectification;
 use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\RectifiedArticle;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
@@ -57,6 +61,56 @@ class OpenAIWriterDriver extends WriterService
             ->setTitle($this->sanitizeNullableString($payload['title'] ?? null) ?: $brief->getTitle())
             ->setExcerpt($this->sanitizeNullableString($payload['excerpt'] ?? null) ?: $brief->getDescription())
             ->setArticle($article);
+    }
+
+    /**
+     * @param  Criticism[]  $criticisms
+     */
+    public function rectifyArticle(
+        Article $article,
+        array $criticisms,
+        ?SemanticContext $authorContext = null,
+        ?SemanticContext $generalContext = null,
+    ): RectifiedArticle {
+        $normalized = $this->normalizeCriticisms($criticisms);
+        if ($normalized === []) {
+            return (new RectifiedArticle)
+                ->setArticle($article)
+                ->setRectifications([]);
+        }
+
+        if (! $this->openAIClient instanceof OpenAIClient) {
+            throw new RuntimeException('OpenAI author driver requires an OpenAI client instance.');
+        }
+
+        $elementReferences = $this->collectElementReferences($article);
+
+        if ($this->allCriticismsHaveReference($normalized)) {
+            $allowedReferences = $this->collectCriticismReferences($normalized, $elementReferences);
+            if ($allowedReferences === []) {
+                throw new RuntimeException('Cannot rectify article: referenced criticisms do not match any DOM nodes.');
+            }
+
+            $payload = $this->generateTargetedRectifyArticlePayload(
+                $article,
+                $normalized,
+                $allowedReferences,
+                $authorContext,
+                $generalContext,
+            );
+
+            return $this->hydrateTargetedRectifiedArticle($article, $payload, $allowedReferences);
+        }
+
+        $allowedReferences = $this->collectCriticismReferences($normalized, $elementReferences);
+        $payload = $this->generateFullArticleRectifyPayload(
+            $article,
+            $normalized,
+            $authorContext,
+            $generalContext,
+        );
+
+        return $this->hydrateFullArticleRectifiedArticle($payload, $allowedReferences);
     }
 
     /**
@@ -367,6 +421,408 @@ PROMPT;
             'required' => ['title', 'excerpt', 'markdown'],
             'additionalProperties' => false,
         ];
+    }
+
+    /**
+     * @param  list<Criticism>  $criticisms
+     * @param  list<string>  $elementReferences
+     * @return list<string>
+     */
+    protected function collectCriticismReferences(array $criticisms, array $elementReferences): array
+    {
+        $elementLookup = array_fill_keys($elementReferences, true);
+        $references = [];
+
+        foreach ($criticisms as $criticism) {
+            $reference = trim((string) ($criticism->getReference() ?? ''));
+            if ($reference === '' || ! isset($elementLookup[$reference])) {
+                continue;
+            }
+
+            $references[] = $reference;
+        }
+
+        return array_values(array_unique($references));
+    }
+
+    /**
+     * @param  list<Criticism>  $criticisms
+     * @param  list<string>  $allowedReferences
+     * @return array<string, mixed>
+     */
+    protected function generateTargetedRectifyArticlePayload(
+        Article $article,
+        array $criticisms,
+        array $allowedReferences,
+        ?SemanticContext $authorContext,
+        ?SemanticContext $generalContext,
+    ): array {
+        $data = $this->requestStructuredJson(
+            $this->buildTargetedRectifyArticlePrompt($article, $criticisms, $allowedReferences, $authorContext, $generalContext),
+            'author_rectify_article_targeted',
+            $this->buildTargetedRectifyArticleSchema($allowedReferences),
+            'Failed to rectify article with OpenAI',
+        );
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * @param  list<Criticism>  $criticisms
+     * @return array<string, mixed>
+     */
+    protected function generateFullArticleRectifyPayload(
+        Article $article,
+        array $criticisms,
+        ?SemanticContext $authorContext,
+        ?SemanticContext $generalContext,
+    ): array {
+        $data = $this->requestStructuredJson(
+            $this->buildFullArticleRectifyPrompt($article, $criticisms, $authorContext, $generalContext),
+            'author_rectify_article_full',
+            $this->buildFullArticleRectifySchema(),
+            'Failed to rectify article with OpenAI',
+        );
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * @param  list<Criticism>  $criticisms
+     * @param  list<string>  $targetReferences
+     */
+    protected function buildTargetedRectifyArticlePrompt(
+        Article $article,
+        array $criticisms,
+        array $targetReferences,
+        ?SemanticContext $authorContext,
+        ?SemanticContext $generalContext,
+    ): string {
+        $payload = [
+            'article' => $article->toArray(),
+            'target_references' => $targetReferences,
+            'criticisms' => array_map(
+                static fn (Criticism $criticism): array => $criticism->toArray(),
+                $criticisms
+            ),
+            'author_context' => $authorContext?->toArray(),
+            'general_context' => $generalContext?->toArray(),
+        ];
+        $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $referenceList = implode(', ', $targetReferences);
+
+        return <<<PROMPT
+You are a senior editorial writer applying localized revisions to an article DOM.
+
+Every criticism in the input is tied to a DOM reference. Revise only those referenced nodes; leave all other nodes unchanged.
+Return one fix per target reference ({$referenceList}). Each fix replaces the existing node at that reference with an updated element subtree.
+
+Rules:
+- fixes[].reference must be one of target_references.
+- fixes[].element.identifier must equal fixes[].reference.
+- Preserve the element type when reasonable; you may change children and props as needed to address the criticisms.
+- Do not return markdown or a full article—only the fixes array and rectifications.
+- rectifications[].reference must match a fix you applied.
+- adjustments must be short, specific strings describing applied fixes.
+
+Input JSON:
+{$json}
+PROMPT;
+    }
+
+    /**
+     * @param  list<Criticism>  $criticisms
+     */
+    protected function buildFullArticleRectifyPrompt(
+        Article $article,
+        array $criticisms,
+        ?SemanticContext $authorContext,
+        ?SemanticContext $generalContext,
+    ): string {
+        $payload = [
+            'article' => $article->toArray(),
+            'criticisms' => array_map(
+                static fn (Criticism $criticism): array => $criticism->toArray(),
+                $criticisms
+            ),
+            'author_context' => $authorContext?->toArray(),
+            'general_context' => $generalContext?->toArray(),
+        ];
+        $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+
+        return <<<PROMPT
+You are a senior editorial writer revising an article based on critic feedback.
+
+At least one criticism is not tied to a specific DOM reference, so you must revise the article holistically.
+Apply the criticisms to improve the article while preserving structure and factual intent.
+Return the full revised article body as Markdown (not HTML or JSON DOM). Use h2 and below for section headings; do not include h1.
+For each criticism you addressed, record a rectification with concrete adjustments describing what you changed (use the criticism reference when present, otherwise null).
+
+Rules:
+- adjustments must be short, specific strings describing applied fixes.
+- Only include rectifications for criticisms you actually addressed.
+
+Input JSON:
+{$json}
+PROMPT;
+    }
+
+    /**
+     * @param  list<string>  $allowedReferences
+     * @return array<string, mixed>
+     */
+    protected function buildTargetedRectifyArticleSchema(array $allowedReferences): array
+    {
+        $fixCount = count($allowedReferences);
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'fixes' => [
+                    'type' => 'array',
+                    'minItems' => $fixCount,
+                    'maxItems' => $fixCount,
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'reference' => [
+                                'type' => 'string',
+                                'enum' => $allowedReferences,
+                            ],
+                            'element' => $this->buildDomElementSchema(),
+                        ],
+                        'required' => ['reference', 'element'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+                'rectifications' => $this->buildRectificationsSchema($allowedReferences),
+            ],
+            'required' => ['fixes', 'rectifications'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildFullArticleRectifySchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'markdown' => [
+                    'type' => 'string',
+                    'description' => 'Revised article body in Markdown. Use h2+ for sections; do not include h1.',
+                ],
+                'rectifications' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'reference' => [
+                                'type' => ['string', 'null'],
+                                'description' => 'DOM reference when the rectification maps to a section; null for article-wide changes.',
+                            ],
+                            'adjustments' => [
+                                'type' => 'array',
+                                'minItems' => 1,
+                                'maxItems' => 8,
+                                'items' => ['type' => 'string'],
+                            ],
+                        ],
+                        'required' => ['reference', 'adjustments'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            'required' => ['markdown', 'rectifications'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @param  list<string>  $allowedReferences
+     * @return array<string, mixed>
+     */
+    protected function buildRectificationsSchema(array $allowedReferences): array
+    {
+        return [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object',
+                'properties' => [
+                    'reference' => [
+                        'type' => 'string',
+                        'enum' => $allowedReferences,
+                    ],
+                    'adjustments' => [
+                        'type' => 'array',
+                        'minItems' => 1,
+                        'maxItems' => 8,
+                        'items' => ['type' => 'string'],
+                    ],
+                ],
+                'required' => ['reference', 'adjustments'],
+                'additionalProperties' => false,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildDomElementSchema(int $depth = 0, int $maxDepth = 4): array
+    {
+        $elementTypes = array_values(array_filter(
+            array_map(static fn (ElementType $type): string => $type->value, ElementType::cases()),
+            static fn (string $type): bool => $type !== ElementType::ARTICLE->value,
+        ));
+
+        $childSchema = ['type' => 'string'];
+        if ($depth < $maxDepth) {
+            $childSchema = [
+                'anyOf' => [
+                    ['type' => 'string'],
+                    $this->buildDomElementSchema($depth + 1, $maxDepth),
+                ],
+            ];
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'identifier' => [
+                    'type' => 'string',
+                    'description' => 'Must match the fix reference identifier.',
+                ],
+                'type' => [
+                    'type' => 'string',
+                    'enum' => $elementTypes,
+                ],
+                'props' => [
+                    'type' => 'object',
+                    'properties' => (object) [],
+                    'required' => [],
+                    'additionalProperties' => false,
+                ],
+                'children' => [
+                    'type' => 'array',
+                    'items' => $childSchema,
+                ],
+            ],
+            'required' => ['identifier', 'type', 'props', 'children'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  list<string>  $allowedReferences
+     */
+    protected function hydrateTargetedRectifiedArticle(
+        Article $article,
+        array $payload,
+        array $allowedReferences,
+    ): RectifiedArticle {
+        $rectified = Article::fromArray($article->toArray());
+        $allowedLookup = array_fill_keys($allowedReferences, true);
+        $appliedReferences = [];
+
+        foreach ($payload['fixes'] ?? [] as $row) {
+            if (! is_array($row)) {
+                throw new RuntimeException('Failed to rectify article with OpenAI: invalid fix row.');
+            }
+
+            $reference = trim((string) ($row['reference'] ?? ''));
+            $elementData = $row['element'] ?? null;
+            if ($reference === '' || ! isset($allowedLookup[$reference]) || ! is_array($elementData)) {
+                continue;
+            }
+
+            $replacement = Element::fromArray($elementData);
+            if (trim($replacement->getIdentifier()) !== $reference) {
+                $replacement->setIdentifier($reference);
+            }
+
+            if (! $this->replaceElementByReference($rectified, $reference, $replacement)) {
+                throw new RuntimeException(
+                    "Failed to rectify article with OpenAI: could not apply fix for reference \"{$reference}\"."
+                );
+            }
+
+            $appliedReferences[$reference] = true;
+        }
+
+        if ($appliedReferences === []) {
+            throw new RuntimeException('Failed to rectify article with OpenAI: no targeted fixes were applied.');
+        }
+
+        return (new RectifiedArticle)
+            ->setArticle($rectified)
+            ->setRectifications($this->hydrateRectificationsFromPayload($payload, $allowedReferences));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  list<string>  $allowedReferences
+     */
+    protected function hydrateFullArticleRectifiedArticle(
+        array $payload,
+        array $allowedReferences,
+    ): RectifiedArticle {
+        $article = $this->buildArticleFromPayload($payload);
+        if ($article->getChildren() === []) {
+            throw new RuntimeException('Failed to rectify article with OpenAI: empty article body.');
+        }
+
+        $rectifications = $this->hydrateRectificationsFromPayload($payload, $allowedReferences, allowUnknownReferences: true);
+
+        return (new RectifiedArticle)
+            ->setArticle($article)
+            ->setRectifications($rectifications);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  list<string>  $allowedReferences
+     * @return list<Rectification>
+     */
+    protected function hydrateRectificationsFromPayload(
+        array $payload,
+        array $allowedReferences,
+        bool $allowUnknownReferences = false,
+    ): array {
+        $allowedLookup = array_fill_keys($allowedReferences, true);
+        $rectifications = [];
+
+        foreach ($payload['rectifications'] ?? [] as $row) {
+            if (! is_array($row)) {
+                throw new RuntimeException('Failed to rectify article with OpenAI: invalid rectification row.');
+            }
+
+            try {
+                $rectification = Rectification::fromArray($row);
+            } catch (\InvalidArgumentException $e) {
+                throw new RuntimeException(
+                    'Failed to rectify article with OpenAI: '.$e->getMessage(),
+                    0,
+                    $e
+                );
+            }
+
+            $reference = trim((string) ($rectification->getReference() ?? ''));
+            if ($reference !== '' && ! $allowUnknownReferences && ! isset($allowedLookup[$reference])) {
+                continue;
+            }
+
+            if ($rectification->getAdjustments() === []) {
+                continue;
+            }
+
+            $rectifications[] = $rectification;
+        }
+
+        return $rectifications;
     }
 
     /**

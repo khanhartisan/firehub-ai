@@ -7,8 +7,11 @@ use App\Contracts\DOM\Article as DOMArticle;
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
 use App\Contracts\IntentResolver\Intent;
+use App\Contracts\Synthesizer\Critic\Criticism;
+use App\Contracts\Synthesizer\Critic\Rectification;
 use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\RectifiedArticle;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
@@ -151,6 +154,32 @@ class SynthesizerDataObjectsTest extends TestCase
         $this->assertNotNull($restoredDraft->getArticle());
         $this->assertStringContainsString('<h2>Key updates</h2>', $restoredDraft->getArticle()->toHtml());
         $this->assertEmpty($restoredDraft->getReferenceFiles());
+    }
+
+    public function test_rectified_article_round_trip_serialization(): void
+    {
+        $article = (new DOMArticle)->setChildren([
+            (new Element)->setType(ElementType::H2)->addChild('Key updates'),
+        ]);
+
+        $rectified = (new RectifiedArticle)
+            ->setArticle($article)
+            ->setRectifications([
+                (new Rectification)
+                    ->setReference('abcd')
+                    ->setAdjustments(['Expanded the section with supporting detail.']),
+            ]);
+
+        $restored = RectifiedArticle::fromArray($rectified->toArray());
+
+        $this->assertNotNull($restored->getArticle());
+        $this->assertStringContainsString('<h2>Key updates</h2>', $restored->getArticle()->toHtml());
+        $this->assertCount(1, $restored->getRectifications());
+        $this->assertSame('abcd', $restored->getRectifications()[0]->getReference());
+        $this->assertSame(
+            ['Expanded the section with supporting detail.'],
+            $restored->getRectifications()[0]->getAdjustments()
+        );
     }
 
     public function test_illustration_anchor_round_trip_serialization(): void

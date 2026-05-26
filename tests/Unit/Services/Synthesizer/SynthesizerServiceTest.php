@@ -6,6 +6,7 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
 use App\Contracts\Synthesizer\Writer\Writer;
 use App\Contracts\Synthesizer\Writer\Draft;
+use App\Contracts\Synthesizer\Writer\RectifiedArticle;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
@@ -276,6 +277,15 @@ class SynthesizerServiceTest extends TestCase
             ): Draft
             {
                 return new Draft;
+            }
+
+            public function rectifyArticle(
+                Article $article,
+                array $criticisms,
+                ?SemanticContext $authorContext = null,
+                ?SemanticContext $generalContext = null,
+            ): RectifiedArticle {
+                return (new RectifiedArticle)->setArticle($article);
             }
 
             public function getIllustrationAnchors(Article $article, array $illustrationResults): array

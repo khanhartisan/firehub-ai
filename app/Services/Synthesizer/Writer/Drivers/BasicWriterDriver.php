@@ -6,8 +6,11 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
 use App\Contracts\DOM\Element;
 use App\Contracts\DOM\ElementType;
+use App\Contracts\Synthesizer\Critic\Criticism;
+use App\Contracts\Synthesizer\Critic\Rectification;
 use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
+use App\Contracts\Synthesizer\Writer\RectifiedArticle;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
@@ -103,6 +106,54 @@ class BasicWriterDriver extends WriterService
             ->setTitle($brief->getTitle())
             ->setExcerpt($brief->getDescription())
             ->setArticle($article);
+    }
+
+    /**
+     * @param  Criticism[]  $criticisms
+     */
+    public function rectifyArticle(
+        Article $article,
+        array $criticisms,
+        ?SemanticContext $authorContext = null,
+        ?SemanticContext $generalContext = null,
+    ): RectifiedArticle {
+        $normalized = $this->normalizeCriticisms($criticisms);
+        if ($normalized === []) {
+            return (new RectifiedArticle)
+                ->setArticle($article)
+                ->setRectifications([]);
+        }
+
+        $rectified = Article::fromArray($article->toArray());
+        $rectifications = [];
+
+        foreach ($this->groupCriticismsByReference($normalized) as $reference => $group) {
+            $adjustments = $this->remarksFromCriticisms($group);
+            if ($adjustments === []) {
+                continue;
+            }
+
+            $target = $this->findElementByReference($rectified, $reference);
+            if ($target === null || $target instanceof Article) {
+                continue;
+            }
+
+            foreach ($adjustments as $adjustment) {
+                $target->addChild(
+                    (new Element)
+                        ->setType(ElementType::P)
+                        ->addChild($adjustment)
+                );
+            }
+
+            $rectifications[] = (new Rectification)
+                ->setReference($reference)
+                ->setAdjustments($adjustments);
+        }
+
+        return (new RectifiedArticle)
+            ->setArticle($rectified)
+            ->setRectifications($rectifications);
     }
 
     /**

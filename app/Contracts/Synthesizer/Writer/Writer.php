@@ -15,6 +15,11 @@ interface Writer
                           ?SemanticContext $authorContext = null,
                           ?SemanticContext $generalContext = null): Draft;
 
+    public function rectifyArticle(Article $article,
+                            array $criticisms,
+                            ?SemanticContext $authorContext = null,
+                            ?SemanticContext $generalContext = null): RectifiedArticle;
+
     /**
      * @param Article $article
      * @param IllustrationResult[] $illustrationResults

@@ -6,7 +6,9 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\DOM\Article;
+use App\Contracts\Synthesizer\Critic\Criticism;
 use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
+use App\Contracts\Synthesizer\Critic\Rectification;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
@@ -75,6 +77,215 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertStringContainsString('<h2>Body</h2>', $articleHtml);
         $this->assertStringContainsString('<h2>Additional context</h2>', $articleHtml);
         $this->assertStringContainsString('Use context &quot;tone&quot;: &quot;Be practical&quot;', $articleHtml);
+    }
+
+    public function test_basic_writer_driver_rectifies_article_from_criticisms(): void
+    {
+        $author = new BasicWriterDriver;
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'thin',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Too short.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('thin')
+                ->setPurpose('clarity')
+                ->setRemarks(['Section is too thin; expand with supporting detail.']),
+        ]);
+
+        $this->assertNotNull($result->getArticle());
+        $this->assertStringContainsString(
+            'Section is too thin; expand with supporting detail.',
+            $result->getArticle()->toHtml()
+        );
+        $this->assertCount(1, $result->getRectifications());
+        $this->assertInstanceOf(Rectification::class, $result->getRectifications()[0]);
+        $this->assertSame('thin', $result->getRectifications()[0]->getReference());
+    }
+
+    public function test_openai_writer_driver_rectifies_referenced_criticisms_with_targeted_dom_fixes(): void
+    {
+        $payload = json_encode([
+            'fixes' => [
+                [
+                    'reference' => 'thin',
+                    'element' => [
+                        'identifier' => 'thin',
+                        'type' => 'p',
+                        'props' => (object) [],
+                        'children' => ['Expanded opening with more supporting detail.'],
+                    ],
+                ],
+            ],
+            'rectifications' => [
+                [
+                    'reference' => 'thin',
+                    'adjustments' => ['Expanded the thin section with supporting detail.'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_author_rectify_targeted_1',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $author = new OpenAIWriterDriver($client, ['model' => 'gpt-4o-mini']);
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'keep',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Leave unchanged.'],
+                ],
+                [
+                    'identifier' => 'thin',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Too short.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('thin')
+                ->setPurpose('clarity')
+                ->setRemarks(['Section is too thin; expand with supporting detail.']),
+        ]);
+
+        $this->assertNotNull($result->getArticle());
+        $this->assertStringContainsString('Leave unchanged.', $result->getArticle()->toHtml());
+        $this->assertStringContainsString('Expanded opening with more supporting detail.', $result->getArticle()->toHtml());
+        $this->assertStringNotContainsString('Too short.', $result->getArticle()->toHtml());
+        $this->assertCount(1, $result->getRectifications());
+        $this->assertSame('thin', $result->getRectifications()[0]->getReference());
+        $this->assertSame(
+            ['Expanded the thin section with supporting detail.'],
+            $result->getRectifications()[0]->getAdjustments()
+        );
+    }
+
+    public function test_openai_writer_driver_rectifies_mixed_criticisms_with_full_article_markdown(): void
+    {
+        $payload = json_encode([
+            'markdown' => <<<'MD'
+## Intro
+
+Expanded opening with more supporting detail.
+MD,
+            'rectifications' => [
+                [
+                    'reference' => null,
+                    'adjustments' => ['Improved overall article flow and depth.'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_author_rectify_full_1',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $author = new OpenAIWriterDriver($client, ['model' => 'gpt-4o-mini']);
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'thin',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Too short.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('thin')
+                ->setPurpose('clarity')
+                ->setRemarks(['Section is too thin; expand with supporting detail.']),
+            (new Criticism)
+                ->setPurpose('voice')
+                ->setRemarks(['Overall tone needs more personality.']),
+        ]);
+
+        $this->assertNotNull($result->getArticle());
+        $this->assertStringContainsString('<h2>Intro</h2>', $result->getArticle()->toHtml());
+        $this->assertStringContainsString('Expanded opening', $result->getArticle()->toHtml());
+        $this->assertCount(1, $result->getRectifications());
+        $this->assertNull($result->getRectifications()[0]->getReference());
+        $this->assertSame(
+            ['Improved overall article flow and depth.'],
+            $result->getRectifications()[0]->getAdjustments()
+        );
+    }
+
+    public function test_openai_writer_driver_throws_when_client_missing_for_rectify_article(): void
+    {
+        $author = new OpenAIWriterDriver;
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'thin',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Too short.'],
+                ],
+            ],
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('OpenAI author driver requires an OpenAI client instance');
+
+        $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('thin')
+                ->setRemarks(['Expand this section.']),
+        ]);
     }
 
     public function test_basic_writer_driver_maps_illustration_results_to_dom_anchors(): void

@@ -121,6 +121,52 @@ abstract class WriterService implements Writer
         return false;
     }
 
+    protected function removeElementByReference(Element $root, string $reference): bool
+    {
+        foreach ($root->getChildren() as $index => $child) {
+            if (! $child instanceof Element) {
+                continue;
+            }
+
+            if (trim($child->getIdentifier()) === $reference) {
+                $children = $root->getChildren();
+                array_splice($children, $index, 1);
+                $root->setChildren($children);
+
+                return true;
+            }
+
+            if ($this->removeElementByReference($child, $reference)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function assertRemovableReference(Article $article, string $reference): void
+    {
+        if (trim($article->getIdentifier()) === $reference) {
+            throw new \RuntimeException(
+                "Cannot remove DOM reference \"{$reference}\": the article root cannot be deleted."
+            );
+        }
+    }
+
+    /**
+     * @param  list<Criticism>  $criticisms
+     */
+    protected function criticismsRequestRemoval(array $criticisms): bool
+    {
+        foreach ($this->remarksFromCriticisms($criticisms) as $remark) {
+            if (preg_match('/\b(remove|delete|drop|cut|omit)\b/i', $remark)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @param  list<Criticism>  $criticisms
      */

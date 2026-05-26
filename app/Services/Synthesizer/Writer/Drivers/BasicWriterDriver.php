@@ -133,6 +133,21 @@ class BasicWriterDriver extends WriterService
                 continue;
             }
 
+            if ($this->criticismsRequestRemoval($group)) {
+                $this->assertRemovableReference($rectified, $reference);
+
+                if (! $this->removeElementByReference($rectified, $reference)) {
+                    continue;
+                }
+
+                $rectifications[] = (new Rectification)
+                    ->setReference($reference)
+                    ->setConfidence($this->confidenceFromCriticisms($group))
+                    ->setAdjustments(['Removed the referenced node from the article.']);
+
+                continue;
+            }
+
             $target = $this->findElementByReference($rectified, $reference);
             if ($target === null || $target instanceof Article) {
                 continue;

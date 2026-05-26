@@ -515,16 +515,17 @@ PROMPT;
 You are a senior editorial writer applying localized revisions to an article DOM.
 
 Every criticism in the input is tied to a DOM reference. Revise only those referenced nodes; leave all other nodes unchanged.
-Return one fix per target reference ({$referenceList}). Each fix replaces the existing node at that reference with an updated element subtree.
+Return one fix per target reference ({$referenceList}). For each reference, either replace the node or remove it from the article.
 
 Rules:
 - fixes[].reference must be one of target_references.
-- fixes[].element.identifier must equal fixes[].reference.
+- fixes[].removed: set true to delete the node entirely (omit element); set false to replace it with fixes[].element.
+- When removed is false, fixes[].element.identifier must equal fixes[].reference.
 - Preserve the element type when reasonable; you may change children and props as needed to address the criticisms.
 - Do not return markdown or a full article—only the fixes array and rectifications.
-- rectifications[].reference must match a fix you applied.
-F- rectifications[].confidence is how confident you are the fix fully addresses the related criticisms (0.00–1.00).
-- adjustments must be short, specific strings describing applied fixes.
+- rectifications[].reference must match a fix you applied (including removals).
+- rectifications[].confidence is how confident you are the fix fully addresses the related criticisms (0.00–1.00).
+- adjustments must be short, specific strings describing applied fixes (e.g. "Removed redundant section").
 
 Input JSON:
 {$json}
@@ -584,18 +585,7 @@ PROMPT;
                     'type' => 'array',
                     'minItems' => $fixCount,
                     'maxItems' => $fixCount,
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'reference' => [
-                                'type' => 'string',
-                                'enum' => $allowedReferences,
-                            ],
-                            'element' => $this->buildDomElementSchema(),
-                        ],
-                        'required' => ['reference', 'element'],
-                        'additionalProperties' => false,
-                    ],
+                    'items' => $this->buildTargetedFixItemSchema($allowedReferences),
                 ],
                 'rectifications' => $this->buildRectificationsSchema($allowedReferences),
             ],
@@ -687,6 +677,30 @@ PROMPT;
     }
 
     /**
+     * @param  list<string>  $allowedReferences
+     * @return array<string, mixed>
+     */
+    protected function buildTargetedFixItemSchema(array $allowedReferences): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'reference' => [
+                    'type' => 'string',
+                    'enum' => $allowedReferences,
+                ],
+                'removed' => [
+                    'type' => 'boolean',
+                    'description' => 'When true, delete the node at reference from the article; omit element.',
+                ],
+                'element' => $this->buildDomElementSchema(),
+            ],
+            'required' => ['reference', 'removed'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function buildDomElementSchema(int $depth = 0, int $maxDepth = 4): array
@@ -752,9 +766,31 @@ PROMPT;
             }
 
             $reference = trim((string) ($row['reference'] ?? ''));
-            $elementData = $row['element'] ?? null;
-            if ($reference === '' || ! isset($allowedLookup[$reference]) || ! is_array($elementData)) {
+            if ($reference === '' || ! isset($allowedLookup[$reference])) {
                 continue;
+            }
+
+            $removed = (bool) ($row['removed'] ?? false);
+
+            if ($removed) {
+                $this->assertRemovableReference($rectified, $reference);
+
+                if (! $this->removeElementByReference($rectified, $reference)) {
+                    throw new RuntimeException(
+                        "Failed to rectify article with OpenAI: could not remove reference \"{$reference}\"."
+                    );
+                }
+
+                $appliedReferences[$reference] = true;
+
+                continue;
+            }
+
+            $elementData = $row['element'] ?? null;
+            if (! is_array($elementData)) {
+                throw new RuntimeException(
+                    "Failed to rectify article with OpenAI: fix for reference \"{$reference}\" must include element when removed is false."
+                );
             }
 
             $replacement = Element::fromArray($elementData);

@@ -119,6 +119,7 @@ class OutlineAndAuthorDriversTest extends TestCase
             'fixes' => [
                 [
                     'reference' => 'thin',
+                    'removed' => false,
                     'element' => [
                         'identifier' => 'thin',
                         'type' => 'p',
@@ -192,6 +193,111 @@ class OutlineAndAuthorDriversTest extends TestCase
             ['Expanded the thin section with supporting detail.'],
             $result->getRectifications()[0]->getAdjustments()
         );
+    }
+
+    public function test_openai_writer_driver_can_remove_referenced_node_when_targeted_fix_marks_removed(): void
+    {
+        $payload = json_encode([
+            'fixes' => [
+                [
+                    'reference' => 'thin',
+                    'removed' => true,
+                ],
+            ],
+            'rectifications' => [
+                [
+                    'reference' => 'thin',
+                    'confidence' => 0.9,
+                    'adjustments' => ['Removed redundant thin section.'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Response::fromArray([
+            'id' => 'resp_author_rectify_remove_1',
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($response);
+
+        $author = new OpenAIWriterDriver($client, ['model' => 'gpt-4o-mini']);
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'keep',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Leave unchanged.'],
+                ],
+                [
+                    'identifier' => 'thin',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Too short.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('thin')
+                ->setRemarks(['Remove this redundant section entirely.']),
+        ]);
+
+        $html = $result->getArticle()->toHtml();
+        $this->assertStringContainsString('Leave unchanged.', $html);
+        $this->assertStringNotContainsString('Too short.', $html);
+        $this->assertCount(1, $result->getRectifications());
+        $this->assertSame('thin', $result->getRectifications()[0]->getReference());
+    }
+
+    public function test_basic_writer_driver_can_remove_node_when_criticism_requests_removal(): void
+    {
+        $author = new BasicWriterDriver;
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'keep',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Stay.'],
+                ],
+                [
+                    'identifier' => 'drop',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Delete me.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('drop')
+                ->setRemarks(['Remove this paragraph entirely.']),
+        ]);
+
+        $html = $result->getArticle()->toHtml();
+        $this->assertStringContainsString('Stay.', $html);
+        $this->assertStringNotContainsString('Delete me.', $html);
+        $this->assertCount(1, $result->getRectifications());
+        $this->assertSame('drop', $result->getRectifications()[0]->getReference());
     }
 
     public function test_openai_writer_driver_rectifies_mixed_criticisms_with_full_article_markdown(): void

@@ -37,12 +37,12 @@ class ArticleArticleCastTest extends TestCase
     public function test_it_accepts_array_payload_and_casts_to_dom_article(): void
     {
         $payload = [
-            'identifier' => Str::uuid()->toString(),
+            'identifier' => strtolower(Str::random(4)),
             'type' => 'article',
             'props' => [],
             'children' => [
                 [
-                    'identifier' => Str::uuid()->toString(),
+                    'identifier' => strtolower(Str::random(4)),
                     'type' => 'p',
                     'props' => [],
                     'children' => ['Array payload paragraph'],

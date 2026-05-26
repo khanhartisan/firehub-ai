@@ -13,6 +13,8 @@ class IllustrationResult implements Identifiable, Serializable
     use AlwaysIdentifiable;
     use \App\Concerns\Serializable;
 
+    protected int $maxIdentifierLength = 4;
+
     protected ?IllustrationContext $illustrationContext = null;
 
     protected ?AspectRatio $aspectRatio = null;

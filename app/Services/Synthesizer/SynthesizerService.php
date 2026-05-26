@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer;
 
+use App\Contracts\Synthesizer\Critic\Critic;
 use App\Contracts\Synthesizer\Editor\Editor;
 use App\Contracts\Synthesizer\Writer\Writer;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
@@ -20,6 +21,7 @@ class SynthesizerService implements Synthesizer
         protected BriefBuilder $briefBuilder,
         protected OutlineBuilder $outlineBuilder,
         protected Editor $editor,
+        protected array $critics = [],
         protected Writer $writer,
         protected Director $illustrationDirector,
         protected array $illustrators = [],
@@ -84,6 +86,18 @@ class SynthesizerService implements Synthesizer
     public function getEditor(): Editor
     {
         return $this->editor;
+    }
+
+    public function setCritics(array $critics): static
+    {
+        $this->critics = array_values($critics);
+
+        return $this;
+    }
+
+    public function getCritics(): array
+    {
+        return $this->critics;
     }
 
     public function setWriter(Writer $writer): static

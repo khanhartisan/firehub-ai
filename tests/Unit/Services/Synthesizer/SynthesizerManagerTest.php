@@ -26,6 +26,8 @@ use App\Services\Synthesizer\Illustration\Director\Drivers\BasicDirectorDriver;
 use App\Services\Synthesizer\Illustration\Director\Drivers\OpenAIDirectorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\BasicIllustratorDriver;
 use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAIIllustratorDriver;
+use App\Services\Synthesizer\Critic\Drivers\BasicCriticDriver;
+use App\Services\Synthesizer\Critic\Drivers\OpenAICriticDriver;
 use App\Services\Synthesizer\Editor\Drivers\BasicEditorDriver;
 use App\Services\Synthesizer\Editor\Drivers\OpenAIEditorDriver;
 use App\Services\Synthesizer\OutlineBuilder\Drivers\BasicOutlineBuilderDriver;
@@ -66,6 +68,12 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(BasicBriefBuilderDriver::class, $driver->getBriefBuilder());
         $this->assertInstanceOf(BasicOutlineBuilderDriver::class, $driver->getOutlineBuilder());
         $this->assertInstanceOf(BasicEditorDriver::class, $driver->getEditor());
+        $this->assertNotEmpty($driver->getCritics());
+        $this->assertContainsOnlyInstancesOf(BasicCriticDriver::class, $driver->getCritics());
+        $this->assertSame(['voice', 'structure', 'clarity'], array_map(
+            static fn ($critic) => $critic->getPurpose(),
+            $driver->getCritics()
+        ));
         $this->assertInstanceOf(BasicWriterDriver::class, $driver->getWriter());
         $this->assertInstanceOf(BasicDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertNotEmpty($driver->getIllustrators());
@@ -144,6 +152,8 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAIResearcherDriver::class, $driver->getResearcher());
         $this->assertInstanceOf(OpenAIOutlineBuilderDriver::class, $driver->getOutlineBuilder());
         $this->assertInstanceOf(OpenAIEditorDriver::class, $driver->getEditor());
+        $this->assertNotEmpty($driver->getCritics());
+        $this->assertContainsOnlyInstancesOf(OpenAICriticDriver::class, $driver->getCritics());
         $this->assertInstanceOf(OpenAIWriterDriver::class, $driver->getWriter());
         $this->assertInstanceOf(OpenAIDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertNotEmpty($driver->getIllustrators());
@@ -179,5 +189,13 @@ class SynthesizerManagerTest extends TestCase
         $this->assertSame('openai_compatible', $profile['idea_forge']['auditor']);
         $this->assertSame('openai_compatible', $profile['idea_forge']['advisors'][0]['driver']);
         $this->assertSame('openai_compatible_expansion', $profile['idea_forge']['advisors'][1]['driver']);
+        $this->assertSame(
+            [
+                ['driver' => 'openai_compatible', 'purpose' => 'voice'],
+                ['driver' => 'openai_compatible', 'purpose' => 'structure'],
+                ['driver' => 'openai_compatible', 'purpose' => 'clarity'],
+            ],
+            $profile['critics']
+        );
     }
 }

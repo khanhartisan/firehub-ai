@@ -57,7 +57,7 @@ class ArticleIllustrationCastsTest extends TestCase
             'props' => [],
             'children' => [
                 [
-                    'identifier' => 'section-1',
+                    'identifier' => 'sec1',
                     'type' => 'p',
                     'props' => [],
                     'children' => ['Hello world'],
@@ -71,7 +71,7 @@ class ArticleIllustrationCastsTest extends TestCase
 
         $anchor = new IllustrationAnchor(
             $result->getIdentifier(),
-            'section-1',
+            'sec1',
             true,
         );
 

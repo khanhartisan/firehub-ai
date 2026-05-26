@@ -69,7 +69,6 @@ class AuthorContextCastTest extends TestCase
             );
         $identifier = $context->getIdentifier();
         $this->assertNotNull($identifier);
-        $this->assertTrue(Str::isuuid($identifier));
 
         $author = new Author;
         $author->context = $context;

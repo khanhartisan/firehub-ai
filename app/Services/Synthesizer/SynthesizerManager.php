@@ -5,6 +5,7 @@ namespace App\Services\Synthesizer;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\Synthesizer as SynthesizerContract;
 use App\Services\Synthesizer\BriefBuilder\BriefBuilderManager;
+use App\Services\Synthesizer\Critic\CriticManager;
 use App\Services\Synthesizer\Editor\EditorManager;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\IdeaAdvisorManager;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\IdeaAuditorManager;
@@ -92,6 +93,7 @@ class SynthesizerManager extends Manager
         $editor = $this->container->make(EditorManager::class)->driver(
             $this->resolveDriverName($driverConfig['editor'] ?? null, 'basic')
         );
+        $critics = $this->makeCriticsFromConfig($driverConfig['critics'] ?? []);
         $writer = $this->container->make(WriterManager::class)->driver(
             $this->resolveDriverName($driverConfig['writer'] ?? null, 'basic')
         );
@@ -114,10 +116,47 @@ class SynthesizerManager extends Manager
             'briefBuilder' => $briefBuilder,
             'outlineBuilder' => $outlineBuilder,
             'editor' => $editor,
+            'critics' => $critics,
             'writer' => $writer,
             'illustrationDirector' => $illustrationDirector,
             'illustrators' => $illustrators,
         ]);
+    }
+
+    /**
+     * @param  list<array{driver: string, purpose: string}>|string|null  $config
+     * @return list<\App\Contracts\Synthesizer\Critic\Critic>
+     */
+    protected function makeCriticsFromConfig(mixed $config): array
+    {
+        $manager = $this->container->make(CriticManager::class);
+
+        if (is_string($config) && $config !== '') {
+            return $manager->getCritics($this->resolveDriverName($config, 'basic'));
+        }
+
+        if (! is_array($config) || $config === []) {
+            return $manager->getCritics('basic');
+        }
+
+        $critics = [];
+
+        foreach ($config as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $driver = $this->resolveDriverName($entry, 'basic');
+            $purpose = $entry['purpose'] ?? null;
+
+            if (! is_string($purpose) || $purpose === '') {
+                throw new \InvalidArgumentException('Critic config entry must include a "purpose".');
+            }
+
+            $critics[] = $manager->makeCritic($purpose, $driver);
+        }
+
+        return array_values($critics);
     }
 
     /**

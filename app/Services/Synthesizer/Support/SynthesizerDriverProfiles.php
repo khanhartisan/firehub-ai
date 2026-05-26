@@ -22,6 +22,11 @@ final class SynthesizerDriverProfiles
             'brief_builder' => 'basic',
             'outline_builder' => 'basic',
             'editor' => 'basic',
+            'critics' => [
+                ['driver' => 'basic', 'purpose' => 'voice'],
+                ['driver' => 'basic', 'purpose' => 'structure'],
+                ['driver' => 'basic', 'purpose' => 'clarity'],
+            ],
             'writer' => 'basic',
             'illustration' => [
                 'director' => 'basic',
@@ -46,6 +51,11 @@ final class SynthesizerDriverProfiles
             'brief_builder' => 'openai',
             'outline_builder' => 'openai',
             'editor' => 'openai',
+            'critics' => [
+                ['driver' => 'openai', 'purpose' => 'voice'],
+                ['driver' => 'openai', 'purpose' => 'structure'],
+                ['driver' => 'openai', 'purpose' => 'clarity'],
+            ],
             'writer' => 'openai',
             'illustration' => [
                 'director' => 'openai',
@@ -75,6 +85,11 @@ final class SynthesizerDriverProfiles
             'brief_builder' => 'openai_compatible',
             'outline_builder' => 'openai_compatible',
             'editor' => 'openai_compatible',
+            'critics' => [
+                ['driver' => 'openai_compatible', 'purpose' => 'voice'],
+                ['driver' => 'openai_compatible', 'purpose' => 'structure'],
+                ['driver' => 'openai_compatible', 'purpose' => 'clarity'],
+            ],
             'writer' => 'openai_compatible',
             'illustration' => [
                 'director' => 'openai_compatible',

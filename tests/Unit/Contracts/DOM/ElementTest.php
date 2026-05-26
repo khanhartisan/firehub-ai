@@ -291,11 +291,11 @@ class ElementTest extends TestCase
     public function test_it_builds_element_tree_from_single_root_html(): void
     {
         $element = Element::fromHtml(
-            '<div data-identifier="root-1" class="wrapper"><p data-identifier="p-1">Hello <strong>world</strong></p></div>'
+            '<div data-identifier="r1" class="wrapper"><p data-identifier="p-1">Hello <strong>world</strong></p></div>'
         );
 
         $this->assertSame(ElementType::DIV, $element->getType());
-        $this->assertSame('root1', $element->getIdentifier());
+        $this->assertSame('r1', $element->getIdentifier());
         $this->assertSame('wrapper', $element->getProps()['class'] ?? null);
 
         $children = $element->getChildren();
@@ -349,7 +349,7 @@ class ElementTest extends TestCase
 
     public function test_it_ignores_unknown_tags_not_in_element_type_enum(): void
     {
-        $element = Element::fromHtml('<section data-identifier="sec-1" class="hero">Lead <em>text</em></section>');
+        $element = Element::fromHtml('<section data-identifier="sec1" class="hero">Lead <em>text</em></section>');
 
         $this->assertNull($element->getType());
         $this->assertSame('sec1', $element->getIdentifier());

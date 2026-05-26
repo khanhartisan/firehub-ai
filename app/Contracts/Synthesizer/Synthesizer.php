@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Synthesizer;
 
+use App\Contracts\Synthesizer\Critic\Critic;
 use App\Contracts\Synthesizer\Editor\Editor;
 use App\Contracts\Synthesizer\Writer\Writer;
 use App\Contracts\Synthesizer\BriefBuilder\BriefBuilder;
@@ -32,6 +33,16 @@ interface Synthesizer
     public function setEditor(Editor $editor): static;
 
     public function getEditor(): Editor;
+
+    /**
+     * @param  Critic[]  $critics
+     */
+    public function setCritics(array $critics): static;
+
+    /**
+     * @return Critic[]
+     */
+    public function getCritics(): array;
 
     public function setWriter(Writer $writer): static;
 

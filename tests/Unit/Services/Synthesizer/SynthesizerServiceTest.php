@@ -20,6 +20,7 @@ use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
 use App\Contracts\Synthesizer\Illustration\Illustratable;
 use App\Contracts\Synthesizer\Illustration\Illustrator;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
+use App\Contracts\Synthesizer\Critic\Critic;
 use App\Contracts\Synthesizer\Editor\Editor;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
@@ -39,6 +40,7 @@ class SynthesizerServiceTest extends TestCase
         $briefBuilderA = $this->makeBriefBuilder();
         $outlineBuilderA = $this->makeOutlineBuilder();
         $editorA = $this->makeEditor();
+        $criticA = $this->makeCritic();
         $writerA = $this->makeWriter();
         $illustrationDirectorA = $this->makeIllustrationDirector();
         $illustratorA = $this->makeIllustrator();
@@ -50,6 +52,7 @@ class SynthesizerServiceTest extends TestCase
             briefBuilder: $briefBuilderA,
             outlineBuilder: $outlineBuilderA,
             editor: $editorA,
+            critics: [$criticA],
             writer: $writerA,
             illustrationDirector: $illustrationDirectorA,
             illustrators: [$illustratorA],
@@ -60,6 +63,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($briefBuilderA, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderA, $service->getOutlineBuilder());
         $this->assertSame($editorA, $service->getEditor());
+        $this->assertSame([$criticA], $service->getCritics());
         $this->assertSame($writerA, $service->getWriter());
         $this->assertSame($illustrationDirectorA, $service->getIllustrationDirector());
         $this->assertSame([$illustratorA], $service->getIllustrators());
@@ -69,6 +73,7 @@ class SynthesizerServiceTest extends TestCase
         $briefBuilderB = $this->makeBriefBuilder();
         $outlineBuilderB = $this->makeOutlineBuilder();
         $editorB = $this->makeEditor();
+        $criticB = $this->makeCritic();
         $writerB = $this->makeWriter();
         $illustrationDirectorB = $this->makeIllustrationDirector();
 
@@ -77,6 +82,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($service, $service->setBriefBuilder($briefBuilderB));
         $this->assertSame($service, $service->setOutlineBuilder($outlineBuilderB));
         $this->assertSame($service, $service->setEditor($editorB));
+        $this->assertSame($service, $service->setCritics([$criticB]));
         $this->assertSame($service, $service->setWriter($writerB));
         $this->assertSame($service, $service->setIllustrationDirector($illustrationDirectorB));
         $this->assertSame($service, $service->setIllustrators([$illustratorB, new \stdClass()]));
@@ -86,6 +92,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($briefBuilderB, $service->getBriefBuilder());
         $this->assertSame($outlineBuilderB, $service->getOutlineBuilder());
         $this->assertSame($editorB, $service->getEditor());
+        $this->assertSame([$criticB], $service->getCritics());
         $this->assertSame($writerB, $service->getWriter());
         $this->assertSame($illustrationDirectorB, $service->getIllustrationDirector());
         $this->assertSame([$illustratorB], $service->getIllustrators());
@@ -200,6 +207,26 @@ class SynthesizerServiceTest extends TestCase
             public function outline(Brief $brief, ?SemanticContext $context): Outline
             {
                 return new Outline;
+            }
+        };
+    }
+
+    protected function makeCritic(): Critic
+    {
+        return new class implements Critic
+        {
+            public function getPurpose(): string
+            {
+                return 'clarity';
+            }
+
+            public function criticizeArticle(
+                Article $article,
+                ?SemanticContext $authorContext = null,
+                ?SemanticContext $generalContext = null,
+                array $lastRectifications = [],
+            ): array {
+                return [];
             }
         };
     }

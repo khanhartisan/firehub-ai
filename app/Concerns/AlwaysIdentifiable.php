@@ -17,7 +17,7 @@ trait AlwaysIdentifiable
             return $this->identifier;
         }
 
-        return $this->setIdentifier(strtolower(Str::random($this->maxIdentifierLength ?? 32)))->getIdentifier();
+        return $this->setIdentifier(strtolower(Str::random($this->maxIdentifierLength ?? 40)))->getIdentifier();
     }
 
     public function setIdentifier(?string $identifier): static

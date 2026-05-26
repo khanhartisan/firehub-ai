@@ -118,18 +118,18 @@ class OutlineAndAuthorDriversTest extends TestCase
     public function test_openai_writer_driver_resolves_illustration_anchors_via_structured_response(): void
     {
         $article = Article::fromArray([
-            'identifier' => 'article-root',
+            'identifier' => 'root',
             'type' => 'article',
             'props' => [],
             'children' => [
                 [
-                    'identifier' => 'el-heading',
+                    'identifier' => 'head',
                     'type' => 'h2',
                     'props' => [],
                     'children' => ['Section'],
                 ],
                 [
-                    'identifier' => 'el-body',
+                    'identifier' => 'body',
                     'type' => 'p',
                     'props' => [],
                     'children' => ['Body text'],
@@ -146,12 +146,12 @@ class OutlineAndAuthorDriversTest extends TestCase
             'anchors' => [
                 [
                     'illustration_identifier' => $id1,
-                    'element_identifier' => 'el-heading',
+                    'element_identifier' => 'head',
                     'is_after' => true,
                 ],
                 [
                     'illustration_identifier' => $id2,
-                    'element_identifier' => 'el-body',
+                    'element_identifier' => 'body',
                     'is_after' => false,
                 ],
             ],
@@ -179,10 +179,10 @@ class OutlineAndAuthorDriversTest extends TestCase
 
         $this->assertCount(2, $anchors);
         $this->assertSame($id1, $anchors[0]->getIllustrationIdentifier());
-        $this->assertSame('el-heading', $anchors[0]->getElementIdentifier());
+        $this->assertSame('head', $anchors[0]->getElementIdentifier());
         $this->assertTrue($anchors[0]->isAfter());
         $this->assertSame($id2, $anchors[1]->getIllustrationIdentifier());
-        $this->assertSame('el-body', $anchors[1]->getElementIdentifier());
+        $this->assertSame('body', $anchors[1]->getElementIdentifier());
         $this->assertFalse($anchors[1]->isAfter());
     }
 

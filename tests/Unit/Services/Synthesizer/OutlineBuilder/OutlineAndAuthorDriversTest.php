@@ -130,6 +130,7 @@ class OutlineAndAuthorDriversTest extends TestCase
             'rectifications' => [
                 [
                     'reference' => 'thin',
+                    'confidence' => 0.92,
                     'adjustments' => ['Expanded the thin section with supporting detail.'],
                 ],
             ],
@@ -186,6 +187,7 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertStringNotContainsString('Too short.', $result->getArticle()->toHtml());
         $this->assertCount(1, $result->getRectifications());
         $this->assertSame('thin', $result->getRectifications()[0]->getReference());
+        $this->assertSame(0.92, $result->getRectifications()[0]->getConfidence());
         $this->assertSame(
             ['Expanded the thin section with supporting detail.'],
             $result->getRectifications()[0]->getAdjustments()
@@ -203,6 +205,7 @@ MD,
             'rectifications' => [
                 [
                     'reference' => null,
+                    'confidence' => 0.85,
                     'adjustments' => ['Improved overall article flow and depth.'],
                 ],
             ],
@@ -255,10 +258,43 @@ MD,
         $this->assertStringContainsString('Expanded opening', $result->getArticle()->toHtml());
         $this->assertCount(1, $result->getRectifications());
         $this->assertNull($result->getRectifications()[0]->getReference());
+        $this->assertSame(0.85, $result->getRectifications()[0]->getConfidence());
         $this->assertSame(
             ['Improved overall article flow and depth.'],
             $result->getRectifications()[0]->getAdjustments()
         );
+    }
+
+    public function test_basic_writer_driver_sets_rectification_confidence_from_criticisms(): void
+    {
+        $author = new BasicWriterDriver;
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'thin',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Too short.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('thin')
+                ->setConfidence(0.72)
+                ->setRemarks(['Expand this section.']),
+            (new Criticism)
+                ->setReference('thin')
+                ->setConfidence(0.91)
+                ->setRemarks(['Add concrete examples.']),
+        ]);
+
+        $this->assertCount(1, $result->getRectifications());
+        $this->assertSame(0.91, $result->getRectifications()[0]->getConfidence());
     }
 
     public function test_openai_writer_driver_throws_when_client_missing_for_rectify_article(): void

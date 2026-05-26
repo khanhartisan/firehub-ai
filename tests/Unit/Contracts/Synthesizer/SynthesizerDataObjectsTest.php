@@ -167,6 +167,7 @@ class SynthesizerDataObjectsTest extends TestCase
             ->setRectifications([
                 (new Rectification)
                     ->setReference('abcd')
+                    ->setConfidence(0.91)
                     ->setAdjustments(['Expanded the section with supporting detail.']),
             ]);
 
@@ -176,10 +177,25 @@ class SynthesizerDataObjectsTest extends TestCase
         $this->assertStringContainsString('<h2>Key updates</h2>', $restored->getArticle()->toHtml());
         $this->assertCount(1, $restored->getRectifications());
         $this->assertSame('abcd', $restored->getRectifications()[0]->getReference());
+        $this->assertSame(0.91, $restored->getRectifications()[0]->getConfidence());
         $this->assertSame(
             ['Expanded the section with supporting detail.'],
             $restored->getRectifications()[0]->getAdjustments()
         );
+    }
+
+    public function test_rectification_round_trip_serialization(): void
+    {
+        $rectification = (new Rectification)
+            ->setReference('thin')
+            ->setConfidence(0.88)
+            ->setAdjustments(['Expanded with examples and metrics.']);
+
+        $restored = Rectification::fromArray($rectification->toArray());
+
+        $this->assertSame('thin', $restored->getReference());
+        $this->assertSame(0.88, $restored->getConfidence());
+        $this->assertSame(['Expanded with examples and metrics.'], $restored->getAdjustments());
     }
 
     public function test_illustration_anchor_round_trip_serialization(): void

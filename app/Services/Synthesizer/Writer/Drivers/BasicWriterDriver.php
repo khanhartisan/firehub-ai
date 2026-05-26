@@ -148,6 +148,7 @@ class BasicWriterDriver extends WriterService
 
             $rectifications[] = (new Rectification)
                 ->setReference($reference)
+                ->setConfidence($this->confidenceFromCriticisms($group))
                 ->setAdjustments($adjustments);
         }
 
@@ -246,5 +247,26 @@ class BasicWriterDriver extends WriterService
         }
 
         return $lines;
+    }
+
+    /**
+     * @param  list<Criticism>  $criticisms
+     */
+    protected function confidenceFromCriticisms(array $criticisms): ?float
+    {
+        $values = [];
+
+        foreach ($criticisms as $criticism) {
+            $confidence = $criticism->getConfidence();
+            if ($confidence !== null) {
+                $values[] = $confidence;
+            }
+        }
+
+        if ($values === []) {
+            return null;
+        }
+
+        return round(max($values), 2);
     }
 }

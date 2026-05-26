@@ -371,10 +371,11 @@ class TestCriticService extends Command
         foreach ($rectifications as $rectification) {
             $rows[] = [
                 (string) ($rectification->getReference() ?? '—'),
+                $rectification->getConfidence() !== null ? (string) $rectification->getConfidence() : '—',
                 implode(' | ', $rectification->getAdjustments()),
             ];
         }
-        $this->table(['reference', 'adjustments'], $rows);
+        $this->table(['reference', 'confidence', 'adjustments'], $rows);
     }
 
     /**

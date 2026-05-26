@@ -523,6 +523,7 @@ Rules:
 - Preserve the element type when reasonable; you may change children and props as needed to address the criticisms.
 - Do not return markdown or a full article—only the fixes array and rectifications.
 - rectifications[].reference must match a fix you applied.
+F- rectifications[].confidence is how confident you are the fix fully addresses the related criticisms (0.00–1.00).
 - adjustments must be short, specific strings describing applied fixes.
 
 Input JSON:
@@ -560,6 +561,7 @@ For each criticism you addressed, record a rectification with concrete adjustmen
 
 Rules:
 - adjustments must be short, specific strings describing applied fixes.
+- confidence is how confident you are the fix fully addresses the related criticism(s) (0.00–1.00).
 - Only include rectifications for criticisms you actually addressed.
 
 Input JSON:
@@ -616,23 +618,7 @@ PROMPT;
                 ],
                 'rectifications' => [
                     'type' => 'array',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'reference' => [
-                                'type' => ['string', 'null'],
-                                'description' => 'DOM reference when the rectification maps to a section; null for article-wide changes.',
-                            ],
-                            'adjustments' => [
-                                'type' => 'array',
-                                'minItems' => 1,
-                                'maxItems' => 8,
-                                'items' => ['type' => 'string'],
-                            ],
-                        ],
-                        'required' => ['reference', 'adjustments'],
-                        'additionalProperties' => false,
-                    ],
+                    'items' => $this->buildRectificationItemSchema(referenceNullable: true),
                 ],
             ],
             'required' => ['markdown', 'rectifications'],
@@ -648,23 +634,55 @@ PROMPT;
     {
         return [
             'type' => 'array',
-            'items' => [
-                'type' => 'object',
-                'properties' => [
-                    'reference' => [
-                        'type' => 'string',
-                        'enum' => $allowedReferences,
-                    ],
-                    'adjustments' => [
-                        'type' => 'array',
-                        'minItems' => 1,
-                        'maxItems' => 8,
-                        'items' => ['type' => 'string'],
-                    ],
+            'items' => $this->buildRectificationItemSchema($allowedReferences),
+        ];
+    }
+
+    /**
+     * @param  list<string>|null  $allowedReferences
+     * @return array<string, mixed>
+     */
+    protected function buildRectificationItemSchema(
+        ?array $allowedReferences = null,
+        bool $referenceNullable = false,
+    ): array {
+        if ($referenceNullable) {
+            $referenceSchema = [
+                'type' => ['string', 'null'],
+                'description' => 'DOM reference when the rectification maps to a section; null for article-wide changes.',
+            ];
+        } elseif ($allowedReferences === null || $allowedReferences === []) {
+            $referenceSchema = [
+                'type' => 'string',
+                'description' => 'DOM reference identifier for the revised section.',
+            ];
+        } else {
+            $referenceSchema = [
+                'type' => 'string',
+                'enum' => $allowedReferences,
+                'description' => 'DOM reference identifier for the revised section.',
+            ];
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'reference' => $referenceSchema,
+                'confidence' => [
+                    'type' => 'number',
+                    'minimum' => 0,
+                    'maximum' => 1,
+                    'description' => 'Confidence that the adjustments fully address the related criticism(s).',
                 ],
-                'required' => ['reference', 'adjustments'],
-                'additionalProperties' => false,
+                'adjustments' => [
+                    'type' => 'array',
+                    'minItems' => 1,
+                    'maxItems' => 8,
+                    'items' => ['type' => 'string'],
+                ],
             ],
+            'required' => ['reference', 'confidence', 'adjustments'],
+            'additionalProperties' => false,
         ];
     }
 

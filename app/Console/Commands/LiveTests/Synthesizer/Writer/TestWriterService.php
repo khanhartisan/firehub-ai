@@ -668,10 +668,11 @@ CTX;
             foreach ($rectified->getRectifications() as $rectification) {
                 $rows[] = [
                     (string) ($rectification->getReference() ?? '—'),
+                    $rectification->getConfidence() !== null ? (string) $rectification->getConfidence() : '—',
                     Str::limit(implode(' | ', $rectification->getAdjustments()), 120),
                 ];
             }
-            $this->table(['reference', 'adjustments'], $rows);
+            $this->table(['reference', 'confidence', 'adjustments'], $rows);
         }
 
         $this->newLine();

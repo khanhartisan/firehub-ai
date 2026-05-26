@@ -18,6 +18,11 @@ final class Rectification implements Serializable
     protected ?string $reference = null;
 
     /**
+     * @var float|null
+     */
+    protected ?float $confidence = null;
+
+    /**
      * @var string[]
      */
     protected array $adjustments = [];
@@ -30,6 +35,18 @@ final class Rectification implements Serializable
     public function setReference(?string $reference): static
     {
         $this->reference = $reference;
+
+        return $this;
+    }
+
+    public function getConfidence(): ?float
+    {
+        return $this->confidence;
+    }
+
+    public function setConfidence(?float $confidence): static
+    {
+        $this->confidence = $confidence !== null ? round($confidence, 2) : null;
 
         return $this;
     }
@@ -66,6 +83,7 @@ final class Rectification implements Serializable
     {
         return [
             'reference' => $this->getReference(),
+            'confidence' => $this->getConfidence(),
             'adjustments' => $this->getAdjustments(),
         ];
     }
@@ -79,6 +97,10 @@ final class Rectification implements Serializable
 
         if (array_key_exists('reference', $data)) {
             $rectification->setReference($data['reference'] !== null ? (string) $data['reference'] : null);
+        }
+
+        if (array_key_exists('confidence', $data)) {
+            $rectification->setConfidence($data['confidence'] !== null ? (float) $data['confidence'] : null);
         }
 
         if (isset($data['adjustments']) && is_array($data['adjustments'])) {

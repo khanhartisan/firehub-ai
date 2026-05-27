@@ -187,8 +187,8 @@ class BasicCriticDriver extends CriticService
             (new Criticism)
                 ->setPurpose($this->purpose)
                 ->setReference($articleReference)
-                ->setConfidence(0.7)
-                ->setImportance(0.65)
+                ->setConfidence(0.8)
+                ->setImportance(0.7)
                 ->setRemarks($remarks),
         ];
     }

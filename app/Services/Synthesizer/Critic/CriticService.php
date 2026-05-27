@@ -2,6 +2,7 @@
 
 namespace App\Services\Synthesizer\Critic;
 
+use App\Services\Synthesizer\Support\CriticProfileEntry;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
 use App\Contracts\Synthesizer\Critic\Critic;
@@ -77,7 +78,57 @@ abstract class CriticService implements Critic
             )),
         ];
 
-        return $this->criticize($payload, $allowedReferences, $rectifiedReferences);
+        return $this->filterCriticismsByThreshold(
+            $this->criticize($payload, $allowedReferences, $rectifiedReferences)
+        );
+    }
+
+    /**
+     * @param  list<Criticism>  $criticisms
+     * @return list<Criticism>
+     */
+    protected function filterCriticismsByThreshold(array $criticisms): array
+    {
+        $minConfidence = $this->getMinConfidenceThreshold();
+        $minImportance = $this->getMinImportanceThreshold();
+
+        return array_values(array_filter(
+            $criticisms,
+            fn (Criticism $criticism): bool => $this->criticismMeetsThresholds(
+                $criticism,
+                $minConfidence,
+                $minImportance,
+            )
+        ));
+    }
+
+    protected function getMinConfidenceThreshold(): float
+    {
+        return CriticProfileEntry::normalizeThreshold(
+            $this->config['min_confidence'] ?? CriticProfileEntry::DEFAULT_MIN_CONFIDENCE
+        );
+    }
+
+    protected function getMinImportanceThreshold(): float
+    {
+        return CriticProfileEntry::normalizeThreshold(
+            $this->config['min_importance'] ?? CriticProfileEntry::DEFAULT_MIN_IMPORTANCE
+        );
+    }
+
+    protected function criticismMeetsThresholds(
+        Criticism $criticism,
+        float $minConfidence,
+        float $minImportance,
+    ): bool {
+        $confidence = $criticism->getConfidence();
+        $importance = $criticism->getImportance();
+
+        if ($confidence === null || $importance === null) {
+            return false;
+        }
+
+        return $confidence >= $minConfidence && $importance >= $minImportance;
     }
 
     /**

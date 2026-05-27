@@ -192,13 +192,13 @@ class SynthesizerManagerTest extends TestCase
         $this->assertSame('openai_compatible_expansion', $profile['idea_forge']['advisors'][1]['driver']);
         $this->assertSame(
             [
-                ['driver' => 'openai_compatible', 'purpose' => 'voice', 'order' => 0],
-                ['driver' => 'openai_compatible', 'purpose' => 'structure', 'order' => 1],
-                ['driver' => 'openai_compatible', 'purpose' => 'clarity', 'order' => 2],
-                ['driver' => 'openai_compatible', 'purpose' => 'concision', 'order' => 3],
-                ['driver' => 'openai_compatible', 'purpose' => 'fingerprint', 'order' => 4],
-                ['driver' => 'openai_compatible', 'purpose' => 'evidence', 'order' => 5],
-                ['driver' => 'openai_compatible', 'purpose' => 'general', 'order' => 6],
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'voice', 0),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'structure', 1),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'clarity', 2),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'concision', 3),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'fingerprint', 4),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'evidence', 5),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'general', 6),
             ],
             $profile['critics']
         );

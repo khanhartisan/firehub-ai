@@ -15,6 +15,7 @@ use App\Services\Synthesizer\Critic\ArticleCritics\VoiceArticleCritic;
 use App\Services\Synthesizer\Critic\Drivers\BasicCriticDriver;
 use App\Services\Synthesizer\Critic\Drivers\OpenAICompatibleCriticDriver;
 use App\Services\Synthesizer\Critic\Drivers\OpenAICriticDriver;
+use App\Services\Synthesizer\Support\CriticProfileEntry;
 use App\Services\Synthesizer\Support\SubserviceManager;
 use InvalidArgumentException;
 use LogicException;
@@ -65,11 +66,19 @@ class CriticManager extends SubserviceManager
         return new (self::ARTICLE_CRITIC_CLASSES[$purpose]);
     }
 
-    public function makeCritic(string $purpose, ?string $driver = null): Critic
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public function makeCritic(string $purpose, ?string $driver = null, array $config = []): Critic
     {
         $driver = $driver ?? $this->getDefaultDriver();
         $purpose = $this->resolvePurpose($purpose);
-        $key = "{$driver}:{$purpose}";
+        $driverConfig = array_merge(
+            $this->driverConfiguration($driver),
+            CriticProfileEntry::driverConfig($config),
+            $config,
+        );
+        $key = "{$driver}:{$purpose}:".md5(json_encode($driverConfig) ?: '');
 
         if (isset($this->drivers[$key])) {
             return $this->drivers[$key];
@@ -79,18 +88,18 @@ class CriticManager extends SubserviceManager
             'basic' => new BasicCriticDriver(
                 $this,
                 $purpose,
-                $this->driverConfiguration('basic'),
+                $driverConfig,
             ),
             'openai' => new OpenAICriticDriver(
                 $this,
                 $purpose,
                 $this->container->make(OpenAIClient::class),
-                $this->driverConfiguration('openai'),
+                $driverConfig,
             ),
             'openai_compatible' => new OpenAICompatibleCriticDriver(
                 $this,
                 $purpose,
-                $this->driverConfiguration('openai_compatible'),
+                $driverConfig,
             ),
             default => throw new InvalidArgumentException("Critic driver [{$driver}] is not supported."),
         };
@@ -106,7 +115,7 @@ class CriticManager extends SubserviceManager
         $critics = [];
 
         foreach ($purposes as $index => $purpose) {
-            $critics[] = $this->makeCritic($purpose, $driver)->setOrder($index);
+            $critics[] = $this->makeCritic($purpose, $driver, CriticProfileEntry::driverConfig([]))->setOrder($index);
         }
 
         return $critics;

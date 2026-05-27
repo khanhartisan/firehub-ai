@@ -45,6 +45,70 @@ class OpenAICriticDriverTest extends TestCase
         $this->assertSame([], $driver->criticizeArticle($article));
     }
 
+    public function test_criticize_article_omits_criticisms_below_score_thresholds(): void
+    {
+        $article = $this->makeArticleWithSection('thin', 'Short body.');
+
+        $payload = json_encode([
+            'criticisms' => [
+                [
+                    'reference' => 'thin',
+                    'confidence' => 0.79,
+                    'importance' => 0.9,
+                    'remarks' => ['Below confidence threshold.'],
+                ],
+                [
+                    'reference' => 'thin',
+                    'confidence' => 0.9,
+                    'importance' => 0.69,
+                    'remarks' => ['Below importance threshold.'],
+                ],
+                [
+                    'reference' => 'thin',
+                    'confidence' => 0.8,
+                    'importance' => 0.7,
+                    'remarks' => ['Meets both thresholds.'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($this->makeResponse($payload));
+
+        $driver = $this->openAiDriver('clarity', $client);
+        $criticisms = $driver->criticizeArticle($article);
+
+        $this->assertCount(1, $criticisms);
+        $this->assertSame('Meets both thresholds.', $criticisms[0]->getRemarks()[0]);
+    }
+
+    public function test_criticize_article_respects_custom_score_thresholds_from_config(): void
+    {
+        $article = $this->makeArticleWithSection('thin', 'Short body.');
+
+        $payload = json_encode([
+            'criticisms' => [
+                [
+                    'reference' => 'thin',
+                    'confidence' => 0.55,
+                    'importance' => 0.55,
+                    'remarks' => ['Passes lowered thresholds.'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($this->makeResponse($payload));
+
+        $driver = $this->openAiDriver('clarity', $client, [
+            'min_confidence' => 0.5,
+            'min_importance' => 0.5,
+        ]);
+        $criticisms = $driver->criticizeArticle($article);
+
+        $this->assertCount(1, $criticisms);
+    }
+
     public function test_criticize_article_uses_structured_openai_response(): void
     {
         $article = $this->makeArticleWithSection('thin', 'Short body.');

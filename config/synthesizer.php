@@ -43,7 +43,8 @@ return [
     | resolved by that subservice's manager (see synthesizer.{subservice} below).
     |
     | critics[] entries: driver, purpose, optional order (used by RECTIFICATION stage_data),
-    | and optional max_rectification_rounds (int|null, highest value wins for the driver).
+    | optional max_rectification_rounds (int|null, highest value wins for the driver),
+    | optional min_confidence / min_importance (0–1 per entry; default 0.8 / 0.7 when omitted).
     |
     */
 

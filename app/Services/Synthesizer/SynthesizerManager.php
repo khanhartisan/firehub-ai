@@ -6,6 +6,7 @@ use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\Synthesizer as SynthesizerContract;
 use App\Services\Synthesizer\BriefBuilder\BriefBuilderManager;
 use App\Services\Synthesizer\Critic\CriticManager;
+use App\Services\Synthesizer\Support\CriticProfileEntry;
 use App\Services\Synthesizer\Editor\EditorManager;
 use App\Services\Synthesizer\IdeaForge\IdeaAdvisor\IdeaAdvisorManager;
 use App\Services\Synthesizer\IdeaForge\IdeaAuditor\IdeaAuditorManager;
@@ -125,7 +126,7 @@ class SynthesizerManager extends Manager
     }
 
     /**
-     * @param  list<array{driver: string, purpose: string, order?: int, max_rectification_rounds?: int|null}>|string|null  $config
+     * @param  list<array{driver: string, purpose: string, order?: int, max_rectification_rounds?: int|null, min_confidence?: float, min_importance?: float}>|string|null  $config
      * @return list<\App\Contracts\Synthesizer\Critic\Critic>
      */
     protected function makeCriticsFromConfig(mixed $config): array
@@ -158,12 +159,23 @@ class SynthesizerManager extends Manager
                 ? max(0, (int) $entry['order'])
                 : $index;
 
+            $criticConfig = $this->criticConfigFromProfileEntry($entry);
+
             $critics[] = $manager
-                ->makeCritic($purpose, $driver)
+                ->makeCritic($purpose, $driver, $criticConfig)
                 ->setOrder($order);
         }
 
         return array_values($critics);
+    }
+
+    /**
+     * @param  array<string, mixed>  $entry
+     * @return array<string, mixed>
+     */
+    protected function criticConfigFromProfileEntry(array $entry): array
+    {
+        return CriticProfileEntry::driverConfig($entry);
     }
 
     /**

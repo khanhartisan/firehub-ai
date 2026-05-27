@@ -13,9 +13,9 @@ class RectificationStageDataTest extends TestCase
     {
         $stageData = new RectificationStageData;
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'clarity', 'order' => 2],
-            ['purpose' => 'voice', 'order' => 0],
-            ['purpose' => 'structure', 'order' => 1],
+            ['purpose' => 'clarity', 'order' => 2, 'max_rectification_rounds' => 2],
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 2],
+            ['purpose' => 'structure', 'order' => 1, 'max_rectification_rounds' => 2],
         ]);
 
         $this->assertSame('voice', $stageData->getNextPendingCritic()?->getPurpose());
@@ -43,8 +43,8 @@ class RectificationStageDataTest extends TestCase
         ]);
 
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'voice', 'order' => 0],
-            ['purpose' => 'clarity', 'order' => 1],
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 2],
+            ['purpose' => 'clarity', 'order' => 1, 'max_rectification_rounds' => 2],
         ]);
 
         $this->assertNotNull($stageData->getCriticState('clarity'));
@@ -56,7 +56,7 @@ class RectificationStageDataTest extends TestCase
     {
         $stageData = new RectificationStageData;
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'voice', 'order' => 0],
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 2],
         ]);
         $stageData->flagCriticAwaitingRectification('voice', [
             (new Criticism)->setPurpose('voice')->setRemarks(['note']),
@@ -73,7 +73,7 @@ class RectificationStageDataTest extends TestCase
     {
         $stageData = new RectificationStageData;
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'voice', 'order' => 0],
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 2],
         ]);
 
         $this->assertNull($stageData->getCriticAwaitingRectification());
@@ -83,7 +83,7 @@ class RectificationStageDataTest extends TestCase
     {
         $stageData = new RectificationStageData;
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'voice', 'order' => 0],
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 2],
         ]);
 
         $stageData->markCriticDone('voice');
@@ -97,8 +97,8 @@ class RectificationStageDataTest extends TestCase
     {
         $stageData = new RectificationStageData;
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'zebra', 'order' => 0],
-            ['purpose' => 'alpha', 'order' => 0],
+            ['purpose' => 'zebra', 'order' => 0, 'max_rectification_rounds' => 2],
+            ['purpose' => 'alpha', 'order' => 0, 'max_rectification_rounds' => 2],
         ]);
 
         $this->assertSame('alpha', $stageData->getNextPendingCritic()?->getPurpose());
@@ -108,12 +108,12 @@ class RectificationStageDataTest extends TestCase
         $this->assertSame('zebra', $stageData->getNextPendingCritic()?->getPurpose());
     }
 
-    public function test_second_pass_runs_all_critics_again_after_reset(): void
+    public function test_second_pass_runs_critics_under_max_rounds_after_reset(): void
     {
         $stageData = new RectificationStageData;
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'voice', 'order' => 0],
-            ['purpose' => 'structure', 'order' => 1],
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 3],
+            ['purpose' => 'structure', 'order' => 1, 'max_rectification_rounds' => 3],
         ]);
 
         $stageData->flagCriticAwaitingRectification('voice', [
@@ -134,8 +134,8 @@ class RectificationStageDataTest extends TestCase
     {
         $stageData = new RectificationStageData;
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'voice', 'order' => 0],
-            ['purpose' => 'structure', 'order' => 1],
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 2],
+            ['purpose' => 'structure', 'order' => 1, 'max_rectification_rounds' => 2],
         ]);
 
         $stageData->addRectificationsForCritic('voice', [
@@ -158,22 +158,46 @@ class RectificationStageDataTest extends TestCase
         $this->assertCount(2, $restored->getRectifications());
     }
 
-    public function test_has_reached_max_rounds_from_highest_critic_round(): void
+    public function test_critic_at_max_rounds_is_skipped_on_next_pass(): void
     {
         $stageData = new RectificationStageData;
         $stageData->ensureCriticsInitialized([
-            ['purpose' => 'voice', 'order' => 0],
-            ['purpose' => 'structure', 'order' => 1],
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 1],
+            ['purpose' => 'structure', 'order' => 1, 'max_rectification_rounds' => 3],
         ]);
 
-        $stageData->getCriticState('voice')?->setRound(2);
-        $stageData->getCriticState('structure')?->setRound(1);
+        $stageData->flagCriticAwaitingRectification('voice', [
+            (new Criticism)->setPurpose('voice')->setRemarks(['fix voice']),
+        ]);
+        $stageData->markCriticDone('voice');
+        $stageData->markCriticDone('structure');
 
-        $this->assertTrue($stageData->hasReachedMaxRounds(2));
+        $this->assertTrue($stageData->getCriticState('voice')?->hasReachedMaxRounds());
+        $this->assertFalse($stageData->getCriticState('structure')?->hasReachedMaxRounds());
+
+        $stageData->advancePass();
+        $stageData->resetForNextPass();
+
+        $this->assertTrue($stageData->getCriticState('voice')?->isFinished());
+        $this->assertSame('structure', $stageData->getNextPendingCritic()?->getPurpose());
+    }
+
+    public function test_has_critics_eligible_for_another_pass_when_any_critic_under_max(): void
+    {
+        $stageData = new RectificationStageData;
+        $stageData->ensureCriticsInitialized([
+            ['purpose' => 'voice', 'order' => 0, 'max_rectification_rounds' => 1],
+            ['purpose' => 'structure', 'order' => 1, 'max_rectification_rounds' => 2],
+        ]);
 
         $stageData->getCriticState('voice')?->setRound(1);
+        $stageData->getCriticState('structure')?->setRound(2);
 
-        $this->assertFalse($stageData->hasReachedMaxRounds(2));
+        $this->assertFalse($stageData->hasCriticsEligibleForAnotherPass());
+
+        $stageData->getCriticState('structure')?->setRound(0);
+
+        $this->assertTrue($stageData->hasCriticsEligibleForAnotherPass());
     }
 
 }

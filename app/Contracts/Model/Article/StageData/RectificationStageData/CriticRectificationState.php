@@ -19,6 +19,8 @@ final class CriticRectificationState implements Serializable
 
     protected int $round = 0;
 
+    protected int $maxRectificationRounds = 1;
+
     /** @var Criticism[] */
     protected array $pendingCriticisms = [];
 
@@ -80,6 +82,28 @@ final class CriticRectificationState implements Serializable
         return $this;
     }
 
+    public function getMaxRectificationRounds(): int
+    {
+        return max(1, $this->maxRectificationRounds);
+    }
+
+    public function setMaxRectificationRounds(int $maxRectificationRounds): static
+    {
+        $this->maxRectificationRounds = max(1, $maxRectificationRounds);
+
+        return $this;
+    }
+
+    public function hasReachedMaxRounds(): bool
+    {
+        return $this->round >= $this->getMaxRectificationRounds();
+    }
+
+    public function canRunAnotherPass(): bool
+    {
+        return ! $this->hasReachedMaxRounds();
+    }
+
     /**
      * @return Criticism[]
      */
@@ -129,6 +153,9 @@ final class CriticRectificationState implements Serializable
             'order' => $this->order,
             'finished' => $this->finished ?: null,
             'round' => $this->round > 0 ? $this->round : null,
+            'max_rectification_rounds' => $this->maxRectificationRounds !== 1
+                ? $this->maxRectificationRounds
+                : null,
             'pending_criticisms' => $this->pendingCriticisms === []
                 ? null
                 : array_map(
@@ -162,6 +189,10 @@ final class CriticRectificationState implements Serializable
 
         if (isset($data['round'])) {
             $state->setRound((int) $data['round']);
+        }
+
+        if (isset($data['max_rectification_rounds'])) {
+            $state->setMaxRectificationRounds((int) $data['max_rectification_rounds']);
         }
 
         if (isset($data['pending_criticisms']) && is_array($data['pending_criticisms'])) {

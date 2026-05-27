@@ -192,44 +192,48 @@ class SynthesizerManagerTest extends TestCase
         $this->assertSame('openai_compatible_expansion', $profile['idea_forge']['advisors'][1]['driver']);
         $this->assertSame(
             [
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'voice', 0),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'structure', 1),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'clarity', 2),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'concision', 3),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'fingerprint', 4),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'evidence', 5),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'general', 6),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'general', 0),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'voice', 1),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'structure', 2),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'clarity', 3),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'evidence', 4),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'concision', 5),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'fingerprint', 6),
             ],
             $profile['critics']
         );
     }
 
-    public function test_critic_max_rectification_rounds_overrides_global_default(): void
+    public function test_critic_max_rectification_rounds_uses_entry_or_global_default(): void
     {
         config()->set('synthesizer.max_rectification_rounds', 5);
 
-        $this->assertSame(1, MaxRectificationRoundsResolver::resolve('basic'));
-        $this->assertSame(2, MaxRectificationRoundsResolver::resolve('openai'));
-        $this->assertSame(5, MaxRectificationRoundsResolver::resolve('openai_compatible'));
+        $this->assertSame(1, MaxRectificationRoundsResolver::forEntry([
+            'purpose' => 'clarity',
+            'max_rectification_rounds' => 1,
+        ]));
+        $this->assertSame(2, MaxRectificationRoundsResolver::forEntry([
+            'purpose' => 'clarity',
+            'max_rectification_rounds' => 2,
+        ]));
+        $this->assertSame(5, MaxRectificationRoundsResolver::forEntry(['purpose' => 'voice']));
+        $this->assertSame(5, MaxRectificationRoundsResolver::forEntry([
+            'purpose' => 'structure',
+            'max_rectification_rounds' => null,
+        ]));
     }
 
-    public function test_critic_max_rectification_rounds_uses_highest_explicit_entry(): void
+    public function test_critic_max_rectification_rounds_per_entry_is_independent(): void
     {
-        config()->set('synthesizer.drivers.custom', [
-            'idea_forge' => ['driver' => 'basic', 'advisors' => [['driver' => 'basic']], 'auditor' => 'basic', 'picker' => 'basic'],
-            'researcher' => 'basic',
-            'brief_builder' => 'basic',
-            'outline_builder' => 'basic',
-            'editor' => 'basic',
-            'critics' => [
-                ['driver' => 'basic', 'purpose' => 'voice', 'max_rectification_rounds' => 1],
-                ['driver' => 'basic', 'purpose' => 'structure', 'max_rectification_rounds' => null],
-                ['driver' => 'basic', 'purpose' => 'clarity', 'max_rectification_rounds' => 3],
-            ],
-            'writer' => 'basic',
-            'illustration' => ['director' => 'basic', 'illustrators' => ['basic']],
-        ]);
+        config()->set('synthesizer.max_rectification_rounds', 2);
 
-        $this->assertSame(3, MaxRectificationRoundsResolver::resolve('custom'));
+        $this->assertSame(1, MaxRectificationRoundsResolver::forEntry([
+            'purpose' => 'voice',
+            'max_rectification_rounds' => 1,
+        ]));
+        $this->assertSame(3, MaxRectificationRoundsResolver::forEntry([
+            'purpose' => 'clarity',
+            'max_rectification_rounds' => 3,
+        ]));
     }
 }

@@ -7,14 +7,17 @@ use App\Contracts\Model\Article\StageData\RectificationStageData;
 use App\Contracts\Model\Article\StageData\RectificationStageData\CriticRectificationState;
 use App\Contracts\Synthesizer\Critic\Critic;
 use App\Contracts\Synthesizer\Writer\Draft;
+use App\Facades\Synthesizer;
 use App\Models\Article;
 use App\Services\Synthesizer\Support\MaxRectificationRoundsResolver;
+use App\Services\Synthesizer\SynthesizerManager;
 
 /**
  * RECTIFICATION stage: per-critic state map ordered by config "order"; one criticize
  * or rectify step per job tick so the writer focuses on a single purpose at a time.
  *
- * Critics run in (order, purpose) sequence until each is finished this pass.
+ * Each critic respects its own max_rectification_rounds from the synthesizer profile
+ * (global synthesizer.max_rectification_rounds when omitted on that entry).
  */
 trait HandleRectificationStage
 {
@@ -163,7 +166,7 @@ trait HandleRectificationStage
             return true;
         }
 
-        if ($stageData->hasReachedMaxRounds($this->getMaxRectificationRounds())) {
+        if (! $stageData->hasCriticsEligibleForAnotherPass()) {
             return true;
         }
 
@@ -224,28 +227,47 @@ trait HandleRectificationStage
         $this->touchArticleQuietly();
     }
 
-    protected function getMaxRectificationRounds(): int
+    protected function getSynthesizerDriverName(): string
     {
-        return MaxRectificationRoundsResolver::resolve();
+        $manager = Synthesizer::getFacadeRoot();
+
+        if ($manager instanceof SynthesizerManager) {
+            return $manager->getDefaultDriver();
+        }
+
+        return (string) config('synthesizer.default', 'basic');
     }
 
     /**
-     * Build {purpose, order} entries from live critic objects.
+     * Build stage entries from live critics plus profile max_rectification_rounds.
      *
      * @param  list<Critic>  $critics
-     * @return list<array{purpose: string, order: int}>
+     * @return list<array{purpose: string, order: int, max_rectification_rounds: int}>
      */
     protected function buildCriticEntriesForStage(array $critics): array
     {
+        $profileByPurpose = [];
+
+        foreach (MaxRectificationRoundsResolver::profileEntries($this->getSynthesizerDriverName()) as $row) {
+            $purpose = (string) ($row['purpose'] ?? '');
+            if ($purpose !== '') {
+                $profileByPurpose[$purpose] = $row;
+            }
+        }
+
         $entries = [];
         foreach ($critics as $critic) {
             if (! $critic instanceof Critic) {
                 continue;
             }
 
+            $purpose = $critic->getPurpose();
+            $profile = $profileByPurpose[$purpose] ?? ['purpose' => $purpose];
+
             $entries[] = [
-                'purpose' => $critic->getPurpose(),
+                'purpose' => $purpose,
                 'order' => $critic->getOrder(),
+                'max_rectification_rounds' => MaxRectificationRoundsResolver::forEntry($profile),
             ];
         }
 

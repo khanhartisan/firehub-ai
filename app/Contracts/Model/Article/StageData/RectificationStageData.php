@@ -24,13 +24,19 @@ final class RectificationStageData implements Serializable
         return $max;
     }
 
-    public function hasReachedMaxRounds(int $maxRounds): bool
+    public function hasCriticsEligibleForAnotherPass(): bool
     {
-        return $this->getMaxCriticRound() >= $maxRounds;
+        foreach ($this->critics as $state) {
+            if ($state->canRunAnotherPass()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
-     * @param  list<array{purpose: string, order: int}>  $configured
+     * @param  list<array{purpose: string, order: int, max_rectification_rounds?: int}>  $configured
      */
     public function ensureCriticsInitialized(array $configured): static
     {
@@ -41,7 +47,10 @@ final class RectificationStageData implements Serializable
                 continue;
             }
 
-            $expected[$purpose] = (int) ($row['order'] ?? 0);
+            $expected[$purpose] = [
+                'order' => (int) ($row['order'] ?? 0),
+                'max_rectification_rounds' => max(1, (int) ($row['max_rectification_rounds'] ?? 1)),
+            ];
         }
 
         if ($this->critics !== [] && $this->configuredCriticsMatch($expected)) {
@@ -50,17 +59,18 @@ final class RectificationStageData implements Serializable
 
         $this->critics = [];
 
-        foreach ($expected as $purpose => $order) {
+        foreach ($expected as $purpose => $settings) {
             $this->critics[$purpose] = (new CriticRectificationState)
                 ->setPurpose($purpose)
-                ->setOrder($order);
+                ->setOrder($settings['order'])
+                ->setMaxRectificationRounds($settings['max_rectification_rounds']);
         }
 
         return $this;
     }
 
     /**
-     * @param  array<string, int>  $expected
+     * @param  array<string, array{order: int, max_rectification_rounds: int}>  $expected
      */
     protected function configuredCriticsMatch(array $expected): bool
     {
@@ -68,9 +78,14 @@ final class RectificationStageData implements Serializable
             return false;
         }
 
-        foreach ($expected as $purpose => $order) {
+        foreach ($expected as $purpose => $settings) {
             $state = $this->critics[$purpose] ?? null;
-            if (! $state instanceof CriticRectificationState || $state->getOrder() !== $order) {
+            if (! $state instanceof CriticRectificationState) {
+                return false;
+            }
+
+            if ($state->getOrder() !== $settings['order']
+                || $state->getMaxRectificationRounds() !== $settings['max_rectification_rounds']) {
                 return false;
             }
         }
@@ -101,7 +116,9 @@ final class RectificationStageData implements Serializable
         }
 
         foreach ($this->sortedCritics() as $state) {
-            if (! $state->isFinished() && $state->getPendingCriticisms() === []) {
+            if ($state->canRunAnotherPass()
+                && ! $state->isFinished()
+                && $state->getPendingCriticisms() === []) {
                 return $state;
             }
         }
@@ -168,7 +185,9 @@ final class RectificationStageData implements Serializable
     public function advancePass(): static
     {
         foreach ($this->critics as $state) {
-            $state->incrementRound();
+            if ($state->canRunAnotherPass()) {
+                $state->incrementRound();
+            }
         }
 
         return $this;
@@ -177,6 +196,10 @@ final class RectificationStageData implements Serializable
     public function resetForNextPass(): static
     {
         foreach ($this->critics as $state) {
+            if (! $state->canRunAnotherPass()) {
+                continue;
+            }
+
             $state->setPendingCriticisms([]);
             $state->setFinished(false);
         }

@@ -27,8 +27,7 @@ return [
     | Article rectification (build pipeline)
     |--------------------------------------------------------------------------
     |
-    | Default maximum criticize → rectify loops per RECTIFICATION stage when no critic
-    | entry sets max_rectification_rounds ({@see SynthesizerDriverProfiles} critics[]).
+    | Default max_rectification_rounds per critic when a profile critics[] entry omits it.
     |
     */
 

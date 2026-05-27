@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Contracts\PageParser\PageData;
 use App\Enums\ScrapingStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
@@ -47,6 +49,21 @@ class Snapshot extends Model implements ShouldCascade
     public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
+    }
+
+    public function getFilePathForPageData(): string
+    {
+        return 'snapshots/'.$this->page_id.'/'.$this->id.'/page-data.json';
+    }
+
+    public function getPageData(): ?PageData
+    {
+        $pageDataFilePath = $this->getFilePathForPageData();
+        if (!$pageDataJson = Storage::get($pageDataFilePath)) {
+            return null;
+        }
+
+        return PageData::fromJson($pageDataJson);
     }
 
     public function files(): BelongsToMany

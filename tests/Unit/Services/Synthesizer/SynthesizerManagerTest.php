@@ -192,10 +192,10 @@ class SynthesizerManagerTest extends TestCase
         $this->assertSame('openai_compatible_expansion', $profile['idea_forge']['advisors'][1]['driver']);
         $this->assertSame(
             [
-                ['driver' => 'openai', 'purpose' => 'voice', 'order' => 0],
-                ['driver' => 'openai', 'purpose' => 'structure', 'order' => 1],
-                ['driver' => 'openai', 'purpose' => 'clarity', 'order' => 2],
-                ['driver' => 'openai', 'purpose' => 'fingerprint', 'order' => 3],
+                ['driver' => 'openai_compatible', 'purpose' => 'voice', 'order' => 0],
+                ['driver' => 'openai_compatible', 'purpose' => 'structure', 'order' => 1],
+                ['driver' => 'openai_compatible', 'purpose' => 'clarity', 'order' => 2],
+                ['driver' => 'openai_compatible', 'purpose' => 'fingerprint', 'order' => 3],
             ],
             $profile['critics']
         );

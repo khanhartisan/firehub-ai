@@ -6,6 +6,7 @@ use App\Facades\PageParser;
 use App\Models\Page;
 use App\Models\Snapshot;
 use App\Utils\Debugger;
+use App\Utils\HtmlCleaner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -26,9 +27,9 @@ trait DataParsingStage
             return false;
         }
 
-        $pageData = PageParser::parse($cleanedHtml);
+        $pageData = PageParser::parse(HtmlCleaner::sanitize($cleanedHtml));
 
-        if (!Storage::put($this->getFilePathForPageData($snapshot), $pageData->toJson())) {
+        if (!Storage::put($snapshot->getFilePathForPageData(), $pageData->toJson())) {
             return false;
         }
 
@@ -59,10 +60,5 @@ trait DataParsingStage
         });
 
         return $saved;
-    }
-
-    protected function getFilePathForPageData(Snapshot $snapshot): string
-    {
-        return 'snapshots/'.$snapshot->page_id.'/'.$snapshot->id.'/page-data.json';
     }
 }

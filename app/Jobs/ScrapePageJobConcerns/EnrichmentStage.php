@@ -9,6 +9,7 @@ use App\Models\Page;
 use App\Models\Snapshot;
 use App\Models\Tag;
 use App\Utils\Debugger;
+use App\Utils\HtmlCleaner;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -35,7 +36,7 @@ trait EnrichmentStage
             return false;
         }
 
-        $classification = PageClassifier::classify($cleanedHtml);
+        $classification = PageClassifier::classify(HtmlCleaner::sanitize($cleanedHtml));
 
         if (!Storage::put(
             $this->getFilePathForPageClassificationResult($snapshot),

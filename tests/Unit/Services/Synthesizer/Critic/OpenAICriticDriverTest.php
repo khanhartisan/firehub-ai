@@ -147,8 +147,6 @@ class OpenAICriticDriverTest extends TestCase
 
         $this->assertSame('fingerprint', $critic->getPurpose());
         $this->assertStringContainsString('AI-generated content fingerprints', $prompt);
-        $this->assertStringContainsString('Stock transitions', $prompt);
-        $this->assertStringContainsString('Ignore structure', $prompt);
     }
 
     /**

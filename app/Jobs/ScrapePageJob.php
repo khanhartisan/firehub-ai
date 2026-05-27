@@ -400,14 +400,4 @@ class ScrapePageJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
             $page->saveQuietly();
         }
     }
-
-    protected function getPageDataForSnapshot(Snapshot $snapshot): ?PageData
-    {
-        $pageDataFilePath = $this->getFilePathForPageData($snapshot);
-        if (!$pageDataJson = Storage::get($pageDataFilePath)) {
-            return null;
-        }
-
-        return PageData::fromJson($pageDataJson);
-    }
 }

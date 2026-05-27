@@ -28,7 +28,7 @@ trait ExpandingStage
             return;
         }
 
-        $pageData = $this->getPageDataForSnapshot($snapshot);
+        $pageData = $snapshot->getPageData();
         $linkedUrls = $pageData->getLinkedPageUrls();
 
         $this->createLinkedPagesAndQueueScrapes($page, $linkedUrls);

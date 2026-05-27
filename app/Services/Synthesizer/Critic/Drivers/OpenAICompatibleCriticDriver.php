@@ -8,6 +8,8 @@ use App\Services\Synthesizer\Support\SynthesizerSubserviceConfig;
 
 class OpenAICompatibleCriticDriver extends OpenAICriticDriver
 {
+    protected int $minCriticisms = 1;
+
     /**
      * @param  array<string, mixed>  $config
      */

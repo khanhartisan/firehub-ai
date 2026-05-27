@@ -16,6 +16,7 @@ use App\Utils\UrlNormalizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class FileEnrichmentStageTest extends TestCase
@@ -31,17 +32,12 @@ class FileEnrichmentStageTest extends TestCase
     /**
      * @return object{run: callable(Page): ?bool}
      */
-    private function makeRunner(Page $page, PageData $pageData): object
+    private function makeRunner(Page $page): object
     {
-        return new class($page, $pageData) extends ScrapePageJob {
-            public function __construct(Page $page, private PageData $pageData)
+        return new class($page) extends ScrapePageJob {
+            public function __construct(Page $page)
             {
                 parent::__construct($page);
-            }
-
-            protected function getPageDataForSnapshot(Snapshot $snapshot): ?PageData
-            {
-                return $this->pageData;
             }
 
             public function run(Page $page): ?bool
@@ -49,6 +45,11 @@ class FileEnrichmentStageTest extends TestCase
                 return $this->handleFileEnrichmentStage($page);
             }
         };
+    }
+
+    private function storeSnapshotPageData(Snapshot $snapshot, PageData $pageData): void
+    {
+        Storage::put($snapshot->getFilePathForPageData(), $pageData->toJson());
     }
 
     /**
@@ -89,7 +90,7 @@ class FileEnrichmentStageTest extends TestCase
         $pageData = new PageData;
         $pageData->setMarkdownContent('# Hi');
 
-        $runner = $this->makeRunner($page, $pageData);
+        $runner = $this->makeRunner($page);
         $this->assertFalse($runner->run($page));
     }
 
@@ -99,8 +100,9 @@ class FileEnrichmentStageTest extends TestCase
 
         $pageData = new PageData;
         $pageData->setMarkdownContent("# Title\n\nPlain text without links to files.");
+        $this->storeSnapshotPageData($snapshot, $pageData);
 
-        $runner = $this->makeRunner($page, $pageData);
+        $runner = $this->makeRunner($page);
         $this->assertTrue($runner->run($page));
     }
 
@@ -116,8 +118,9 @@ class FileEnrichmentStageTest extends TestCase
 
         $pageData = new PageData;
         $pageData->setMarkdownContent('Download [report]('.$rawUrl.')');
+        $this->storeSnapshotPageData($snapshot, $pageData);
 
-        $runner = $this->makeRunner($page, $pageData);
+        $runner = $this->makeRunner($page);
         $this->assertNull($runner->run($page));
 
         $this->assertDatabaseHas('files', [
@@ -163,8 +166,9 @@ class FileEnrichmentStageTest extends TestCase
 
         $pageData = new PageData;
         $pageData->setMarkdownContent(''); // no new URLs
+        $this->storeSnapshotPageData($snapshot, $pageData);
 
-        $runner = $this->makeRunner($page, $pageData);
+        $runner = $this->makeRunner($page);
         $this->assertTrue($runner->run($page));
 
         Queue::assertNothingPushed();
@@ -196,8 +200,9 @@ class FileEnrichmentStageTest extends TestCase
 
         $pageData = new PageData;
         $pageData->setMarkdownContent('');
+        $this->storeSnapshotPageData($snapshot, $pageData);
 
-        $runner = $this->makeRunner($page, $pageData);
+        $runner = $this->makeRunner($page);
         $this->assertNull($runner->run($page));
 
         Queue::assertPushed(EmbeddingJob::class, function (EmbeddingJob $job) use ($file) {
@@ -219,8 +224,9 @@ class FileEnrichmentStageTest extends TestCase
         $pageData->setMarkdownContent(
             '[a]('.$rawUrl.') [b]('.$rawUrl.')'
         );
+        $this->storeSnapshotPageData($page->currentSnapshot, $pageData);
 
-        $runner = $this->makeRunner($page, $pageData);
+        $runner = $this->makeRunner($page);
         $this->assertNull($runner->run($page));
 
         $this->assertSame(1, File::query()->where('url_hash', $hash)->count());
@@ -238,8 +244,9 @@ class FileEnrichmentStageTest extends TestCase
         }
         $pageData = new PageData;
         $pageData->setMarkdownContent(implode("\n", $lines));
+        $this->storeSnapshotPageData($page->currentSnapshot, $pageData);
 
-        $runner = $this->makeRunner($page, $pageData);
+        $runner = $this->makeRunner($page);
         $this->assertNull($runner->run($page));
 
         $this->assertSame(100, File::query()->count());
@@ -265,8 +272,9 @@ class FileEnrichmentStageTest extends TestCase
 
         $pageData = new PageData;
         $pageData->setMarkdownContent('');
+        $this->storeSnapshotPageData($snapshot, $pageData);
 
-        $runner = $this->makeRunner($page, $pageData);
+        $runner = $this->makeRunner($page);
         $this->assertTrue($runner->run($page));
 
         Queue::assertNothingPushed();

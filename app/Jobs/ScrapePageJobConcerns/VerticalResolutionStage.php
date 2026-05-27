@@ -23,7 +23,7 @@ trait VerticalResolutionStage
 
         // Nothing to resolve?
         // Consider as done
-        if (!$pageDataFilePath = $this->getFilePathForPageData($snapshot)
+        if (!$pageDataFilePath = $snapshot->getFilePathForPageData()
             or !$pageDataJson = Storage::get($pageDataFilePath)
             or !$pageData = PageData::fromJson($pageDataJson)
             or !$markdownContent = $pageData->getMarkdownContent()

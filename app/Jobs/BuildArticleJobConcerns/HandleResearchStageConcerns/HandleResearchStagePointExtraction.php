@@ -6,12 +6,17 @@ use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Enums\KeywordStatus;
 use App\Models\Keyword;
 use App\Models\Page;
+use App\Models\Snapshot;
+use App\Utils\HtmlCleaner;
+use App\Utils\Markdown;
 use App\Utils\UrlNormalizer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 trait HandleResearchStagePointExtraction
 {
+
     /**
      * @param  Collection<int, Keyword>  $keywords
      */
@@ -105,8 +110,16 @@ trait HandleResearchStagePointExtraction
         $chunks = array_filter([
             $page->title !== null ? trim((string) $page->title) : '',
             $page->description !== null ? trim((string) $page->description) : '',
-            $page->getTextForEmbedding() !== null ? trim((string) $page->getTextForEmbedding()) : '',
-            trim((string) $page->url),
+            (function () use ($page) {
+                /** @var Snapshot $snapshot */
+                if (!$snapshot = $page->currentSnapshot
+                    or !$pageData = $snapshot->getPageData()
+                ) {
+                    return '';
+                }
+
+                return $pageData->getMarkdownContent();
+            })()
         ], static fn (string $value): bool => $value !== '');
 
         return trim(implode("\n\n", array_unique($chunks)));

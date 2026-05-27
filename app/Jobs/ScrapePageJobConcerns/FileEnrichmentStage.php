@@ -24,7 +24,7 @@ trait FileEnrichmentStage
             return false;
         }
 
-        $pageData = $this->getPageDataForSnapshot($snapshot);
+        $pageData = $snapshot->getPageData();
         $markdown = $pageData->getMarkdownContent();
 
         // Extract file urls and create a file record foreach

@@ -16,6 +16,10 @@ class OpenAICriticDriver extends CriticService
 {
     protected ?OpenAIClient $openAIClient;
 
+    protected int $minCriticisms = 0;
+
+    protected int $maxCriticisms = 10;
+
     /**
      * @param  array<string, mixed>  $config
      */
@@ -96,6 +100,8 @@ class OpenAICriticDriver extends CriticService
                                 'items' => ['type' => 'string'],
                             ],
                         ],
+                        'minItems' => $this->minCriticisms,
+                        'maxItems' => $this->maxCriticisms,
                         'required' => ['reference', 'confidence', 'importance', 'remarks'],
                         'additionalProperties' => false,
                     ],

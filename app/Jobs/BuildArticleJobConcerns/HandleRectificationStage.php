@@ -89,7 +89,7 @@ trait HandleRectificationStage
             $dom,
             $authorContext,
             $this->buildSemanticContext(),
-            $stageData->getRectifications(),
+            array_slice($stageData->getRectifications(), 0, -5),
         );
 
         if ($criticisms === []) {

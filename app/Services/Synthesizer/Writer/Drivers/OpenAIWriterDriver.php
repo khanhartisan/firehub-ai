@@ -840,18 +840,12 @@ PROMPT;
             );
         }
 
-        $applied = match ($operation) {
+        match ($operation) {
             'replace' => $this->replaceElementsByReference($rectified, $reference, $elements),
             'insert_before' => $this->insertElementsBeforeReference($rectified, $reference, $elements),
             'insert_after' => $this->insertElementsAfterReference($rectified, $reference, $elements),
             default => false,
         };
-
-        if (! $applied) {
-            throw new RuntimeException(
-                "Failed to rectify article with OpenAI: could not apply \"{$operation}\" for reference \"{$reference}\"."
-            );
-        }
 
         return true;
     }

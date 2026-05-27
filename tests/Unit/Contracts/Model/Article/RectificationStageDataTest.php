@@ -25,7 +25,7 @@ class RectificationStageDataTest extends TestCase
         ]);
 
         $this->assertSame('voice', $stageData->getCriticAwaitingRectification()?->getPurpose());
-        $this->assertSame('structure', $stageData->getNextPendingCritic()?->getPurpose());
+        $this->assertNull($stageData->getNextPendingCritic());
 
         $stageData->markCriticDone('voice');
 

@@ -119,12 +119,14 @@ class OutlineAndAuthorDriversTest extends TestCase
             'fixes' => [
                 [
                     'reference' => 'thin',
-                    'removed' => false,
-                    'element' => [
-                        'identifier' => 'thin',
-                        'type' => 'p',
-                        'props' => (object) [],
-                        'children' => ['Expanded opening with more supporting detail.'],
+                    'operation' => 'replace',
+                    'elements' => [
+                        [
+                            'identifier' => 'thin',
+                            'type' => 'p',
+                            'props' => (object) [],
+                            'children' => ['Expanded opening with more supporting detail.'],
+                        ],
                     ],
                 ],
             ],
@@ -201,7 +203,7 @@ class OutlineAndAuthorDriversTest extends TestCase
             'fixes' => [
                 [
                     'reference' => 'thin',
-                    'removed' => true,
+                    'operation' => 'remove',
                 ],
             ],
             'rectifications' => [
@@ -298,6 +300,186 @@ class OutlineAndAuthorDriversTest extends TestCase
         $this->assertStringNotContainsString('Delete me.', $html);
         $this->assertCount(1, $result->getRectifications());
         $this->assertSame('drop', $result->getRectifications()[0]->getReference());
+    }
+
+    public function test_openai_writer_driver_can_replace_node_with_multiple_siblings(): void
+    {
+        $payload = json_encode([
+            'fixes' => [
+                [
+                    'reference' => 'bloc',
+                    'operation' => 'replace',
+                    'elements' => [
+                        [
+                            'identifier' => 'bloc',
+                            'type' => 'p',
+                            'props' => (object) [],
+                            'children' => ['First split paragraph.'],
+                        ],
+                        [
+                            'identifier' => 'blc2',
+                            'type' => 'p',
+                            'props' => (object) [],
+                            'children' => ['Second split paragraph.'],
+                        ],
+                    ],
+                ],
+            ],
+            'rectifications' => [
+                [
+                    'reference' => 'bloc',
+                    'confidence' => 0.9,
+                    'adjustments' => ['Split the block into two paragraphs.'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($this->makeOpenAiWriterResponse($payload));
+
+        $author = new OpenAIWriterDriver($client, ['model' => 'gpt-4o-mini']);
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'bloc',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['One dense block.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('bloc')
+                ->setRemarks(['Split this into two shorter paragraphs.']),
+        ]);
+
+        $html = $result->getArticle()->toHtml();
+        $this->assertStringContainsString('First split paragraph.', $html);
+        $this->assertStringContainsString('Second split paragraph.', $html);
+        $this->assertStringNotContainsString('One dense block.', $html);
+    }
+
+    public function test_openai_writer_driver_can_insert_elements_after_reference(): void
+    {
+        $payload = json_encode([
+            'fixes' => [
+                [
+                    'reference' => 'intr',
+                    'operation' => 'insert_after',
+                    'elements' => [
+                        [
+                            'identifier' => 'exam',
+                            'type' => 'p',
+                            'props' => (object) [],
+                            'children' => ['Concrete example paragraph.'],
+                        ],
+                    ],
+                ],
+            ],
+            'rectifications' => [
+                [
+                    'reference' => 'intr',
+                    'confidence' => 0.88,
+                    'adjustments' => ['Added an example after the intro.'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($this->makeOpenAiWriterResponse($payload));
+
+        $author = new OpenAIWriterDriver($client, ['model' => 'gpt-4o-mini']);
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'intr',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Intro stays.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('intr')
+                ->setRemarks(['Add a concrete example after the intro.']),
+        ]);
+
+        $html = $result->getArticle()->toHtml();
+        $this->assertStringContainsString('Intro stays.', $html);
+        $this->assertStringContainsString('Concrete example paragraph.', $html);
+        $this->assertTrue(
+            str_contains($html, 'Intro stays.') && str_contains($html, 'Concrete example paragraph.')
+                && strpos($html, 'Intro stays.') < strpos($html, 'Concrete example paragraph.')
+        );
+    }
+
+    public function test_openai_writer_driver_can_insert_elements_before_reference(): void
+    {
+        $payload = json_encode([
+            'fixes' => [
+                [
+                    'reference' => 'body',
+                    'operation' => 'insert_before',
+                    'elements' => [
+                        [
+                            'identifier' => 'lead-in',
+                            'type' => 'p',
+                            'props' => (object) [],
+                            'children' => ['Lead-in paragraph.'],
+                        ],
+                    ],
+                ],
+            ],
+            'rectifications' => [
+                [
+                    'reference' => 'body',
+                    'confidence' => 0.86,
+                    'adjustments' => ['Added a lead-in before the body.'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($this->makeOpenAiWriterResponse($payload));
+
+        $author = new OpenAIWriterDriver($client, ['model' => 'gpt-4o-mini']);
+        $article = Article::fromArray([
+            'identifier' => 'root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'body',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Body stays.'],
+                ],
+            ],
+        ]);
+
+        $result = $author->rectifyArticle($article, [
+            (new Criticism)
+                ->setReference('body')
+                ->setRemarks(['Add a lead-in before the body section.']),
+        ]);
+
+        $html = $result->getArticle()->toHtml();
+        $this->assertStringContainsString('Lead-in paragraph.', $html);
+        $this->assertStringContainsString('Body stays.', $html);
+        $this->assertTrue(
+            str_contains($html, 'Lead-in paragraph.') && str_contains($html, 'Body stays.')
+                && strpos($html, 'Lead-in paragraph.') < strpos($html, 'Body stays.')
+        );
     }
 
     public function test_openai_writer_driver_rectifies_mixed_criticisms_with_full_article_markdown(): void
@@ -698,5 +880,22 @@ MD,
         $this->expectExceptionMessage('OpenAI client is not configured');
 
         $driver->outline($brief, $context);
+    }
+
+    protected function makeOpenAiWriterResponse(string $payload): Response
+    {
+        return Response::fromArray([
+            'id' => 'resp_author_rectify_'.md5($payload),
+            'created_at' => time(),
+            'status' => 'completed',
+            'model' => 'gpt-4o-mini',
+            'output' => [[
+                'type' => 'message',
+                'content' => [[
+                    'type' => 'output_text',
+                    'text' => $payload,
+                ]],
+            ]],
+        ]);
     }
 }

@@ -515,13 +515,17 @@ PROMPT;
 You are a senior editorial writer applying localized revisions to an article DOM.
 
 Every criticism in the input is tied to a DOM reference. Revise only those referenced nodes; leave all other nodes unchanged.
-Return one fix per target reference ({$referenceList}). For each reference, either replace the node or remove it from the article.
+Return one fix per target reference ({$referenceList}). Choose the DOM operation that best addresses the criticisms for that node.
 
 Rules:
 - fixes[].reference must be one of target_references.
-- fixes[].removed: set true to delete the node entirely (omit element); set false to replace it with fixes[].element.
-- When removed is false, fixes[].element.identifier must equal fixes[].reference.
-- Preserve the element type when reasonable; you may change children and props as needed to address the criticisms.
+- fixes[].operation must be one of: remove, replace, insert_before, insert_after.
+- remove: delete the node at reference from the article (omit elements).
+- replace: remove the node at reference and insert fixes[].elements in its place (1+ sibling nodes). When using one element, its identifier must equal reference. When splitting into multiple nodes, the first element should reuse reference; give additional siblings new unique identifiers not used elsewhere in the article.
+- insert_before: keep the node at reference; insert fixes[].elements immediately before it (new identifiers required).
+- insert_after: keep the node at reference; insert fixes[].elements immediately after it (new identifiers required).
+- Element identifiers are at most 4 characters; reuse existing identifiers from the input article when possible.
+- Preserve element types when reasonable; you may change children and props as needed to address the criticisms.
 - Do not return markdown or a full article—only the fixes array and rectifications.
 - rectifications[].reference must match a fix you applied (including removals).
 - rectifications[].confidence is how confident you are the fix fully addresses the related criticisms (0.00–1.00).
@@ -682,21 +686,47 @@ PROMPT;
      */
     protected function buildTargetedFixItemSchema(array $allowedReferences): array
     {
+        $referenceSchema = [
+            'type' => 'string',
+            'enum' => $allowedReferences,
+        ];
+
         return [
-            'type' => 'object',
-            'properties' => [
-                'reference' => [
-                    'type' => 'string',
-                    'enum' => $allowedReferences,
+            'anyOf' => [
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'reference' => $referenceSchema,
+                        'operation' => [
+                            'type' => 'string',
+                            'const' => 'remove',
+                            'description' => 'Delete the node at reference from the article.',
+                        ],
+                    ],
+                    'required' => ['reference', 'operation'],
+                    'additionalProperties' => false,
                 ],
-                'removed' => [
-                    'type' => 'boolean',
-                    'description' => 'When true, delete the node at reference from the article; omit element.',
+                [
+                    'type' => 'object',
+                    'properties' => [
+                        'reference' => $referenceSchema,
+                        'operation' => [
+                            'type' => 'string',
+                            'enum' => ['replace', 'insert_before', 'insert_after'],
+                            'description' => 'DOM mutation to apply at the referenced node.',
+                        ],
+                        'elements' => [
+                            'type' => 'array',
+                            'minItems' => 1,
+                            'maxItems' => 10,
+                            'items' => $this->buildDomElementSchema(),
+                            'description' => 'One or more DOM nodes to insert or substitute.',
+                        ],
+                    ],
+                    'required' => ['reference', 'operation', 'elements'],
+                    'additionalProperties' => false,
                 ],
-                'element' => $this->buildDomElementSchema(),
             ],
-            'required' => ['reference', 'removed'],
-            'additionalProperties' => false,
         ];
     }
 
@@ -770,41 +800,9 @@ PROMPT;
                 continue;
             }
 
-            $removed = (bool) ($row['removed'] ?? false);
-
-            if ($removed) {
-                $this->assertRemovableReference($rectified, $reference);
-
-                if (! $this->removeElementByReference($rectified, $reference)) {
-                    throw new RuntimeException(
-                        "Failed to rectify article with OpenAI: could not remove reference \"{$reference}\"."
-                    );
-                }
-
+            if ($this->applyTargetedFix($rectified, $reference, $row)) {
                 $appliedReferences[$reference] = true;
-
-                continue;
             }
-
-            $elementData = $row['element'] ?? null;
-            if (! is_array($elementData)) {
-                throw new RuntimeException(
-                    "Failed to rectify article with OpenAI: fix for reference \"{$reference}\" must include element when removed is false."
-                );
-            }
-
-            $replacement = Element::fromArray($elementData);
-            if (trim($replacement->getIdentifier()) !== $reference) {
-                $replacement->setIdentifier($reference);
-            }
-
-            if (! $this->replaceElementByReference($rectified, $reference, $replacement)) {
-                throw new RuntimeException(
-                    "Failed to rectify article with OpenAI: could not apply fix for reference \"{$reference}\"."
-                );
-            }
-
-            $appliedReferences[$reference] = true;
         }
 
         if ($appliedReferences === []) {
@@ -814,6 +812,97 @@ PROMPT;
         return (new RectifiedArticle)
             ->setArticle($rectified)
             ->setRectifications($this->hydrateRectificationsFromPayload($payload, $allowedReferences));
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    protected function applyTargetedFix(Article $rectified, string $reference, array $row): bool
+    {
+        $operation = $this->resolveTargetedFixOperation($row);
+
+        if ($operation === 'remove') {
+            $this->assertRemovableReference($rectified, $reference);
+
+            if (! $this->removeElementByReference($rectified, $reference)) {
+                throw new RuntimeException(
+                    "Failed to rectify article with OpenAI: could not remove reference \"{$reference}\"."
+                );
+            }
+
+            return true;
+        }
+
+        $elements = $this->hydrateFixElements($reference, $operation, $row);
+        if ($elements === []) {
+            throw new RuntimeException(
+                "Failed to rectify article with OpenAI: fix for reference \"{$reference}\" must include elements for operation \"{$operation}\"."
+            );
+        }
+
+        $applied = match ($operation) {
+            'replace' => $this->replaceElementsByReference($rectified, $reference, $elements),
+            'insert_before' => $this->insertElementsBeforeReference($rectified, $reference, $elements),
+            'insert_after' => $this->insertElementsAfterReference($rectified, $reference, $elements),
+            default => false,
+        };
+
+        if (! $applied) {
+            throw new RuntimeException(
+                "Failed to rectify article with OpenAI: could not apply \"{$operation}\" for reference \"{$reference}\"."
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    protected function resolveTargetedFixOperation(array $row): string
+    {
+        $operation = strtolower(trim((string) ($row['operation'] ?? '')));
+        if (in_array($operation, ['remove', 'replace', 'insert_before', 'insert_after'], true)) {
+            return $operation;
+        }
+
+        if ((bool) ($row['removed'] ?? false)) {
+            return 'remove';
+        }
+
+        return 'replace';
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return list<Element>
+     */
+    protected function hydrateFixElements(string $reference, string $operation, array $row): array
+    {
+        $rawElements = $row['elements'] ?? null;
+        if (! is_array($rawElements)) {
+            $legacyElement = $row['element'] ?? null;
+            if (is_array($legacyElement)) {
+                $rawElements = [$legacyElement];
+            } else {
+                return [];
+            }
+        }
+
+        $elements = [];
+        foreach ($rawElements as $elementData) {
+            if (! is_array($elementData)) {
+                throw new RuntimeException('Failed to rectify article with OpenAI: invalid element in fix.');
+            }
+
+            $elements[] = Element::fromArray($elementData);
+        }
+
+        if ($operation === 'replace' && $elements !== [] && trim($elements[0]->getIdentifier()) !== $reference) {
+            $elements[0]->setIdentifier($reference);
+        }
+
+        return $elements;
     }
 
     /**

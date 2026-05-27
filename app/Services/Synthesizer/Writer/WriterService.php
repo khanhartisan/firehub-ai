@@ -100,6 +100,18 @@ abstract class WriterService implements Writer
 
     protected function replaceElementByReference(Element $root, string $reference, Element $replacement): bool
     {
+        return $this->replaceElementsByReference($root, $reference, [$replacement]);
+    }
+
+    /**
+     * @param  list<Element>  $replacements
+     */
+    protected function replaceElementsByReference(Element $root, string $reference, array $replacements): bool
+    {
+        if ($replacements === []) {
+            return false;
+        }
+
         foreach ($root->getChildren() as $index => $child) {
             if (! $child instanceof Element) {
                 continue;
@@ -107,13 +119,73 @@ abstract class WriterService implements Writer
 
             if (trim($child->getIdentifier()) === $reference) {
                 $children = $root->getChildren();
-                $children[$index] = $replacement;
+                array_splice($children, $index, 1, $replacements);
                 $root->setChildren($children);
 
                 return true;
             }
 
-            if ($this->replaceElementByReference($child, $reference, $replacement)) {
+            if ($this->replaceElementsByReference($child, $reference, $replacements)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<Element>  $elements
+     */
+    protected function insertElementsBeforeReference(Element $root, string $reference, array $elements): bool
+    {
+        if ($elements === []) {
+            return false;
+        }
+
+        foreach ($root->getChildren() as $index => $child) {
+            if (! $child instanceof Element) {
+                continue;
+            }
+
+            if (trim($child->getIdentifier()) === $reference) {
+                $children = $root->getChildren();
+                array_splice($children, $index, 0, $elements);
+                $root->setChildren($children);
+
+                return true;
+            }
+
+            if ($this->insertElementsBeforeReference($child, $reference, $elements)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<Element>  $elements
+     */
+    protected function insertElementsAfterReference(Element $root, string $reference, array $elements): bool
+    {
+        if ($elements === []) {
+            return false;
+        }
+
+        foreach ($root->getChildren() as $index => $child) {
+            if (! $child instanceof Element) {
+                continue;
+            }
+
+            if (trim($child->getIdentifier()) === $reference) {
+                $children = $root->getChildren();
+                array_splice($children, $index + 1, 0, $elements);
+                $root->setChildren($children);
+
+                return true;
+            }
+
+            if ($this->insertElementsAfterReference($child, $reference, $elements)) {
                 return true;
             }
         }

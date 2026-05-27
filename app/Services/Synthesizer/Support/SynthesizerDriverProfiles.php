@@ -93,7 +93,7 @@ final class SynthesizerDriverProfiles
                 ['driver' => 'openai', 'purpose' => 'clarity', 'order' => 2],
                 ['driver' => 'openai', 'purpose' => 'fingerprint', 'order' => 3],
             ],
-            'writer' => 'openai_compatible',
+            'writer' => 'openai',
             'illustration' => [
                 'director' => 'openai_compatible',
                 'illustrators' => [

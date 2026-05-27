@@ -1,1 +1,0 @@
-Finish implementing the Illustration service

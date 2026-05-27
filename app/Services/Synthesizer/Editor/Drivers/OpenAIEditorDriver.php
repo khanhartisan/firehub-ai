@@ -404,10 +404,10 @@ PROMPT;
     ): SemanticContext {
         $authorKeys = array_keys($authorContext->toArray());
         $generalKeys = $generalContext instanceof SemanticContext
-            ? array_intersect(
+            ? array_values(array_intersect(
                 ['article_context', 'client_context', 'outline_focus'],
                 array_keys($generalContext->toArray())
-            )
+            ))
             : [];
 
         $payload = [
@@ -449,10 +449,10 @@ PROMPT;
 
         $authorKeys = array_keys($authorContext->toArray());
         $generalKeys = $generalContext instanceof SemanticContext
-            ? array_intersect(
+            ? array_values(array_intersect(
                 ['article_context', 'client_context', 'outline_focus'],
                 array_keys($generalContext->toArray())
-            )
+            ))
             : [];
 
         $payload = [
@@ -568,8 +568,8 @@ PROMPT;
      */
     protected function buildDistillSchema(array $authorKeys, array $generalKeys): array
     {
-        $authorKeyEnum = $authorKeys === [] ? ['__none__'] : $authorKeys;
-        $generalKeyEnum = $generalKeys === [] ? ['__none__'] : $generalKeys;
+        $authorKeyEnum = $authorKeys === [] ? ['__none__'] : array_values($authorKeys);
+        $generalKeyEnum = $generalKeys === [] ? ['__none__'] : array_values($generalKeys);
 
         return [
             'type' => 'object',

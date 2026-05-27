@@ -9,6 +9,7 @@ use App\Contracts\DOM\ElementType;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\Synthesizer\Critic\Rectification;
+use App\Services\Synthesizer\Critic\ArticleCritics\EvidenceArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\FingerprintArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\VoiceArticleCritic;
 use App\Services\Synthesizer\Critic\CriticManager;
@@ -147,6 +148,16 @@ class OpenAICriticDriverTest extends TestCase
 
         $this->assertSame('fingerprint', $critic->getPurpose());
         $this->assertStringContainsString('AI-generated content fingerprints', $prompt);
+    }
+
+    public function test_evidence_article_critic_declares_evidence_focused_prompt(): void
+    {
+        $critic = new EvidenceArticleCritic;
+        $prompt = (new \ReflectionMethod($critic, 'buildPrompt'))
+            ->invoke($critic, ['sections' => []]);
+
+        $this->assertSame('evidence', $critic->getPurpose());
+        $this->assertStringContainsString('lack necessary evidence, details, or examples', $prompt);
     }
 
     /**

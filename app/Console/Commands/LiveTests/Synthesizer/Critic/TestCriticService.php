@@ -18,7 +18,7 @@ class TestCriticService extends Command
 {
     protected $signature = 'live-test:synthesizer:test-critic-service
                             {--driver= : Critic driver name (basic, openai, openai_compatible)}
-                            {--purpose= : Critic purpose (voice, structure, clarity, fingerprint)}
+                            {--purpose= : Critic purpose (voice, structure, clarity, fingerprint, evidence)}
                             {--all-purposes : Run every purpose for the selected driver}';
 
     protected $description = 'Run Critic driver(s) in isolation (criticizeArticle) or load critics from a synthesizer driver.';
@@ -164,7 +164,7 @@ class TestCriticService extends Command
             'Which critics to run?',
             [
                 'Single purpose',
-                'All purposes (voice, structure, clarity, fingerprint)',
+                'All purposes (voice, structure, clarity, fingerprint, evidence)',
             ],
             1
         );

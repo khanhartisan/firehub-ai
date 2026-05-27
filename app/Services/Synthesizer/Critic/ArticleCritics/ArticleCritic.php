@@ -5,7 +5,7 @@ namespace App\Services\Synthesizer\Critic\ArticleCritics;
 use App\Contracts\Describable;
 
 /**
- * A specialized critic that reviews one dimension of an article (voice, structure, clarity, fingerprint, etc.).
+ * A specialized critic that reviews one dimension of an article (voice, structure, clarity, fingerprint, evidence, etc.).
  *
  * Subclasses declare purpose-specific prompts; orchestrators run many critics and merge results.
  */
@@ -14,7 +14,7 @@ abstract class ArticleCritic implements Describable
     use \App\Concerns\Describable;
 
     /**
-     * Stable machine key for this critic (e.g. voice, structure, clarity, fingerprint).
+     * Stable machine key for this critic (e.g. voice, structure, clarity, fingerprint, evidence).
      */
     abstract public function getPurpose(): string;
 
@@ -55,7 +55,7 @@ abstract class ArticleCritic implements Describable
 - Return only actionable criticisms tied to a valid "reference" from the input sections.
 - Set confidence (0–1): how sure you are the issue is real.
 - Set importance (0–1): how strongly the author should fix it before publish.
-- Omit nitpicks; return an empty criticisms array when the draft totally passes your lens.
+- Omit nitpicks; return an empty criticisms array when the draft PERFECTLY passes your lens. Otherwise you may return criticisms with low confidence/importance.
 TEXT;
     }
 }

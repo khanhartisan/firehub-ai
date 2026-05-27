@@ -27,6 +27,7 @@ final class SynthesizerDriverProfiles
                 ['driver' => 'basic', 'purpose' => 'structure', 'order' => 1],
                 ['driver' => 'basic', 'purpose' => 'clarity', 'order' => 2, 'max_rectification_rounds' => 1],
                 ['driver' => 'basic', 'purpose' => 'fingerprint', 'order' => 3],
+                ['driver' => 'basic', 'purpose' => 'evidence', 'order' => 4],
             ],
             'writer' => 'basic',
             'illustration' => [
@@ -57,6 +58,7 @@ final class SynthesizerDriverProfiles
                 ['driver' => 'openai', 'purpose' => 'structure', 'order' => 1],
                 ['driver' => 'openai', 'purpose' => 'clarity', 'order' => 2, 'max_rectification_rounds' => 2],
                 ['driver' => 'openai', 'purpose' => 'fingerprint', 'order' => 3],
+                ['driver' => 'openai', 'purpose' => 'evidence', 'order' => 4],
             ],
             'writer' => 'openai',
             'illustration' => [
@@ -92,6 +94,7 @@ final class SynthesizerDriverProfiles
                 ['driver' => 'openai_compatible', 'purpose' => 'structure', 'order' => 1],
                 ['driver' => 'openai_compatible', 'purpose' => 'clarity', 'order' => 2],
                 ['driver' => 'openai_compatible', 'purpose' => 'fingerprint', 'order' => 3],
+                ['driver' => 'openai_compatible', 'purpose' => 'evidence', 'order' => 4],
             ],
             'writer' => 'openai_compatible',
             'illustration' => [

@@ -37,8 +37,8 @@ class CriticManagerTest extends TestCase
         $manager = $this->app->make(CriticManager::class);
         $critics = $manager->getCritics('basic');
 
-        $this->assertCount(5, $critics);
-        $this->assertSame(['voice', 'structure', 'clarity', 'fingerprint', 'evidence'], array_map(
+        $this->assertCount(7, $critics);
+        $this->assertSame(['voice', 'structure', 'clarity', 'concision', 'fingerprint', 'evidence', 'general'], array_map(
             static fn ($critic) => $critic->getPurpose(),
             $critics
         ));

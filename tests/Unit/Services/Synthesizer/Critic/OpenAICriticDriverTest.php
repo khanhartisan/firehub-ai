@@ -9,8 +9,10 @@ use App\Contracts\DOM\ElementType;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\Synthesizer\Critic\Rectification;
+use App\Services\Synthesizer\Critic\ArticleCritics\ConcisionArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\EvidenceArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\FingerprintArticleCritic;
+use App\Services\Synthesizer\Critic\ArticleCritics\GeneralArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\VoiceArticleCritic;
 use App\Services\Synthesizer\Critic\CriticManager;
 use App\Services\Synthesizer\Critic\Drivers\OpenAICriticDriver;
@@ -158,6 +160,28 @@ class OpenAICriticDriverTest extends TestCase
 
         $this->assertSame('evidence', $critic->getPurpose());
         $this->assertStringContainsString('lack necessary supporting evidence, statistics, examples', $prompt);
+    }
+
+    public function test_concision_article_critic_declares_redundancy_focused_prompt(): void
+    {
+        $critic = new ConcisionArticleCritic;
+        $prompt = (new \ReflectionMethod($critic, 'buildPrompt'))
+            ->invoke($critic, ['sections' => []]);
+
+        $this->assertSame('concision', $critic->getPurpose());
+        $this->assertStringContainsString('redundancy and wordiness', $prompt);
+        $this->assertStringContainsString('Repeated ideas', $prompt);
+    }
+
+    public function test_general_article_critic_declares_holistic_prompt(): void
+    {
+        $critic = new GeneralArticleCritic;
+        $prompt = (new \ReflectionMethod($critic, 'buildPrompt'))
+            ->invoke($critic, ['sections' => []]);
+
+        $this->assertSame('general', $critic->getPurpose());
+        $this->assertStringContainsString('holistic review', $prompt);
+        $this->assertStringContainsString('not limited to one dimension', $prompt);
     }
 
     /**

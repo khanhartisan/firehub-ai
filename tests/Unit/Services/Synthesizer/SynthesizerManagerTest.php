@@ -71,7 +71,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(BasicEditorDriver::class, $driver->getEditor());
         $this->assertNotEmpty($driver->getCritics());
         $this->assertContainsOnlyInstancesOf(BasicCriticDriver::class, $driver->getCritics());
-        $this->assertSame(['voice', 'structure', 'clarity', 'fingerprint', 'evidence'], array_map(
+        $this->assertSame(['voice', 'structure', 'clarity', 'concision', 'fingerprint', 'evidence', 'general'], array_map(
             static fn ($critic) => $critic->getPurpose(),
             $driver->getCritics()
         ));
@@ -195,8 +195,10 @@ class SynthesizerManagerTest extends TestCase
                 ['driver' => 'openai_compatible', 'purpose' => 'voice', 'order' => 0],
                 ['driver' => 'openai_compatible', 'purpose' => 'structure', 'order' => 1],
                 ['driver' => 'openai_compatible', 'purpose' => 'clarity', 'order' => 2],
-                ['driver' => 'openai_compatible', 'purpose' => 'fingerprint', 'order' => 3],
-                ['driver' => 'openai_compatible', 'purpose' => 'evidence', 'order' => 4],
+                ['driver' => 'openai_compatible', 'purpose' => 'concision', 'order' => 3],
+                ['driver' => 'openai_compatible', 'purpose' => 'fingerprint', 'order' => 4],
+                ['driver' => 'openai_compatible', 'purpose' => 'evidence', 'order' => 5],
+                ['driver' => 'openai_compatible', 'purpose' => 'general', 'order' => 6],
             ],
             $profile['critics']
         );

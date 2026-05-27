@@ -42,6 +42,28 @@ class BasicCriticDriver extends CriticService
     ];
 
     /**
+     * Wordy or redundant phrases a concision pass should trim.
+     *
+     * @var list<string>
+     */
+    protected const WORDY_PHRASES = [
+        'in order to',
+        'due to the fact that',
+        'at this point in time',
+        'in the event that',
+        'for the purpose of',
+        'has the ability to',
+        'each and every',
+        'repeat again',
+        'past history',
+        'end result',
+        'absolutely essential',
+        'completely eliminate',
+        'still remains',
+        'unexpected surprise',
+    ];
+
+    /**
      * @param  array<string, mixed>  $config
      */
     public function __construct(CriticManager $criticManager, string $purpose, array $config = [])
@@ -66,6 +88,7 @@ class BasicCriticDriver extends CriticService
     ): array {
         return match ($this->purpose) {
             'clarity' => $this->criticizeClarity($payload, $rectifiedReferences),
+            'concision' => $this->criticizeConcision($payload, $rectifiedReferences),
             'voice' => $this->criticizeVoice($payload, $rectifiedReferences),
             'fingerprint' => $this->criticizeFingerprint($payload, $rectifiedReferences),
             default => [],
@@ -175,6 +198,68 @@ class BasicCriticDriver extends CriticService
      * @param  array<string, true>  $rectifiedReferences
      * @return list<Criticism>
      */
+    protected function criticizeConcision(array $payload, array $rectifiedReferences): array
+    {
+        $article = $payload['article'] ?? null;
+        if (! is_array($article)) {
+            return [];
+        }
+
+        $criticisms = [];
+
+        $this->walkArticleNodes($article, function (string $reference) use (&$criticisms, $article, $rectifiedReferences): void {
+            if (isset($rectifiedReferences[$reference])) {
+                return;
+            }
+
+            $node = $this->findNodeByReference($article, $reference);
+            if ($node !== null && ($node['type'] ?? null) === 'article') {
+                return;
+            }
+
+            $text = $this->extractTextForReference($article, $reference);
+            if ($text === '') {
+                return;
+            }
+
+            $remarks = [];
+
+            $wordyMatches = $this->findWordyPhrases($text);
+            if ($wordyMatches !== []) {
+                $remarks[] = sprintf(
+                    'Section contains wordy or redundant phrasing (detected: %s). Tighten without losing meaning.',
+                    implode(', ', $wordyMatches)
+                );
+            }
+
+            $repeatedSentence = $this->findRepeatedSentence($text);
+            if ($repeatedSentence !== null) {
+                $remarks[] = sprintf(
+                    'Section repeats the same sentence: "%s". Remove or merge the duplicate.',
+                    $repeatedSentence
+                );
+            }
+
+            if ($remarks === []) {
+                return;
+            }
+
+            $criticisms[] = (new Criticism)
+                ->setPurpose($this->purpose)
+                ->setReference($reference)
+                ->setConfidence(0.82)
+                ->setImportance(0.72)
+                ->setRemarks($remarks);
+        });
+
+        return $criticisms;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, true>  $rectifiedReferences
+     * @return list<Criticism>
+     */
     protected function criticizeFingerprint(array $payload, array $rectifiedReferences): array
     {
         $article = $payload['article'] ?? null;
@@ -218,6 +303,49 @@ class BasicCriticDriver extends CriticService
         });
 
         return $criticisms;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function findWordyPhrases(string $text): array
+    {
+        $haystack = strtolower($text);
+        $matches = [];
+
+        foreach (self::WORDY_PHRASES as $phrase) {
+            if (str_contains($haystack, $phrase)) {
+                $matches[] = $phrase;
+            }
+        }
+
+        return array_values(array_unique($matches));
+    }
+
+    protected function findRepeatedSentence(string $text): ?string
+    {
+        $sentences = preg_split('/(?<=[.!?])\s+/u', trim($text)) ?: [];
+        $normalized = [];
+
+        foreach ($sentences as $sentence) {
+            $sentence = trim($sentence);
+            if ($sentence === '') {
+                continue;
+            }
+
+            $key = strtolower(preg_replace('/\s+/u', ' ', $sentence) ?? $sentence);
+            if (strlen($key) < 20) {
+                continue;
+            }
+
+            if (isset($normalized[$key])) {
+                return $sentence;
+            }
+
+            $normalized[$key] = true;
+        }
+
+        return null;
     }
 
     /**

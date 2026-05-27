@@ -108,6 +108,63 @@ class BasicCriticDriverTest extends TestCase
         $this->assertStringContainsString('it is important to note', $sectionCriticism[0]->getRemarks()[0]);
     }
 
+    public function test_it_flags_wordy_phrases_under_concision_purpose(): void
+    {
+        $article = new Article;
+        $article->addChild(
+            (new Element)
+                ->setType(ElementType::DIV)
+                ->setIdentifier('word')
+                ->addChild(
+                    (new Element)
+                        ->setType(ElementType::P)
+                        ->addChild('In order to due to the fact that each and every step matters, teams ship faster.')
+                )
+        );
+
+        $driver = $this->basicDriver('concision');
+        $criticisms = $driver->criticizeArticle($article);
+
+        $sectionCriticism = array_values(array_filter(
+            $criticisms,
+            static fn (Criticism $criticism): bool => $criticism->getReference() === 'word'
+        ));
+
+        $this->assertCount(1, $sectionCriticism);
+        $this->assertSame('concision', $sectionCriticism[0]->getPurpose());
+        $this->assertStringContainsString('in order to', $sectionCriticism[0]->getRemarks()[0]);
+        $this->assertStringContainsString('due to the fact that', $sectionCriticism[0]->getRemarks()[0]);
+    }
+
+    public function test_it_flags_repeated_sentences_under_concision_purpose(): void
+    {
+        $duplicate = 'Teams should validate assumptions before scaling spend across channels.';
+        $body = $duplicate.' '.$duplicate;
+
+        $article = new Article;
+        $article->addChild(
+            (new Element)
+                ->setType(ElementType::DIV)
+                ->setIdentifier('rpt1')
+                ->addChild(
+                    (new Element)
+                        ->setType(ElementType::P)
+                        ->addChild($body)
+                )
+        );
+
+        $driver = $this->basicDriver('concision');
+        $criticisms = $driver->criticizeArticle($article);
+
+        $sectionCriticism = array_values(array_filter(
+            $criticisms,
+            static fn (Criticism $criticism): bool => $criticism->getReference() === 'rpt1'
+        ));
+
+        $this->assertCount(1, $sectionCriticism);
+        $this->assertStringContainsString('repeats the same sentence', $sectionCriticism[0]->getRemarks()[0]);
+    }
+
     public function test_it_flags_missing_author_context_keywords_under_voice_purpose(): void
     {
         $article = (new Article)->setIdentifier('root');

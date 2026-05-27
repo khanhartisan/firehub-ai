@@ -80,6 +80,34 @@ class BasicCriticDriverTest extends TestCase
         $this->assertSame([], $criticisms);
     }
 
+    public function test_it_flags_ai_fingerprint_phrases_under_fingerprint_purpose(): void
+    {
+        $article = new Article;
+        $article->addChild(
+            (new Element)
+                ->setType(ElementType::DIV)
+                ->setIdentifier('slop')
+                ->addChild(
+                    (new Element)
+                        ->setType(ElementType::P)
+                        ->addChild('Furthermore, it is important to note that this comprehensive guide will delve into the landscape.')
+                )
+        );
+
+        $driver = $this->basicDriver('fingerprint');
+        $criticisms = $driver->criticizeArticle($article);
+
+        $sectionCriticism = array_values(array_filter(
+            $criticisms,
+            static fn (Criticism $criticism): bool => $criticism->getReference() === 'slop'
+        ));
+
+        $this->assertCount(1, $sectionCriticism);
+        $this->assertSame('fingerprint', $sectionCriticism[0]->getPurpose());
+        $this->assertStringContainsString('furthermore', $sectionCriticism[0]->getRemarks()[0]);
+        $this->assertStringContainsString('it is important to note', $sectionCriticism[0]->getRemarks()[0]);
+    }
+
     public function test_it_flags_missing_author_context_keywords_under_voice_purpose(): void
     {
         $article = (new Article)->setIdentifier('root');

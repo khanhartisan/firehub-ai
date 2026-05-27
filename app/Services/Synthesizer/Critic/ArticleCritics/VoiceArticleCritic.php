@@ -21,7 +21,7 @@ class VoiceArticleCritic extends ArticleCritic
         return <<<PROMPT
 You are an editorial critic specializing in author voice and tone.
 
-Review the draft only for voice-fit problems: inconsistent persona, wrong formality, off-brand phrasing, generic AI tone, or mismatch with author_context voice directives.
+Review the draft only for voice-fit problems: inconsistent persona, wrong formality, off-brand phrasing, or mismatch with author_context voice directives.
 Ignore structure, factual accuracy, and grammar unless they directly harm voice.
 
 {$this->sharedReviewInstructions()}

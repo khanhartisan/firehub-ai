@@ -6,6 +6,7 @@ use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\Synthesizer\Critic\Critic;
 use App\Services\Synthesizer\Critic\ArticleCritics\ArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\ClarityArticleCritic;
+use App\Services\Synthesizer\Critic\ArticleCritics\FingerprintArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\StructureArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\VoiceArticleCritic;
 use App\Services\Synthesizer\Critic\Drivers\BasicCriticDriver;
@@ -22,6 +23,7 @@ class CriticManager extends SubserviceManager
         'voice' => VoiceArticleCritic::class,
         'structure' => StructureArticleCritic::class,
         'clarity' => ClarityArticleCritic::class,
+        'fingerprint' => FingerprintArticleCritic::class,
     ];
 
     protected function configKey(): string

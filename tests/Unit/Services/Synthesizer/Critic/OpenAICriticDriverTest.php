@@ -9,6 +9,7 @@ use App\Contracts\DOM\ElementType;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
 use App\Contracts\Synthesizer\Critic\Rectification;
+use App\Services\Synthesizer\Critic\ArticleCritics\FingerprintArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\VoiceArticleCritic;
 use App\Services\Synthesizer\Critic\CriticManager;
 use App\Services\Synthesizer\Critic\Drivers\OpenAICriticDriver;
@@ -135,6 +136,18 @@ class OpenAICriticDriverTest extends TestCase
 
         $this->assertSame('voice', $critic->getPurpose());
         $this->assertStringContainsString('author voice and tone', $prompt);
+        $this->assertStringContainsString('Ignore structure', $prompt);
+    }
+
+    public function test_fingerprint_article_critic_declares_fingerprint_focused_prompt(): void
+    {
+        $critic = new FingerprintArticleCritic;
+        $prompt = (new \ReflectionMethod($critic, 'buildPrompt'))
+            ->invoke($critic, ['sections' => []]);
+
+        $this->assertSame('fingerprint', $critic->getPurpose());
+        $this->assertStringContainsString('AI-generated content fingerprints', $prompt);
+        $this->assertStringContainsString('Stock transitions', $prompt);
         $this->assertStringContainsString('Ignore structure', $prompt);
     }
 

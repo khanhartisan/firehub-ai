@@ -71,7 +71,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(BasicEditorDriver::class, $driver->getEditor());
         $this->assertNotEmpty($driver->getCritics());
         $this->assertContainsOnlyInstancesOf(BasicCriticDriver::class, $driver->getCritics());
-        $this->assertSame(['voice', 'structure', 'clarity'], array_map(
+        $this->assertSame(['voice', 'structure', 'clarity', 'fingerprint'], array_map(
             static fn ($critic) => $critic->getPurpose(),
             $driver->getCritics()
         ));
@@ -192,9 +192,10 @@ class SynthesizerManagerTest extends TestCase
         $this->assertSame('openai_compatible_expansion', $profile['idea_forge']['advisors'][1]['driver']);
         $this->assertSame(
             [
-                ['driver' => 'openai_compatible', 'purpose' => 'voice', 'order' => 0],
-                ['driver' => 'openai_compatible', 'purpose' => 'structure', 'order' => 1],
-                ['driver' => 'openai_compatible', 'purpose' => 'clarity', 'order' => 2],
+                ['driver' => 'openai', 'purpose' => 'voice', 'order' => 0],
+                ['driver' => 'openai', 'purpose' => 'structure', 'order' => 1],
+                ['driver' => 'openai', 'purpose' => 'clarity', 'order' => 2],
+                ['driver' => 'openai', 'purpose' => 'fingerprint', 'order' => 3],
             ],
             $profile['critics']
         );

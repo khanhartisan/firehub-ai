@@ -14,6 +14,34 @@ class BasicCriticDriver extends CriticService
     protected const int MIN_SECTION_CHARACTERS = 50;
 
     /**
+     * High-signal phrases commonly associated with AI-generated prose.
+     *
+     * @var list<string>
+     */
+    protected const AI_FINGERPRINT_PHRASES = [
+        "it's important to note",
+        'it is important to note',
+        "it's worth noting",
+        'it is worth noting',
+        'in conclusion',
+        'in today\'s',
+        'at the end of the day',
+        'whether you\'re',
+        'furthermore',
+        'moreover',
+        'additionally',
+        'delve',
+        'game-changer',
+        'game changer',
+        'dive deep',
+        'unlock the',
+        'navigate the',
+        'comprehensive guide',
+        'robust solution',
+        'let\'s explore',
+    ];
+
+    /**
      * @param  array<string, mixed>  $config
      */
     public function __construct(CriticManager $criticManager, string $purpose, array $config = [])
@@ -39,6 +67,7 @@ class BasicCriticDriver extends CriticService
         return match ($this->purpose) {
             'clarity' => $this->criticizeClarity($payload, $rectifiedReferences),
             'voice' => $this->criticizeVoice($payload, $rectifiedReferences),
+            'fingerprint' => $this->criticizeFingerprint($payload, $rectifiedReferences),
             default => [],
         };
     }
@@ -139,6 +168,73 @@ class BasicCriticDriver extends CriticService
                 ->setImportance(0.65)
                 ->setRemarks($remarks),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, true>  $rectifiedReferences
+     * @return list<Criticism>
+     */
+    protected function criticizeFingerprint(array $payload, array $rectifiedReferences): array
+    {
+        $article = $payload['article'] ?? null;
+        if (! is_array($article)) {
+            return [];
+        }
+
+        $criticisms = [];
+
+        $this->walkArticleNodes($article, function (string $reference) use (&$criticisms, $article, $rectifiedReferences): void {
+            if (isset($rectifiedReferences[$reference])) {
+                return;
+            }
+
+            $node = $this->findNodeByReference($article, $reference);
+            if ($node !== null && ($node['type'] ?? null) === 'article') {
+                return;
+            }
+
+            $text = $this->extractTextForReference($article, $reference);
+            if ($text === '') {
+                return;
+            }
+
+            $matches = $this->findAiFingerprintPhrases($text);
+            if ($matches === []) {
+                return;
+            }
+
+            $criticisms[] = (new Criticism)
+                ->setPurpose($this->purpose)
+                ->setReference($reference)
+                ->setConfidence(0.8)
+                ->setImportance(0.7)
+                ->setRemarks([
+                    sprintf(
+                        'Section reads like AI-generated copy (detected: %s). Rewrite with concrete detail and natural phrasing.',
+                        implode(', ', $matches)
+                    ),
+                ]);
+        });
+
+        return $criticisms;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function findAiFingerprintPhrases(string $text): array
+    {
+        $haystack = strtolower($text);
+        $matches = [];
+
+        foreach (self::AI_FINGERPRINT_PHRASES as $phrase) {
+            if (str_contains($haystack, $phrase)) {
+                $matches[] = $phrase;
+            }
+        }
+
+        return array_values(array_unique($matches));
     }
 
     /**

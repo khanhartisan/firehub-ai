@@ -5,7 +5,7 @@ namespace App\Services\Synthesizer\Critic\ArticleCritics;
 use App\Contracts\Describable;
 
 /**
- * A specialized critic that reviews one dimension of an article (voice, structure, clarity, etc.).
+ * A specialized critic that reviews one dimension of an article (voice, structure, clarity, fingerprint, etc.).
  *
  * Subclasses declare purpose-specific prompts; orchestrators run many critics and merge results.
  */
@@ -14,7 +14,7 @@ abstract class ArticleCritic implements Describable
     use \App\Concerns\Describable;
 
     /**
-     * Stable machine key for this critic (e.g. voice, structure, clarity).
+     * Stable machine key for this critic (e.g. voice, structure, clarity, fingerprint).
      */
     abstract public function getPurpose(): string;
 

@@ -130,12 +130,12 @@ return [
             'openai' => [
                 'model' => env('SYNTHESIZER_OPENAI_RESEARCHER_MODEL', 'gpt-4o-mini'),
                 'temperature' => 0.2,
-                'max_points' => 8,
+                'max_points' => 16,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
                 'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_RESEARCHER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
                 'temperature' => 0.2,
-                'max_points' => 8,
+                'max_points' => 16,
             ]),
         ],
     ],

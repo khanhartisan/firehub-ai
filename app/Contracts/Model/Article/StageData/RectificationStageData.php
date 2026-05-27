@@ -96,10 +96,6 @@ final class RectificationStageData implements Serializable
 
     public function getNextPendingCritic(): ?CriticRectificationState
     {
-        if ($this->getCriticAwaitingRectification() !== null) {
-            return null;
-        }
-
         foreach ($this->sortedCritics() as $state) {
             if (! $state->isFinished() && $state->getPendingCriticisms() === []) {
                 return $state;

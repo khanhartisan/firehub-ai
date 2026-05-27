@@ -12,9 +12,10 @@ use App\Services\Synthesizer\Support\MaxRectificationRoundsResolver;
 
 /**
  * RECTIFICATION stage: per-critic state map ordered by config "order"; one criticize
- * or rectify step per job tick so the writer focuses on a single purpose at a time.
+ * or rectify step per job tick.
  *
- * Critics run in (order, purpose) sequence until each is finished this pass.
+ * Critics are criticized in (order, purpose) sequence first, then pending
+ * rectifications are processed.
  */
 trait HandleRectificationStage
 {
@@ -44,7 +45,13 @@ trait HandleRectificationStage
         $stageData->ensureCriticsInitialized($this->buildCriticEntriesForStage($critics));
         $this->touchArticleQuietly();
 
-        // Priority 1: a critic returned issues last tick — rectify now.
+        // Priority 1: advance to the next unvisited critic.
+        $next = $stageData->getNextPendingCritic();
+        if ($next instanceof CriticRectificationState) {
+            return $this->runCritic($dom, $stageData, $critics, $next->getPurpose());
+        }
+
+        // Priority 2: no critics left to criticize, process pending rectifications.
         $awaiting = $stageData->getCriticAwaitingRectification();
         if ($awaiting instanceof CriticRectificationState) {
             $rectifyProgress = $this->processArticleRectification($dom, $stageData, $awaiting);
@@ -55,13 +62,7 @@ trait HandleRectificationStage
             return $this->afterCriticStep($stageData);
         }
 
-        // Priority 2: advance to the next unvisited critic.
-        $next = $stageData->getNextPendingCritic();
-        if (! $next instanceof CriticRectificationState) {
-            return $this->finishPass($stageData);
-        }
-
-        return $this->runCritic($dom, $stageData, $critics, $next->getPurpose());
+        return $this->finishPass($stageData);
     }
 
     // -------------------------------------------------------------------------
@@ -153,6 +154,7 @@ trait HandleRectificationStage
     protected function afterCriticStep(RectificationStageData $stageData): ?bool
     {
         return $stageData->getNextPendingCritic() !== null
+            || $stageData->getCriticAwaitingRectification() !== null
             ? null
             : $this->finishPass($stageData);
     }

@@ -157,7 +157,7 @@ class OpenAICriticDriverTest extends TestCase
             ->invoke($critic, ['sections' => []]);
 
         $this->assertSame('evidence', $critic->getPurpose());
-        $this->assertStringContainsString('lack necessary evidence, details, or examples', $prompt);
+        $this->assertStringContainsString('lack necessary supporting evidence, statistics, examples', $prompt);
     }
 
     /**

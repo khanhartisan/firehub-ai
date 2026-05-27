@@ -11,6 +11,7 @@ use App\Contracts\Synthesizer\Critic\Rectification;
 abstract class CriticService implements Critic
 {
     protected string $purpose;
+    protected int $order = 0;
 
     /** @var array<string, mixed> */
     protected array $config = [];
@@ -30,6 +31,18 @@ abstract class CriticService implements Critic
     public function getPurpose(): string
     {
         return $this->purpose;
+    }
+
+    public function getOrder(): int
+    {
+        return $this->order;
+    }
+
+    public function setOrder(int $order): static
+    {
+        $this->order = max(0, $order);
+
+        return $this;
     }
 
     public function criticizeArticle(

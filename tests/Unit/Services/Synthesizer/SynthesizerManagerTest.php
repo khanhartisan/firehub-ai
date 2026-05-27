@@ -40,6 +40,7 @@ use App\Services\Synthesizer\Illustration\Illustrator\Drivers\OpenAICompatibleIl
 use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAICompatibleOutlineBuilderDriver;
 use App\Services\Synthesizer\Researcher\Drivers\OpenAICompatibleResearcherDriver;
 use App\Services\Synthesizer\Researcher\Drivers\OpenAIResearcherDriver;
+use App\Services\Synthesizer\Support\MaxRectificationRoundsResolver;
 use App\Services\Synthesizer\Writer\Drivers\OpenAICompatibleWriterDriver;
 use App\Services\Synthesizer\SynthesizerManager;
 use App\Services\Synthesizer\SynthesizerService;
@@ -191,11 +192,40 @@ class SynthesizerManagerTest extends TestCase
         $this->assertSame('openai_compatible_expansion', $profile['idea_forge']['advisors'][1]['driver']);
         $this->assertSame(
             [
-                ['driver' => 'openai_compatible', 'purpose' => 'voice'],
-                ['driver' => 'openai_compatible', 'purpose' => 'structure'],
-                ['driver' => 'openai_compatible', 'purpose' => 'clarity'],
+                ['driver' => 'openai_compatible', 'purpose' => 'voice', 'order' => 0],
+                ['driver' => 'openai_compatible', 'purpose' => 'structure', 'order' => 1],
+                ['driver' => 'openai_compatible', 'purpose' => 'clarity', 'order' => 2],
             ],
             $profile['critics']
         );
+    }
+
+    public function test_critic_max_rectification_rounds_overrides_global_default(): void
+    {
+        config()->set('synthesizer.max_rectification_rounds', 5);
+
+        $this->assertSame(1, MaxRectificationRoundsResolver::resolve('basic'));
+        $this->assertSame(2, MaxRectificationRoundsResolver::resolve('openai'));
+        $this->assertSame(5, MaxRectificationRoundsResolver::resolve('openai_compatible'));
+    }
+
+    public function test_critic_max_rectification_rounds_uses_highest_explicit_entry(): void
+    {
+        config()->set('synthesizer.drivers.custom', [
+            'idea_forge' => ['driver' => 'basic', 'advisors' => [['driver' => 'basic']], 'auditor' => 'basic', 'picker' => 'basic'],
+            'researcher' => 'basic',
+            'brief_builder' => 'basic',
+            'outline_builder' => 'basic',
+            'editor' => 'basic',
+            'critics' => [
+                ['driver' => 'basic', 'purpose' => 'voice', 'max_rectification_rounds' => 1],
+                ['driver' => 'basic', 'purpose' => 'structure', 'max_rectification_rounds' => null],
+                ['driver' => 'basic', 'purpose' => 'clarity', 'max_rectification_rounds' => 3],
+            ],
+            'writer' => 'basic',
+            'illustration' => ['director' => 'basic', 'illustrators' => ['basic']],
+        ]);
+
+        $this->assertSame(3, MaxRectificationRoundsResolver::resolve('custom'));
     }
 }

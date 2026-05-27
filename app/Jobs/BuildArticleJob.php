@@ -11,6 +11,7 @@ use App\Jobs\BuildArticleJobConcerns\HandleDraftStage;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStage;
 use App\Jobs\BuildArticleJobConcerns\HandleIllustrationStage;
 use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
+use App\Jobs\BuildArticleJobConcerns\HandleRectificationStage;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStage;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSemanticContext;
@@ -33,7 +34,7 @@ use Illuminate\Support\Facades\Cache;
  *   article is not processed concurrently.
  * - Marks the row PROCESSING, calls the handler for the current {@see ArticleStage}, then
  *   interprets the result (see below).
- * - Stage implementations live in traits (HandleIdeaStage, HandleBriefStage, …). They persist
+ * - Stage implementations live in traits (HandleIdeaStage, HandleBriefStage, HandleRectificationStage, …). They persist
  *   progress by mutating the {@see StageData} tree from {@see InteractsWithArticleStageData::getStageData()}
  *   (same object as {@see Article::$stage_data}), then {@see static::touchArticleQuietly()}.
  *   Shared accessors: {@see InteractsWithArticleStageData}, {@see InteractsWithSynthesizer}.
@@ -58,6 +59,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     use HandleBriefStage;
     use HandleDraftStage;
     use HandleOutlineStage;
+    use HandleRectificationStage;
     use HandleIllustrationStage;
 
     public int $timeout = 300;
@@ -140,8 +142,9 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 return;
             }
 
-            // After DRAFT succeeds, stage is still DRAFT in memory here; next lines bump to FINAL and re-dispatch.
-            // On the following run, stage is FINAL, handler is a no-op true, and we mark READY below.
+            // After the last pipeline stage succeeds, stage is still that stage in memory here;
+            // next lines bump toward FINAL and re-dispatch. On the run where stage is FINAL,
+            // the handler is a no-op true and we mark READY below.
             if ($article->stage === ArticleStage::FINAL) {
                 $this->markArticleReady();
                 return;
@@ -192,6 +195,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             ArticleStage::BRIEF => $this->handleBriefStage(),
             ArticleStage::OUTLINE => $this->handleOutlineStage(),
             ArticleStage::DRAFT => $this->handleDraftStage(),
+            ArticleStage::RECTIFICATION => $this->handleRectificationStage(),
             ArticleStage::ILLUSTRATION => $this->handleIllustrationStage(),
             ArticleStage::FINAL => true,
         };
@@ -204,7 +208,8 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             ArticleStage::RESEARCH => ArticleStage::BRIEF,
             ArticleStage::BRIEF => ArticleStage::OUTLINE,
             ArticleStage::OUTLINE => ArticleStage::DRAFT,
-            ArticleStage::DRAFT => ArticleStage::ILLUSTRATION,
+            ArticleStage::DRAFT => ArticleStage::RECTIFICATION,
+            ArticleStage::RECTIFICATION => ArticleStage::ILLUSTRATION,
             ArticleStage::ILLUSTRATION, ArticleStage::FINAL => ArticleStage::FINAL,
         };
     }

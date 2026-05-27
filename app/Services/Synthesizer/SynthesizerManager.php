@@ -93,7 +93,8 @@ class SynthesizerManager extends Manager
         $editor = $this->container->make(EditorManager::class)->driver(
             $this->resolveDriverName($driverConfig['editor'] ?? null, 'basic')
         );
-        $critics = $this->makeCriticsFromConfig($driverConfig['critics'] ?? []);
+        $criticsConfig = $driverConfig['critics'] ?? [];
+        $critics = $this->makeCriticsFromConfig($criticsConfig);
         $writer = $this->container->make(WriterManager::class)->driver(
             $this->resolveDriverName($driverConfig['writer'] ?? null, 'basic')
         );
@@ -124,7 +125,7 @@ class SynthesizerManager extends Manager
     }
 
     /**
-     * @param  list<array{driver: string, purpose: string}>|string|null  $config
+     * @param  list<array{driver: string, purpose: string, order?: int, max_rectification_rounds?: int|null}>|string|null  $config
      * @return list<\App\Contracts\Synthesizer\Critic\Critic>
      */
     protected function makeCriticsFromConfig(mixed $config): array
@@ -141,7 +142,7 @@ class SynthesizerManager extends Manager
 
         $critics = [];
 
-        foreach ($config as $entry) {
+        foreach ($config as $index => $entry) {
             if (! is_array($entry)) {
                 continue;
             }
@@ -153,7 +154,13 @@ class SynthesizerManager extends Manager
                 throw new \InvalidArgumentException('Critic config entry must include a "purpose".');
             }
 
-            $critics[] = $manager->makeCritic($purpose, $driver);
+            $order = array_key_exists('order', $entry)
+                ? max(0, (int) $entry['order'])
+                : $index;
+
+            $critics[] = $manager
+                ->makeCritic($purpose, $driver)
+                ->setOrder($order);
         }
 
         return array_values($critics);

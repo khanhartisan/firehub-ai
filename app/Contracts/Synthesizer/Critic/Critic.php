@@ -4,12 +4,17 @@ namespace App\Contracts\Synthesizer\Critic;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\DOM\Article;
+
 interface Critic
 {
     /**
      * The editorial problem this critic instance reviews (e.g. voice, structure, clarity).
      */
     public function getPurpose(): string;
+
+    public function getOrder(): int;
+
+    public function setOrder(int $order): static;
 
     /**
      * Given an article, related contexts, and lastest rectifications,

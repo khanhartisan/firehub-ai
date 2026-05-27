@@ -94,11 +94,14 @@ class CriticManager extends SubserviceManager
     public function getCritics(?string $driver = null): array
     {
         $driver = $driver ?? $this->getDefaultDriver();
+        $purposes = $this->purposes();
+        $critics = [];
 
-        return array_map(
-            fn (string $purpose): Critic => $this->makeCritic($purpose, $driver),
-            $this->purposes()
-        );
+        foreach ($purposes as $index => $purpose) {
+            $critics[] = $this->makeCritic($purpose, $driver)->setOrder($index);
+        }
+
+        return $critics;
     }
 
     /**

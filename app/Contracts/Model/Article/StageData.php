@@ -5,6 +5,7 @@ namespace App\Contracts\Model\Article;
 use App\Concerns\Serializable;
 use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Model\Article\StageData\IllustrationStageData;
+use App\Contracts\Model\Article\StageData\RectificationStageData;
 use App\Contracts\Model\Article\StageData\ResearchStageData;
 use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\Writer\Draft;
@@ -21,6 +22,7 @@ final class StageData implements \App\Contracts\Serializable
     protected ?Outline $outline = null;
     protected ?AuthorContext $distilledAuthorContextForDraft = null;
     protected ?Draft $draft = null;
+    protected ?RectificationStageData $rectification = null;
     protected ?IllustrationStageData $illustration = null;
 
     /**
@@ -46,6 +48,7 @@ final class StageData implements \App\Contracts\Serializable
             'outline' => $this->outline?->toArray(),
             'distilled_author_context_for_draft' => $this->distilledAuthorContextForDraft?->toArray(),
             'draft' => $this->draft?->toArray(),
+            'rectification' => $this->rectification?->toArray(),
             'illustration' => $this->illustration?->toArray(),
         ], static fn ($v): bool => $v !== null);
     }
@@ -123,6 +126,18 @@ final class StageData implements \App\Contracts\Serializable
         return $this;
     }
 
+    public function getRectificationStageData(): RectificationStageData
+    {
+        return $this->rectification ??= new RectificationStageData;
+    }
+
+    public function setRectificationStageData(RectificationStageData $rectification): static
+    {
+        $this->rectification = $rectification;
+
+        return $this;
+    }
+
     public function getIllustrationStageData(): IllustrationStageData
     {
         return $this->illustration ??= new IllustrationStageData();
@@ -179,6 +194,10 @@ final class StageData implements \App\Contracts\Serializable
 
         if (isset($data['draft']) && is_array($data['draft'])) {
             $this->setDraft(Draft::fromArray($data['draft']));
+        }
+
+        if (isset($data['rectification']) && is_array($data['rectification'])) {
+            $this->setRectificationStageData(RectificationStageData::fromArray($data['rectification']));
         }
 
         if (isset($data['illustration']) && is_array($data['illustration'])) {

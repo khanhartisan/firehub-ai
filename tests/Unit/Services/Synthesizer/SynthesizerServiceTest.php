@@ -216,6 +216,7 @@ class SynthesizerServiceTest extends TestCase
     {
         return new class implements Critic
         {
+            protected int $order = 0;
             public function getPurpose(): string
             {
                 return 'clarity';
@@ -228,6 +229,17 @@ class SynthesizerServiceTest extends TestCase
                 array $lastRectifications = [],
             ): array {
                 return [];
+            }
+
+            public function getOrder(): int
+            {
+                return $this->order;
+            }
+
+            public function setOrder(int $order): static
+            {
+                $this->order = $order;
+                return $this;
             }
         };
     }

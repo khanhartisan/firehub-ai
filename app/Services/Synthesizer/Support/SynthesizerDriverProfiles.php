@@ -23,9 +23,9 @@ final class SynthesizerDriverProfiles
             'outline_builder' => 'basic',
             'editor' => 'basic',
             'critics' => [
-                ['driver' => 'basic', 'purpose' => 'voice'],
-                ['driver' => 'basic', 'purpose' => 'structure'],
-                ['driver' => 'basic', 'purpose' => 'clarity'],
+                ['driver' => 'basic', 'purpose' => 'voice', 'order' => 0],
+                ['driver' => 'basic', 'purpose' => 'structure', 'order' => 1],
+                ['driver' => 'basic', 'purpose' => 'clarity', 'order' => 2, 'max_rectification_rounds' => 1],
             ],
             'writer' => 'basic',
             'illustration' => [
@@ -52,9 +52,9 @@ final class SynthesizerDriverProfiles
             'outline_builder' => 'openai',
             'editor' => 'openai',
             'critics' => [
-                ['driver' => 'openai', 'purpose' => 'voice'],
-                ['driver' => 'openai', 'purpose' => 'structure'],
-                ['driver' => 'openai', 'purpose' => 'clarity'],
+                ['driver' => 'openai', 'purpose' => 'voice', 'order' => 0],
+                ['driver' => 'openai', 'purpose' => 'structure', 'order' => 1],
+                ['driver' => 'openai', 'purpose' => 'clarity', 'order' => 2, 'max_rectification_rounds' => 2],
             ],
             'writer' => 'openai',
             'illustration' => [
@@ -86,9 +86,9 @@ final class SynthesizerDriverProfiles
             'outline_builder' => 'openai_compatible',
             'editor' => 'openai_compatible',
             'critics' => [
-                ['driver' => 'openai_compatible', 'purpose' => 'voice'],
-                ['driver' => 'openai_compatible', 'purpose' => 'structure'],
-                ['driver' => 'openai_compatible', 'purpose' => 'clarity'],
+                ['driver' => 'openai', 'purpose' => 'voice', 'order' => 0],
+                ['driver' => 'openai', 'purpose' => 'structure', 'order' => 1],
+                ['driver' => 'openai', 'purpose' => 'clarity', 'order' => 2],
             ],
             'writer' => 'openai_compatible',
             'illustration' => [

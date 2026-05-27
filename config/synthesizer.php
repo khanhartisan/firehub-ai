@@ -24,11 +24,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Article rectification (build pipeline)
+    |--------------------------------------------------------------------------
+    |
+    | Default maximum criticize → rectify loops per RECTIFICATION stage when no critic
+    | entry sets max_rectification_rounds ({@see SynthesizerDriverProfiles} critics[]).
+    |
+    */
+
+    'max_rectification_rounds' => (int) env('SYNTHESIZER_MAX_RECTIFICATION_ROUNDS', 2),
+
+    /*
+    |--------------------------------------------------------------------------
     | Synthesizer Drivers
     |--------------------------------------------------------------------------
     |
     | Orchestrator profiles wire subservices by short driver name. Each name is
     | resolved by that subservice's manager (see synthesizer.{subservice} below).
+    |
+    | critics[] entries: driver, purpose, optional order (used by RECTIFICATION stage_data),
+    | and optional max_rectification_rounds (int|null, highest value wins for the driver).
     |
     */
 

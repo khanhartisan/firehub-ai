@@ -63,6 +63,8 @@ class IllustrationDriversTest extends TestCase
 
     public function test_basic_illustrator_generates_deterministic_seed_and_applies_aspect_ratio(): void
     {
+        Storage::fake(config('filesystems.default', 'local'));
+
         $context = (new IllustrationContext)
             ->setSubject('A focused team at whiteboard')
             ->setGoal('Explain architecture planning')

@@ -197,8 +197,8 @@ class SynthesizerManagerTest extends TestCase
                 \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'structure', 2),
                 \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'clarity', 3),
                 \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'evidence', 4),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'concision', 5),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'fingerprint', 6),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'concision', 5, ['max_rectification_rounds' => 5]),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'fingerprint', 6, ['max_rectification_rounds' => 6]),
             ],
             $profile['critics']
         );

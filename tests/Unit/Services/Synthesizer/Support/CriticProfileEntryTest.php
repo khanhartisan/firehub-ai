@@ -11,8 +11,8 @@ class CriticProfileEntryTest extends TestCase
     {
         $entry = CriticProfileEntry::entry('openai', 'clarity', 2);
 
-        $this->assertSame(0.8, $entry['min_confidence']);
-        $this->assertSame(0.7, $entry['min_importance']);
+        $this->assertSame(0.5, $entry['min_confidence']);
+        $this->assertSame(0.5, $entry['min_importance']);
     }
 
     public function test_entry_allows_per_critic_threshold_overrides(): void
@@ -35,8 +35,8 @@ class CriticProfileEntryTest extends TestCase
         ]);
 
         $this->assertSame([
-            'min_confidence' => 0.8,
-            'min_importance' => 0.7,
+            'min_confidence' => 0.5,
+            'min_importance' => 0.5,
         ], $config);
     }
 }

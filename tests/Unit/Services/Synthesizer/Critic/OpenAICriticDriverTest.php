@@ -53,20 +53,20 @@ class OpenAICriticDriverTest extends TestCase
             'criticisms' => [
                 [
                     'reference' => 'thin',
-                    'confidence' => 0.79,
+                    'confidence' => 0.49,
                     'importance' => 0.9,
                     'remarks' => ['Below confidence threshold.'],
                 ],
                 [
                     'reference' => 'thin',
                     'confidence' => 0.9,
-                    'importance' => 0.69,
+                    'importance' => 0.49,
                     'remarks' => ['Below importance threshold.'],
                 ],
                 [
                     'reference' => 'thin',
-                    'confidence' => 0.8,
-                    'importance' => 0.7,
+                    'confidence' => 0.5,
+                    'importance' => 0.5,
                     'remarks' => ['Meets both thresholds.'],
                 ],
             ],

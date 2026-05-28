@@ -4,7 +4,7 @@ namespace Tests\Feature\Mcp\Tools\ClientTools;
 
 use App\Enums\Language;
 use App\Mcp\Servers\AppServer;
-use App\Mcp\Tools\ClientTools\CreateClient;
+use App\Mcp\Tools\ClientTools\CreateClientTool;
 use App\Models\Client;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,7 +17,7 @@ class CreateClientToolTest extends TestCase
     {
         $name = 'Acme Corp';
 
-        $response = AppServer::tool(CreateClient::class, [
+        $response = AppServer::tool(CreateClientTool::class, [
             'name' => $name,
         ]);
 
@@ -42,7 +42,7 @@ class CreateClientToolTest extends TestCase
     {
         $name = 'Global Media';
 
-        $response = AppServer::tool(CreateClient::class, [
+        $response = AppServer::tool(CreateClientTool::class, [
             'name' => $name,
             'language' => Language::EN->value,
         ]);
@@ -62,7 +62,7 @@ class CreateClientToolTest extends TestCase
 
     public function test_validation_fails_when_name_is_missing(): void
     {
-        $response = AppServer::tool(CreateClient::class, []);
+        $response = AppServer::tool(CreateClientTool::class, []);
 
         $response->assertHasErrors();
 
@@ -71,7 +71,7 @@ class CreateClientToolTest extends TestCase
 
     public function test_validation_fails_when_name_is_too_short(): void
     {
-        $response = AppServer::tool(CreateClient::class, [
+        $response = AppServer::tool(CreateClientTool::class, [
             'name' => 'Acme',
         ]);
 
@@ -82,7 +82,7 @@ class CreateClientToolTest extends TestCase
 
     public function test_validation_fails_when_name_is_too_long(): void
     {
-        $response = AppServer::tool(CreateClient::class, [
+        $response = AppServer::tool(CreateClientTool::class, [
             'name' => str_repeat('a', 51),
         ]);
 

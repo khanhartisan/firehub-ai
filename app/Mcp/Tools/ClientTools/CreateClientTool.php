@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 
 #[Description('Create a new client.')]
-class CreateClient extends Tool
+class CreateClientTool extends Tool
 {
     /**
      * Handle the tool request.
@@ -31,6 +31,7 @@ class CreateClient extends Tool
         $client->language = $request->get('language');
         DB::transaction(function () use ($client, $request) {
             $client->save();
+            $client->users()->attach($request->user());
         });
 
         return Response::make(Response::text('Successfully created a new client.'))

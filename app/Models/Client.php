@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use App\Casts\ClientContextCast;
+use App\Contracts\Mcp\StructuredMcpResource;
 use App\Enums\Language;
+use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Client extends Model implements ShouldCascade
+class Client extends Model implements ShouldCascade, StructuredMcpResource
 {
     use Cascades;
 
@@ -48,5 +50,30 @@ class Client extends Model implements ShouldCascade
     public function authors(): HasMany
     {
         return $this->hasMany(Author::class);
+    }
+
+    public function getMcpOutputSchema(JsonSchema $schema): array
+    {
+        return [
+            'name' => $schema
+                ->string()
+                ->description('Client name (for internal display only)'),
+            'language' => $schema
+                ->string()
+                ->nullable()
+                ->description('Client language'),
+            'created_at' => $schema->string()->description('Client created at'),
+            'updated_at' => $schema->string()->description('Client updated at'),
+        ];
+    }
+
+    public function toMcpStructuredData(): array
+    {
+        return [
+            'name' => $this->name,
+            'language' => $this->language,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
     }
 }

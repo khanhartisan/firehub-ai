@@ -76,7 +76,6 @@ class MakeClient extends Command
                         [
                             ['id', (string) $client->id],
                             ['name', (string) ($client->name ?? '')],
-                            ['reference_id', (string) ($client->reference_id ?? '')],
                             ['language', (string) ($client->language?->value ?? '')],
                         ]
                     );
@@ -217,7 +216,6 @@ class MakeClient extends Command
         $clientContext->setAudienceContexts($audienceContexts);
 
         $client = new Client;
-        $client->reference_id = $referenceId;
         $client->name = $name;
         $client->context = $clientContext;
 

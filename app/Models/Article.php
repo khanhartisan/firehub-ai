@@ -12,6 +12,7 @@ use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
 use App\Enums\Language;
 use App\Enums\Temporal;
+use App\Models\Concerns\Publishable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,6 +23,7 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 class Article extends EmbeddableModel implements ShouldCascade
 {
     use Cascades;
+    use Publishable;
 
     protected $casts = [
         'article' => ArticleArticleCast::class,

@@ -18,6 +18,8 @@ use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VerticalResolver\VerticalResolver;
 use App\Models\Article;
 use App\Models\ArticleIntent;
+use App\Models\Author;
+use App\Models\Channel;
 use App\Models\Client;
 use App\Models\File;
 use App\Models\Fileable;
@@ -32,6 +34,8 @@ use App\Models\PageCount;
 use App\Models\PageRelation;
 use App\Models\PageTag;
 use App\Models\PageVertical;
+use App\Models\Platform;
+use App\Models\Publication;
 use App\Models\Snapshot;
 use App\Models\Source;
 use App\Models\SourceVertical;
@@ -145,6 +149,8 @@ class AppServiceProvider extends ServiceProvider
         $models = [
             Article::class,
             ArticleIntent::class,
+            Author::class,
+            Channel::class,
             Client::class,
             File::class,
             Fileable::class,
@@ -158,6 +164,8 @@ class AppServiceProvider extends ServiceProvider
             PageRelation::class,
             PageTag::class,
             PageVertical::class,
+            Platform::class,
+            Publication::class,
             Snapshot::class,
             Source::class,
             SourceVertical::class,

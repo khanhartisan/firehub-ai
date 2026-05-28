@@ -7,9 +7,9 @@ namespace App\Services\Synthesizer\Support;
  */
 final class CriticProfileEntry
 {
-    public const float DEFAULT_MIN_CONFIDENCE = 0.8;
+    public const float DEFAULT_MIN_CONFIDENCE = 0.5;
 
-    public const float DEFAULT_MIN_IMPORTANCE = 0.7;
+    public const float DEFAULT_MIN_IMPORTANCE = 0.5;
 
     /**
      * @param  array<string, mixed>  $overrides

@@ -24,7 +24,7 @@ class CreateClientToolTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Successfully created a new client.')
-            ->assertName('create-client')
+            ->assertName('create-client-tool')
             ->assertDescription('Create a new client.')
             ->assertStructuredContent(function ($json) use ($name): void {
                 $json->where('name', $name)

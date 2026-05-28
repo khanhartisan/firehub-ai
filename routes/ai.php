@@ -2,4 +2,5 @@
 
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::web('/mcp/app', \App\Mcp\Servers\AppServer::class);
+Mcp::web('/mcp/app', \App\Mcp\Servers\AppServer::class)
+    ->middleware('auth:sanctum');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\ClientContextCast;
 use App\Contracts\Mcp\StructuredMcpResource;
+use App\Contracts\Model\Client\Context;
 use App\Enums\Language;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -62,6 +63,10 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
                 ->string()
                 ->nullable()
                 ->description('Client language'),
+            'context' => $schema
+                ->object(new Context()->toJsonSchema($schema))
+                ->description('Client general context')
+                ->nullable(),
             'created_at' => $schema->string()->description('Client created at'),
             'updated_at' => $schema->string()->description('Client updated at'),
         ];
@@ -72,6 +77,7 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
         return [
             'name' => $this->name,
             'language' => $this->language,
+            'context' => (object) ($this->context?->toArray() ?? new \StdClass()),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

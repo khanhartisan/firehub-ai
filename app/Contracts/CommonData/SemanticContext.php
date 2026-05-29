@@ -3,11 +3,13 @@
 namespace App\Contracts\CommonData;
 
 use App\Contracts\Clonable;
+use App\Contracts\CommonData\SemanticContextConcerns\ToJsonSchema;
 use App\Contracts\Serializable;
 
 class SemanticContext implements Clonable, Serializable
 {
     use \App\Concerns\Serializable;
+    use ToJsonSchema;
 
     protected ?array $keys = null;
 
@@ -57,7 +59,7 @@ class SemanticContext implements Clonable, Serializable
 
     public function get(string $key): ?array
     {
-        if (!$data = ($this->has($key) ? $this->data[$key] : null)) {
+        if (! $data = ($this->has($key) ? $this->data[$key] : null)) {
             return null;
         }
 
@@ -91,7 +93,7 @@ class SemanticContext implements Clonable, Serializable
         string|int|float|array|Serializable|null $value,
         ?float $weight = null): static
     {
-        if (!$this->isKeyAllowed($key)) {
+        if (! $this->isKeyAllowed($key)) {
             throw new \InvalidArgumentException('Key: "'.$key.'" is not allowed.');
         }
 
@@ -121,18 +123,20 @@ class SemanticContext implements Clonable, Serializable
 
     public function setWeight(string $key, ?float $weight = null): static
     {
-        if (!isset($this->data[$key])) {
+        if (! isset($this->data[$key])) {
             throw new \InvalidArgumentException('Key: "'.$key.'" is not allowed.');
         }
 
         $this->data[$key]['weight'] = $weight;
+
         return $this;
     }
 
     public static function fromArray(array $data): static
     {
-        $context = new static();
+        $context = new static;
         $context->loadFromArray($data);
+
         return $context;
     }
 
@@ -149,7 +153,7 @@ class SemanticContext implements Clonable, Serializable
                 or ! is_string($_data['description'])
                 or ! array_key_exists('value', $_data)
                 or (
-                ! self::isSerializableValue($_data['value'])
+                    ! self::isSerializableValue($_data['value'])
                 )
             ) {
                 continue;
@@ -187,7 +191,7 @@ class SemanticContext implements Clonable, Serializable
         $reflection = new \ReflectionClass($this);
         $setters = array_filter(
             $reflection->getMethods(\ReflectionMethod::IS_PUBLIC),
-            static function (\ReflectionMethod $method) use ($context) : bool {
+            static function (\ReflectionMethod $method) use ($context): bool {
 
                 // Exclude special identifier setter
                 if ($context instanceof IdentifiableSemanticContext
@@ -264,7 +268,7 @@ class SemanticContext implements Clonable, Serializable
             return false;
         }
 
-        return array_all($value, fn($nested) => self::isSerializableValue($nested));
+        return array_all($value, fn ($nested) => self::isSerializableValue($nested));
 
     }
 
@@ -300,7 +304,7 @@ class SemanticContext implements Clonable, Serializable
         $typeName = $type->getName();
 
         if ($recursive && class_exists($typeName) && is_subclass_of($typeName, self::class)) {
-            return (new $typeName())->withEmptyFields(true);
+            return (new $typeName)->withEmptyFields(true);
         }
 
         if ($parameter->allowsNull()) {

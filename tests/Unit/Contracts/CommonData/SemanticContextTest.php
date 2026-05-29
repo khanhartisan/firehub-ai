@@ -2,10 +2,13 @@
 
 namespace Tests\Unit\Contracts\CommonData;
 
+use App\Contracts\CommonData\AudienceContext;
 use App\Contracts\CommonData\Keyword;
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\Model\Author\AuthorContexts\LinguisticContext;
 use App\Contracts\Synthesizer\Illustration\IllustrationDirection;
 use App\Enums\Language;
+use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Tests\TestCase;
 
 class SemanticContextTest extends TestCase
@@ -56,7 +59,7 @@ class SemanticContextTest extends TestCase
             ],
             'invalid_value_type' => [
                 'description' => 'Bad value type',
-                'value' => new \stdClass(),
+                'value' => new \stdClass,
             ],
             'invalid_description_type' => [
                 'description' => 123,
@@ -115,7 +118,7 @@ class SemanticContextTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         (new SemanticContext)->set('bad', 'Invalid nested object', [
-            'bad' => new \stdClass(),
+            'bad' => new \stdClass,
         ]);
     }
 
@@ -128,7 +131,7 @@ class SemanticContextTest extends TestCase
             ],
             'invalid' => [
                 'description' => 'Contains non-serializable value',
-                'value' => ['bad' => new \stdClass()],
+                'value' => ['bad' => new \stdClass],
             ],
         ]);
 
@@ -230,7 +233,8 @@ class SemanticContextTest extends TestCase
 
     public function test_with_empty_fields_builds_template_with_all_setters(): void
     {
-        $context = (new class() extends SemanticContext {
+        $context = (new class extends SemanticContext
+        {
             public function setName(string $name): static
             {
                 return $this->set('name', 'Human readable name', $name);
@@ -283,7 +287,8 @@ class SemanticContextTest extends TestCase
 
     public function test_constructor_executes_all_boot_methods_before_loading_data(): void
     {
-        $context = new class() extends SemanticContext {
+        $context = new class extends SemanticContext
+        {
             public int $bootCount = 0;
 
             protected function bootAllowedKeys(): void
@@ -311,6 +316,50 @@ class SemanticContextTest extends TestCase
         $this->assertSame('ok', $context->getAllowedKeyValue());
     }
 
+    public function test_to_json_schema_describes_linguistic_context_fields(): void
+    {
+        $schemaFactory = new JsonSchemaTypeFactory;
+        $properties = (new LinguisticContext)->toJsonSchema($schemaFactory);
+
+        $this->assertArrayHasKey('vocabulary_tier', $properties);
+        $this->assertArrayHasKey('forbidden_patterns', $properties);
+
+        $vocabularyTier = $properties['vocabulary_tier']->toArray();
+        $this->assertSame('string', $vocabularyTier['type']);
+        $this->assertStringContainsString('complexity and register', strtolower((string) ($vocabularyTier['description'] ?? '')));
+
+        $forbiddenPatterns = $properties['forbidden_patterns']->toArray();
+        $this->assertSame('array', $forbiddenPatterns['type']);
+        $this->assertSame(['type' => 'string'], $forbiddenPatterns['items']);
+    }
+
+    public function test_to_json_schema_describes_nested_semantic_context_fields(): void
+    {
+        $schemaFactory = new JsonSchemaTypeFactory;
+        $properties = (new IllustrationDirection)->toJsonSchema($schemaFactory);
+
+        $this->assertArrayHasKey('concept_context', $properties);
+
+        $conceptContext = $properties['concept_context']->toArray();
+        $this->assertSame(['object', 'null'], $conceptContext['type']);
+        $this->assertArrayHasKey('logline', $conceptContext['properties']);
+        $this->assertFalse($conceptContext['additionalProperties']);
+    }
+
+    public function test_to_json_schema_describes_audience_context_enums_and_arrays(): void
+    {
+        $schemaFactory = new JsonSchemaTypeFactory;
+        $properties = (new AudienceContext)->toJsonSchema($schemaFactory);
+
+        $knowledgeLevel = $properties['knowledge_level']->toArray();
+        $this->assertSame(['string', 'null'], $knowledgeLevel['type']);
+        $this->assertNotEmpty($knowledgeLevel['enum']);
+
+        $countries = $properties['countries']->toArray();
+        $this->assertSame('array', $countries['type']);
+        $this->assertArrayHasKey('enum', $countries['items']);
+    }
+
     public function test_clone_creates_independent_copy_with_same_payload(): void
     {
         $original = (new SemanticContext)
@@ -327,4 +376,3 @@ class SemanticContextTest extends TestCase
         $this->assertSame(0.2, $cloned->getPriorityWeight());
     }
 }
-

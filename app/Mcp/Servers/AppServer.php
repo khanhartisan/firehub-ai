@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
 use App\Mcp\Tools\ClientTools\CreateClientTool;
 use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
@@ -17,6 +18,11 @@ use Laravel\Mcp\Server\Attributes\Version;
 class AppServer extends Server
 {
     protected array $tools = [
+
+        // Author tools
+        CreateAuthorTool::class,
+
+        // Client tools
         CreateClientTool::class,
         ListClientsTool::class,
         UpdateClientTool::class,

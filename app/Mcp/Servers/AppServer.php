@@ -4,6 +4,7 @@ namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\ClientTools\CreateClientTool;
 use App\Mcp\Tools\ClientTools\ListClientsTool;
+use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
@@ -19,6 +20,7 @@ class AppServer extends Server
         CreateClientTool::class,
         ListClientsTool::class,
         UpdateClientTool::class,
+        UpdateClientContextTool::class,
     ];
 
     protected array $resources = [

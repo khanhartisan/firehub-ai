@@ -34,8 +34,10 @@ class CreateClientTool extends Tool
             $client->users()->attach($request->user());
         });
 
-        return Response::make(Response::text('Successfully created a new client.'))
-            ->withStructuredContent($client->toMcpStructuredData());
+        $data = $client->toMcpStructuredData();
+
+        return Response::make(Response::text('Successfully created a new client:'."\n\n".json_encode($data)))
+            ->withStructuredContent($data);
     }
 
     /**

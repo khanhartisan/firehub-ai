@@ -26,7 +26,7 @@ class UpdateClientToolTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Successfully updated the client.')
+            ->assertSee('Successfully updated the client')
             ->assertName('update-client-tool')
             ->assertDescription('Update an existing client.')
             ->assertStructuredContent(function ($json): void {
@@ -51,7 +51,7 @@ class UpdateClientToolTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Successfully updated the client.')
+            ->assertSee('Successfully updated the client')
             ->assertStructuredContent(function ($json): void {
                 $json->where('name', 'Global Media')->etc();
             });

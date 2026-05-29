@@ -53,9 +53,10 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
         return $this->hasMany(Author::class);
     }
 
-    public function getMcpOutputSchema(JsonSchema $schema): array
+    public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [
+            'id' => $schema->string()->description('The unique identifier'),
             'name' => $schema
                 ->string()
                 ->description('Client name (for internal display only)'),
@@ -75,6 +76,7 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
     public function toMcpStructuredData(): array
     {
         return [
+            'id' => $this->id,
             'name' => $this->name,
             'language' => $this->language,
             'context' => (object) ($this->context?->toArray() ?? new \StdClass()),

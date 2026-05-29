@@ -31,13 +31,15 @@ class ListClientsTool extends Tool
             return Response::error('No clients found.');
         }
 
+        $clientsData = $clients
+            ->map(fn (Client $client) => $client->toMcpStructuredData())
+            ->values()
+            ->toArray();
+
         return Response::make(
-            Response::text('Found '.$clients->count().' '.Str::plural('client', $clients->count()))
+            Response::text('Found '.$clients->count().' '.Str::plural('client', $clients->count()).":\n\n".json_encode($clientsData))
         )->withStructuredContent([
-            'clients' => $clients
-                ->map(fn (Client $client) => $client->toMcpStructuredData())
-                ->values()
-                ->toArray()
+            'clients' => $clientsData
         ]);
     }
 

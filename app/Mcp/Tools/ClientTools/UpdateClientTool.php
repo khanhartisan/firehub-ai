@@ -62,8 +62,9 @@ class UpdateClientTool extends Tool
 
         $client->refresh();
 
-        return Response::make(Response::text('Successfully updated the client.'))
-            ->withStructuredContent($client->toMcpStructuredData());
+        $data = $client->toMcpStructuredData();
+        return Response::make(Response::text('Successfully updated the client:'."\n\n".json_encode($data)))
+            ->withStructuredContent($data);
     }
 
     /**

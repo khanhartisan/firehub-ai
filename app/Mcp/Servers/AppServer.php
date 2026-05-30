@@ -3,6 +3,7 @@
 namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
+use App\Mcp\Tools\AuthorTools\ListAuthorsTool;
 use App\Mcp\Tools\AuthorTools\UpdateAuthorContextTool;
 use App\Mcp\Tools\ClientTools\CreateClientTool;
 use App\Mcp\Tools\ClientTools\ListClientsTool;
@@ -22,6 +23,7 @@ class AppServer extends Server
 
         // Author tools
         CreateAuthorTool::class,
+        ListAuthorsTool::class,
         UpdateAuthorContextTool::class,
 
         // Client tools

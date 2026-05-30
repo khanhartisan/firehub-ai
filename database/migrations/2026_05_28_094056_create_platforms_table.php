@@ -18,6 +18,9 @@ return new class extends Migration
             $table->jsonb('config')->nullable();
             $table->unsignedInteger('channels_count')->default(0);
             $table->timestamps();
+
+            $table->softDeletes();
+            $table->cascades();
         });
     }
 

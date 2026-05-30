@@ -6,14 +6,31 @@ use App\Contracts\Mcp\StructuredMcpResource;
 use App\Enums\PlatformType;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
+use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
+use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Platform extends Model implements StructuredMcpResource
+class Platform extends Model implements ShouldCascade, StructuredMcpResource
 {
+    use Cascades;
+
     protected $casts = [
         'type' => PlatformType::class,
         'config' => 'array',
         'channels_count' => 'integer',
     ];
+
+    public function getCascadeDetails(): CascadeDetails|array
+    {
+        return [
+            new CascadeDetails($this->channels()),
+        ];
+    }
+
+    public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
+    {
+        return true;
+    }
 
     public function channels(): HasMany
     {

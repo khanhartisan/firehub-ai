@@ -17,7 +17,12 @@ return new class extends Migration
             $table->ulid('client_id');
             $table->string('name');
             $table->jsonb('config')->nullable();
+            $table->unsignedInteger('publications_count')->default(0);
             $table->timestamps();
+
+            $table->softDeletes();
+            $table->cascades();
+            $table->index(['cascade_status', 'deleted_at']);
 
             $table->index(['platform_id', 'id']);
             $table->index(['client_id', 'id']);

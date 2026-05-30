@@ -53,6 +53,11 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
         return $this->hasMany(Author::class);
     }
 
+    public function channels(): HasMany
+    {
+        return $this->hasMany(Channel::class);
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

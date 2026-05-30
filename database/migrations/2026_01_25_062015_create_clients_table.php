@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('language')->nullable();
             $table->string('name')->nullable()->unique();
             $table->jsonb('context')->nullable();
+            $table->unsignedInteger('channels_count')->default(0);
             $table->timestamps();
 
             $table->softDeletes();

@@ -20,6 +20,7 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
     protected $casts = [
         'language' => Language::class,
         'context' => ClientContextCast::class,
+        'channels_count' => 'integer',
     ];
 
     public function getCascadeDetails(): CascadeDetails|array
@@ -73,6 +74,9 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
                 ->object(new Context()->toJsonSchema($schema))
                 ->description('Client general context')
                 ->nullable(),
+            'channels_count' => $schema
+                ->integer()
+                ->description('Number of publishing channels'),
             'created_at' => $schema->string()->description('Client created at'),
             'updated_at' => $schema->string()->description('Client updated at'),
         ];
@@ -85,6 +89,7 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
             'name' => $this->name,
             'language' => $this->language,
             'context' => (object) ($this->context?->toArray() ?? new \StdClass()),
+            'channels_count' => intval($this->channels_count),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

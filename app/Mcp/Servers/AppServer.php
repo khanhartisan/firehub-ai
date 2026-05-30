@@ -5,6 +5,7 @@ namespace App\Mcp\Servers;
 use App\Mcp\Tools\ArticleTools\CreateArticleTool;
 use App\Mcp\Tools\ArticleTools\ListArticlesTool;
 use App\Mcp\Tools\ArticleTools\ShowArticleTool;
+use App\Mcp\Tools\ArticleTools\UpdateArticleContextTool;
 use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
 use App\Mcp\Tools\AuthorTools\ListAuthorsTool;
 use App\Mcp\Tools\AuthorTools\ShowAuthorTool;
@@ -35,6 +36,7 @@ class AppServer extends Server
         CreateArticleTool::class,
         ListArticlesTool::class,
         ShowArticleTool::class,
+        UpdateArticleContextTool::class,
 
         // Author tools
         CreateAuthorTool::class,

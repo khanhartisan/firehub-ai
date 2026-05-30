@@ -11,6 +11,14 @@ class Context extends SemanticContext
     use HasAudienceContexts;
     use HasMeta;
 
+    public function setIdeaGuidelines(array $guidelines, ?float $weight = null): static
+    {
+        return $this->set('idea_guidelines',
+            'A collection of guidelines for the idea of this article',
+            array_filter($guidelines, fn ($guideline) => is_string($guideline)),
+            $weight);
+    }
+
     public function setToneOfVoice(string $toneOfVoice, ?float $weight = null): static
     {
         return $this->set(

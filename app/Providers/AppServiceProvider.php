@@ -2,12 +2,13 @@
 
 namespace App\Providers;
 
-use App\Contracts\FileVision\FileVision;
 use App\Contracts\FactChecker\FactChecker as FactCheckerContract;
+use App\Contracts\FileVision\FileVision;
 use App\Contracts\IntentResolver\IntentResolver;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\PageClassifier\Classifier;
 use App\Contracts\PageParser\Parser;
+use App\Contracts\Platforms\FlyCms\FlyCms;
 use App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine;
 use App\Contracts\Scraper\Scraper;
 use App\Contracts\SearchEngine\SearchEngine;
@@ -42,19 +43,17 @@ use App\Models\SourceVertical;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Vertical;
-use App\Services\FileVision\FileVisionManager;
 use App\Services\FactChecker\FactCheckerManager;
+use App\Services\FileVision\FileVisionManager;
 use App\Services\IntentResolver\IntentResolverManager;
 use App\Services\OpenAI\OpenAIManager;
 use App\Services\PageClassifier\PageClassifierManager;
 use App\Services\PageParser\PageParserManager;
+use App\Services\Platforms\FlyCms\FlyCmsManager;
 use App\Services\ScrapePolicyEngine\ScrapePolicyEngineManager;
 use App\Services\Scraper\ScraperManager;
 use App\Services\SearchEngine\SearchEngineManager;
 use App\Services\SemanticContextBuilder\SemanticContextBuilderManager;
-use App\Services\TextEmbedding\TextEmbeddingManager;
-use App\Services\VectorDB\VectorDBManager;
-use App\Services\VerticalResolver\VerticalResolverManager;
 use App\Services\Synthesizer\BriefBuilder\BriefBuilderManager;
 use App\Services\Synthesizer\Critic\CriticManager;
 use App\Services\Synthesizer\Editor\EditorManager;
@@ -68,6 +67,9 @@ use App\Services\Synthesizer\OutlineBuilder\OutlineBuilderManager;
 use App\Services\Synthesizer\Researcher\ResearcherManager;
 use App\Services\Synthesizer\SynthesizerManager;
 use App\Services\Synthesizer\Writer\WriterManager;
+use App\Services\TextEmbedding\TextEmbeddingManager;
+use App\Services\VectorDB\VectorDBManager;
+use App\Services\VerticalResolver\VerticalResolverManager;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -94,6 +96,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('search_engine.manager', SearchEngineManager::class);
         $this->app->singleton('synthesizer.manager', SynthesizerManager::class);
         $this->app->singleton('semantic_context_builder.manager', SemanticContextBuilderManager::class);
+        $this->app->singleton('flycms.manager', FlyCmsManager::class);
 
         // Register synthesizer subservice managers
         $this->registerSynthesizerSubserviceManagers();
@@ -113,6 +116,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SearchEngine::class, fn ($app) => $app['search_engine.manager']->driver());
         $this->app->singleton(SynthesizerContract::class, fn ($app) => $app['synthesizer.manager']->driver());
         $this->app->singleton(ConversationalSemanticContextBuilder::class, fn ($app) => $app['semantic_context_builder.manager']->driver());
+        $this->app->singleton(FlyCms::class, fn ($app) => $app['flycms.manager']->driver());
     }
 
     /**

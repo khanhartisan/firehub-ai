@@ -32,7 +32,7 @@ abstract class Resource implements Serializable, StructuredMcpResource
             $meta = [];
             foreach ($resourceData['meta'] as $key => $metaData) {
                 if (is_string($metaData) or is_int($metaData) or is_float($metaData) or is_bool($metaData)) {
-                    $metaData[$key] = $metaData;
+                    $meta[$key] = $metaData;
 
                     continue;
                 }

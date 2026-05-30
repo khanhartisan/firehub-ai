@@ -8,6 +8,7 @@ use App\Casts\ArticleIllustratedArticleCast;
 use App\Casts\ArticleIllustrationCast;
 use App\Casts\ArticleStageDataCast;
 use App\Contracts\Mcp\StructuredMcpResource;
+use App\Contracts\Model\Article\Context as ArticleContext;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
@@ -117,6 +118,17 @@ class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpRes
         ];
     }
 
+    public static function getMcpDetailOutputSchema(JsonSchema $schema): array
+    {
+        return [
+            ...self::getMcpOutputSchema($schema),
+            'context' => $schema
+                ->object(new ArticleContext()->toJsonSchema($schema))
+                ->description('Article semantic context')
+                ->nullable(),
+        ];
+    }
+
     public function toMcpStructuredData(): array
     {
         return [
@@ -131,6 +143,14 @@ class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpRes
             'intents_count' => $this->intents_count,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+        ];
+    }
+
+    public function toMcpDetailStructuredData(): array
+    {
+        return [
+            ...$this->toMcpStructuredData(),
+            'context' => $this->context?->toArray() ?? [],
         ];
     }
 

@@ -6,6 +6,7 @@ use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
 use App\Mcp\Tools\AuthorTools\ListAuthorsTool;
 use App\Mcp\Tools\AuthorTools\ShowAuthorTool;
 use App\Mcp\Tools\AuthorTools\UpdateAuthorContextTool;
+use App\Mcp\Tools\AuthorTools\UpdateAuthorTool;
 use App\Mcp\Tools\ClientTools\CreateClientTool;
 use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
@@ -27,6 +28,7 @@ class AppServer extends Server
         ListAuthorsTool::class,
         ShowAuthorTool::class,
         UpdateAuthorContextTool::class,
+        UpdateAuthorTool::class,
 
         // Client tools
         CreateClientTool::class,

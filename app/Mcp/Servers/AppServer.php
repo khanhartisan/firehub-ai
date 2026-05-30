@@ -9,6 +9,7 @@ use App\Mcp\Tools\AuthorTools\UpdateAuthorContextTool;
 use App\Mcp\Tools\AuthorTools\UpdateAuthorTool;
 use App\Mcp\Tools\ClientTools\CreateClientTool;
 use App\Mcp\Tools\ClientTools\ListClientsTool;
+use App\Mcp\Tools\ClientTools\ShowClientTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
 use Laravel\Mcp\Server;
@@ -33,6 +34,7 @@ class AppServer extends Server
         // Client tools
         CreateClientTool::class,
         ListClientsTool::class,
+        ShowClientTool::class,
         UpdateClientTool::class,
         UpdateClientContextTool::class,
     ];

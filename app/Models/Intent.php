@@ -38,7 +38,7 @@ class Intent extends EmbeddableModel implements ShouldCascade
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            new CascadeDetails($this->articleIntents()),
+            new CascadeDetails($this->hasMany(ArticleIntent::class)),
             new CascadeDetails($this->hasMany(IntentPage::class)),
             new CascadeDetails($this->hasMany(IntentKeyword::class)),
         ];
@@ -47,11 +47,6 @@ class Intent extends EmbeddableModel implements ShouldCascade
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
     {
         return true;
-    }
-
-    public function articleIntents(): HasMany
-    {
-        return $this->hasMany(ArticleIntent::class);
     }
 
     public function articles(): BelongsToMany

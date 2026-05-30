@@ -7,20 +7,21 @@ use App\Casts\ArticleContextCast;
 use App\Casts\ArticleIllustratedArticleCast;
 use App\Casts\ArticleIllustrationCast;
 use App\Casts\ArticleStageDataCast;
+use App\Contracts\Mcp\StructuredMcpResource;
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
 use App\Enums\Language;
 use App\Enums\Temporal;
 use App\Models\Concerns\Publishable;
+use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
-class Article extends EmbeddableModel implements ShouldCascade
+class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpResource
 {
     use Cascades;
     use Publishable;
@@ -47,7 +48,7 @@ class Article extends EmbeddableModel implements ShouldCascade
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            new CascadeDetails($this->articleIntents()),
+            new CascadeDetails($this->hasMany(ArticleIntent::class)),
         ];
     }
 
@@ -66,9 +67,71 @@ class Article extends EmbeddableModel implements ShouldCascade
         return $this->belongsTo(Client::class);
     }
 
-    public function articleIntents(): HasMany
+    public static function getMcpOutputSchema(JsonSchema $schema): array
     {
-        return $this->hasMany(ArticleIntent::class);
+        return [
+            'id' => $schema->string()->description('The unique identifier'),
+            'client_id' => $schema->string()->description('The client this article belongs to'),
+            'status' => $schema
+                ->integer()
+                ->description(
+                    'Article status. '
+                    .collect(ArticleStatus::cases())
+                        ->map(fn (ArticleStatus $articleStatus) => $articleStatus->value.': '.$articleStatus->name)
+                        ->join(', ')
+                ),
+            'stage' => $schema
+                ->integer()
+                ->description(
+                    'Article pipeline stage. '
+                    .collect(ArticleStage::cases())
+                        ->map(fn (ArticleStage $articleStage) => $articleStage->value.': '.$articleStage->name)
+                        ->join(', ')
+                ),
+            'stage_status' => $schema
+                ->integer()
+                ->description(
+                    'Status within the current stage. '
+                    .collect(ArticleStageStatus::cases())
+                        ->map(fn (ArticleStageStatus $stageStatus) => $stageStatus->value.': '.$stageStatus->name)
+                        ->join(', ')
+                ),
+            'language' => $schema
+                ->string()
+                ->enum(Language::class)
+                ->nullable()
+                ->description('Article language (BCP 47 tag)'),
+            'temporal' => $schema
+                ->string()
+                ->enum(Temporal::class)
+                ->nullable()
+                ->description('Article temporal classification'),
+            'attempts' => $schema
+                ->integer()
+                ->description('Number of build attempts'),
+            'intents_count' => $schema
+                ->integer()
+                ->description('Number of resolved intents'),
+            'created_at' => $schema->string()->description('Article created at'),
+            'updated_at' => $schema->string()->description('Article updated at'),
+        ];
+    }
+
+    public function toMcpStructuredData(): array
+    {
+        return [
+            'id' => $this->id,
+            'client_id' => $this->client_id,
+            'status' => $this->status?->value,
+            'stage' => $this->stage?->value,
+            'stage_status' => $this->stage_status?->value,
+            'language' => $this->language?->value,
+            'temporal' => $this->temporal?->value,
+            'attempts' => $this->attempts,
+            'intents_count' => $this->intents_count,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
     }
 
     public function intents(): BelongsToMany

@@ -2,20 +2,21 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Tools\ArticleTools\CreateArticleTool;
 use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
 use App\Mcp\Tools\AuthorTools\ListAuthorsTool;
 use App\Mcp\Tools\AuthorTools\ShowAuthorTool;
 use App\Mcp\Tools\AuthorTools\UpdateAuthorContextTool;
 use App\Mcp\Tools\AuthorTools\UpdateAuthorTool;
 use App\Mcp\Tools\ClientTools\CreateClientTool;
-use App\Mcp\Tools\PlatformTools\CreatePlatformTool;
-use App\Mcp\Tools\PlatformTools\ListPlatformsTool;
-use App\Mcp\Tools\PlatformTools\UpdatePlatformConfigTool;
-use App\Mcp\Tools\PlatformTools\UpdatePlatformTool;
 use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\ShowClientTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
+use App\Mcp\Tools\PlatformTools\CreatePlatformTool;
+use App\Mcp\Tools\PlatformTools\ListPlatformsTool;
+use App\Mcp\Tools\PlatformTools\UpdatePlatformConfigTool;
+use App\Mcp\Tools\PlatformTools\UpdatePlatformTool;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -27,6 +28,9 @@ use Laravel\Mcp\Server\Attributes\Version;
 class AppServer extends Server
 {
     protected array $tools = [
+
+        // Article tools
+        CreateArticleTool::class,
 
         // Author tools
         CreateAuthorTool::class,

@@ -4,9 +4,10 @@ namespace App\Contracts\CommonData;
 
 use App\Contracts\Clonable;
 use App\Contracts\CommonData\SemanticContextConcerns\ToJsonSchema;
+use App\Contracts\ProvidesJsonSchema;
 use App\Contracts\Serializable;
 
-class SemanticContext implements Clonable, Serializable
+class SemanticContext implements Clonable, ProvidesJsonSchema, Serializable
 {
     use \App\Concerns\Serializable;
     use ToJsonSchema;

@@ -2,6 +2,8 @@
 
 namespace App\Contracts\Platforms\FlyCms;
 
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+
 class Config extends \App\Contracts\Platforms\Config
 {
     public function __construct(array $config = [])
@@ -25,5 +27,17 @@ class Config extends \App\Contracts\Platforms\Config
     public function getApiKey(): string
     {
         return $this->config['api_key'];
+    }
+
+    public function toJsonSchema(JsonSchema $schema): array
+    {
+        return [
+            'base_url' => $schema
+                ->string()
+                ->required(),
+            'api_key' => $schema
+                ->string()
+                ->required(),
+        ];
     }
 }

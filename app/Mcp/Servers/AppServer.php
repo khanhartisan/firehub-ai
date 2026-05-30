@@ -10,6 +10,7 @@ use App\Mcp\Tools\AuthorTools\UpdateAuthorTool;
 use App\Mcp\Tools\ClientTools\CreateClientTool;
 use App\Mcp\Tools\PlatformTools\CreatePlatformTool;
 use App\Mcp\Tools\PlatformTools\ListPlatformsTool;
+use App\Mcp\Tools\PlatformTools\UpdatePlatformConfigTool;
 use App\Mcp\Tools\PlatformTools\UpdatePlatformTool;
 use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\ShowClientTool;
@@ -45,6 +46,7 @@ class AppServer extends Server
         CreatePlatformTool::class,
         ListPlatformsTool::class,
         UpdatePlatformTool::class,
+        UpdatePlatformConfigTool::class,
     ];
 
     protected array $resources = [

@@ -2,17 +2,40 @@
 
 namespace App\Contracts\Platforms;
 
+use App\Contracts\ProvidesJsonSchema;
 use App\Contracts\Serializable;
+use App\Utils\StructuredDataFromSchema;
+use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 
-class Config implements Serializable
+abstract class Config implements ProvidesJsonSchema, Serializable
 {
     use \App\Concerns\Serializable;
 
-    public function __construct(protected array $config = []) {}
+    protected array $config = [];
+
+    public function __construct(array $config = [])
+    {
+        $this->setConfig($config);
+    }
+
+    public function getConfig(): array
+    {
+        return $this->config;
+    }
+
+    public function setConfig(array $config = []): static
+    {
+        $this->config = StructuredDataFromSchema::fromSchema(
+            $this->toJsonSchema(new JsonSchemaTypeFactory()),
+            $config
+        );
+
+        return $this;
+    }
 
     public function toArray(): array
     {
-        return $this->config;
+        return $this->getConfig();
     }
 
     public static function fromArray(array $data): static

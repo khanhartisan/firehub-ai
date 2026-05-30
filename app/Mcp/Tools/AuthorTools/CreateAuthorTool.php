@@ -2,13 +2,6 @@
 
 namespace App\Mcp\Tools\AuthorTools;
 
-use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\Model\Author\AuthorContext;
-use App\Contracts\Model\Author\AuthorContexts\CognitiveContext;
-use App\Contracts\Model\Author\AuthorContexts\ConstraintContext;
-use App\Contracts\Model\Author\AuthorContexts\DemographicContext;
-use App\Contracts\Model\Author\AuthorContexts\ExperientialContext;
-use App\Contracts\Model\Author\AuthorContexts\LinguisticContext;
 use App\Models\Author;
 use App\Models\Client;
 use App\Models\User;
@@ -38,11 +31,6 @@ class CreateAuthorTool extends Tool
         $request->validate([
             'client_id' => ['required', 'string'],
             'name' => ['required', 'string', 'max:255'],
-            'cognitive_context' => ['sometimes', 'array'],
-            'constraint_context' => ['sometimes', 'array'],
-            'demographic_context' => ['sometimes', 'array'],
-            'experiential_context' => ['sometimes', 'array'],
-            'linguistic_context' => ['sometimes', 'array'],
         ]);
 
         $user = $request->user();
@@ -61,10 +49,6 @@ class CreateAuthorTool extends Tool
         $author = new Author;
         $author->client()->associate($client);
         $author->name = (string) $request->get('name');
-
-        $context = new AuthorContext;
-        $this->applyContextUpdates($context, $request);
-        $author->context = $context;
 
         DB::transaction(function () use ($author): void {
             $author->save();
@@ -85,7 +69,7 @@ class CreateAuthorTool extends Tool
      */
     public function schema(JsonSchema $schema): array
     {
-        $fields = [
+        return [
             'client_id' => $schema->string()
                 ->description('The ULID of the client to create the author for')
                 ->required(),
@@ -93,74 +77,5 @@ class CreateAuthorTool extends Tool
                 ->description('Author display name')
                 ->required(),
         ];
-
-        foreach ((new AuthorContext)->toJsonSchema($schema) as $key => $fieldSchema) {
-            $fields[$key] = $fieldSchema;
-        }
-
-        return $fields;
-    }
-
-    private function applyContextUpdates(AuthorContext $context, Request $request): void
-    {
-        if ($request->exists('cognitive_context')) {
-            $subContext = $this->hydrateSubContext(CognitiveContext::class, $request->get('cognitive_context'));
-            if ($subContext instanceof CognitiveContext) {
-                $context->setCognitiveContext($subContext);
-            }
-        }
-
-        if ($request->exists('constraint_context')) {
-            $subContext = $this->hydrateSubContext(ConstraintContext::class, $request->get('constraint_context'));
-            if ($subContext instanceof ConstraintContext) {
-                $context->setConstraintContext($subContext);
-            }
-        }
-
-        if ($request->exists('demographic_context')) {
-            $subContext = $this->hydrateSubContext(DemographicContext::class, $request->get('demographic_context'));
-            if ($subContext instanceof DemographicContext) {
-                $context->setDemographicContext($subContext);
-            }
-        }
-
-        if ($request->exists('experiential_context')) {
-            $subContext = $this->hydrateSubContext(ExperientialContext::class, $request->get('experiential_context'));
-            if ($subContext instanceof ExperientialContext) {
-                $context->setExperientialContext($subContext);
-            }
-        }
-
-        if ($request->exists('linguistic_context')) {
-            $subContext = $this->hydrateSubContext(LinguisticContext::class, $request->get('linguistic_context'));
-            if ($subContext instanceof LinguisticContext) {
-                $context->setLinguisticContext($subContext);
-            }
-        }
-    }
-
-    /**
-     * @param  class-string<SemanticContext>  $class
-     */
-    private function hydrateSubContext(string $class, mixed $raw): ?SemanticContext
-    {
-        if (! is_array($raw) || $raw === []) {
-            return null;
-        }
-
-        /** @var SemanticContext $context */
-        $context = new $class;
-        $template = $context->withEmptyFields(recursive: true, clone: false);
-
-        foreach ($raw as $key => $value) {
-            if (! is_string($key)) {
-                continue;
-            }
-
-            $description = $template->getDescription($key) ?? ('Author context field: '.$key);
-            $context->set($key, $description, $value);
-        }
-
-        return $context;
     }
 }

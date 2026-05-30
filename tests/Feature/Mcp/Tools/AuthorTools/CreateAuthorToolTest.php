@@ -4,7 +4,6 @@ namespace Tests\Feature\Mcp\Tools\AuthorTools;
 
 use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
-use App\Models\Author;
 use App\Models\Client;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,37 +42,6 @@ class CreateAuthorToolTest extends TestCase
             'client_id' => $client->id,
             'name' => $name,
         ]);
-    }
-
-    public function test_creates_author_with_cognitive_context(): void
-    {
-        $user = User::factory()->create();
-        $client = $this->attachClient($user, 'Acme Corp');
-
-        $response = AppServer::actingAs($user)->tool(CreateAuthorTool::class, [
-            'client_id' => $client->id,
-            'name' => 'Pragmatic Founder',
-            'cognitive_context' => [
-                'worldview' => 'Growth comes from disciplined experimentation.',
-                'core_values' => ['Pragmatism', 'Meritocracy'],
-            ],
-        ]);
-
-        $response->assertOk();
-
-        $author = Author::query()->where('client_id', $client->id)->first();
-        $this->assertNotNull($author);
-
-        $cognitive = $author->context->getCognitiveContextValue();
-        $this->assertIsArray($cognitive);
-        $this->assertSame(
-            'Growth comes from disciplined experimentation.',
-            $cognitive['worldview']['value'] ?? null
-        );
-        $this->assertSame(
-            ['Pragmatism', 'Meritocracy'],
-            $cognitive['core_values']['value'] ?? null
-        );
     }
 
     public function test_validation_fails_when_client_id_is_missing(): void

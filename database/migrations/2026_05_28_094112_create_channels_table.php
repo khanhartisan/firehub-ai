@@ -13,12 +13,19 @@ return new class extends Migration
     {
         Schema::create('channels', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->ulid('platform_id');
             $table->ulid('client_id');
+
+            $table->ulid('platform_id');
+            $table->string('reference')->nullable()->index();
+
             $table->string('name');
             $table->jsonb('config')->nullable();
+            $table->unsignedTinyInteger('status')->default(\App\Enums\ChannelStatus::PENDING->value);
+
             $table->unsignedInteger('publications_count')->default(0);
             $table->timestamps();
+
+            $table->longText('error_logs')->nullable();
 
             $table->softDeletes();
             $table->cascades();
@@ -26,6 +33,7 @@ return new class extends Migration
 
             $table->index(['platform_id', 'id']);
             $table->index(['client_id', 'id']);
+            $table->index(['status', 'updated_at']);
         });
     }
 

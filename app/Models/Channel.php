@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Contracts\Mcp\StructuredMcpResource;
+use App\Enums\ChannelStatus;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,6 +16,7 @@ class Channel extends Model implements ShouldCascade, StructuredMcpResource
     use Cascades;
 
     protected $casts = [
+        'status' => ChannelStatus::class,
         'config' => 'array',
     ];
 
@@ -41,12 +43,12 @@ class Channel extends Model implements ShouldCascade, StructuredMcpResource
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [
-            'id' => $schema->string()->description('The unique identifier'),
+            'id' => $schema->string()->description('The unique ULID identifier'),
             'client_id' => $schema->string()->description('The client this channel belongs to'),
-            'platform_id' => $schema->string()->description('The platform this channel publishes to'),
+            'platform_id' => $schema->string()->description('The platform this channel is hosted on'),
             'name' => $schema->string()->description('Channel display name'),
             'config' => $schema
-                ->object([])
+                ->object()
                 ->description('Channel-specific configuration')
                 ->nullable(),
             'publications_count' => $schema->integer()->description('Number of publications on this channel'),

@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Services\PlatformManager;
+
+use App\Contracts\PlatformManager\Config;
+
+abstract class PlatformManager implements \App\Contracts\PlatformManager\PlatformManager
+{
+    protected ?Config $config = null;
+
+    public function setConfig(Config $config): static
+    {
+        $this->config = $config;
+
+        return $this;
+    }
+
+    public function getConfig(): ?Config
+    {
+        return $this->config;
+    }
+
+    public function makeChannelConfig(): ?Config
+    {
+        return null;
+    }
+}

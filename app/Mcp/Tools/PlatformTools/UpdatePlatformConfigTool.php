@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools\PlatformTools;
 
-use App\Contracts\Platforms\FlyCms\Config as FlyCmsConfig;
+use App\Contracts\PlatformManager\FlyCms\Config as FlyCmsConfig;
 use App\Enums\PlatformType;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpResponse;

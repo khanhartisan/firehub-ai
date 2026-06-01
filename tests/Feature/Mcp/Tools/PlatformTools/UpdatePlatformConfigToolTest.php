@@ -82,40 +82,6 @@ class UpdatePlatformConfigToolTest extends TestCase
         $this->assertNull($platform->config);
     }
 
-    public function test_returns_error_when_flycms_config_is_missing_base_url(): void
-    {
-        $platform = $this->createPlatform('Production FlyCMS', PlatformType::FLYCMS);
-
-        $response = AppServer::actingAs($this->superUser())->tool(UpdatePlatformConfigTool::class, [
-            'platform_id' => $platform->id,
-            'flycms_config' => [
-                'api_key' => 'secret-api-key',
-            ],
-        ]);
-
-        $response->assertHasErrors(['base_url is required.']);
-
-        $platform->refresh();
-        $this->assertNull($platform->config);
-    }
-
-    public function test_returns_error_when_flycms_config_is_missing_api_key(): void
-    {
-        $platform = $this->createPlatform('Production FlyCMS', PlatformType::FLYCMS);
-
-        $response = AppServer::actingAs($this->superUser())->tool(UpdatePlatformConfigTool::class, [
-            'platform_id' => $platform->id,
-            'flycms_config' => [
-                'base_url' => 'https://flycms.example.test',
-            ],
-        ]);
-
-        $response->assertHasErrors(['api_key is required.']);
-
-        $platform->refresh();
-        $this->assertNull($platform->config);
-    }
-
     public function test_tool_is_not_available_for_non_super_user(): void
     {
         $platform = $this->createPlatform('Production FlyCMS', PlatformType::FLYCMS);

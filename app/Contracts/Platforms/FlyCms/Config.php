@@ -6,27 +6,14 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class Config extends \App\Contracts\Platforms\Config
 {
-    public function __construct(array $config = [])
+    public function getBaseUrl(): ?string
     {
-        if (! isset($config['base_url'])) {
-            throw new \InvalidArgumentException('base_url is required.');
-        }
-
-        if (! isset($config['api_key'])) {
-            throw new \InvalidArgumentException('api_key is required.');
-        }
-
-        parent::__construct($config);
+        return $this->config['base_url'] ?? null;
     }
 
-    public function getBaseUrl(): string
+    public function getApiKey(): ?string
     {
-        return $this->config['base_url'];
-    }
-
-    public function getApiKey(): string
-    {
-        return $this->config['api_key'];
+        return $this->config['api_key'] ?? null;
     }
 
     public function toJsonSchema(JsonSchema $schema): array

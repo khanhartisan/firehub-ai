@@ -6,6 +6,7 @@ use App\Mcp\Exceptions\McpToolException;
 use App\Models\Article;
 use App\Models\Author;
 use App\Models\Client;
+use App\Models\Platform;
 use App\Models\User;
 use Laravel\Mcp\Request;
 
@@ -54,6 +55,18 @@ final class McpAuthorization
         }
 
         return $author;
+    }
+
+    public static function platform(string $platformId): Platform
+    {
+        /** @var Platform|null $platform */
+        $platform = Platform::query()->find($platformId);
+
+        if ($platform === null) {
+            throw new McpToolException('Platform not found.');
+        }
+
+        return $platform;
     }
 
     public static function article(User $user, string $clientId, string $articleId): Article

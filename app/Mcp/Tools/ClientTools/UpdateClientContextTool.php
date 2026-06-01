@@ -5,7 +5,7 @@ namespace App\Mcp\Tools\ClientTools;
 use App\Contracts\Model\Client\Context;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\AudienceContextHydrator;
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpRequest;
 use App\Mcp\Support\McpResponse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -59,8 +59,8 @@ class UpdateClientContextTool extends Tool
             throw new McpToolException('Provide at least one context field to update.');
         }
 
-        $user = McpAuthorization::user($request);
-        $client = McpAuthorization::client($user, (string) $request->get('client_id'));
+        $user = McpAccess::user($request);
+        $client = McpAccess::client($user, (string) $request->get('client_id'));
 
         $context = $client->context instanceof Context
             ? $client->context->clone()

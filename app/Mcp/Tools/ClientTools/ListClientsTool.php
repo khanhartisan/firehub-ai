@@ -3,7 +3,7 @@
 namespace App\Mcp\Tools\ClientTools;
 
 use App\Mcp\Exceptions\McpToolException;
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use App\Models\Client;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -18,7 +18,7 @@ class ListClientsTool extends Tool
 {
     public function handle(Request $request): ResponseFactory
     {
-        $user = McpAuthorization::user($request);
+        $user = McpAccess::user($request);
 
         /** @var Collection<int, Client> $clients */
         $clients = $user->clients;

@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools\ClientTools;
 
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\ValidationException;
@@ -23,8 +23,8 @@ class ShowClientTool extends Tool
             'client_id' => ['required', 'string'],
         ]);
 
-        $user = McpAuthorization::user($request);
-        $client = McpAuthorization::client($user, (string) $request->get('client_id'));
+        $user = McpAccess::user($request);
+        $client = McpAccess::client($user, (string) $request->get('client_id'));
 
         return McpResponse::details('Client', $client->toMcpStructuredData());
     }

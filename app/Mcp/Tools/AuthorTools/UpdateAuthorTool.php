@@ -3,7 +3,7 @@
 namespace App\Mcp\Tools\AuthorTools;
 
 use App\Mcp\Exceptions\McpToolException;
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
@@ -35,11 +35,11 @@ class UpdateAuthorTool extends Tool
             throw new McpToolException('Provide at least one field to update (name or client_id).');
         }
 
-        $user = McpAuthorization::user($request);
-        $author = McpAuthorization::author($user, (string) $request->get('author_id'));
+        $user = McpAccess::user($request);
+        $author = McpAccess::author($user, (string) $request->get('author_id'));
 
         if ($request->exists('client_id')) {
-            $client = McpAuthorization::client($user, (string) $request->get('client_id'));
+            $client = McpAccess::client($user, (string) $request->get('client_id'));
             $author->client()->associate($client);
         }
 

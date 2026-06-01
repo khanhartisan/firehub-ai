@@ -3,7 +3,7 @@
 namespace App\Mcp\Tools\AuthorTools;
 
 use App\Mcp\Exceptions\McpToolException;
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use App\Models\Author;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -26,7 +26,7 @@ class ListAuthorsTool extends Tool
             'client_id' => ['sometimes', 'string'],
         ]);
 
-        $user = McpAuthorization::user($request);
+        $user = McpAccess::user($request);
 
         $query = Author::query()
             ->accessibleBy($user)
@@ -35,7 +35,7 @@ class ListAuthorsTool extends Tool
         if ($request->exists('client_id')) {
             $clientId = (string) $request->get('client_id');
 
-            McpAuthorization::assertClientAccess($user, $clientId);
+            McpAccess::assertClientAccess($user, $clientId);
 
             $query->where('client_id', $clientId);
         }

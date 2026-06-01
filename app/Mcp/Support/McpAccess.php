@@ -10,7 +10,7 @@ use App\Models\Platform;
 use App\Models\User;
 use Laravel\Mcp\Request;
 
-final class McpAuthorization
+final class McpAccess
 {
     public static function user(Request $request): User
     {

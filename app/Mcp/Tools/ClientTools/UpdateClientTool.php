@@ -4,7 +4,7 @@ namespace App\Mcp\Tools\ClientTools;
 
 use App\Enums\Language;
 use App\Mcp\Exceptions\McpToolException;
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
@@ -33,8 +33,8 @@ class UpdateClientTool extends Tool
             throw new McpToolException('Provide at least one field to update (name or language).');
         }
 
-        $user = McpAuthorization::user($request);
-        $client = McpAuthorization::client($user, (string) $request->get('client_id'));
+        $user = McpAccess::user($request);
+        $client = McpAccess::client($user, (string) $request->get('client_id'));
 
         if ($request->exists('name')) {
             $client->name = $request->get('name');

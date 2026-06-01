@@ -10,7 +10,7 @@ use App\Contracts\Model\Author\AuthorContexts\DemographicContext;
 use App\Contracts\Model\Author\AuthorContexts\ExperientialContext;
 use App\Contracts\Model\Author\AuthorContexts\LinguisticContext;
 use App\Mcp\Exceptions\McpToolException;
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpRequest;
 use App\Mcp\Support\McpResponse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -55,8 +55,8 @@ class UpdateAuthorContextTool extends Tool
             throw new McpToolException('Provide at least one context field to update.');
         }
 
-        $user = McpAuthorization::user($request);
-        $author = McpAuthorization::author($user, (string) $request->get('author_id'));
+        $user = McpAccess::user($request);
+        $author = McpAccess::author($user, (string) $request->get('author_id'));
 
         $context = $author->context instanceof AuthorContext
             ? $author->context->clone()

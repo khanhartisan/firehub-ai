@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools\ArticleTools;
 
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use App\Models\Article;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -25,8 +25,8 @@ class CreateArticleTool extends Tool
             'client_id' => ['required', 'string'],
         ]);
 
-        $user = McpAuthorization::user($request);
-        $client = McpAuthorization::client($user, (string) $request->get('client_id'));
+        $user = McpAccess::user($request);
+        $client = McpAccess::client($user, (string) $request->get('client_id'));
 
         $article = new Article;
         $article->client()->associate($client);

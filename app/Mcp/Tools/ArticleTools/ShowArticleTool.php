@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools\ArticleTools;
 
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\ValidationException;
@@ -24,8 +24,8 @@ class ShowArticleTool extends Tool
             'article_id' => ['required', 'string'],
         ]);
 
-        $user = McpAuthorization::user($request);
-        $article = McpAuthorization::article(
+        $user = McpAccess::user($request);
+        $article = McpAccess::article(
             $user,
             (string) $request->get('client_id'),
             (string) $request->get('article_id'),

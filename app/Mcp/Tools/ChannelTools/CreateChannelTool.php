@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools\ChannelTools;
 
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use App\Models\Channel;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -32,9 +32,9 @@ class CreateChannelTool extends Tool
             'config' => ['sometimes', 'nullable', 'array'],
         ]);
 
-        $user = McpAuthorization::user($request);
-        $client = McpAuthorization::client($user, (string) $request->get('client_id'));
-        $platform = McpAuthorization::platform((string) $request->get('platform_id'));
+        $user = McpAccess::user($request);
+        $client = McpAccess::client($user, (string) $request->get('client_id'));
+        $platform = McpAccess::platform((string) $request->get('platform_id'));
 
         $channel = new Channel;
         $channel->client()->associate($client);

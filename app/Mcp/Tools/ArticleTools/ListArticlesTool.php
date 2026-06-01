@@ -3,7 +3,7 @@
 namespace App\Mcp\Tools\ArticleTools;
 
 use App\Mcp\Exceptions\McpToolException;
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use App\Models\Article;
 use App\Utils\Str;
@@ -33,10 +33,10 @@ class ListArticlesTool extends Tool
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
         ]);
 
-        $user = McpAuthorization::user($request);
+        $user = McpAccess::user($request);
         $clientId = (string) $request->get('client_id');
 
-        McpAuthorization::assertClientAccess($user, $clientId);
+        McpAccess::assertClientAccess($user, $clientId);
 
         $query = Article::query()
             ->where('client_id', $clientId)

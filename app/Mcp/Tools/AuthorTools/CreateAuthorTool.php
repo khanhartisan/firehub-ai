@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools\AuthorTools;
 
-use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use App\Models\Author;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -30,8 +30,8 @@ class CreateAuthorTool extends Tool
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $user = McpAuthorization::user($request);
-        $client = McpAuthorization::client($user, (string) $request->get('client_id'));
+        $user = McpAccess::user($request);
+        $client = McpAccess::client($user, (string) $request->get('client_id'));
 
         $author = new Author;
         $author->client()->associate($client);

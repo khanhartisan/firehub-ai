@@ -180,16 +180,15 @@ class ListAuthorsToolTest extends TestCase
                     ->where('authors.0.client_id', $client->id)
                     ->has('authors.0.created_at')
                     ->has('authors.0.updated_at')
-                    ->has('authors.0.context')
                     ->etc();
             });
     }
 
-    public function test_fails_when_unauthenticated(): void
+    public function test_returns_error_when_unauthenticated(): void
     {
-        $this->expectException(\ErrorException::class);
+        $response = AppServer::tool(ListAuthorsTool::class);
 
-        AppServer::tool(ListAuthorsTool::class);
+        $response->assertHasErrors(['Unauthenticated.']);
     }
 
     private function attachClient(User $user, string $name): Client

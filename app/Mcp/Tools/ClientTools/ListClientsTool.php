@@ -2,13 +2,13 @@
 
 namespace App\Mcp\Tools\ClientTools;
 
+use App\Mcp\Exceptions\McpToolException;
+use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpResponse;
 use App\Models\Client;
-use App\Models\User;
-use App\Utils\Str;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -16,19 +16,15 @@ use Laravel\Mcp\Server\Tool;
 #[Description('Show the list of clients that belong to the current user.')]
 class ListClientsTool extends Tool
 {
-    /**
-     * Handle the tool request.
-     */
-    public function handle(Request $request): Response|ResponseFactory
+    public function handle(Request $request): ResponseFactory
     {
-        /** @var User $user */
-        $user = $request->user();
+        $user = McpAuthorization::user($request);
 
-        /** @var Collection<Client> $clients */
+        /** @var Collection<int, Client> $clients */
         $clients = $user->clients;
 
-        if (!$clients or $clients->isEmpty()) {
-            return Response::error('No clients found.');
+        if ($clients->isEmpty()) {
+            throw new McpToolException('No clients found.');
         }
 
         $clientsData = $clients
@@ -36,16 +32,10 @@ class ListClientsTool extends Tool
             ->values()
             ->toArray();
 
-        return Response::make(
-            Response::text('Found '.$clients->count().' '.Str::plural('client', $clients->count()).":\n\n".json_encode($clientsData))
-        )->withStructuredContent([
-            'clients' => $clientsData
-        ]);
+        return McpResponse::list('client', $clientsData, 'clients');
     }
 
     /**
-     * Get the tool's input schema.
-     *
      * @return array<string, JsonSchema>
      */
     public function schema(JsonSchema $schema): array

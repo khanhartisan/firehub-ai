@@ -2,14 +2,15 @@
 
 namespace App\Mcp\Tools\ArticleTools;
 
+use App\Mcp\Exceptions\McpToolException;
+use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpResponse;
 use App\Models\Article;
-use App\Models\User;
 use App\Utils\Str;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -22,11 +23,9 @@ class ListArticlesTool extends Tool
     private const int MAX_PER_PAGE = 100;
 
     /**
-     * Handle the tool request.
-     *
      * @throws ValidationException
      */
-    public function handle(Request $request): Response|ResponseFactory
+    public function handle(Request $request): ResponseFactory
     {
         $request->validate([
             'client_id' => ['required', 'string'],
@@ -34,17 +33,10 @@ class ListArticlesTool extends Tool
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
         ]);
 
-        $user = $request->user();
-
-        if (! $user instanceof User) {
-            return Response::error('Unauthenticated.');
-        }
-
+        $user = McpAuthorization::user($request);
         $clientId = (string) $request->get('client_id');
 
-        if (! $user->clients()->where('clients.id', $clientId)->exists()) {
-            return Response::error('Client not found or you do not have access to this client.');
-        }
+        McpAuthorization::assertClientAccess($user, $clientId);
 
         $query = Article::query()
             ->where('client_id', $clientId)
@@ -58,7 +50,7 @@ class ListArticlesTool extends Tool
         $paginator = $query->paginate($perPage, ['*'], 'page', $page);
 
         if ($paginator->total() === 0) {
-            return Response::error('No articles found.');
+            throw new McpToolException('No articles found.');
         }
 
         $articlesData = collect($paginator->items())
@@ -71,22 +63,22 @@ class ListArticlesTool extends Tool
         $message = 'Showing '.$count.' '.Str::plural('article', $count)
             .' (page '.$paginator->currentPage().' of '.$paginator->lastPage().', '.$total.' '.Str::plural('article', $total).' total):';
 
-        return Response::make(
-            Response::text($message."\n\n".json_encode($articlesData))
-        )->withStructuredContent([
-            'articles' => $articlesData,
-            'pagination' => [
-                'current_page' => $paginator->currentPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-                'last_page' => $paginator->lastPage(),
+        return McpResponse::textWithStructured(
+            $message,
+            $articlesData,
+            [
+                'articles' => $articlesData,
+                'pagination' => [
+                    'current_page' => $paginator->currentPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                    'last_page' => $paginator->lastPage(),
+                ],
             ],
-        ]);
+        );
     }
 
     /**
-     * Get the tool's input schema.
-     *
      * @return array<string, JsonSchema>
      */
     public function schema(JsonSchema $schema): array

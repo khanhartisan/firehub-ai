@@ -3,13 +3,14 @@
 namespace App\Mcp\Tools\PlatformTools;
 
 use App\Enums\PlatformType;
+use App\Mcp\Exceptions\McpToolException;
+use App\Mcp\Support\McpResponse;
 use App\Models\Platform;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -18,11 +19,9 @@ use Laravel\Mcp\Server\Tool;
 class UpdatePlatformTool extends Tool
 {
     /**
-     * Handle the tool request.
-     *
      * @throws ValidationException
      */
-    public function handle(Request $request): ResponseFactory|Response
+    public function handle(Request $request): ResponseFactory
     {
         if ($request->has('name')) {
             $request->merge(['name' => trim((string) $request->get('name'))]);
@@ -35,14 +34,14 @@ class UpdatePlatformTool extends Tool
         ]);
 
         if (! $request->exists('name') && ! $request->exists('type')) {
-            return Response::error('Provide at least one field to update (name or type).');
+            throw new McpToolException('Provide at least one field to update (name or type).');
         }
 
         /** @var Platform|null $platform */
         $platform = Platform::query()->find($request->get('platform_id'));
 
         if ($platform === null) {
-            return Response::error('Platform not found.');
+            throw new McpToolException('Platform not found.');
         }
 
         if ($request->exists('name')) {
@@ -59,15 +58,10 @@ class UpdatePlatformTool extends Tool
 
         $platform->refresh();
 
-        $data = $platform->toMcpStructuredData();
-
-        return Response::make(Response::text('Successfully updated the platform:'."\n\n".json_encode($data)))
-            ->withStructuredContent($data);
+        return McpResponse::updated('platform', $platform->toMcpStructuredData());
     }
 
     /**
-     * Get the tool's input schema.
-     *
      * @return array<string, JsonSchema>
      */
     public function schema(JsonSchema $schema): array
@@ -86,6 +80,6 @@ class UpdatePlatformTool extends Tool
 
     public function shouldRegister(Request $request): bool
     {
-        return !!$request->user()?->is_super;
+        return (bool) $request->user()?->is_super;
     }
 }

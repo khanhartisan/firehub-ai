@@ -2,13 +2,14 @@
 
 namespace App\Mcp\Tools\AuthorTools;
 
+use App\Mcp\Exceptions\McpToolException;
+use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpResponse;
 use App\Models\Author;
-use App\Models\User;
-use App\Utils\Str;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -17,27 +18,24 @@ use Laravel\Mcp\Server\Tool;
 class ListAuthorsTool extends Tool
 {
     /**
-     * Handle the tool request.
+     * @throws ValidationException
      */
-    public function handle(Request $request): Response|ResponseFactory
+    public function handle(Request $request): ResponseFactory
     {
         $request->validate([
             'client_id' => ['sometimes', 'string'],
         ]);
 
-        /** @var User $user */
-        $user = $request->user();
+        $user = McpAuthorization::user($request);
 
         $query = Author::query()
-            ->whereHas('client.users', fn ($query) => $query->where('users.id', $user->id))
+            ->accessibleBy($user)
             ->orderBy('name');
 
         if ($request->exists('client_id')) {
             $clientId = (string) $request->get('client_id');
 
-            if (! $user->clients()->where('clients.id', $clientId)->exists()) {
-                return Response::error('Client not found or you do not have access to this client.');
-            }
+            McpAuthorization::assertClientAccess($user, $clientId);
 
             $query->where('client_id', $clientId);
         }
@@ -46,7 +44,7 @@ class ListAuthorsTool extends Tool
         $authors = $query->get();
 
         if ($authors->isEmpty()) {
-            return Response::error('No authors found.');
+            throw new McpToolException('No authors found.');
         }
 
         $authorsData = $authors
@@ -54,16 +52,10 @@ class ListAuthorsTool extends Tool
             ->values()
             ->toArray();
 
-        return Response::make(
-            Response::text('Found '.$authors->count().' '.Str::plural('author', $authors->count()).":\n\n".json_encode($authorsData))
-        )->withStructuredContent([
-            'authors' => $authorsData,
-        ]);
+        return McpResponse::list('author', $authorsData, 'authors');
     }
 
     /**
-     * Get the tool's input schema.
-     *
      * @return array<string, JsonSchema>
      */
     public function schema(JsonSchema $schema): array

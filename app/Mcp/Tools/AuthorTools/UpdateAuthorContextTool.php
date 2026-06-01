@@ -9,13 +9,14 @@ use App\Contracts\Model\Author\AuthorContexts\ConstraintContext;
 use App\Contracts\Model\Author\AuthorContexts\DemographicContext;
 use App\Contracts\Model\Author\AuthorContexts\ExperientialContext;
 use App\Contracts\Model\Author\AuthorContexts\LinguisticContext;
-use App\Models\Author;
-use App\Models\User;
+use App\Mcp\Exceptions\McpToolException;
+use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpRequest;
+use App\Mcp\Support\McpResponse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -39,7 +40,7 @@ class UpdateAuthorContextTool extends Tool
      *
      * @throws ValidationException
      */
-    public function handle(Request $request): ResponseFactory|Response
+    public function handle(Request $request): ResponseFactory
     {
         $request->validate([
             'author_id' => ['required', 'string'],
@@ -50,25 +51,12 @@ class UpdateAuthorContextTool extends Tool
             'linguistic_context' => ['sometimes', 'array'],
         ]);
 
-        if (! $this->hasContextFieldToUpdate($request)) {
-            return Response::error('Provide at least one context field to update.');
+        if (! McpRequest::hasAnyField($request, self::CONTEXT_FIELDS)) {
+            throw new McpToolException('Provide at least one context field to update.');
         }
 
-        $user = $request->user();
-
-        if (! $user instanceof User) {
-            return Response::error('Unauthenticated.');
-        }
-
-        /** @var Author|null $author */
-        $author = Author::query()
-            ->where('authors.id', $request->get('author_id'))
-            ->whereHas('client.users', fn ($query) => $query->where('users.id', $user->id))
-            ->first();
-
-        if ($author === null) {
-            return Response::error('Author not found or you do not have access to this author.');
-        }
+        $user = McpAuthorization::user($request);
+        $author = McpAuthorization::author($user, (string) $request->get('author_id'));
 
         $context = $author->context instanceof AuthorContext
             ? $author->context->clone()
@@ -83,10 +71,7 @@ class UpdateAuthorContextTool extends Tool
 
         $author->refresh();
 
-        $data = $author->toMcpStructuredData();
-
-        return Response::make(Response::text('Successfully updated the author context:'."\n\n".json_encode($data)))
-            ->withStructuredContent($data);
+        return McpResponse::updated('author context', $author->toMcpStructuredData());
     }
 
     /**
@@ -107,17 +92,6 @@ class UpdateAuthorContextTool extends Tool
         }
 
         return $fields;
-    }
-
-    private function hasContextFieldToUpdate(Request $request): bool
-    {
-        foreach (self::CONTEXT_FIELDS as $field) {
-            if ($request->exists($field)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function applyContextUpdates(AuthorContext $context, Request $request): void

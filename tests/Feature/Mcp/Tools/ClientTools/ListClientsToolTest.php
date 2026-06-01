@@ -102,11 +102,11 @@ class ListClientsToolTest extends TestCase
             });
     }
 
-    public function test_fails_when_unauthenticated(): void
+    public function test_returns_error_when_unauthenticated(): void
     {
-        $this->expectException(\ErrorException::class);
+        $response = AppServer::tool(ListClientsTool::class);
 
-        AppServer::tool(ListClientsTool::class);
+        $response->assertHasErrors(['Unauthenticated.']);
     }
 
     private function attachClient(User $user, string $name, ?Language $language = null): Client

@@ -37,7 +37,7 @@ class UpdateAuthorContextToolTest extends TestCase
             ->assertName('update-author-context-tool')
             ->assertDescription('Update the persona context of an existing author.')
             ->assertStructuredContent(function ($json) use ($author): void {
-                $json->where('id', $author->id)->has('context')->etc();
+                $json->where('id', $author->id)->etc();
             });
 
         $author->refresh();

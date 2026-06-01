@@ -2,14 +2,13 @@
 
 namespace App\Mcp\Tools\ArticleTools;
 
+use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpResponse;
 use App\Models\Article;
-use App\Models\Client;
-use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -18,28 +17,16 @@ use Laravel\Mcp\Server\Tool;
 class CreateArticleTool extends Tool
 {
     /**
-     * Handle the tool request.
-     *
      * @throws ValidationException
      */
-    public function handle(Request $request): ResponseFactory|Response
+    public function handle(Request $request): ResponseFactory
     {
         $request->validate([
             'client_id' => ['required', 'string'],
         ]);
 
-        $user = $request->user();
-
-        if (! $user instanceof User) {
-            return Response::error('Unauthenticated.');
-        }
-
-        /** @var Client|null $client */
-        $client = $user->clients()->where('clients.id', $request->get('client_id'))->first();
-
-        if ($client === null) {
-            return Response::error('Client not found or you do not have access to this client.');
-        }
+        $user = McpAuthorization::user($request);
+        $client = McpAuthorization::client($user, (string) $request->get('client_id'));
 
         $article = new Article;
         $article->client()->associate($client);
@@ -50,15 +37,10 @@ class CreateArticleTool extends Tool
 
         $article->refresh();
 
-        $data = $article->toMcpStructuredData();
-
-        return Response::make(Response::text('Successfully created a new article:'."\n\n".json_encode($data)))
-            ->withStructuredContent($data);
+        return McpResponse::created('article', $article->toMcpStructuredData());
     }
 
     /**
-     * Get the tool's input schema.
-     *
      * @return array<string, JsonSchema>
      */
     public function schema(JsonSchema $schema): array

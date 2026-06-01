@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\PlatformTools;
 
 use App\Enums\PlatformType;
+use App\Mcp\Support\McpResponse;
 use App\Models\Platform;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
@@ -43,10 +44,7 @@ class CreatePlatformTool extends Tool
 
         $platform->refresh();
 
-        $data = $platform->toMcpStructuredData();
-
-        return Response::make(Response::text('Successfully created a new platform:'."\n\n".json_encode($data)))
-            ->withStructuredContent($data);
+        return McpResponse::created('platform', $platform->toMcpStructuredData());
     }
 
     /**
@@ -69,6 +67,6 @@ class CreatePlatformTool extends Tool
 
     public function shouldRegister(Request $request): bool
     {
-        return !!$request->user()?->is_super;
+        return (bool) $request->user()?->is_super;
     }
 }

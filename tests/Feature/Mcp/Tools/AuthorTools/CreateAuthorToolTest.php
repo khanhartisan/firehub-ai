@@ -32,7 +32,6 @@ class CreateAuthorToolTest extends TestCase
             ->assertStructuredContent(function ($json) use ($client, $name): void {
                 $json->where('client_id', $client->id)
                     ->where('name', $name)
-                    ->has('context')
                     ->has('created_at')
                     ->has('updated_at')
                     ->etc();

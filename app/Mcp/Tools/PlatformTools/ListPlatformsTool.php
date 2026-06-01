@@ -2,12 +2,12 @@
 
 namespace App\Mcp\Tools\PlatformTools;
 
+use App\Mcp\Exceptions\McpToolException;
+use App\Mcp\Support\McpResponse;
 use App\Models\Platform;
-use App\Utils\Str;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -15,10 +15,7 @@ use Laravel\Mcp\Server\Tool;
 #[Description('Show the list of available platforms.')]
 class ListPlatformsTool extends Tool
 {
-    /**
-     * Handle the tool request.
-     */
-    public function handle(Request $request): Response|ResponseFactory
+    public function handle(Request $request): ResponseFactory
     {
         /** @var Collection<int, Platform> $platforms */
         $platforms = Platform::query()
@@ -26,7 +23,7 @@ class ListPlatformsTool extends Tool
             ->get();
 
         if ($platforms->isEmpty()) {
-            return Response::error('No platforms found.');
+            throw new McpToolException('No platforms found.');
         }
 
         $platformsData = $platforms
@@ -34,16 +31,10 @@ class ListPlatformsTool extends Tool
             ->values()
             ->toArray();
 
-        return Response::make(
-            Response::text('Found '.$platforms->count().' '.Str::plural('platform', $platforms->count()).":\n\n".json_encode($platformsData))
-        )->withStructuredContent([
-            'platforms' => $platformsData,
-        ]);
+        return McpResponse::list('platform', $platformsData, 'platforms');
     }
 
     /**
-     * Get the tool's input schema.
-     *
      * @return array<string, JsonSchema>
      */
     public function schema(JsonSchema $schema): array

@@ -3,12 +3,12 @@
 namespace App\Mcp\Tools\ClientTools;
 
 use App\Enums\Language;
+use App\Mcp\Support\McpResponse;
 use App\Models\Client;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -18,6 +18,7 @@ class CreateClientTool extends Tool
 {
     /**
      * Handle the tool request.
+     *
      * @throws ValidationException
      */
     public function handle(Request $request): ResponseFactory
@@ -26,7 +27,7 @@ class CreateClientTool extends Tool
             'name' => ['required', 'string', 'min:5', 'max:50'],
         ]);
 
-        $client = new Client();
+        $client = new Client;
         $client->name = $request->get('name');
         $client->language = $request->get('language');
         DB::transaction(function () use ($client, $request) {
@@ -34,10 +35,7 @@ class CreateClientTool extends Tool
             $client->users()->attach($request->user());
         });
 
-        $data = $client->toMcpStructuredData();
-
-        return Response::make(Response::text('Successfully created a new client:'."\n\n".json_encode($data)))
-            ->withStructuredContent($data);
+        return McpResponse::created('client', $client->toMcpStructuredData());
     }
 
     /**
@@ -54,7 +52,7 @@ class CreateClientTool extends Tool
             'language' => $schema
                 ->string()
                 ->enum(Language::class)
-                ->nullable()
+                ->nullable(),
         ];
     }
 }

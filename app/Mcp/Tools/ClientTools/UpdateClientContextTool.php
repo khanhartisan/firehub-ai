@@ -2,15 +2,16 @@
 
 namespace App\Mcp\Tools\ClientTools;
 
-use App\Contracts\CommonData\AudienceContext;
 use App\Contracts\Model\Client\Context;
-use App\Models\Client;
-use App\Models\User;
+use App\Mcp\Exceptions\McpToolException;
+use App\Mcp\Support\AudienceContextHydrator;
+use App\Mcp\Support\McpAuthorization;
+use App\Mcp\Support\McpRequest;
+use App\Mcp\Support\McpResponse;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
@@ -34,11 +35,9 @@ class UpdateClientContextTool extends Tool
     ];
 
     /**
-     * Handle the tool request.
-     *
      * @throws ValidationException
      */
-    public function handle(Request $request): ResponseFactory|Response
+    public function handle(Request $request): ResponseFactory
     {
         $request->validate([
             'client_id' => ['required', 'string'],
@@ -56,22 +55,12 @@ class UpdateClientContextTool extends Tool
             'meta' => ['sometimes', 'array'],
         ]);
 
-        if (! $this->hasContextFieldToUpdate($request)) {
-            return Response::error('Provide at least one context field to update.');
+        if (! McpRequest::hasAnyField($request, self::CONTEXT_FIELDS)) {
+            throw new McpToolException('Provide at least one context field to update.');
         }
 
-        $user = $request->user();
-
-        if (! $user instanceof User) {
-            return Response::error('Unauthenticated.');
-        }
-
-        /** @var Client|null $client */
-        $client = $user->clients()->where('clients.id', $request->get('client_id'))->first();
-
-        if ($client === null) {
-            return Response::error('Client not found or you do not have access to this client.');
-        }
+        $user = McpAuthorization::user($request);
+        $client = McpAuthorization::client($user, (string) $request->get('client_id'));
 
         $context = $client->context instanceof Context
             ? $client->context->clone()
@@ -86,14 +75,10 @@ class UpdateClientContextTool extends Tool
 
         $client->refresh();
 
-        $data = $client->toMcpStructuredData();
-        return Response::make(Response::text('Successfully updated the client context:'."\n\n".json_encode($data)))
-            ->withStructuredContent($data);
+        return McpResponse::updated('client context', $client->toMcpStructuredData());
     }
 
     /**
-     * Get the tool's input schema.
-     *
      * @return array<string, JsonSchema>
      */
     public function schema(JsonSchema $schema): array
@@ -109,17 +94,6 @@ class UpdateClientContextTool extends Tool
         }
 
         return $fields;
-    }
-
-    private function hasContextFieldToUpdate(Request $request): bool
-    {
-        foreach (self::CONTEXT_FIELDS as $field) {
-            if ($request->exists($field)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function applyContextUpdates(Context $context, Request $request): void
@@ -160,44 +134,7 @@ class UpdateClientContextTool extends Tool
         }
 
         if ($request->exists('audience_contexts')) {
-            $context->setAudienceContexts($this->hydrateAudienceContexts($request->get('audience_contexts')));
+            $context->setAudienceContexts(AudienceContextHydrator::fromArray($request->get('audience_contexts')));
         }
-    }
-
-    /**
-     * @return AudienceContext[]
-     */
-    private function hydrateAudienceContexts(mixed $rawAudienceContexts): array
-    {
-        if (! is_array($rawAudienceContexts)) {
-            return [];
-        }
-
-        $audienceContexts = [];
-
-        foreach ($rawAudienceContexts as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            if ($row === []) {
-                continue;
-            }
-
-            $audienceContext = new AudienceContext;
-
-            foreach ($row as $key => $value) {
-                if (! is_string($key)) {
-                    continue;
-                }
-
-                $description = $audienceContext->getDescription($key) ?? ('Audience context field: '.$key);
-                $audienceContext->set($key, $description, $value);
-            }
-
-            $audienceContexts[] = $audienceContext;
-        }
-
-        return $audienceContexts;
     }
 }

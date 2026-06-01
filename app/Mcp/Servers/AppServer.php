@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Server\Methods\AppCallTool;
 use App\Mcp\Tools\ArticleTools\CreateArticleTool;
 use App\Mcp\Tools\ArticleTools\ListArticlesTool;
 use App\Mcp\Tools\ArticleTools\ShowArticleTool;
@@ -66,4 +67,9 @@ class AppServer extends Server
     protected array $prompts = [
         //
     ];
+
+    protected function boot(): void
+    {
+        $this->addMethod('tools/call', AppCallTool::class);
+    }
 }

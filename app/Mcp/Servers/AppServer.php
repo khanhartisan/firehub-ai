@@ -53,10 +53,10 @@ class AppServer extends Server
         UpdateClientContextTool::class,
 
         // Platform tools
-        CreatePlatformTool::class,
+        CreatePlatformTool::class, // super only
         ListPlatformsTool::class,
-        UpdatePlatformTool::class,
-        UpdatePlatformConfigTool::class,
+        UpdatePlatformTool::class, // super only
+        UpdatePlatformConfigTool::class, // super only
     ];
 
     protected array $resources = [

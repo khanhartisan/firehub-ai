@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\ChannelConfigCast;
 use App\Contracts\Mcp\StructuredMcpResource;
 use App\Enums\ChannelStatus;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -17,7 +18,7 @@ class Channel extends Model implements ShouldCascade, StructuredMcpResource
 
     protected $casts = [
         'status' => ChannelStatus::class,
-        'config' => 'array',
+        'config' => ChannelConfigCast::class,
     ];
 
     public function getCascadeDetails(): CascadeDetails|array
@@ -64,7 +65,7 @@ class Channel extends Model implements ShouldCascade, StructuredMcpResource
             'client_id' => $this->client_id,
             'platform_id' => $this->platform_id,
             'name' => $this->name,
-            'config' => $this->config ?? [],
+            'config' => $this->config?->toArray() ?? [],
             'publications_count' => $this->publications_count,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

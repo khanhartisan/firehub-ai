@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use App\Contracts\Mcp\StructuredMcpResource;
+use App\Contracts\PlatformManager\PlatformManager;
 use App\Enums\PlatformType;
+use App\Facades\Platforms\FlyCms;
+use Exception;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
@@ -30,6 +33,21 @@ class Platform extends Model implements ShouldCascade, StructuredMcpResource
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
     {
         return true;
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function getPlatformManager(): PlatformManager
+    {
+        if (!$platformManager = match ($this->type) {
+            PlatformType::FLYCMS => FlyCms::driver(),
+            default => null,
+        }) {
+            throw new Exception('Platform manager not found for: '.$this->type?->value);
+        }
+
+        return $platformManager;
     }
 
     public function channels(): HasMany

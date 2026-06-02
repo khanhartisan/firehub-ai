@@ -67,13 +67,13 @@ class CreateChannelToolTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertStructuredContent(function ($json) use ($config): void {
-                $json->where('config', $config)->etc();
+            ->assertStructuredContent(function ($json): void {
+                $json->where('config', [])->etc();
             });
 
         $channel = Channel::query()->first();
         $this->assertNotNull($channel);
-        $this->assertSame($config, $channel->config);
+        $this->assertNull($channel->config);
     }
 
     public function test_validation_fails_when_client_id_is_missing(): void

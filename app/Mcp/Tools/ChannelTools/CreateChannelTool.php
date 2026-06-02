@@ -71,9 +71,9 @@ class CreateChannelTool extends Tool
                 ->description('Channel display name')
                 ->required(),
             'config' => $schema
-                ->object([])
+                ->object()
                 ->nullable()
-                ->description('Optional channel-specific configuration'),
+                ->description('Channel-specific configuration, use '.(new GetChannelConfigSchemaTool()->name()).' to see the schema, omit if the schema is null or empty.'),
         ];
     }
 }

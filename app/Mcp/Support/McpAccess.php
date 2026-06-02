@@ -5,6 +5,7 @@ namespace App\Mcp\Support;
 use App\Mcp\Exceptions\McpToolException;
 use App\Models\Article;
 use App\Models\Author;
+use App\Models\Channel;
 use App\Models\Client;
 use App\Models\Platform;
 use App\Models\User;
@@ -84,5 +85,21 @@ final class McpAccess
         }
 
         return $article;
+    }
+
+    public static function channel(User $user, string $channelId): Channel
+    {
+        /** @var Channel|null $channel */
+        $channel = Channel::query()->find($channelId);
+
+        if ($channel === null) {
+            throw new McpToolException('Channel not found or you do not have access to this channel.');
+        }
+
+        if (! $user->clients()->where('clients.id', $channel->client_id)->exists()) {
+            throw new McpToolException('Channel not found or you do not have access to this channel.');
+        }
+
+        return $channel;
     }
 }

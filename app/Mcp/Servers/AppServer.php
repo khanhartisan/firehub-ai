@@ -14,6 +14,7 @@ use App\Mcp\Tools\AuthorTools\UpdateAuthorContextTool;
 use App\Mcp\Tools\AuthorTools\UpdateAuthorTool;
 use App\Mcp\Tools\ChannelTools\CreateChannelTool;
 use App\Mcp\Tools\ChannelTools\GetChannelConfigSchemaTool;
+use App\Mcp\Tools\ChannelTools\UpdateChannelTool;
 use App\Mcp\Tools\ClientTools\CreateClientTool;
 use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\ShowClientTool;
@@ -51,6 +52,7 @@ class AppServer extends Server
         // Channel tools
         CreateChannelTool::class,
         GetChannelConfigSchemaTool::class,
+        UpdateChannelTool::class,
 
         // Client tools
         CreateClientTool::class,

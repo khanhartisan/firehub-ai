@@ -11,8 +11,8 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 
-#[Description('Show a FlyCMS tag by ID for the website linked to the given channel.')]
-class ShowTagTool extends FlyCmsTool
+#[Description('Delete a FlyCMS tag on the website linked to the given channel.')]
+class DeleteTagTool extends FlyCmsTool
 {
     /**
      * Handle the tool request.
@@ -26,9 +26,18 @@ class ShowTagTool extends FlyCmsTool
         $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $tagId = (string) $request->get('tag_id');
         $flycms = $this->getFlyCmsManager($channel);
-        $tagData = $this->resolveTagForChannel($flycms, $flycmsWebsiteId, $tagId);
 
-        return McpResponse::details('Tag', $tagData->toMcpStructuredData());
+        $this->resolveTagForChannel($flycms, $flycmsWebsiteId, $tagId);
+
+        if (! $flycms->deleteTag($tagId)) {
+            throw new McpToolException("Tag [{$tagId}] not found.");
+        }
+
+        return McpResponse::textWithStructured(
+            "Successfully deleted tag [{$tagId}].",
+            ['tag_id' => $tagId],
+            ['tag_id' => $tagId],
+        );
     }
 
     /**
@@ -43,7 +52,7 @@ class ShowTagTool extends FlyCmsTool
                 ->description('The ULID of the channel that belongs to a platform with type = flycms')
                 ->required(),
             'tag_id' => $schema->string()
-                ->description('The FlyCMS tag ID to show')
+                ->description('The FlyCMS tag ID to delete')
                 ->required(),
         ];
     }

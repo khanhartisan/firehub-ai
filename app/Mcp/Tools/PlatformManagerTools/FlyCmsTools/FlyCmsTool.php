@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools;
 
 use App\Contracts\PlatformManager\FlyCms\FlyCms;
+use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
 use App\Enums\PlatformType;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Tools\PlatformManagerTools\PlatformManagerTool;
@@ -35,5 +36,27 @@ abstract class FlyCmsTool extends PlatformManagerTool
         }
 
         return $flycms;
+    }
+
+    protected function requireFlyCmsWebsiteId(Channel $channel): string
+    {
+        if (! $flycmsWebsiteId = $channel->reference) {
+            throw new McpToolException('Channel '.$channel->id.' does not have a FlyCMS website reference.');
+        }
+
+        return $flycmsWebsiteId;
+    }
+
+    protected function resolveTagForChannel(FlyCms $flycms, string $websiteId, string $tagId): TagResource
+    {
+        if (! $tag = $flycms->showTag($tagId)) {
+            throw new McpToolException("Tag [{$tagId}] not found.");
+        }
+
+        if (($tag->get('website_id') ?? null) !== $websiteId) {
+            throw new McpToolException("Tag [{$tagId}] not found.");
+        }
+
+        return $tag;
     }
 }

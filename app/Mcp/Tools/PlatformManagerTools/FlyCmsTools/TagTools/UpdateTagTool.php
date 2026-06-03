@@ -2,17 +2,20 @@
 
 namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools;
 
+use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
+use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\UpdateTagData;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FlyCmsTool;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 
-#[Description('Show a FlyCMS tag by ID for the website linked to the given channel.')]
-class ShowTagTool extends FlyCmsTool
+#[Description('Update a FlyCMS tag on the website linked to the given channel.')]
+class UpdateTagTool extends FlyCmsTool
 {
     /**
      * Handle the tool request.
@@ -25,10 +28,23 @@ class ShowTagTool extends FlyCmsTool
 
         $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $tagId = (string) $request->get('tag_id');
-        $flycms = $this->getFlyCmsManager($channel);
-        $tagData = $this->resolveTagForChannel($flycms, $flycmsWebsiteId, $tagId);
+        $updatePayload = $request->get('update_tag_data');
 
-        return McpResponse::details('Tag', $tagData->toMcpStructuredData());
+        if (! is_array($updatePayload) || $updatePayload === []) {
+            throw new McpToolException('Provide at least one field in update_tag_data.');
+        }
+
+        $flycms = $this->getFlyCmsManager($channel);
+        $this->resolveTagForChannel($flycms, $flycmsWebsiteId, $tagId);
+
+        try {
+            $updateTagData = (new UpdateTagData)->setData($updatePayload);
+            $tagData = $flycms->updateTag($tagId, $updateTagData);
+
+            return McpResponse::updated('tag', $tagData->toMcpStructuredData());
+        } catch (FlyCmsException|InvalidArgumentException $e) {
+            throw new McpToolException($e->getMessage(), previous: $e);
+        }
     }
 
     /**
@@ -43,8 +59,11 @@ class ShowTagTool extends FlyCmsTool
                 ->description('The ULID of the channel that belongs to a platform with type = flycms')
                 ->required(),
             'tag_id' => $schema->string()
-                ->description('The FlyCMS tag ID to show')
+                ->description('The FlyCMS tag ID to update')
                 ->required(),
+            'update_tag_data' => $schema->object(new UpdateTagData()->toJsonSchema($schema))
+                ->required()
+                ->description('Tag update payload'),
         ];
     }
 }

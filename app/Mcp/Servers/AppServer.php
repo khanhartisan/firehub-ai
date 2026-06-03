@@ -22,7 +22,11 @@ use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\ShowClientTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\CreateTagTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\DeleteTagTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\ListTagsTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\ShowTagTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\UpdateTagTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\CreateWebsiteTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\ShowWebsiteTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\UpdateWebsiteTool;
@@ -40,47 +44,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 #[Instructions('MCP Server')]
 class AppServer extends Server
 {
-    protected array $tools = [
-
-        // Article tools
-        CreateArticleTool::class,
-        ListArticlesTool::class,
-        ShowArticleTool::class,
-        UpdateArticleContextTool::class,
-
-        // Author tools
-        CreateAuthorTool::class,
-        ListAuthorsTool::class,
-        ShowAuthorTool::class,
-        UpdateAuthorContextTool::class,
-        UpdateAuthorTool::class,
-
-        // Channel tools
-        CreateChannelTool::class,
-        GetChannelConfigSchemaTool::class,
-        ListChannelsTool::class,
-        ShowChannelTool::class,
-        UpdateChannelTool::class,
-
-        // Client tools
-        CreateClientTool::class,
-        ListClientsTool::class,
-        ShowClientTool::class,
-        UpdateClientTool::class,
-        UpdateClientContextTool::class,
-
-        // Platform tools
-        CreatePlatformTool::class, // super only
-        ListPlatformsTool::class,
-        UpdatePlatformTool::class, // super only
-        UpdatePlatformConfigTool::class, // super only
-
-        // FlyCms tools
-        CreateWebsiteTool::class,
-        ShowWebsiteTool::class,
-        UpdateWebsiteTool::class,
-        ShowTagTool::class,
-    ];
+    protected array $tools = [];
 
     protected array $resources = [
         //
@@ -93,5 +57,84 @@ class AppServer extends Server
     protected function boot(): void
     {
         $this->addMethod('tools/call', AppCallTool::class);
+
+        // Register tools
+        $this->registerArticleTools();
+        $this->registerAuthorTools();
+        $this->registerChannelTools();
+        $this->registerClientTools();
+        $this->registerPlatformTools();
+        $this->registerPlatformManagerFlyCmsTools();
+    }
+
+    protected function registerArticleTools(): void
+    {
+        $this->tools = array_merge($this->tools, [
+            CreateArticleTool::class,
+            ListArticlesTool::class,
+            ShowArticleTool::class,
+            UpdateArticleContextTool::class,
+        ]);
+    }
+
+    protected function registerAuthorTools(): void
+    {
+        $this->tools = array_merge($this->tools, [
+            CreateAuthorTool::class,
+            ListAuthorsTool::class,
+            ShowAuthorTool::class,
+            UpdateAuthorContextTool::class,
+            UpdateAuthorTool::class,
+        ]);
+    }
+
+    protected function registerChannelTools(): void
+    {
+        $this->tools = array_merge($this->tools, [
+            CreateChannelTool::class,
+            GetChannelConfigSchemaTool::class,
+            ListChannelsTool::class,
+            ShowChannelTool::class,
+            UpdateChannelTool::class,
+        ]);
+    }
+
+    protected function registerClientTools(): void
+    {
+        $this->tools = array_merge($this->tools, [
+            CreateClientTool::class,
+            ListClientsTool::class,
+            ShowClientTool::class,
+            UpdateClientTool::class,
+            UpdateClientContextTool::class,
+        ]);
+    }
+
+    protected function registerPlatformTools(): void
+    {
+        $this->tools = array_merge($this->tools, [
+            CreatePlatformTool::class, // super only
+            ListPlatformsTool::class,
+            UpdatePlatformTool::class, // super only
+            UpdatePlatformConfigTool::class, // super only
+        ]);
+    }
+
+    protected function registerPlatformManagerFlyCmsTools(): void
+    {
+        $this->tools = array_merge($this->tools, [
+
+            // Website tools
+            CreateWebsiteTool::class,
+            ShowWebsiteTool::class,
+            UpdateWebsiteTool::class,
+
+            // Tag tools
+            CreateTagTool::class,
+            ShowTagTool::class,
+            UpdateTagTool::class,
+            ListTagsTool::class,
+            DeleteTagTool::class,
+        ]);
     }
 }

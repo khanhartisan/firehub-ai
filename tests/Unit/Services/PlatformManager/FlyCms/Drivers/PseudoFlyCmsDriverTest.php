@@ -3,9 +3,12 @@
 namespace Tests\Unit\Services\PlatformManager\FlyCms\Drivers;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
+use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\CreateMenuData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\UpdateMenuData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\UpdateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\CreateWebsiteData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\UpdateWebsiteData;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoFlyCmsDriver;
@@ -273,5 +276,141 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_list_menus_returns_empty_for_unknown_website(): void
     {
         $this->assertSame([], $this->driver->listMenus('unknown-website-id'));
+    }
+
+    public function test_it_seeds_sample_tags(): void
+    {
+        $tags = $this->driver->listTags('01J00000000000000000000001');
+
+        $this->assertCount(2, $tags);
+        $this->assertSame('Technology', $tags[0]->getData()['name']);
+        $this->assertTrue($tags[0]->getData()['is_featured']);
+        $this->assertSame('Lifestyle', $tags[1]->getData()['name']);
+        $this->assertCount(1, $this->driver->listTags('01J00000000000000000000002'));
+    }
+
+    public function test_show_tag_returns_matching_resource(): void
+    {
+        $tag = $this->driver->showTag('01J00000000000000000000021');
+
+        $this->assertNotNull($tag);
+        $this->assertSame('01J00000000000000000000001', $tag->getData()['website_id']);
+        $this->assertSame('Technology', $tag->getData()['name']);
+        $this->assertSame('technology', $tag->getData()['slug']);
+        $this->assertSame(12, $tag->getData()['public_posts_count']);
+    }
+
+    public function test_show_tag_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showTag('unknown-id'));
+    }
+
+    public function test_create_tag_persists_in_memory(): void
+    {
+        $createTagData = (new CreateTagData)->setData([
+            'website_id' => '01J00000000000000000000001',
+            'name' => 'Travel',
+            'slug' => 'travel',
+            'is_featured' => true,
+            'description' => 'Travel stories',
+        ]);
+
+        $created = $this->driver->createTag($createTagData);
+        $data = $created->getData();
+
+        $this->assertSame('Travel', $data['name']);
+        $this->assertSame('travel', $data['slug']);
+        $this->assertTrue($data['is_featured']);
+        $this->assertSame('01J00000000000000000000001', $data['website_id']);
+        $this->assertSame(0, $data['public_posts_count']);
+        $this->assertNotEmpty($data['id']);
+        $this->assertNotNull($this->driver->showTag($data['id']));
+        $this->assertCount(3, $this->driver->listTags('01J00000000000000000000001'));
+    }
+
+    public function test_update_tag_merges_changes(): void
+    {
+        $updateTagData = (new UpdateTagData)->setData([
+            'name' => 'Tech',
+            'slug' => 'tech',
+            'is_featured' => false,
+            'description' => 'Updated description',
+        ]);
+
+        $updated = $this->driver->updateTag('01J00000000000000000000021', $updateTagData);
+        $data = $updated->getData();
+
+        $this->assertSame('Tech', $data['name']);
+        $this->assertSame('tech', $data['slug']);
+        $this->assertFalse($data['is_featured']);
+        $this->assertSame('Updated description', $data['description']);
+        $this->assertSame('01J00000000000000000000001', $data['website_id']);
+        $this->assertSame('Tech', $this->driver->showTag('01J00000000000000000000021')?->getData()['name']);
+    }
+
+    public function test_update_tag_ignores_website_id(): void
+    {
+        $updateTagData = (new UpdateTagData)->setData([
+            'website_id' => '01J00000000000000000000002',
+            'name' => 'Still Technology',
+        ]);
+
+        $updated = $this->driver->updateTag('01J00000000000000000000021', $updateTagData);
+
+        $this->assertSame('01J00000000000000000000001', $updated->getData()['website_id']);
+    }
+
+    public function test_update_tag_throws_for_unknown_id(): void
+    {
+        $updateTagData = (new UpdateTagData)->setData([
+            'name' => 'Missing Tag',
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Tag [missing-id] not found.');
+
+        $this->driver->updateTag('missing-id', $updateTagData);
+    }
+
+    public function test_delete_tag_removes_record(): void
+    {
+        $this->assertTrue($this->driver->deleteTag('01J00000000000000000000021'));
+        $this->assertNull($this->driver->showTag('01J00000000000000000000021'));
+        $this->assertCount(1, $this->driver->listTags('01J00000000000000000000001'));
+    }
+
+    public function test_delete_tag_returns_false_for_unknown_id(): void
+    {
+        $this->assertFalse($this->driver->deleteTag('missing-id'));
+    }
+
+    public function test_list_tags_filters_by_name(): void
+    {
+        $filter = (new TagFilter)->setFilterData([
+            'name' => 'life',
+        ]);
+
+        $tags = $this->driver->listTags('01J00000000000000000000001', tagFilter: $filter);
+
+        $this->assertCount(1, $tags);
+        $this->assertSame('Lifestyle', $tags[0]->getData()['name']);
+    }
+
+    public function test_list_tags_supports_pagination(): void
+    {
+        $pageOne = $this->driver->listTags('01J00000000000000000000001', page: 1, limit: 1);
+        $pageTwo = $this->driver->listTags('01J00000000000000000000001', page: 2, limit: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
+    }
+
+    public function test_list_tags_returns_empty_for_unknown_website(): void
+    {
+        $this->assertSame([], $this->driver->listTags('unknown-website-id'));
     }
 }

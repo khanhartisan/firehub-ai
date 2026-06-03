@@ -68,6 +68,11 @@ class FakePlatformManager implements PlatformManagerContract
         return null;
     }
 
+    public function makeConfig(): ?Config
+    {
+        return null;
+    }
+
     public function makeChannelConfig(): ?Config
     {
         return new FakeChannelConfig;

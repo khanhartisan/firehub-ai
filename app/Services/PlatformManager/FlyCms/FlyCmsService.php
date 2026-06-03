@@ -16,4 +16,9 @@ abstract class FlyCmsService extends PlatformManager implements FlyCms
 
         return parent::setConfig($config);
     }
+
+    public function makeConfig(): ?Config
+    {
+        return new \App\Contracts\PlatformManager\FlyCms\Config();
+    }
 }

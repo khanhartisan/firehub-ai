@@ -20,6 +20,11 @@ abstract class PlatformManager implements \App\Contracts\PlatformManager\Platfor
         return $this->config;
     }
 
+    public function makeConfig(): ?Config
+    {
+        return null;
+    }
+
     public function makeChannelConfig(): ?Config
     {
         return null;

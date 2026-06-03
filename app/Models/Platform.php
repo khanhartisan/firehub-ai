@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PlatformConfigCast;
 use App\Contracts\Mcp\StructuredMcpResource;
 use App\Contracts\PlatformManager\PlatformManager;
 use App\Enums\PlatformType;
@@ -19,7 +20,7 @@ class Platform extends Model implements ShouldCascade, StructuredMcpResource
 
     protected $casts = [
         'type' => PlatformType::class,
-        'config' => 'array',
+        'config' => PlatformConfigCast::class,
         'channels_count' => 'integer',
     ];
 

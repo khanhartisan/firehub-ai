@@ -8,5 +8,7 @@ interface PlatformManager
 
     public function getConfig(): ?Config;
 
+    public function makeConfig(): ?Config;
+
     public function makeChannelConfig(): ?Config;
 }

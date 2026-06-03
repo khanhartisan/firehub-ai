@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Mcp\Tools\PlatformTools;
 
+use App\Contracts\PlatformManager\FlyCms\Config as FlyCmsConfig;
 use App\Enums\PlatformType;
 use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\PlatformTools\UpdatePlatformConfigTool;
@@ -39,8 +40,9 @@ class UpdatePlatformConfigToolTest extends TestCase
 
         $platform->refresh();
 
-        $this->assertSame('https://flycms.example.test', $platform->config['base_url']);
-        $this->assertSame('secret-api-key', $platform->config['api_key']);
+        $this->assertInstanceOf(FlyCmsConfig::class, $platform->config);
+        $this->assertSame('https://flycms.example.test', $platform->config->getBaseUrl());
+        $this->assertSame('secret-api-key', $platform->config->getApiKey());
     }
 
     public function test_validation_fails_when_platform_id_is_missing(): void

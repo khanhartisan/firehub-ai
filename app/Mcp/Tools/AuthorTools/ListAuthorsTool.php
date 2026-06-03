@@ -5,6 +5,7 @@ namespace App\Mcp\Tools\AuthorTools;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
+use App\Mcp\Tools\Tool;
 use App\Models\Author;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Collection;
@@ -12,7 +13,6 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
-use Laravel\Mcp\Server\Tool;
 
 #[Description('Show the list of authors that belong to the current user\'s clients.')]
 class ListAuthorsTool extends Tool

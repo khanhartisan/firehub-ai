@@ -4,12 +4,12 @@ namespace App\Mcp\Tools\ArticleTools;
 
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
+use App\Mcp\Tools\Tool;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
-use Laravel\Mcp\Server\Tool;
 
 #[Description('Show details of an existing article.')]
 class ShowArticleTool extends Tool

@@ -5,6 +5,7 @@ namespace App\Mcp\Tools\ArticleTools;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
+use App\Mcp\Tools\Tool;
 use App\Models\Article;
 use App\Utils\Str;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,7 +14,6 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
-use Laravel\Mcp\Server\Tool;
 
 #[Description('List articles that belong to the current user\'s client, with pagination.')]
 class ListArticlesTool extends Tool

@@ -5,6 +5,7 @@ namespace App\Mcp\Tools\ChannelTools;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
+use App\Mcp\Tools\Tool;
 use App\Models\Channel;
 use App\Utils\Str;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,7 +14,6 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
-use Laravel\Mcp\Server\Tool;
 
 #[Description('Show the list of channels that belong to the current user\'s clients.')]
 class ListChannelsTool extends Tool

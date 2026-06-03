@@ -4,6 +4,7 @@ namespace App\Mcp\Tools\ChannelTools;
 
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
+use App\Mcp\Tools\Tool;
 use App\Models\Channel;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,6 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
-use Laravel\Mcp\Server\Tool;
 
 #[Description('Create a new publishing channel for a client on a platform.')]
 class CreateChannelTool extends Tool

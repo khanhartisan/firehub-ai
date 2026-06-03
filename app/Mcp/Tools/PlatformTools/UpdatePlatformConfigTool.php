@@ -6,6 +6,7 @@ use App\Contracts\PlatformManager\FlyCms\Config as FlyCmsConfig;
 use App\Enums\PlatformType;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpResponse;
+use App\Mcp\Tools\Tool;
 use App\Models\Platform;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,6 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
-use Laravel\Mcp\Server\Tool;
 
 #[Description('Update the configuration of an existing platform.')]
 class UpdatePlatformConfigTool extends Tool

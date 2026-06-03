@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\PlatformManager\FlyCms\Drivers;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
+use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\CreateMenuData;
@@ -159,6 +160,72 @@ class PseudoFlyCmsDriverTest extends TestCase
 
         $this->assertSame('https://example.test', $this->driver->getConfig()?->getBaseUrl());
         $this->assertSame('test-key', $this->driver->getConfig()?->getApiKey());
+    }
+
+    public function test_it_seeds_sample_domains(): void
+    {
+        $domains = $this->driver->listDomains();
+
+        $this->assertCount(3, $domains);
+        $this->assertSame('blog.example.com', $domains[0]->getData()['domain']);
+        $this->assertTrue($domains[0]->getData()['is_primary']);
+        $this->assertSame('shop.demo.test', $domains[2]->getData()['domain']);
+    }
+
+    public function test_show_domain_returns_matching_resource(): void
+    {
+        $domain = $this->driver->showDomain('01J00000000000000000000031');
+
+        $this->assertNotNull($domain);
+        $this->assertSame('01J00000000000000000000001', $domain->getData()['website_id']);
+        $this->assertSame('blog.example.com', $domain->getData()['domain']);
+        $this->assertTrue($domain->getData()['is_primary']);
+        $this->assertFalse($domain->getData()['is_alias']);
+        $this->assertSame('active', $domain->getData()['status']);
+        $this->assertTrue($domain->getData()['is_connected_to_server']);
+    }
+
+    public function test_show_domain_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showDomain('unknown-id'));
+    }
+
+    public function test_list_domains_filters_by_website_id(): void
+    {
+        $filter = (new DomainFilter)->setFilterData([
+            'website_id' => '01J00000000000000000000001',
+        ]);
+
+        $domains = $this->driver->listDomains(domainFilter: $filter);
+
+        $this->assertCount(2, $domains);
+        $this->assertSame('blog.example.com', $domains[0]->getData()['domain']);
+        $this->assertSame('www.blog.example.com', $domains[1]->getData()['domain']);
+    }
+
+    public function test_list_domains_filters_by_domain(): void
+    {
+        $filter = (new DomainFilter)->setFilterData([
+            'domain' => 'shop.demo.test',
+        ]);
+
+        $domains = $this->driver->listDomains(domainFilter: $filter);
+
+        $this->assertCount(1, $domains);
+        $this->assertSame('01J00000000000000000000002', $domains[0]->getData()['website_id']);
+    }
+
+    public function test_list_domains_supports_pagination(): void
+    {
+        $pageOne = $this->driver->listDomains(page: 1, limit: 1);
+        $pageTwo = $this->driver->listDomains(page: 2, limit: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
     }
 
     public function test_it_seeds_sample_menus(): void

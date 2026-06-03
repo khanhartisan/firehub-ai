@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools;
 
 use App\Contracts\PlatformManager\FlyCms\FlyCms;
+use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
 use App\Enums\PlatformType;
 use App\Mcp\Exceptions\McpToolException;
@@ -58,5 +59,18 @@ abstract class FlyCmsTool extends PlatformManagerTool
         }
 
         return $tag;
+    }
+
+    protected function resolveMenuForChannel(FlyCms $flycms, string $websiteId, string $menuId): MenuResource
+    {
+        if (! $menu = $flycms->showMenu($menuId)) {
+            throw new McpToolException("Menu [{$menuId}] not found.");
+        }
+
+        if (($menu->get('website_id') ?? null) !== $websiteId) {
+            throw new McpToolException("Menu [{$menuId}] not found.");
+        }
+
+        return $menu;
     }
 }

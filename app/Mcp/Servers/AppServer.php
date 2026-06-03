@@ -23,6 +23,7 @@ use App\Mcp\Tools\ClientTools\ShowClientTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\CreateWebsiteTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\ShowWebsiteTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\UpdateWebsiteTool;
 use App\Mcp\Tools\PlatformTools\CreatePlatformTool;
 use App\Mcp\Tools\PlatformTools\ListPlatformsTool;
@@ -75,6 +76,7 @@ class AppServer extends Server
 
         // FlyCms tools
         CreateWebsiteTool::class,
+        ShowWebsiteTool::class,
         UpdateWebsiteTool::class,
     ];
 

@@ -15,15 +15,15 @@ abstract class Resource implements Serializable, StructuredMcpResource
 
     public function __construct(array $resourceData)
     {
-        $this->setResourceData($resourceData);
+        $this->setData($resourceData);
     }
 
-    public function getResourceData(): array
+    public function getData(): array
     {
         return $this->resourceData;
     }
 
-    public function setResourceData(array $resourceData): static
+    public function setData(array $resourceData): static
     {
         $this->resourceData = $resourceData;
 
@@ -48,6 +48,11 @@ abstract class Resource implements Serializable, StructuredMcpResource
         }
 
         return $this;
+    }
+
+    public function get(string $key): mixed
+    {
+        return $this->resourceData[$key] ?? null;
     }
 
     public function toMcpStructuredData(): array

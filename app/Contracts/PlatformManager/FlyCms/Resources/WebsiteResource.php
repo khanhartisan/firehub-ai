@@ -11,6 +11,9 @@ class WebsiteResource extends Resource implements MetableResource
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [
+            'id' => $schema
+                ->string()
+                ->description('Website unique ID'),
             'status' => $schema
                 ->string()
                 ->description('Website status'),

@@ -87,8 +87,12 @@ final class McpAccess
         return $article;
     }
 
-    public static function channel(User $user, string $channelId): Channel
+    public static function channel(User $user, ?string $channelId): Channel
     {
+        if (!$channelId) {
+            throw new McpToolException('Channel id is missing.');
+        }
+
         /** @var Channel|null $channel */
         $channel = Channel::query()->find($channelId);
 

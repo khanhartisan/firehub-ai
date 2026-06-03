@@ -29,7 +29,7 @@ class FlyCmsServiceTest extends TestCase
         $websites = FlyCms::listWebsites();
 
         $this->assertCount(2, $websites);
-        $this->assertSame('Sample Blog', $websites[0]->getResourceData()['name']);
+        $this->assertSame('Sample Blog', $websites[0]->getData()['name']);
     }
 
     public function test_facade_can_create_and_delete_websites(): void
@@ -40,9 +40,9 @@ class FlyCmsServiceTest extends TestCase
         ]);
 
         $created = FlyCms::createWebsite($createWebsiteData);
-        $websiteId = $created->getResourceData()['id'];
+        $websiteId = $created->getData()['id'];
 
-        $this->assertSame('Facade Site', FlyCms::showWebsite($websiteId)?->getResourceData()['name']);
+        $this->assertSame('Facade Site', FlyCms::showWebsite($websiteId)?->getData()['name']);
         $this->assertTrue(FlyCms::deleteWebsite($websiteId));
         $this->assertNull(FlyCms::showWebsite($websiteId));
     }

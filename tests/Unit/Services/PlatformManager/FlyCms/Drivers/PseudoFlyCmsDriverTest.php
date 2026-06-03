@@ -26,8 +26,8 @@ class PseudoFlyCmsDriverTest extends TestCase
         $websites = $this->driver->listWebsites();
 
         $this->assertCount(2, $websites);
-        $this->assertSame('Sample Blog', $websites[0]->getResourceData()['name']);
-        $this->assertSame('Demo Storefront', $websites[1]->getResourceData()['name']);
+        $this->assertSame('Sample Blog', $websites[0]->getData()['name']);
+        $this->assertSame('Demo Storefront', $websites[1]->getData()['name']);
     }
 
     public function test_show_website_returns_matching_resource(): void
@@ -35,9 +35,9 @@ class PseudoFlyCmsDriverTest extends TestCase
         $website = $this->driver->showWebsite('01J00000000000000000000001');
 
         $this->assertNotNull($website);
-        $this->assertSame('Sample Blog', $website->getResourceData()['name']);
-        $this->assertSame('active', $website->getResourceData()['status']);
-        $this->assertSame('Sample Blog', $website->getResourceData()['meta']['site-name']);
+        $this->assertSame('Sample Blog', $website->getData()['name']);
+        $this->assertSame('active', $website->getData()['status']);
+        $this->assertSame('Sample Blog', $website->getData()['meta']['site-name']);
     }
 
     public function test_show_website_returns_null_for_unknown_id(): void
@@ -54,7 +54,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         ]);
 
         $created = $this->driver->createWebsite($createWebsiteData);
-        $data = $created->getResourceData();
+        $data = $created->getData();
 
         $this->assertSame('New Site', $data['name']);
         $this->assertSame('/posts/{post}', $data['post_route']);
@@ -73,12 +73,12 @@ class PseudoFlyCmsDriverTest extends TestCase
         ]);
 
         $updated = $this->driver->updateWebsite('01J00000000000000000000001', $updateWebsiteData);
-        $data = $updated->getResourceData();
+        $data = $updated->getData();
 
         $this->assertSame('Renamed Blog', $data['name']);
         $this->assertSame('inactive', $data['status']);
         $this->assertSame('/assets/{path}', $data['asset_route']);
-        $this->assertSame('Renamed Blog', $this->driver->showWebsite('01J00000000000000000000001')?->getResourceData()['name']);
+        $this->assertSame('Renamed Blog', $this->driver->showWebsite('01J00000000000000000000001')?->getData()['name']);
     }
 
     public function test_update_website_throws_for_unknown_id(): void
@@ -115,7 +115,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         $websites = $this->driver->listWebsites(websiteFilter: $filter);
 
         $this->assertCount(1, $websites);
-        $this->assertSame('Demo Storefront', $websites[0]->getResourceData()['name']);
+        $this->assertSame('Demo Storefront', $websites[0]->getData()['name']);
     }
 
     public function test_list_websites_filters_by_ids(): void
@@ -127,7 +127,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         $websites = $this->driver->listWebsites(websiteFilter: $filter);
 
         $this->assertCount(1, $websites);
-        $this->assertSame('01J00000000000000000000002', $websites[0]->getResourceData()['id']);
+        $this->assertSame('01J00000000000000000000002', $websites[0]->getData()['id']);
     }
 
     public function test_list_websites_supports_pagination(): void
@@ -138,8 +138,8 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertCount(1, $pageOne);
         $this->assertCount(1, $pageTwo);
         $this->assertNotSame(
-            $pageOne[0]->getResourceData()['id'],
-            $pageTwo[0]->getResourceData()['id']
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
         );
     }
 

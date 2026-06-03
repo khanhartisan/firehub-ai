@@ -13,5 +13,6 @@ abstract class TestCase extends BaseTestCase
 
         // Keep test runs deterministic regardless of environment overrides.
         Config::set('synthesizer.default', 'basic');
+        Config::set('flycms.default', 'pseudo');
     }
 }

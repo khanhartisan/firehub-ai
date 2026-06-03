@@ -9,7 +9,8 @@ class UpdateWebsiteData extends CreateWebsiteData
     public function toJsonSchema(JsonSchema $schema): array
     {
         $data = parent::toJsonSchema($schema);
-        $data['status']->required(false);
+        $data['status'] = $schema->string()->nullable()->enum(['active', 'inactive']);
+        $data['name'] = $schema->string()->nullable()->description('Website name (for internal display)');
 
         return $data;
     }

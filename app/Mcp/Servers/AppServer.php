@@ -23,6 +23,7 @@ use App\Mcp\Tools\ClientTools\ShowClientTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\CreateWebsiteTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\UpdateWebsiteTool;
 use App\Mcp\Tools\PlatformTools\CreatePlatformTool;
 use App\Mcp\Tools\PlatformTools\ListPlatformsTool;
 use App\Mcp\Tools\PlatformTools\UpdatePlatformConfigTool;
@@ -74,6 +75,7 @@ class AppServer extends Server
 
         // FlyCms tools
         CreateWebsiteTool::class,
+        UpdateWebsiteTool::class,
     ];
 
     protected array $resources = [

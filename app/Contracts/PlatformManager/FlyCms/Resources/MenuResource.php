@@ -26,10 +26,10 @@ class MenuResource extends Resource
                 ->description('Menu items'),
             'created_at' => $schema
                 ->string()
-                ->description('Website created at'),
+                ->description('Menu created at'),
             'updated_at' => $schema
                 ->string()
-                ->description('Website updated at'),
+                ->description('Menu updated at'),
         ];
     }
 

@@ -42,7 +42,7 @@ class MenuResource extends Resource
                 ->required(),
             'link' => $schema
                 ->string()
-                ->description('Menu link, 3 formats are supported. First format is: Full URL with scheme. Second format is: Relative path (ie: /example-path). And final format is: link:website_tag,{websiteTagId}, ie: link:website_tag,01hw720nn5ef2dztvftfg5m47q')
+                ->description('Menu link, 3 formats are supported. First format is: Full URL with scheme. Second format is: Relative path (ie: /example-path). And final format is: link:website_tag,{tagId}, ie: link:website_tag,01hw720nn5ef2dztvftfg5m47q')
                 ->required(),
             'new_tab' => $schema
                 ->integer()

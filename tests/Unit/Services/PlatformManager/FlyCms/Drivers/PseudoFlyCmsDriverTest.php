@@ -4,10 +4,13 @@ namespace Tests\Unit\Services\PlatformManager\FlyCms\Drivers;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
+use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFileData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\UpdateFileData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\CreateMenuData;
@@ -922,5 +925,148 @@ class PseudoFlyCmsDriverTest extends TestCase
             $pageOne[0]->getData()['id'],
             $pageTwo[0]->getData()['id']
         );
+    }
+
+    public function test_it_seeds_sample_files(): void
+    {
+        $files = $this->driver->listFiles();
+
+        $this->assertCount(3, $files);
+        $this->assertSame('hero-banner', $files[0]->getData()['code']);
+        $this->assertSame('image', $files[0]->getData()['type']);
+    }
+
+    public function test_show_file_returns_matching_resource(): void
+    {
+        $file = $this->driver->showFile('01J00000000000000000000071');
+
+        $this->assertNotNull($file);
+        $this->assertSame('hero-banner', $file->getData()['code']);
+        $this->assertSame('uploads/hero-banner.jpg', $file->getData()['key']);
+        $this->assertTrue($file->getData()['is_uploaded']);
+    }
+
+    public function test_show_file_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showFile('unknown-id'));
+    }
+
+    public function test_create_file_persists_in_memory(): void
+    {
+        $createFileData = (new CreateFileData)->setData([
+            'ext' => 'png',
+            'filename' => 'new-asset',
+            'code' => 'new-asset-code',
+            'information' => ['width' => 800],
+        ]);
+
+        $created = $this->driver->createFile('binary-content', $createFileData);
+        $data = $created->getData();
+
+        $this->assertSame('new-asset-code', $data['code']);
+        $this->assertSame('uploads/new-asset.png', $data['key']);
+        $this->assertSame('image', $data['type']);
+        $this->assertSame('image/png', $data['mime']);
+        $this->assertSame(14, $data['size']);
+        $this->assertTrue($data['is_uploaded']);
+        $this->assertNotEmpty($data['id']);
+        $this->assertNotNull($this->driver->showFile($data['id']));
+        $this->assertCount(4, $this->driver->listFiles());
+    }
+
+    public function test_update_file_merges_changes(): void
+    {
+        $updateFileData = (new UpdateFileData)->setData([
+            'code' => 'updated-hero',
+            'information' => ['alt' => 'Updated alt text'],
+        ]);
+
+        $updated = $this->driver->updateFile('01J00000000000000000000071', $updateFileData);
+
+        $this->assertSame('updated-hero', $updated->getData()['code']);
+        $this->assertSame(['alt' => 'Updated alt text'], $updated->getData()['information']);
+        $this->assertSame('uploads/hero-banner.jpg', $updated->getData()['key']);
+    }
+
+    public function test_update_file_throws_for_unknown_id(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('File [unknown-id] not found.');
+
+        $this->driver->updateFile('unknown-id', new UpdateFileData);
+    }
+
+    public function test_delete_file_returns_resource_and_removes_record(): void
+    {
+        $deleted = $this->driver->deleteFile('01J00000000000000000000071');
+
+        $this->assertSame('hero-banner', $deleted->getData()['code']);
+        $this->assertNull($this->driver->showFile('01J00000000000000000000071'));
+        $this->assertCount(2, $this->driver->listFiles());
+    }
+
+    public function test_delete_file_throws_for_unknown_id(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('File [missing-id] not found.');
+
+        $this->driver->deleteFile('missing-id');
+    }
+
+    public function test_list_files_filters_by_post_id(): void
+    {
+        $filter = (new FileFilter)->setFilterData([
+            'post_id' => '01J00000000000000000000051',
+        ]);
+
+        $files = $this->driver->listFiles(fileFilter: $filter);
+
+        $this->assertCount(1, $files);
+        $this->assertSame('hero-banner', $files[0]->getData()['code']);
+    }
+
+    public function test_list_files_filters_by_code(): void
+    {
+        $filter = (new FileFilter)->setFilterData([
+            'code' => 'storefront-intro',
+        ]);
+
+        $files = $this->driver->listFiles(fileFilter: $filter);
+
+        $this->assertCount(1, $files);
+        $this->assertSame('video', $files[0]->getData()['type']);
+    }
+
+    public function test_list_files_filters_by_type(): void
+    {
+        $filter = (new FileFilter)->setFilterData([
+            'type' => 'image',
+        ]);
+
+        $files = $this->driver->listFiles(fileFilter: $filter);
+
+        $this->assertCount(2, $files);
+    }
+
+    public function test_list_files_supports_pagination(): void
+    {
+        $pageOne = $this->driver->listFiles(page: 1, limit: 1);
+        $pageTwo = $this->driver->listFiles(page: 2, limit: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
+    }
+
+    public function test_list_files_orders_newer_first(): void
+    {
+        $files = $this->driver->listFiles(orderDirection: -1);
+
+        $this->assertSame('01J00000000000000000000073', $files[0]->getData()['id']);
+        $this->assertSame('01J00000000000000000000072', $files[1]->getData()['id']);
+        $this->assertSame('01J00000000000000000000071', $files[2]->getData()['id']);
     }
 }

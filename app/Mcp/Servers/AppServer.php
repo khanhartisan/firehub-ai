@@ -27,6 +27,11 @@ use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\DeleteMenuTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\ListMenusTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\ShowMenuTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\UpdateMenuTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools\CreatePageTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools\DeletePageTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools\ListPagesTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools\ShowPageTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools\UpdatePageTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\CreateTagTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\DeleteTagTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\ListTagsTool;
@@ -147,6 +152,13 @@ class AppServer extends Server
             UpdateMenuTool::class,
             ListMenusTool::class,
             DeleteMenuTool::class,
+
+            // Page tools
+            CreatePageTool::class,
+            ShowPageTool::class,
+            UpdatePageTool::class,
+            ListPagesTool::class,
+            DeletePageTool::class,
         ]);
     }
 }

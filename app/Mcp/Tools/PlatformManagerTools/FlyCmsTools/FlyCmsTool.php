@@ -4,6 +4,7 @@ namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools;
 
 use App\Contracts\PlatformManager\FlyCms\FlyCms;
 use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\PageResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
 use App\Enums\PlatformType;
 use App\Mcp\Exceptions\McpToolException;
@@ -72,5 +73,18 @@ abstract class FlyCmsTool extends PlatformManagerTool
         }
 
         return $menu;
+    }
+
+    protected function resolvePageForChannel(FlyCms $flycms, string $websiteId, string $pageId): PageResource
+    {
+        if (! $page = $flycms->showPage($pageId)) {
+            throw new McpToolException("Page [{$pageId}] not found.");
+        }
+
+        if (($page->get('website_id') ?? null) !== $websiteId) {
+            throw new McpToolException("Page [{$pageId}] not found.");
+        }
+
+        return $page;
     }
 }

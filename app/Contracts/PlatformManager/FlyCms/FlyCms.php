@@ -8,9 +8,10 @@ use App\Contracts\PlatformManager\FlyCms\Managers\PageManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\PostManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\TagManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\ThemeManager;
+use App\Contracts\PlatformManager\FlyCms\Managers\UserManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\WebsiteManager;
 use App\Contracts\PlatformManager\PlatformManager;
 
-interface FlyCms extends PlatformManager, DomainManager, MenuManager, PageManager, PostManager, TagManager, ThemeManager, WebsiteManager
+interface FlyCms extends PlatformManager, DomainManager, MenuManager, PageManager, PostManager, TagManager, ThemeManager, UserManager, WebsiteManager
 {
 }

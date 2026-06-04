@@ -5,6 +5,7 @@ namespace App\Services\PlatformManager\FlyCms\Drivers;
 use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
@@ -14,6 +15,8 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\CreatePag
 use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\UpdatePageData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\UpdateTagData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\CreateUserData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\UpdateUserData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\CreateWebsiteData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\UpdateWebsiteData;
 use App\Contracts\PlatformManager\FlyCms\Resources\DomainResource;
@@ -21,6 +24,7 @@ use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PageResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PostResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\UserResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\WebsiteResource;
 use App\Services\PlatformManager\FlyCms\FlyCmsService;
 use Illuminate\Support\Str;
@@ -45,6 +49,9 @@ class PseudoFlyCmsDriver extends FlyCmsService
     /** @var array<string, array<string, mixed>> */
     protected array $posts = [];
 
+    /** @var array<string, array<string, mixed>> */
+    protected array $users = [];
+
     public function __construct()
     {
         $this->seedSampleWebsites();
@@ -53,6 +60,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
         $this->seedSampleTags();
         $this->seedSamplePages();
         $this->seedSamplePosts();
+        $this->seedSampleUsers();
     }
 
     public function showDomain(string $domainId): ?DomainResource
@@ -537,6 +545,89 @@ class PseudoFlyCmsDriver extends FlyCmsService
         return true;
     }
 
+    public function showUser(string $userId): ?UserResource
+    {
+        $user = $this->users[$userId] ?? null;
+
+        if ($user === null) {
+            return null;
+        }
+
+        return $this->toUserResource($user);
+    }
+
+    public function createUser(CreateUserData $createUserData): UserResource
+    {
+        $userId = (string) Str::ulid();
+        $now = now()->toIso8601String();
+        $data = $createUserData->getData() ?? [];
+        unset($data['password']);
+
+        $user = array_merge($this->defaultUserAttributes(), $data, [
+            'id' => $userId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $this->users[$userId] = $user;
+
+        return $this->toUserResource($user);
+    }
+
+    public function updateUser(string $userId, UpdateUserData $updateUserData): UserResource
+    {
+        $user = $this->users[$userId] ?? null;
+
+        if ($user === null) {
+            throw new \InvalidArgumentException("User [{$userId}] not found.");
+        }
+
+        $data = array_filter(
+            $updateUserData->getData() ?? [],
+            static fn (mixed $value): bool => $value !== null
+        );
+        unset($data['password']);
+
+        $user = array_merge($user, $data, [
+            'updated_at' => now()->toIso8601String(),
+        ]);
+
+        $this->users[$userId] = $user;
+
+        return $this->toUserResource($user);
+    }
+
+    /**
+     * @return UserResource[]
+     */
+    public function listUsers(int $page = 1, int $limit = 100, ?UserFilter $userFilter = null): array
+    {
+        $users = array_values($this->users);
+
+        if ($userFilter !== null) {
+            $users = $this->applyUserFilter($users, $userFilter);
+        }
+
+        $offset = max(0, ($page - 1) * $limit);
+        $users = array_slice($users, $offset, $limit);
+
+        return array_map(
+            fn (array $user): UserResource => $this->toUserResource($user),
+            $users
+        );
+    }
+
+    public function deleteUser(string $userId): bool
+    {
+        if (! isset($this->users[$userId])) {
+            return false;
+        }
+
+        unset($this->users[$userId]);
+
+        return true;
+    }
+
     protected function seedSampleWebsites(): void
     {
         $now = now()->toIso8601String();
@@ -949,6 +1040,70 @@ class PseudoFlyCmsDriver extends FlyCmsService
         ];
     }
 
+    protected function seedSampleUsers(): void
+    {
+        $now = now()->toIso8601String();
+
+        $this->users = [
+            '01J00000000000000000000061' => array_merge($this->defaultUserAttributes(), [
+                'id' => '01J00000000000000000000061',
+                'name' => 'Alex Editor',
+                'email' => 'alex@example.com',
+                'website_ids' => ['01J00000000000000000000001'],
+                'branch_ids' => [],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]),
+            '01J00000000000000000000062' => array_merge($this->defaultUserAttributes(), [
+                'id' => '01J00000000000000000000062',
+                'name' => 'Sam Manager',
+                'email' => 'sam@example.com',
+                'level' => 5,
+                'website_ids' => ['01J00000000000000000000001', '01J00000000000000000000002'],
+                'branch_ids' => [],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function defaultUserAttributes(): array
+    {
+        return [
+            'role_id' => null,
+            'is_super' => false,
+            'name' => 'Untitled User',
+            'email' => 'user@example.com',
+            'email_verified_at' => null,
+            'level' => 0,
+            'balance' => 0.0,
+            'api_key' => null,
+            'log_api_methods' => null,
+            'api_logs_limit' => 10000,
+            'website_ids' => [],
+            'branch_ids' => [],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $user
+     * @return array<string, mixed>
+     */
+    protected function userRecordForOutput(array $user): array
+    {
+        unset($user['website_ids'], $user['branch_ids'], $user['password']);
+
+        return $user;
+    }
+
+    protected function toUserResource(array $user): UserResource
+    {
+        return new UserResource($this->userRecordForOutput($user));
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -1045,6 +1200,66 @@ class PseudoFlyCmsDriver extends FlyCmsService
         }
 
         return $domains;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $users
+     * @return array<int, array<string, mixed>>
+     */
+    protected function applyUserFilter(array $users, UserFilter $userFilter): array
+    {
+        $filterData = $userFilter->getFilterData();
+
+        if (isset($filterData['ids']) && is_string($filterData['ids']) && $filterData['ids'] !== '') {
+            $ids = array_map('trim', explode(',', $filterData['ids']));
+            $users = array_values(array_filter(
+                $users,
+                static fn (array $user): bool => in_array($user['id'] ?? null, $ids, true)
+            ));
+        }
+
+        if (isset($filterData['search']) && is_string($filterData['search']) && $filterData['search'] !== '') {
+            $search = strtolower($filterData['search']);
+            $users = array_values(array_filter(
+                $users,
+                static function (array $user) use ($search): bool {
+                    $name = strtolower((string) ($user['name'] ?? ''));
+
+                    return str_contains($name, $search);
+                }
+            ));
+        }
+
+        if (isset($filterData['website_id']) && is_string($filterData['website_id']) && $filterData['website_id'] !== '') {
+            $users = array_values(array_filter(
+                $users,
+                static function (array $user) use ($filterData): bool {
+                    $websiteIds = $user['website_ids'] ?? [];
+
+                    return is_array($websiteIds) && in_array($filterData['website_id'], $websiteIds, true);
+                }
+            ));
+        }
+
+        if (isset($filterData['branch_id']) && is_string($filterData['branch_id']) && $filterData['branch_id'] !== '') {
+            $users = array_values(array_filter(
+                $users,
+                static function (array $user) use ($filterData): bool {
+                    $branchIds = $user['branch_ids'] ?? [];
+
+                    return is_array($branchIds) && in_array($filterData['branch_id'], $branchIds, true);
+                }
+            ));
+        }
+
+        if (isset($filterData['role_id']) && is_string($filterData['role_id']) && $filterData['role_id'] !== '') {
+            $users = array_values(array_filter(
+                $users,
+                static fn (array $user): bool => ($user['role_id'] ?? null) === $filterData['role_id']
+            ));
+        }
+
+        return $users;
     }
 
     /**

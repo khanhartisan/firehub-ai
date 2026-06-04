@@ -6,6 +6,7 @@ use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
@@ -15,6 +16,8 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\CreatePag
 use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\UpdatePageData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\UpdateTagData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\CreateUserData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\UpdateUserData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\CreateWebsiteData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\UpdateWebsiteData;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoFlyCmsDriver;
@@ -803,5 +806,121 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_list_posts_returns_empty_for_unknown_website(): void
     {
         $this->assertSame([], $this->driver->listPosts('unknown-website-id'));
+    }
+
+    public function test_it_seeds_sample_users(): void
+    {
+        $users = $this->driver->listUsers();
+
+        $this->assertCount(2, $users);
+        $this->assertSame('Alex Editor', $users[0]->getData()['name']);
+        $this->assertSame('Sam Manager', $users[1]->getData()['name']);
+    }
+
+    public function test_show_user_returns_matching_resource(): void
+    {
+        $user = $this->driver->showUser('01J00000000000000000000061');
+
+        $this->assertNotNull($user);
+        $this->assertSame('Alex Editor', $user->getData()['name']);
+        $this->assertSame('alex@example.com', $user->getData()['email']);
+        $this->assertArrayNotHasKey('website_ids', $user->getData());
+    }
+
+    public function test_show_user_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showUser('unknown-id'));
+    }
+
+    public function test_create_user_persists_in_memory(): void
+    {
+        $createUserData = (new CreateUserData)->setData([
+            'name' => 'New User',
+            'email' => 'new@example.com',
+            'password' => 'secret',
+            'level' => 2,
+        ]);
+
+        $created = $this->driver->createUser($createUserData);
+        $data = $created->getData();
+
+        $this->assertSame('New User', $data['name']);
+        $this->assertSame('new@example.com', $data['email']);
+        $this->assertSame(2, $data['level']);
+        $this->assertNotEmpty($data['id']);
+        $this->assertArrayNotHasKey('password', $data);
+        $this->assertNotNull($this->driver->showUser($data['id']));
+        $this->assertCount(3, $this->driver->listUsers());
+    }
+
+    public function test_update_user_merges_changes(): void
+    {
+        $updateUserData = (new UpdateUserData)->setData([
+            'name' => 'Alex Updated',
+            'level' => 3,
+        ]);
+
+        $updated = $this->driver->updateUser('01J00000000000000000000061', $updateUserData);
+
+        $this->assertSame('Alex Updated', $updated->getData()['name']);
+        $this->assertSame(3, $updated->getData()['level']);
+        $this->assertSame('alex@example.com', $updated->getData()['email']);
+    }
+
+    public function test_update_user_throws_for_unknown_id(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('User [unknown-id] not found.');
+
+        $this->driver->updateUser('unknown-id', new UpdateUserData);
+    }
+
+    public function test_delete_user_removes_record(): void
+    {
+        $this->assertTrue($this->driver->deleteUser('01J00000000000000000000061'));
+        $this->assertNull($this->driver->showUser('01J00000000000000000000061'));
+        $this->assertCount(1, $this->driver->listUsers());
+    }
+
+    public function test_delete_user_returns_false_for_unknown_id(): void
+    {
+        $this->assertFalse($this->driver->deleteUser('unknown-id'));
+    }
+
+    public function test_list_users_filters_by_search(): void
+    {
+        $filter = (new UserFilter)->setFilterData([
+            'search' => 'manager',
+        ]);
+
+        $users = $this->driver->listUsers(userFilter: $filter);
+
+        $this->assertCount(1, $users);
+        $this->assertSame('Sam Manager', $users[0]->getData()['name']);
+    }
+
+    public function test_list_users_filters_by_website_id(): void
+    {
+        $filter = (new UserFilter)->setFilterData([
+            'website_id' => '01J00000000000000000000002',
+        ]);
+
+        $users = $this->driver->listUsers(userFilter: $filter);
+
+        $this->assertCount(1, $users);
+        $this->assertSame('Sam Manager', $users[0]->getData()['name']);
+    }
+
+    public function test_list_users_supports_pagination(): void
+    {
+        $pageOne = $this->driver->listUsers(page: 1, limit: 1);
+        $pageTwo = $this->driver->listUsers(page: 2, limit: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
     }
 }

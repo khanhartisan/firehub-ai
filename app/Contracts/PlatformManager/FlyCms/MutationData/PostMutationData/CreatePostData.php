@@ -28,6 +28,10 @@ class CreatePostData extends MutationData
                 ->nullable()
                 ->max(255)
                 ->description('Post description'),
+            'thumbnail_file_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Thumbnail file ID (FlyCMS File ID)'),
             'content' => $schema
                 ->string()
                 ->nullable()

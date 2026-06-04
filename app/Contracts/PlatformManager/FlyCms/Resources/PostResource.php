@@ -45,7 +45,15 @@ class PostResource extends Resource
                 ->array()
                 ->items(
                     $schema->object(TagResource::getMcpOutputSchema($schema))
-                )
+                ),
+
+            'thumbnail_file_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Thumbnail file ID (FlyCMS File ID)'),
+            'thumbnailFile' => $schema
+                ->object(FileResource::getMcpOutputSchema($schema))
+                ->nullable()
         ];
     }
 }

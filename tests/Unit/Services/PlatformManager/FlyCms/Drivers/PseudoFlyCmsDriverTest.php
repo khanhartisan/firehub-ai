@@ -625,7 +625,11 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame('hello-world', $posts[0]->getData()['slug']);
         $this->assertSame('Hello World', $posts[0]->getData()['title']);
         $this->assertSame('Technology', $posts[0]->getData()['tags'][0]['name']);
+        $this->assertSame('01J00000000000000000000071', $posts[0]->getData()['thumbnail_file_id']);
+        $this->assertSame('hero-banner', $posts[0]->getData()['thumbnailFile']['code']);
         $this->assertSame('weekend-ideas', $posts[1]->getData()['slug']);
+        $this->assertNull($posts[1]->getData()['thumbnail_file_id']);
+        $this->assertNull($posts[1]->getData()['thumbnailFile']);
         $this->assertCount(1, $this->driver->listPosts('01J00000000000000000000002'));
     }
 
@@ -639,6 +643,8 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame('Hello World', $post->getData()['title']);
         $this->assertSame('public', $post->getData()['visibility']);
         $this->assertSame('Technology', $post->getData()['tags'][0]['name']);
+        $this->assertSame('01J00000000000000000000071', $post->getData()['thumbnail_file_id']);
+        $this->assertSame('uploads/hero-banner.jpg', $post->getData()['thumbnailFile']['key']);
     }
 
     public function test_show_post_returns_null_for_unknown_id(): void
@@ -653,6 +659,7 @@ class PseudoFlyCmsDriverTest extends TestCase
             'slug' => 'draft-post',
             'title' => 'Draft Post',
             'description' => 'A draft article',
+            'thumbnail_file_id' => '01J00000000000000000000072',
             'visibility' => 'public',
             'tag_ids' => ['01J00000000000000000000021'],
         ]);
@@ -665,6 +672,8 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame('01J00000000000000000000001', $data['website_id']);
         $this->assertSame('public', $data['visibility']);
         $this->assertSame('Technology', $data['tags'][0]['name']);
+        $this->assertSame('01J00000000000000000000072', $data['thumbnail_file_id']);
+        $this->assertSame('uploads/weekend-ideas.webp', $data['thumbnailFile']['key']);
         $this->assertNotEmpty($data['id']);
         $this->assertNotNull($data['published_at']);
         $this->assertNotNull($this->driver->showPost($data['id']));
@@ -679,6 +688,7 @@ class PseudoFlyCmsDriverTest extends TestCase
             'title' => 'Hello Universe',
             'slug' => 'hello-universe',
             'description' => 'Updated description',
+            'thumbnail_file_id' => '01J00000000000000000000072',
         ]);
 
         $updated = $this->driver->updatePost($updatePostData);
@@ -687,6 +697,8 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame('hello-universe', $data['slug']);
         $this->assertSame('Hello Universe', $data['title']);
         $this->assertSame('Updated description', $data['description']);
+        $this->assertSame('01J00000000000000000000072', $data['thumbnail_file_id']);
+        $this->assertSame('uploads/weekend-ideas.webp', $data['thumbnailFile']['key']);
         $this->assertSame('Hello Universe', $this->driver->showPost('01J00000000000000000000051')?->getData()['title']);
     }
 

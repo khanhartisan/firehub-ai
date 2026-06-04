@@ -1000,6 +1000,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
                 'restriction' => 0,
                 'lang' => 'default',
                 'tag_ids' => ['01J00000000000000000000021'],
+                'thumbnail_file_id' => '01J00000000000000000000071',
                 'created_at' => $older,
                 'updated_at' => $older,
                 'published_at' => $older,
@@ -1152,6 +1153,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'restriction' => 0,
             'lang' => 'default',
             'tag_ids' => [],
+            'thumbnail_file_id' => null,
         ];
     }
 
@@ -1163,6 +1165,17 @@ class PseudoFlyCmsDriver extends FlyCmsService
         $resourceData = $post;
         $resourceData['tags'] = $this->resolvePostTags($post['tag_ids'] ?? []);
         unset($resourceData['tag_ids']);
+
+        $thumbnailFileId = $post['thumbnail_file_id'] ?? null;
+
+        if (is_string($thumbnailFileId) && $thumbnailFileId !== '') {
+            $file = $this->files[$thumbnailFileId] ?? null;
+            $resourceData['thumbnailFile'] = $file !== null
+                ? $this->fileRecordForOutput($file)
+                : null;
+        } else {
+            $resourceData['thumbnailFile'] = null;
+        }
 
         return new PostResource($resourceData);
     }

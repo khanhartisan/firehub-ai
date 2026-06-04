@@ -13,7 +13,7 @@ class CreatePageData extends MutationData
             'website_id' => $schema
                 ->string()
                 ->required()
-                ->description('Page website id'),
+                ->description('Page website id, get from channel reference'),
             'slug' => $schema
                 ->string()
                 ->required()

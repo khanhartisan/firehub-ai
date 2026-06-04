@@ -30,6 +30,7 @@ class UpdateTagToolTest extends TestCase
                 'name' => 'Tech',
                 'slug' => 'tech',
                 'is_featured' => false,
+                'thumbnail_file_id' => '01J00000000000000000000072',
             ],
         ]);
 
@@ -44,12 +45,15 @@ class UpdateTagToolTest extends TestCase
                     ->where('slug', 'tech')
                     ->where('is_featured', false)
                     ->where('website_id', '01J00000000000000000000001')
+                    ->where('thumbnail_file_id', '01J00000000000000000000072')
+                    ->where('thumbnailFile', fn (mixed $thumbnail): bool => ((array) json_decode(json_encode($thumbnail), true))['key'] === 'uploads/weekend-ideas.webp')
                     ->etc();
             });
 
         $tag = FlyCms::showTag('01J00000000000000000000021');
         $this->assertNotNull($tag);
         $this->assertSame('Tech', $tag->getData()['name']);
+        $this->assertSame('01J00000000000000000000072', $tag->getData()['thumbnail_file_id']);
     }
 
     public function test_validation_fails_when_update_tag_data_is_missing(): void

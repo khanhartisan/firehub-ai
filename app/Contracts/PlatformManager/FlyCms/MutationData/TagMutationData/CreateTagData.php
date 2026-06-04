@@ -17,6 +17,10 @@ class CreateTagData extends MutationData
                 ->string()
                 ->required()
                 ->description('Website ID (get from channel reference)'),
+            'thumbnail_file_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Thumbnail file ID (FlyCMS File ID)'),
             'name' => $schema
                 ->string()
                 ->required()

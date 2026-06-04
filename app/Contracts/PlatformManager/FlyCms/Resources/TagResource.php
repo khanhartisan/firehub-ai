@@ -56,6 +56,14 @@ class TagResource extends Resource
             'updated_at' => $schema
                 ->string()
                 ->description('Tag updated at'),
+
+            'thumbnail_file_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Thumbnail file ID (FlyCMS File ID)'),
+            'thumbnailFile' => $schema
+                ->object(FileResource::getMcpOutputSchema($schema))
+                ->nullable()
         ];
     }
 }

@@ -26,6 +26,7 @@ class CreateTagToolTest extends TestCase
         $response = AppServer::actingAs($user)->tool(CreateTagTool::class, [
             'channel_id' => $channel->id,
             'create_tag_data' => [
+                'thumbnail_file_id' => '01J00000000000000000000072',
                 'name' => 'Travel',
                 'slug' => 'travel',
                 'is_featured' => true,
@@ -44,6 +45,8 @@ class CreateTagToolTest extends TestCase
                     ->where('website_id', '01J00000000000000000000001')
                     ->where('is_featured', true)
                     ->where('description', 'Travel stories')
+                    ->where('thumbnail_file_id', '01J00000000000000000000072')
+                    ->where('thumbnailFile', fn (mixed $thumbnail): bool => ((array) json_decode(json_encode($thumbnail), true))['key'] === 'uploads/weekend-ideas.webp')
                     ->where('public_posts_count', 0)
                     ->has('id')
                     ->has('created_at')

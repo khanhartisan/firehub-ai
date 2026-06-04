@@ -35,8 +35,12 @@ class ListTagsToolTest extends TestCase
                 $json->has('tags', 2)
                     ->has('tags.0.id')
                     ->has('tags.0.name')
+                    ->where('tags.0.thumbnail_file_id', '01J00000000000000000000071')
+                    ->where('tags.0.thumbnailFile', fn (mixed $thumbnail): bool => ((array) json_decode(json_encode($thumbnail), true))['code'] === 'hero-banner')
                     ->has('tags.1.id')
-                    ->has('tags.1.name');
+                    ->has('tags.1.name')
+                    ->where('tags.1.thumbnail_file_id', null)
+                    ->where('tags.1.thumbnailFile', null);
             });
     }
 

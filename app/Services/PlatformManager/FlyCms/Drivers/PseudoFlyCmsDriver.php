@@ -379,7 +379,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             return null;
         }
 
-        return new TagResource($tag);
+        return $this->toTagResource($tag);
     }
 
     public function createTag(CreateTagData $createTagData): TagResource
@@ -397,7 +397,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
         $this->tags[$tagId] = $tag;
 
-        return new TagResource($tag);
+        return $this->toTagResource($tag);
     }
 
     public function updateTag(string $tagId, UpdateTagData $updateTagData): TagResource
@@ -421,7 +421,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
         $this->tags[$tagId] = $tag;
 
-        return new TagResource($tag);
+        return $this->toTagResource($tag);
     }
 
     /**
@@ -442,7 +442,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
         $tags = array_slice($tags, $offset, $limit);
 
         return array_map(
-            static fn (array $tag): TagResource => new TagResource($tag),
+            fn (array $tag): TagResource => $this->toTagResource($tag),
             $tags
         );
     }
@@ -902,6 +902,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
                 'seo_h1' => '{{ tag.name }}',
                 'content' => '<p>Technology tag landing page.</p>',
                 'public_posts_count' => 12,
+                'thumbnail_file_id' => '01J00000000000000000000071',
                 'created_at' => $now,
                 'updated_at' => $now,
             ]),
@@ -1230,7 +1231,28 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'seo_h1' => null,
             'content' => null,
             'public_posts_count' => 0,
+            'thumbnail_file_id' => null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $tag
+     */
+    protected function toTagResource(array $tag): TagResource
+    {
+        $resourceData = $tag;
+        $thumbnailFileId = $tag['thumbnail_file_id'] ?? null;
+
+        if (is_string($thumbnailFileId) && $thumbnailFileId !== '') {
+            $file = $this->files[$thumbnailFileId] ?? null;
+            $resourceData['thumbnailFile'] = $file !== null
+                ? $this->fileRecordForOutput($file)
+                : null;
+        } else {
+            $resourceData['thumbnailFile'] = null;
+        }
+
+        return new TagResource($resourceData);
     }
 
     protected function seedSampleFiles(): void

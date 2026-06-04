@@ -39,6 +39,14 @@ class ShowTagToolTest extends TestCase
                     ->where('slug', 'technology')
                     ->where('is_featured', true)
                     ->where('public_posts_count', 12)
+                    ->where('thumbnail_file_id', '01J00000000000000000000071')
+                    ->where('thumbnailFile', function (mixed $thumbnail): bool {
+                        $file = (array) json_decode(json_encode($thumbnail), true);
+
+                        return ($file['code'] ?? null) === 'hero-banner'
+                            && ($file['key'] ?? null) === 'uploads/hero-banner.jpg'
+                            && ($file['type'] ?? null) === 'image';
+                    })
                     ->has('description')
                     ->has('created_at')
                     ->has('updated_at')

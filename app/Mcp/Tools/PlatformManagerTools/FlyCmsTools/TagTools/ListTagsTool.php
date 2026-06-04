@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools;
 
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
+use App\Mcp\Concerns\ResolvesMcpPagination;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
@@ -16,9 +17,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 #[Description('List FlyCMS tags for the website linked to the given channel.')]
 class ListTagsTool extends FlyCmsTool
 {
-    private const int DEFAULT_LIMIT = 100;
-
-    private const int MAX_LIMIT = 100;
+    use ResolvesMcpPagination;
 
     /**
      * Handle the tool request.
@@ -29,18 +28,19 @@ class ListTagsTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
-        $flycms = $this->getFlyCmsManager($channel);
-
-        $page = max(1, (int) $request->integer('page', 1));
-        $limit = min(self::MAX_LIMIT, max(1, (int) $request->integer('limit', self::DEFAULT_LIMIT)));
+        $pagination = $this->resolvePagination($request);
 
         $tagFilter = null;
         if (is_array($filterPayload = $request->get('tag_filter')) && $filterPayload !== []) {
             $tagFilter = (new TagFilter)->setFilterData($filterPayload);
         }
 
-        $tags = $flycms->listTags($flycmsWebsiteId, $page, $limit, $tagFilter);
+        $tags = $this->getFlyCmsManager($channel)->listTags(
+                $this->requireFlyCmsWebsiteId($channel),
+                $pagination->page,
+                $pagination->perPage,
+                $tagFilter
+            );
 
         if ($tags === []) {
             throw new McpToolException('No tags found.');
@@ -53,7 +53,7 @@ class ListTagsTool extends FlyCmsTool
 
         $count = count($tagsData);
         $message = 'Found '.$count.' '.Str::plural('tag', $count)
-            .' (page '.$page.', limit '.$limit.'):';
+            .$pagination->listMessageSuffix().':';
 
         return McpResponse::list('tag', $tagsData, 'tags', $message);
     }
@@ -69,13 +69,7 @@ class ListTagsTool extends FlyCmsTool
             'channel_id' => $schema->string()
                 ->description('The ULID of the channel that belongs to a platform with type = flycms')
                 ->required(),
-            'page' => $schema->integer()
-                ->description('Page number (1-based, default: 1)')
-                ->min(1),
-            'limit' => $schema->integer()
-                ->description('Maximum tags per page (default: '.self::DEFAULT_LIMIT.', max: '.self::MAX_LIMIT.')')
-                ->min(1)
-                ->max(self::MAX_LIMIT),
+            ...$this->paginationSchemaProperties($schema, 'tags'),
             'tag_filter' => $schema->object(new TagFilter()->toJsonSchema($schema))
                 ->description('Optional filters when listing tags'),
         ];

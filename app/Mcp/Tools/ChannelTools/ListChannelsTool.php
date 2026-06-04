@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools\ChannelTools;
 
+use App\Mcp\Concerns\ResolvesMcpPagination;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
@@ -18,9 +19,12 @@ use Laravel\Mcp\Server\Attributes\Description;
 #[Description('Show the list of channels that belong to the current user\'s clients.')]
 class ListChannelsTool extends Tool
 {
-    private const int DEFAULT_PER_PAGE = 15;
+    use ResolvesMcpPagination;
 
-    private const int MAX_PER_PAGE = 100;
+    protected function defaultListLimit(): int
+    {
+        return 15;
+    }
 
     /**
      * @throws ValidationException
@@ -31,7 +35,7 @@ class ListChannelsTool extends Tool
             'client_id' => ['sometimes', 'string'],
             'platform_id' => ['sometimes', 'string'],
             'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.$this->maxListLimit()],
         ]);
 
         $user = McpAccess::user($request);
@@ -52,11 +56,10 @@ class ListChannelsTool extends Tool
             $query->where('platform_id', $platformId);
         }
 
-        $page = max(1, (int) $request->integer('page', 1));
-        $perPage = min(self::MAX_PER_PAGE, max(1, (int) $request->integer('per_page', self::DEFAULT_PER_PAGE)));
+        $pagination = $this->resolvePagination($request);
 
         /** @var LengthAwarePaginator<int, Channel> $paginator */
-        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+        $paginator = $query->paginate($pagination->perPage, ['*'], 'page', $pagination->page);
 
         if ($paginator->total() === 0) {
             throw new McpToolException('No channels found.');
@@ -79,7 +82,7 @@ class ListChannelsTool extends Tool
                 'channels' => $channelsData,
                 'pagination' => [
                     'current_page' => $paginator->currentPage(),
-                    'per_page' => $paginator->perPage(),
+                    'per_page' => $pagination->perPage,
                     'total' => $paginator->total(),
                     'last_page' => $paginator->lastPage(),
                 ],
@@ -97,13 +100,7 @@ class ListChannelsTool extends Tool
                 ->description('Optional ULID to filter channels by client'),
             'platform_id' => $schema->string()
                 ->description('Optional ULID to filter channels by platform'),
-            'page' => $schema->integer()
-                ->description('Page number (1-based, default: 1)')
-                ->min(1),
-            'per_page' => $schema->integer()
-                ->description('Number of channels per page (default: '.self::DEFAULT_PER_PAGE.', max: '.self::MAX_PER_PAGE.')')
-                ->min(1)
-                ->max(self::MAX_PER_PAGE),
+            ...$this->paginationSchemaProperties($schema, 'channels'),
         ];
     }
 }

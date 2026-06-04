@@ -23,13 +23,8 @@ class ShowWebsiteTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        if (! $flycmsWebsiteId = $channel->reference) {
-            throw new McpToolException('Channel '.$channel->id.' does not have a FlyCMS website reference.');
-        }
-
-        $flycms = $this->getFlyCmsManager($channel);
-
-        if (! $websiteData = $flycms->showWebsite($flycmsWebsiteId)) {
+        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
+        if (! $websiteData = $this->getFlyCmsManager($channel)->showWebsite($flycmsWebsiteId)) {
             throw new McpToolException("Website [{$flycmsWebsiteId}] not found.");
         }
 

@@ -50,7 +50,7 @@ class ListPagesToolTest extends TestCase
         $response = AppServer::actingAs($user)->tool(ListPagesTool::class, [
             'channel_id' => $channel->id,
             'page' => 1,
-            'limit' => 1,
+            'per_page' => 1,
         ]);
 
         $response

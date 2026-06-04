@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools;
 
 use App\Contracts\PlatformManager\FlyCms\FlyCms;
+use App\Contracts\PlatformManager\FlyCms\Resources\DomainResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PageResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
@@ -40,10 +41,13 @@ abstract class FlyCmsTool extends PlatformManagerTool
         return $flycms;
     }
 
-    protected function requireFlyCmsWebsiteId(Channel $channel): string
+    protected function requireFlyCmsWebsiteId(Channel $channel, bool $throwException = true): ?string
     {
         if (! $flycmsWebsiteId = $channel->reference) {
-            throw new McpToolException('Channel '.$channel->id.' does not have a FlyCMS website reference.');
+            if ($throwException) {
+                throw new McpToolException('Channel '.$channel->id.' does not have a FlyCMS website reference.');
+            }
+            return null;
         }
 
         return $flycmsWebsiteId;
@@ -95,5 +99,21 @@ abstract class FlyCmsTool extends PlatformManagerTool
         }
 
         return $page;
+    }
+
+    protected function resolveDomainForChannel(Channel $channel, string $domainId): DomainResource
+    {
+        $flycms = $this->getFlyCmsManager($channel);
+        $websiteId = $this->requireFlyCmsWebsiteId($channel);
+
+        if (! $domain = $flycms->showDomain($domainId)) {
+            throw new McpToolException("Domain [{$domainId}] not found.");
+        }
+
+        if (($domain->get('website_id') ?? null) !== $websiteId) {
+            throw new McpToolException("Domain [{$domainId}] not found.");
+        }
+
+        return $domain;
     }
 }

@@ -1,19 +1,17 @@
 <?php
 
-namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools;
+namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools;
 
-use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FlyCmsTool;
-use App\Utils\Str;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 
-#[Description('List FlyCMS menus for the website linked to the given channel.')]
-class ListMenusTool extends FlyCmsTool
+#[Description('Show a FlyCMS domain by ID for the website linked to the given channel.')]
+class ShowDomainTool extends FlyCmsTool
 {
     /**
      * Handle the tool request.
@@ -24,24 +22,10 @@ class ListMenusTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $menus = $this->getFlyCmsManager($channel)->listMenus($this->requireFlyCmsWebsiteId($channel));
+        $domainId = (string) $request->get('domain_id');
+        $domainData = $this->resolveDomainForChannel($channel, $domainId);
 
-        if (!$menus) {
-            throw new McpToolException('No menus found.');
-        }
-
-        $count = count($menus);
-        $message = 'Found '.$count.' '.Str::plural('menu', $count).':';
-
-        return McpResponse::list(
-            'menu',
-            array_map(
-                static fn ($menu) => $menu->toMcpStructuredData(),
-                $menus
-            ),
-            'menus',
-            $message
-        );
+        return McpResponse::details('Domain', $domainData->toMcpStructuredData());
     }
 
     /**
@@ -52,6 +36,9 @@ class ListMenusTool extends FlyCmsTool
         return [
             'channel_id' => $schema->string()
                 ->description('The ULID of the channel that belongs to a platform with type = flycms')
+                ->required(),
+            'domain_id' => $schema->string()
+                ->description('The FlyCMS domain ID to show')
                 ->required(),
         ];
     }

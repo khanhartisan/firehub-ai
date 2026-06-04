@@ -32,7 +32,7 @@ class CreateWebsiteTool extends FlyCmsTool
         $flycms = $this->getFlyCmsManager($channel);
 
         // Check if the website exists
-        if ($flycmsWebsiteId = $channel->reference
+        if ($flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel, false)
             and $websiteData = $flycms->showWebsite($flycmsWebsiteId)
         ) {
             return McpResponse::details('Website', $websiteData->toMcpStructuredData());

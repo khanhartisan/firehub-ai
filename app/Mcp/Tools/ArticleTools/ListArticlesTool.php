@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools\ArticleTools;
 
+use App\Mcp\Concerns\ResolvesMcpPagination;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
@@ -18,9 +19,12 @@ use Laravel\Mcp\Server\Attributes\Description;
 #[Description('List articles that belong to the current user\'s client, with pagination.')]
 class ListArticlesTool extends Tool
 {
-    private const int DEFAULT_PER_PAGE = 15;
+    use ResolvesMcpPagination;
 
-    private const int MAX_PER_PAGE = 100;
+    protected function defaultListLimit(): int
+    {
+        return 15;
+    }
 
     /**
      * @throws ValidationException
@@ -30,7 +34,7 @@ class ListArticlesTool extends Tool
         $request->validate([
             'client_id' => ['required', 'string'],
             'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.$this->maxListLimit()],
         ]);
 
         $user = McpAccess::user($request);
@@ -43,11 +47,10 @@ class ListArticlesTool extends Tool
             ->orderByDesc('created_at')
             ->orderByDesc('id');
 
-        $page = max(1, (int) $request->integer('page', 1));
-        $perPage = min(self::MAX_PER_PAGE, max(1, (int) $request->integer('per_page', self::DEFAULT_PER_PAGE)));
+        $pagination = $this->resolvePagination($request);
 
         /** @var LengthAwarePaginator<int, Article> $paginator */
-        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
+        $paginator = $query->paginate($pagination->perPage, ['*'], 'page', $pagination->page);
 
         if ($paginator->total() === 0) {
             throw new McpToolException('No articles found.');
@@ -70,7 +73,7 @@ class ListArticlesTool extends Tool
                 'articles' => $articlesData,
                 'pagination' => [
                     'current_page' => $paginator->currentPage(),
-                    'per_page' => $paginator->perPage(),
+                    'per_page' => $pagination->perPage,
                     'total' => $paginator->total(),
                     'last_page' => $paginator->lastPage(),
                 ],
@@ -87,13 +90,7 @@ class ListArticlesTool extends Tool
             'client_id' => $schema->string()
                 ->description('The ULID of the client to list articles for')
                 ->required(),
-            'page' => $schema->integer()
-                ->description('Page number (1-based, default: 1)')
-                ->min(1),
-            'per_page' => $schema->integer()
-                ->description('Number of articles per page (default: '.self::DEFAULT_PER_PAGE.', max: '.self::MAX_PER_PAGE.')')
-                ->min(1)
-                ->max(self::MAX_PER_PAGE),
+            ...$this->paginationSchemaProperties($schema, 'articles'),
         ];
     }
 }

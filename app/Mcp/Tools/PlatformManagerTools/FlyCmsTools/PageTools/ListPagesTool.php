@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools;
 
+use App\Mcp\Concerns\ResolvesMcpPagination;
 use App\Mcp\Exceptions\McpToolException;
 use App\Mcp\Support\McpAccess;
 use App\Mcp\Support\McpResponse;
@@ -15,9 +16,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 #[Description('List FlyCMS pages for the website linked to the given channel.')]
 class ListPagesTool extends FlyCmsTool
 {
-    private const int DEFAULT_LIMIT = 100;
-
-    private const int MAX_LIMIT = 100;
+    use ResolvesMcpPagination;
 
     /**
      * Handle the tool request.
@@ -31,10 +30,9 @@ class ListPagesTool extends FlyCmsTool
         $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $flycms = $this->getFlyCmsManager($channel);
 
-        $page = max(1, (int) $request->integer('page', 1));
-        $limit = min(self::MAX_LIMIT, max(1, (int) $request->integer('limit', self::DEFAULT_LIMIT)));
+        $pagination = $this->resolvePagination($request);
 
-        $pages = $flycms->listPages($flycmsWebsiteId, $page, $limit);
+        $pages = $flycms->listPages($flycmsWebsiteId, $pagination->page, $pagination->perPage);
 
         if ($pages === []) {
             throw new McpToolException('No pages found.');
@@ -47,7 +45,7 @@ class ListPagesTool extends FlyCmsTool
 
         $count = count($pagesData);
         $message = 'Found '.$count.' '.Str::plural('page', $count)
-            .' (page '.$page.', limit '.$limit.'):';
+            .$pagination->listMessageSuffix().':';
 
         return McpResponse::list('page', $pagesData, 'pages', $message);
     }
@@ -61,13 +59,7 @@ class ListPagesTool extends FlyCmsTool
             'channel_id' => $schema->string()
                 ->description('The ULID of the channel that belongs to a platform with type = flycms')
                 ->required(),
-            'page' => $schema->integer()
-                ->description('Page number (1-based, default: 1)')
-                ->min(1),
-            'limit' => $schema->integer()
-                ->description('Maximum pages per page (default: '.self::DEFAULT_LIMIT.', max: '.self::MAX_LIMIT.')')
-                ->min(1)
-                ->max(self::MAX_LIMIT),
+            ...$this->paginationSchemaProperties($schema, 'pages'),
         ];
     }
 }

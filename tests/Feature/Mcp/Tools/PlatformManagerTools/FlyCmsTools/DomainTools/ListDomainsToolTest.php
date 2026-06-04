@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\Feature\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools;
+namespace Tests\Feature\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools;
 
 use App\Enums\PlatformType;
 use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\ChannelTools\CreateChannelTool;
-use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\ListTagsTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ListDomainsTool;
 use App\Models\Channel;
 use App\Models\Client;
 use App\Models\Platform;
@@ -13,56 +13,76 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class ListTagsToolTest extends TestCase
+class ListDomainsToolTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_lists_tags_for_channel_website(): void
+    public function test_lists_domains_for_channel_website(): void
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog', '01J00000000000000000000001');
 
-        $response = AppServer::actingAs($user)->tool(ListTagsTool::class, [
+        $response = AppServer::actingAs($user)->tool(ListDomainsTool::class, [
             'channel_id' => $channel->id,
         ]);
 
         $response
             ->assertOk()
-            ->assertSee('Found 2 tags')
-            ->assertName('platform-manager--flycms--list-tags-tool')
-            ->assertDescription('List FlyCMS tags for the website linked to the given channel.')
+            ->assertSee('Found 2 domains')
+            ->assertName('platform-manager--flycms--list-domains-tool')
+            ->assertDescription('List FlyCMS domains for the website linked to the given channel.')
             ->assertStructuredContent(function ($json): void {
-                $json->has('tags', 2)
-                    ->has('tags.0.id')
-                    ->has('tags.0.name')
-                    ->where('tags.0.thumbnail_file_id', '01J00000000000000000000071')
-                    ->where('tags.0.thumbnailFile', fn (mixed $thumbnail): bool => ((array) json_decode(json_encode($thumbnail), true))['code'] === 'hero-banner')
-                    ->has('tags.1.id')
-                    ->has('tags.1.name')
-                    ->where('tags.1.thumbnail_file_id', null)
-                    ->where('tags.1.thumbnailFile', null);
+                $json->has('domains', 2)
+                    ->where('domains.0.website_id', '01J00000000000000000000001')
+                    ->where('domains.0.domain', 'blog.example.com')
+                    ->where('domains.0.is_primary', true)
+                    ->where('domains.1.website_id', '01J00000000000000000000001')
+                    ->where('domains.1.domain', 'www.blog.example.com')
+                    ->where('domains.1.is_alias', true);
             });
     }
 
-    public function test_filters_tags_by_name(): void
+    public function test_filters_domains_by_domain_name(): void
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog', '01J00000000000000000000001');
 
-        $response = AppServer::actingAs($user)->tool(ListTagsTool::class, [
+        $response = AppServer::actingAs($user)->tool(ListDomainsTool::class, [
             'channel_id' => $channel->id,
-            'tag_filter' => [
-                'name' => 'life',
+            'domain_filter' => [
+                'domain' => 'blog.example.com',
             ],
         ]);
 
         $response
             ->assertOk()
-            ->assertSee('Found 1 tag')
+            ->assertSee('Found 1 domain')
             ->assertStructuredContent(function ($json): void {
-                $json->has('tags', 1)
-                    ->where('tags.0.name', 'Lifestyle')
+                $json->has('domains', 1)
+                    ->where('domains.0.domain', 'blog.example.com')
                     ->etc();
+            });
+    }
+
+    public function test_uses_channel_website_even_when_filter_includes_different_website_id(): void
+    {
+        $user = User::factory()->create();
+        $channel = $this->createFlyCmsChannel($user, 'Main Blog', '01J00000000000000000000001');
+
+        $response = AppServer::actingAs($user)->tool(ListDomainsTool::class, [
+            'channel_id' => $channel->id,
+            'domain_filter' => [
+                'website_id' => '01J00000000000000000000002',
+            ],
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('Found 2 domains')
+            ->assertStructuredContent(function ($json): void {
+                $json->has('domains', 2)
+                    ->where('domains.0.website_id', '01J00000000000000000000001')
+                    ->where('domains.1.website_id', '01J00000000000000000000001');
             });
     }
 
@@ -71,7 +91,7 @@ class ListTagsToolTest extends TestCase
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog', '01J00000000000000000000001');
 
-        $response = AppServer::actingAs($user)->tool(ListTagsTool::class, [
+        $response = AppServer::actingAs($user)->tool(ListDomainsTool::class, [
             'channel_id' => $channel->id,
             'page' => 1,
             'per_page' => 1,
@@ -79,25 +99,25 @@ class ListTagsToolTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Found 1 tag')
+            ->assertSee('Found 1 domain')
             ->assertStructuredContent(function ($json): void {
-                $json->has('tags', 1);
+                $json->has('domains', 1);
             });
     }
 
-    public function test_returns_error_when_no_tags_match(): void
+    public function test_returns_error_when_no_domains_match(): void
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog', '01J00000000000000000000001');
 
-        $response = AppServer::actingAs($user)->tool(ListTagsTool::class, [
+        $response = AppServer::actingAs($user)->tool(ListDomainsTool::class, [
             'channel_id' => $channel->id,
-            'tag_filter' => [
-                'name' => 'nonexistent-tag-name',
+            'domain_filter' => [
+                'domain' => 'nonexistent.example.com',
             ],
         ]);
 
-        $response->assertHasErrors(['No tags found.']);
+        $response->assertHasErrors(['No domains found.']);
     }
 
     public function test_returns_error_when_channel_has_no_website_reference(): void
@@ -105,7 +125,7 @@ class ListTagsToolTest extends TestCase
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
 
-        $response = AppServer::actingAs($user)->tool(ListTagsTool::class, [
+        $response = AppServer::actingAs($user)->tool(ListDomainsTool::class, [
             'channel_id' => $channel->id,
         ]);
 
@@ -114,7 +134,7 @@ class ListTagsToolTest extends TestCase
 
     public function test_returns_error_when_unauthenticated(): void
     {
-        $response = AppServer::tool(ListTagsTool::class, [
+        $response = AppServer::tool(ListDomainsTool::class, [
             'channel_id' => '01J0000000000000000000000',
         ]);
 

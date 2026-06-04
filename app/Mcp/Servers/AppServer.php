@@ -22,6 +22,8 @@ use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\ShowClientTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ListDomainsTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ShowDomainTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\CreateMenuTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\DeleteMenuTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\ListMenusTool;
@@ -138,6 +140,10 @@ class AppServer extends Server
             CreateWebsiteTool::class,
             ShowWebsiteTool::class,
             UpdateWebsiteTool::class,
+
+            // Domain tools
+            ShowDomainTool::class,
+            ListDomainsTool::class,
 
             // Tag tools
             CreateTagTool::class,

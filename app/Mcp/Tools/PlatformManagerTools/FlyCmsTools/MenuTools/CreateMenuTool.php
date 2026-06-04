@@ -25,19 +25,16 @@ class CreateMenuTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $createPayload = $request->get('create_menu_data');
 
         if (! is_array($createPayload) || $createPayload === []) {
             throw new McpToolException('Provide create_menu_data with at least key.');
         }
 
-        $flycms = $this->getFlyCmsManager($channel);
-
         try {
-            $createPayload['website_id'] = $flycmsWebsiteId;
+            $createPayload['website_id'] = $this->requireFlyCmsWebsiteId($channel);
             $createMenuData = (new CreateMenuData)->setData($createPayload);
-            $menuData = $flycms->createMenu($createMenuData);
+            $menuData = $this->getFlyCmsManager($channel)->createMenu($createMenuData);
 
             return McpResponse::created('menu', $menuData->toMcpStructuredData());
         } catch (FlyCmsException $e) {

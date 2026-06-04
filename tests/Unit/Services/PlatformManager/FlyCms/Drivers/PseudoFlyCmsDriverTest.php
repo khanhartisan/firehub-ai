@@ -4,8 +4,11 @@ namespace Tests\Unit\Services\PlatformManager\FlyCms\Drivers;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
+use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\CreateMenuData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\UpdateMenuData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\CreatePageData;
@@ -593,5 +596,212 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_list_pages_returns_empty_for_unknown_website(): void
     {
         $this->assertSame([], $this->driver->listPages('unknown-website-id'));
+    }
+
+    public function test_it_seeds_sample_posts(): void
+    {
+        $posts = $this->driver->listPosts('01J00000000000000000000001');
+
+        $this->assertCount(2, $posts);
+        $this->assertSame('hello-world', $posts[0]->getData()['slug']);
+        $this->assertSame('Hello World', $posts[0]->getData()['title']);
+        $this->assertSame('Technology', $posts[0]->getData()['tags'][0]['name']);
+        $this->assertSame('weekend-ideas', $posts[1]->getData()['slug']);
+        $this->assertCount(1, $this->driver->listPosts('01J00000000000000000000002'));
+    }
+
+    public function test_show_post_returns_matching_resource(): void
+    {
+        $post = $this->driver->showPost('01J00000000000000000000051');
+
+        $this->assertNotNull($post);
+        $this->assertSame('01J00000000000000000000001', $post->getData()['website_id']);
+        $this->assertSame('hello-world', $post->getData()['slug']);
+        $this->assertSame('Hello World', $post->getData()['title']);
+        $this->assertSame('public', $post->getData()['visibility']);
+        $this->assertSame('Technology', $post->getData()['tags'][0]['name']);
+    }
+
+    public function test_show_post_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showPost('unknown-id'));
+    }
+
+    public function test_create_post_persists_in_memory(): void
+    {
+        $createPostData = (new CreatePostData)->setData([
+            'website_id' => '01J00000000000000000000001',
+            'slug' => 'draft-post',
+            'title' => 'Draft Post',
+            'description' => 'A draft article',
+            'visibility' => 'public',
+            'tag_ids' => ['01J00000000000000000000021'],
+        ]);
+
+        $created = $this->driver->createPost($createPostData);
+        $data = $created->getData();
+
+        $this->assertSame('draft-post', $data['slug']);
+        $this->assertSame('Draft Post', $data['title']);
+        $this->assertSame('01J00000000000000000000001', $data['website_id']);
+        $this->assertSame('public', $data['visibility']);
+        $this->assertSame('Technology', $data['tags'][0]['name']);
+        $this->assertNotEmpty($data['id']);
+        $this->assertNotNull($data['published_at']);
+        $this->assertNotNull($this->driver->showPost($data['id']));
+        $this->assertCount(3, $this->driver->listPosts('01J00000000000000000000001'));
+    }
+
+    public function test_update_post_merges_changes(): void
+    {
+        $updatePostData = (new UpdatePostData)->setData([
+            'id' => '01J00000000000000000000051',
+            'visibility' => 'public',
+            'title' => 'Hello Universe',
+            'slug' => 'hello-universe',
+            'description' => 'Updated description',
+        ]);
+
+        $updated = $this->driver->updatePost($updatePostData);
+        $data = $updated->getData();
+
+        $this->assertSame('hello-universe', $data['slug']);
+        $this->assertSame('Hello Universe', $data['title']);
+        $this->assertSame('Updated description', $data['description']);
+        $this->assertSame('Hello Universe', $this->driver->showPost('01J00000000000000000000051')?->getData()['title']);
+    }
+
+    public function test_update_post_updates_tag_ids(): void
+    {
+        $updatePostData = (new UpdatePostData)->setData([
+            'id' => '01J00000000000000000000051',
+            'visibility' => 'public',
+            'tag_ids' => ['01J00000000000000000000022'],
+        ]);
+
+        $updated = $this->driver->updatePost($updatePostData);
+
+        $this->assertSame('Lifestyle', $updated->getData()['tags'][0]['name']);
+    }
+
+    public function test_update_post_requires_id(): void
+    {
+        $updatePostData = (new UpdatePostData)->setData([
+            'visibility' => 'public',
+            'title' => 'Missing ID',
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Post id is required for update.');
+
+        $this->driver->updatePost($updatePostData);
+    }
+
+    public function test_update_post_throws_for_unknown_id(): void
+    {
+        $updatePostData = (new UpdatePostData)->setData([
+            'id' => 'missing-id',
+            'visibility' => 'public',
+            'title' => 'Missing Post',
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Post [missing-id] not found.');
+
+        $this->driver->updatePost($updatePostData);
+    }
+
+    public function test_delete_post_removes_record(): void
+    {
+        $this->assertTrue($this->driver->deletePost('01J00000000000000000000051'));
+        $this->assertNull($this->driver->showPost('01J00000000000000000000051'));
+        $this->assertCount(1, $this->driver->listPosts('01J00000000000000000000001'));
+    }
+
+    public function test_delete_post_returns_false_for_unknown_id(): void
+    {
+        $this->assertFalse($this->driver->deletePost('missing-id'));
+    }
+
+    public function test_list_posts_filters_by_search(): void
+    {
+        $filter = (new PostFilter)->setFilterData([
+            'search' => 'weekend',
+        ]);
+
+        $posts = $this->driver->listPosts('01J00000000000000000000001', postFilter: $filter);
+
+        $this->assertCount(1, $posts);
+        $this->assertSame('Weekend Ideas', $posts[0]->getData()['title']);
+    }
+
+    public function test_list_posts_filters_by_slug(): void
+    {
+        $filter = (new PostFilter)->setFilterData([
+            'slug' => 'hello-world',
+        ]);
+
+        $posts = $this->driver->listPosts('01J00000000000000000000001', postFilter: $filter);
+
+        $this->assertCount(1, $posts);
+        $this->assertSame('Hello World', $posts[0]->getData()['title']);
+    }
+
+    public function test_list_posts_filters_by_visibility(): void
+    {
+        $filter = (new PostFilter)->setFilterData([
+            'visibility' => 'private',
+        ]);
+
+        $posts = $this->driver->listPosts('01J00000000000000000000002', postFilter: $filter);
+
+        $this->assertCount(1, $posts);
+        $this->assertSame('New Arrivals', $posts[0]->getData()['title']);
+    }
+
+    public function test_list_posts_filters_by_tag_id(): void
+    {
+        $filter = (new PostFilter)->setFilterData([
+            'tag_id' => '01J00000000000000000000022',
+        ]);
+
+        $posts = $this->driver->listPosts('01J00000000000000000000001', postFilter: $filter);
+
+        $this->assertCount(1, $posts);
+        $this->assertSame('weekend-ideas', $posts[0]->getData()['slug']);
+    }
+
+    public function test_list_posts_supports_pagination(): void
+    {
+        $pageOne = $this->driver->listPosts('01J00000000000000000000001', page: 1, limit: 1);
+        $pageTwo = $this->driver->listPosts('01J00000000000000000000001', page: 2, limit: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
+    }
+
+    public function test_list_posts_orders_newer_first(): void
+    {
+        $posts = $this->driver->listPosts('01J00000000000000000000001', orderDirection: -1);
+
+        $this->assertSame('weekend-ideas', $posts[0]->getData()['slug']);
+        $this->assertSame('hello-world', $posts[1]->getData()['slug']);
+    }
+
+    public function test_list_posts_orders_older_first(): void
+    {
+        $posts = $this->driver->listPosts('01J00000000000000000000001', orderDirection: 1);
+
+        $this->assertSame('hello-world', $posts[0]->getData()['slug']);
+        $this->assertSame('weekend-ideas', $posts[1]->getData()['slug']);
+    }
+
+    public function test_list_posts_returns_empty_for_unknown_website(): void
+    {
+        $this->assertSame([], $this->driver->listPosts('unknown-website-id'));
     }
 }

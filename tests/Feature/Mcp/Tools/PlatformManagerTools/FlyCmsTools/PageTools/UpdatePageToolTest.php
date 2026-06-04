@@ -112,6 +112,22 @@ class UpdatePageToolTest extends TestCase
         $response->assertHasErrors(['Page [01J00000000000000000000043] not found.']);
     }
 
+    public function test_returns_error_when_channel_has_no_website_reference(): void
+    {
+        $user = User::factory()->create();
+        $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+
+        $response = AppServer::actingAs($user)->tool(UpdatePageTool::class, [
+            'channel_id' => $channel->id,
+            'page_id' => '01J00000000000000000000041',
+            'update_page_data' => [
+                'title' => 'Updated',
+            ],
+        ]);
+
+        $response->assertHasErrors(['Channel '.$channel->id.' does not have a FlyCMS website reference.']);
+    }
+
     public function test_returns_error_when_unauthenticated(): void
     {
         $response = AppServer::tool(UpdatePageTool::class, [

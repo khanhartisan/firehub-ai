@@ -22,10 +22,8 @@ class ShowMenuTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $menuId = (string) $request->get('menu_id');
-        $flycms = $this->getFlyCmsManager($channel);
-        $menuData = $this->resolveMenuForChannel($flycms, $flycmsWebsiteId, $menuId);
+        $menuData = $this->resolveMenuForChannel($channel, $menuId);
 
         return McpResponse::details('Menu', $menuData->toMcpStructuredData());
     }

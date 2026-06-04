@@ -23,13 +23,10 @@ class DeleteMenuTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $menuId = (string) $request->get('menu_id');
-        $flycms = $this->getFlyCmsManager($channel);
+        $this->resolveMenuForChannel($channel, $menuId);
 
-        $this->resolveMenuForChannel($flycms, $flycmsWebsiteId, $menuId);
-
-        if (! $flycms->deleteMenu($menuId)) {
+        if (! $this->getFlyCmsManager($channel)->deleteMenu($menuId)) {
             throw new McpToolException("Menu [{$menuId}] not found.");
         }
 

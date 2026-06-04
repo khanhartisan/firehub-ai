@@ -23,13 +23,10 @@ class DeleteTagTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $tagId = (string) $request->get('tag_id');
-        $flycms = $this->getFlyCmsManager($channel);
+        $this->resolveTagForChannel($channel, $tagId);
 
-        $this->resolveTagForChannel($flycms, $flycmsWebsiteId, $tagId);
-
-        if (! $flycms->deleteTag($tagId)) {
+        if (! $this->getFlyCmsManager($channel)->deleteTag($tagId)) {
             throw new McpToolException("Tag [{$tagId}] not found.");
         }
 

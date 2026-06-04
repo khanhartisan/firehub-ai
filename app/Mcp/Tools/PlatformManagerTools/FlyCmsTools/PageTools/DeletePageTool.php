@@ -24,14 +24,11 @@ class DeletePageTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $pageId = (string) $request->get('page_id');
-        $flycms = $this->getFlyCmsManager($channel);
-
-        $this->resolvePageForChannel($flycms, $flycmsWebsiteId, $pageId);
+        $this->resolvePageForChannel($channel, $pageId);
 
         try {
-            $flycms->deletePage($pageId);
+            $this->getFlyCmsManager($channel)->deletePage($pageId);
         } catch (InvalidArgumentException $e) {
             throw new McpToolException($e->getMessage(), previous: $e);
         }

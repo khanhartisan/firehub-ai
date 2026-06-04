@@ -26,7 +26,6 @@ class UpdateTagTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $tagId = (string) $request->get('tag_id');
         $updatePayload = $request->get('update_tag_data');
 
@@ -34,12 +33,11 @@ class UpdateTagTool extends FlyCmsTool
             throw new McpToolException('Provide at least one field in update_tag_data.');
         }
 
-        $flycms = $this->getFlyCmsManager($channel);
-        $this->resolveTagForChannel($flycms, $flycmsWebsiteId, $tagId);
+        $this->resolveTagForChannel($channel, $tagId);
 
         try {
             $updateTagData = (new UpdateTagData)->setData($updatePayload);
-            $tagData = $flycms->updateTag($tagId, $updateTagData);
+            $tagData = $this->getFlyCmsManager($channel)->updateTag($tagId, $updateTagData);
 
             return McpResponse::updated('tag', $tagData->toMcpStructuredData());
         } catch (FlyCmsException|InvalidArgumentException $e) {

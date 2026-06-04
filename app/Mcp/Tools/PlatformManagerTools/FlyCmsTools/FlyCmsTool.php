@@ -49,8 +49,11 @@ abstract class FlyCmsTool extends PlatformManagerTool
         return $flycmsWebsiteId;
     }
 
-    protected function resolveTagForChannel(FlyCms $flycms, string $websiteId, string $tagId): TagResource
+    protected function resolveTagForChannel(Channel $channel, string $tagId): TagResource
     {
+        $flycms = $this->getFlyCmsManager($channel);
+        $websiteId = $this->requireFlyCmsWebsiteId($channel);
+
         if (! $tag = $flycms->showTag($tagId)) {
             throw new McpToolException("Tag [{$tagId}] not found.");
         }
@@ -62,8 +65,11 @@ abstract class FlyCmsTool extends PlatformManagerTool
         return $tag;
     }
 
-    protected function resolveMenuForChannel(FlyCms $flycms, string $websiteId, string $menuId): MenuResource
+    protected function resolveMenuForChannel(Channel $channel, string $menuId): MenuResource
     {
+        $flycms = $this->getFlyCmsManager($channel);
+        $websiteId = $this->requireFlyCmsWebsiteId($channel);
+
         if (! $menu = $flycms->showMenu($menuId)) {
             throw new McpToolException("Menu [{$menuId}] not found.");
         }
@@ -75,8 +81,11 @@ abstract class FlyCmsTool extends PlatformManagerTool
         return $menu;
     }
 
-    protected function resolvePageForChannel(FlyCms $flycms, string $websiteId, string $pageId): PageResource
+    protected function resolvePageForChannel(Channel $channel, string $pageId): PageResource
     {
+        $flycms = $this->getFlyCmsManager($channel);
+        $websiteId = $this->requireFlyCmsWebsiteId($channel);
+
         if (! $page = $flycms->showPage($pageId)) {
             throw new McpToolException("Page [{$pageId}] not found.");
         }

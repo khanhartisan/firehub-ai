@@ -26,7 +26,6 @@ class UpdateMenuTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $menuId = (string) $request->get('menu_id');
         $updatePayload = $request->get('update_menu_data');
 
@@ -34,12 +33,11 @@ class UpdateMenuTool extends FlyCmsTool
             throw new McpToolException('Provide at least one field in update_menu_data.');
         }
 
-        $flycms = $this->getFlyCmsManager($channel);
-        $this->resolveMenuForChannel($flycms, $flycmsWebsiteId, $menuId);
+        $this->resolveMenuForChannel($channel, $menuId);
 
         try {
             $updateMenuData = (new UpdateMenuData)->setData($updatePayload);
-            $menuData = $flycms->updateMenu($menuId, $updateMenuData);
+            $menuData = $this->getFlyCmsManager($channel)->updateMenu($menuId, $updateMenuData);
 
             return McpResponse::updated('menu', $menuData->toMcpStructuredData());
         } catch (FlyCmsException|InvalidArgumentException $e) {

@@ -26,7 +26,6 @@ class UpdatePageTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $pageId = (string) $request->get('page_id');
         $updatePayload = $request->get('update_page_data');
 
@@ -34,12 +33,11 @@ class UpdatePageTool extends FlyCmsTool
             throw new McpToolException('Provide at least one field in update_page_data.');
         }
 
-        $flycms = $this->getFlyCmsManager($channel);
-        $this->resolvePageForChannel($flycms, $flycmsWebsiteId, $pageId);
+        $this->resolvePageForChannel($channel, $pageId);
 
         try {
             $updatePageData = (new UpdatePageData)->setData($updatePayload);
-            $pageData = $flycms->updatePage($pageId, $updatePageData);
+            $pageData = $this->getFlyCmsManager($channel)->updatePage($pageId, $updatePageData);
 
             return McpResponse::updated('page', $pageData->toMcpStructuredData());
         } catch (FlyCmsException|InvalidArgumentException $e) {

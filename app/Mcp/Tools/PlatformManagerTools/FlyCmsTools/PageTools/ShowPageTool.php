@@ -22,10 +22,8 @@ class ShowPageTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
         $pageId = (string) $request->get('page_id');
-        $flycms = $this->getFlyCmsManager($channel);
-        $pageData = $this->resolvePageForChannel($flycms, $flycmsWebsiteId, $pageId);
+        $pageData = $this->resolvePageForChannel($channel, $pageId);
 
         return McpResponse::details('Page', $pageData->toMcpStructuredData());
     }

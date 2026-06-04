@@ -7,6 +7,7 @@ use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\ThemeFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFileData;
@@ -237,6 +238,71 @@ class PseudoFlyCmsDriverTest extends TestCase
             $pageOne[0]->getData()['id'],
             $pageTwo[0]->getData()['id']
         );
+    }
+
+    public function test_it_seeds_sample_themes(): void
+    {
+        $themes = $this->driver->listThemes();
+
+        $this->assertCount(3, $themes);
+        $this->assertSame('Good News', $themes[0]->getData()['name']);
+        $this->assertSame('goodnews', $themes[0]->getData()['key']);
+        $this->assertSame('Storefront', $themes[1]->getData()['name']);
+        $this->assertTrue($themes[1]->getData()['dev_mode']);
+    }
+
+    public function test_show_theme_returns_matching_resource(): void
+    {
+        $theme = $this->driver->showTheme('01J00000000000000000000081');
+
+        $this->assertNotNull($theme);
+        $this->assertSame('Good News', $theme->getData()['name']);
+        $this->assertSame('goodnews', $theme->getData()['key']);
+        $this->assertSame(1, $theme->getData()['websites_count']);
+        $this->assertStringContainsString('main, footer', $theme->getData()['guidelines']);
+    }
+
+    public function test_show_theme_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showTheme('unknown-id'));
+    }
+
+    public function test_list_themes_supports_pagination(): void
+    {
+        $pageOne = $this->driver->listThemes(page: 1, limit: 1);
+        $pageTwo = $this->driver->listThemes(page: 2, limit: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
+    }
+
+    public function test_list_themes_filters_by_search(): void
+    {
+        $filter = (new ThemeFilter)->setFilterData([
+            'search' => 'store',
+        ]);
+
+        $themes = $this->driver->listThemes(themeFilter: $filter);
+
+        $this->assertCount(1, $themes);
+        $this->assertSame('Storefront', $themes[0]->getData()['name']);
+    }
+
+    public function test_list_themes_filters_by_ids(): void
+    {
+        $filter = (new ThemeFilter)->setFilterData([
+            'ids' => '01J00000000000000000000081,01J00000000000000000000083',
+        ]);
+
+        $themes = $this->driver->listThemes(themeFilter: $filter);
+
+        $this->assertCount(2, $themes);
+        $this->assertSame('Good News', $themes[0]->getData()['name']);
+        $this->assertSame('Minimal', $themes[1]->getData()['name']);
     }
 
     public function test_it_seeds_sample_menus(): void

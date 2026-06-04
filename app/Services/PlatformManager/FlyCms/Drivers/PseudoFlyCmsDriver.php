@@ -6,6 +6,7 @@ use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\ThemeFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFileData;
@@ -28,6 +29,7 @@ use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PageResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PostResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\ThemeResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\UserResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\WebsiteResource;
 use App\Services\PlatformManager\FlyCms\FlyCmsService;
@@ -59,16 +61,51 @@ class PseudoFlyCmsDriver extends FlyCmsService
     /** @var array<string, array<string, mixed>> */
     protected array $files = [];
 
+    /** @var array<string, array<string, mixed>> */
+    protected array $themes = [];
+
     public function __construct()
     {
         $this->seedSampleWebsites();
         $this->seedSampleDomains();
+        $this->seedSampleThemes();
         $this->seedSampleMenus();
         $this->seedSampleTags();
         $this->seedSamplePages();
         $this->seedSamplePosts();
         $this->seedSampleUsers();
         $this->seedSampleFiles();
+    }
+
+    public function showTheme(string $themeId): ?ThemeResource
+    {
+        $theme = $this->themes[$themeId] ?? null;
+
+        if ($theme === null) {
+            return null;
+        }
+
+        return new ThemeResource($theme);
+    }
+
+    /**
+     * @return ThemeResource[]
+     */
+    public function listThemes(int $page = 1, int $limit = 100, ?ThemeFilter $themeFilter = null): array
+    {
+        $themes = array_values($this->themes);
+
+        if ($themeFilter !== null) {
+            $themes = $this->applyThemeFilter($themes, $themeFilter);
+        }
+
+        $offset = max(0, ($page - 1) * $limit);
+        $themes = array_slice($themes, $offset, $limit);
+
+        return array_map(
+            static fn (array $theme): ThemeResource => new ThemeResource($theme),
+            $themes
+        );
     }
 
     public function showFile(string $fileId): ?FileResource
@@ -794,6 +831,47 @@ class PseudoFlyCmsDriver extends FlyCmsService
         ];
     }
 
+    protected function seedSampleThemes(): void
+    {
+        $now = now()->toIso8601String();
+
+        $this->themes = [
+            '01J00000000000000000000081' => array_merge($this->defaultThemeAttributes(), [
+                'id' => '01J00000000000000000000081',
+                'name' => 'Good News',
+                'description' => 'Blog theme with main and footer menu support.',
+                'guidelines' => 'Use featured tags for homepage highlights. Default menu keys: main, footer.',
+                'key' => 'goodnews',
+                'dev_mode' => false,
+                'websites_count' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]),
+            '01J00000000000000000000082' => array_merge($this->defaultThemeAttributes(), [
+                'id' => '01J00000000000000000000082',
+                'name' => 'Storefront',
+                'description' => 'E-commerce oriented theme with extended menu keys.',
+                'guidelines' => 'Supports main, footer, and shop menu keys.',
+                'key' => 'storefront',
+                'dev_mode' => true,
+                'websites_count' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]),
+            '01J00000000000000000000083' => array_merge($this->defaultThemeAttributes(), [
+                'id' => '01J00000000000000000000083',
+                'name' => 'Minimal',
+                'description' => null,
+                'guidelines' => null,
+                'key' => 'minimal',
+                'dev_mode' => false,
+                'websites_count' => 0,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]),
+        ];
+    }
+
     protected function seedSampleDomains(): void
     {
         $this->domains = [
@@ -1123,6 +1201,21 @@ class PseudoFlyCmsDriver extends FlyCmsService
     /**
      * @return array<string, mixed>
      */
+    protected function defaultThemeAttributes(): array
+    {
+        return [
+            'name' => 'Untitled Theme',
+            'description' => null,
+            'guidelines' => null,
+            'key' => 'untitled-theme',
+            'dev_mode' => false,
+            'websites_count' => 0,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     protected function defaultDomainAttributes(): array
     {
         return [
@@ -1404,6 +1497,37 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'traffic_statistics' => null,
             'meta' => [],
         ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $themes
+     * @return array<int, array<string, mixed>>
+     */
+    protected function applyThemeFilter(array $themes, ThemeFilter $themeFilter): array
+    {
+        $filterData = $themeFilter->getFilterData();
+
+        if (isset($filterData['ids']) && is_string($filterData['ids']) && $filterData['ids'] !== '') {
+            $ids = array_map('trim', explode(',', $filterData['ids']));
+            $themes = array_values(array_filter(
+                $themes,
+                static fn (array $theme): bool => in_array($theme['id'] ?? null, $ids, true)
+            ));
+        }
+
+        if (isset($filterData['search']) && is_string($filterData['search']) && $filterData['search'] !== '') {
+            $search = strtolower($filterData['search']);
+            $themes = array_values(array_filter(
+                $themes,
+                static function (array $theme) use ($search): bool {
+                    $name = strtolower((string) ($theme['name'] ?? ''));
+
+                    return str_contains($name, $search);
+                }
+            ));
+        }
+
+        return $themes;
     }
 
     /**

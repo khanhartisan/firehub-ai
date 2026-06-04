@@ -7,6 +7,7 @@ use App\Contracts\Mcp\StructuredMcpResource;
 use App\Contracts\PlatformManager\PlatformManager;
 use App\Enums\PlatformType;
 use App\Facades\Platforms\FlyCms;
+use App\Models\Concerns\HasMeta;
 use Exception;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,7 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 class Platform extends Model implements ShouldCascade, StructuredMcpResource
 {
     use Cascades;
+    use HasMeta;
 
     protected $casts = [
         'type' => PlatformType::class,
@@ -28,6 +30,7 @@ class Platform extends Model implements ShouldCascade, StructuredMcpResource
     {
         return [
             new CascadeDetails($this->channels()),
+            new CascadeDetails($this->meta()),
         ];
     }
 

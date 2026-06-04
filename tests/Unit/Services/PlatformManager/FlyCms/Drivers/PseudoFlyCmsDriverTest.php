@@ -8,6 +8,8 @@ use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\CreateMenuData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\UpdateMenuData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\CreatePageData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\UpdatePageData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\UpdateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\CreateWebsiteData;
@@ -479,5 +481,117 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_list_tags_returns_empty_for_unknown_website(): void
     {
         $this->assertSame([], $this->driver->listTags('unknown-website-id'));
+    }
+
+    public function test_it_seeds_sample_pages(): void
+    {
+        $pages = $this->driver->listPages('01J00000000000000000000001');
+
+        $this->assertCount(2, $pages);
+        $this->assertSame('about', $pages[0]->getData()['slug']);
+        $this->assertSame('About Us', $pages[0]->getData()['title']);
+        $this->assertSame('contact', $pages[1]->getData()['slug']);
+        $this->assertCount(1, $this->driver->listPages('01J00000000000000000000002'));
+    }
+
+    public function test_show_page_returns_matching_resource(): void
+    {
+        $page = $this->driver->showPage('01J00000000000000000000041');
+
+        $this->assertNotNull($page);
+        $this->assertSame('01J00000000000000000000001', $page->getData()['website_id']);
+        $this->assertSame('about', $page->getData()['slug']);
+        $this->assertSame('About Us', $page->getData()['title']);
+        $this->assertSame('About Us | Sample Blog', $page->getData()['seo_title']);
+    }
+
+    public function test_show_page_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showPage('unknown-id'));
+    }
+
+    public function test_create_page_persists_in_memory(): void
+    {
+        $createPageData = (new CreatePageData)->setData([
+            'website_id' => '01J00000000000000000000001',
+            'slug' => 'faq',
+            'title' => 'FAQ',
+            'seo_title' => 'FAQ | Sample Blog',
+            'content' => '<p>Frequently asked questions.</p>',
+        ]);
+
+        $created = $this->driver->createPage($createPageData);
+        $data = $created->getData();
+
+        $this->assertSame('faq', $data['slug']);
+        $this->assertSame('FAQ', $data['title']);
+        $this->assertSame('01J00000000000000000000001', $data['website_id']);
+        $this->assertNotEmpty($data['id']);
+        $this->assertNotNull($this->driver->showPage($data['id']));
+        $this->assertCount(3, $this->driver->listPages('01J00000000000000000000001'));
+    }
+
+    public function test_update_page_merges_changes(): void
+    {
+        $updatePageData = (new UpdatePageData)->setData([
+            'title' => 'About Our Team',
+            'slug' => 'our-team',
+            'seo_description' => 'Meet the team behind Sample Blog.',
+        ]);
+
+        $updated = $this->driver->updatePage('01J00000000000000000000041', $updatePageData);
+        $data = $updated->getData();
+
+        $this->assertSame('our-team', $data['slug']);
+        $this->assertSame('About Our Team', $data['title']);
+        $this->assertSame('Meet the team behind Sample Blog.', $data['seo_description']);
+        $this->assertSame('About Us | Sample Blog', $data['seo_title']);
+        $this->assertSame('About Our Team', $this->driver->showPage('01J00000000000000000000041')?->getData()['title']);
+    }
+
+    public function test_update_page_throws_for_unknown_id(): void
+    {
+        $updatePageData = (new UpdatePageData)->setData([
+            'title' => 'Missing Page',
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Page [missing-id] not found.');
+
+        $this->driver->updatePage('missing-id', $updatePageData);
+    }
+
+    public function test_delete_page_removes_record(): void
+    {
+        $this->driver->deletePage('01J00000000000000000000041');
+
+        $this->assertNull($this->driver->showPage('01J00000000000000000000041'));
+        $this->assertCount(1, $this->driver->listPages('01J00000000000000000000001'));
+    }
+
+    public function test_delete_page_throws_for_unknown_id(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Page [missing-id] not found.');
+
+        $this->driver->deletePage('missing-id');
+    }
+
+    public function test_list_pages_supports_pagination(): void
+    {
+        $pageOne = $this->driver->listPages('01J00000000000000000000001', page: 1, limit: 1);
+        $pageTwo = $this->driver->listPages('01J00000000000000000000001', page: 2, limit: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
+    }
+
+    public function test_list_pages_returns_empty_for_unknown_website(): void
+    {
+        $this->assertSame([], $this->driver->listPages('unknown-website-id'));
     }
 }

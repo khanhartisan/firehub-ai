@@ -7,12 +7,15 @@ use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\CreateMenuData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\UpdateMenuData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\CreatePageData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\UpdatePageData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\UpdateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\CreateWebsiteData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\UpdateWebsiteData;
 use App\Contracts\PlatformManager\FlyCms\Resources\DomainResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\PageResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\WebsiteResource;
 use App\Services\PlatformManager\FlyCms\FlyCmsService;
@@ -32,12 +35,16 @@ class PseudoFlyCmsDriver extends FlyCmsService
     /** @var array<string, array<string, mixed>> */
     protected array $domains = [];
 
+    /** @var array<string, array<string, mixed>> */
+    protected array $pages = [];
+
     public function __construct()
     {
         $this->seedSampleWebsites();
         $this->seedSampleDomains();
         $this->seedSampleMenus();
         $this->seedSampleTags();
+        $this->seedSamplePages();
     }
 
     public function showDomain(string $domainId): ?DomainResource
@@ -320,6 +327,84 @@ class PseudoFlyCmsDriver extends FlyCmsService
         return true;
     }
 
+    public function showPage(string $pageId): ?PageResource
+    {
+        $page = $this->pages[$pageId] ?? null;
+
+        if ($page === null) {
+            return null;
+        }
+
+        return new PageResource($page);
+    }
+
+    public function createPage(CreatePageData $createPageData): PageResource
+    {
+        $pageId = (string) Str::ulid();
+        $now = now()->toIso8601String();
+        $data = $createPageData->getData() ?? [];
+
+        $page = array_merge($this->defaultPageAttributes(), $data, [
+            'id' => $pageId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $this->pages[$pageId] = $page;
+
+        return new PageResource($page);
+    }
+
+    public function updatePage(string $pageId, UpdatePageData $updatePageData): PageResource
+    {
+        $page = $this->pages[$pageId] ?? null;
+
+        if ($page === null) {
+            throw new \InvalidArgumentException("Page [{$pageId}] not found.");
+        }
+
+        $data = array_filter(
+            $updatePageData->getData() ?? [],
+            static fn (mixed $value): bool => $value !== null
+        );
+
+        $page = array_merge($page, $data, [
+            'updated_at' => now()->toIso8601String(),
+        ]);
+
+        $this->pages[$pageId] = $page;
+
+        return new PageResource($page);
+    }
+
+    /**
+     * @return PageResource[]
+     */
+    public function listPages(string $websiteId, int $page = 1, int $limit = 100): array
+    {
+        $pages = array_values(array_filter(
+            $this->pages,
+            static fn (array $page): bool => ($page['website_id'] ?? null) === $websiteId
+        ));
+
+        $offset = max(0, ($page - 1) * $limit);
+        $pages = array_slice($pages, $offset, $limit);
+
+        return array_map(
+            static fn (array $page): PageResource => new PageResource($page),
+            $pages
+        );
+    }
+
+    public function deletePage(string $pageId): void
+    {
+        if (! isset($this->pages[$pageId])) {
+            throw new \InvalidArgumentException("Page [{$pageId}] not found.");
+        }
+
+        unset($this->pages[$pageId]);
+    }
+
     protected function seedSampleWebsites(): void
     {
         $now = now()->toIso8601String();
@@ -515,6 +600,47 @@ class PseudoFlyCmsDriver extends FlyCmsService
         ];
     }
 
+    protected function seedSamplePages(): void
+    {
+        $now = now()->toIso8601String();
+
+        $this->pages = [
+            '01J00000000000000000000041' => array_merge($this->defaultPageAttributes(), [
+                'id' => '01J00000000000000000000041',
+                'website_id' => '01J00000000000000000000001',
+                'slug' => 'about',
+                'title' => 'About Us',
+                'seo_title' => 'About Us | Sample Blog',
+                'seo_description' => 'Learn more about Sample Blog.',
+                'content' => '<p>Welcome to our about page.</p>',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]),
+            '01J00000000000000000000042' => array_merge($this->defaultPageAttributes(), [
+                'id' => '01J00000000000000000000042',
+                'website_id' => '01J00000000000000000000001',
+                'slug' => 'contact',
+                'title' => 'Contact',
+                'seo_title' => null,
+                'seo_description' => null,
+                'content' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]),
+            '01J00000000000000000000043' => array_merge($this->defaultPageAttributes(), [
+                'id' => '01J00000000000000000000043',
+                'website_id' => '01J00000000000000000000002',
+                'slug' => 'shipping',
+                'title' => 'Shipping Policy',
+                'seo_title' => 'Shipping | Demo Storefront',
+                'seo_description' => 'Shipping information for Demo Storefront.',
+                'content' => '<p>Shipping details.</p>',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]),
+        ];
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -528,6 +654,21 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'domain' => 'example.com',
             'nameservers' => [],
             'is_connected_to_server' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function defaultPageAttributes(): array
+    {
+        return [
+            'website_id' => null,
+            'slug' => 'untitled-page',
+            'title' => 'Untitled Page',
+            'seo_title' => null,
+            'seo_description' => null,
+            'content' => null,
         ];
     }
 

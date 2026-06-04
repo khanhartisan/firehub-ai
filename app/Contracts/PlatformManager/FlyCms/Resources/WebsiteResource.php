@@ -110,9 +110,9 @@ class WebsiteResource extends Resource implements MetableResource
                 ->nullable()
                 ->description('Query param for custom limit of items per page (pagination), default is "limit"'),
             'theme-config' => $schema
-                ->object()
+                ->string()
                 ->nullable()
-                ->description('Theme configuration'),
+                ->description('Theme configuration (usually a JSON-encoded string)'),
         ];
     }
 }

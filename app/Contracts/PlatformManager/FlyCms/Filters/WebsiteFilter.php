@@ -13,7 +13,7 @@ class WebsiteFilter extends Filter
             'ids' => $schema
                 ->string()
                 ->nullable()
-                ->description('List of website IDs separated by a comma'),
+                ->description('List of website IDs separated by commas'),
             'search' => $schema
                 ->string()
                 ->nullable()

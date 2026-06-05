@@ -32,6 +32,7 @@ trait InteractsWithPseudoFlyCmsFiles
 
         $file = array_merge($this->defaultFileAttributes(), [
             'id' => $fileId,
+            'user_id' => $this->resolveAuthenticatedFlyCmsUserId(),
             'code' => $mutationData['code'] ?? null,
             'key' => $key,
             'type' => $this->resolveFileTypeFromExt($ext),
@@ -247,6 +248,13 @@ trait InteractsWithPseudoFlyCmsFiles
     protected function applyFileFilter(array $files, FileFilter $fileFilter): array
     {
         $filterData = $fileFilter->getFilterData();
+
+        if (isset($filterData['user_id']) && is_string($filterData['user_id']) && $filterData['user_id'] !== '') {
+            $files = array_values(array_filter(
+                $files,
+                static fn (array $file): bool => ($file['user_id'] ?? null) === $filterData['user_id']
+            ));
+        }
 
         if (isset($filterData['ids']) && is_string($filterData['ids']) && $filterData['ids'] !== '') {
             $ids = array_map('trim', explode(',', $filterData['ids']));

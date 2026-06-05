@@ -10,6 +10,10 @@ class FileFilter extends Filter
     public function toJsonSchema(JsonSchema $schema): array
     {
         return [
+            'user_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Filter by FlyCMS user ID'),
             'ids' => $schema
                 ->string()
                 ->nullable()

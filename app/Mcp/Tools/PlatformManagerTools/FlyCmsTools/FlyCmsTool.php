@@ -55,61 +55,76 @@ abstract class FlyCmsTool extends PlatformManagerTool
         }
 
         if ($user) {
-            $userDataMetaKey = 'user-'.$user->id;
+            $flyCmsUserData = $this->getFlyCmsUserData($channel, $user);
 
-            // Try to get user data from platform's meta
-            if ($flyCmsUserData = $platform->getMetaValue($userDataMetaKey)) {
-                try {
-                    $flyCmsUserData = Json::decode($flyCmsUserData, true);
-                    if (!is_array($flyCmsUserData)
-                        or !isset($flyCmsUserData['id'])
-                        or !isset($flyCmsUserData['api_key'])
-                    ) {
-                        $flyCmsUserData = null;
-                    }
-                } catch (\Exception) {
-                    $flyCmsUserData = null;
-                }
-            }
-
-            // FlyCms user data was not found, create new user
-            if (!$flyCmsUserData) {
-                $flyCmsUserResource = $flycms->createUser(
-                    new CreateUserData()
-                        ->setData([
-                            'role_id' => $this->getFlyCmsUserRoleId($channel),
-                            'name' => $user->id,
-                            'email' => $user->email,
-                            'password' => Str::random(8),
-                            'api_key' => $apiKey = sha1(Str::random())
-                        ])
-                );
-
-                $flyCmsUserData = [
-                    'id' => $flyCmsUserResource->get('id'),
-                    'api_key' => $apiKey
-                ];
-
-                // Save user data to meta
-                $platform->putMeta($userDataMetaKey, Json::encode($flyCmsUserData));
-            }
-
-            // Now make a new flycms manager instance as a user
             /** @var FlyCms $userFlyCms */
             $userFlyCms = $flycms->clone();
 
-            if ($platformConfig instanceof Config) {
-                /** @var Config $userFlyCmsConfig */
-                $userFlyCmsConfig = $platformConfig->clone();
-                $userFlyCmsConfig->setApiKey($flyCmsUserData['api_key']);
+            /** @var Config $userFlyCmsConfig */
+            $userFlyCmsConfig = $platformConfig instanceof Config
+                ? $platformConfig->clone()
+                : ($flycms->getConfig()?->clone() ?? $flycms->makeConfig());
 
-                $userFlyCms->setConfig($userFlyCmsConfig);
-            }
+            $userFlyCmsConfig->setApiKey($flyCmsUserData['api_key']);
+            $userFlyCms->setConfig($userFlyCmsConfig);
 
             return $userFlyCms;
         }
 
         return $flycms;
+    }
+
+    /**
+     * @return array{id: string, api_key: string}
+     */
+    protected function getFlyCmsUserData(Channel $channel, User $user): array
+    {
+        /** @var Platform $platform */
+        $platform = $channel->platform;
+        $userDataMetaKey = 'user-'.$user->id;
+
+        if ($flyCmsUserData = $platform->getMetaValue($userDataMetaKey)) {
+            try {
+                $flyCmsUserData = Json::decode($flyCmsUserData, true);
+                if (! is_array($flyCmsUserData)
+                    or ! isset($flyCmsUserData['id'])
+                    or ! isset($flyCmsUserData['api_key'])
+                ) {
+                    $flyCmsUserData = null;
+                }
+            } catch (\Exception) {
+                $flyCmsUserData = null;
+            }
+        }
+
+        if (! $flyCmsUserData) {
+            $flycms = $this->getFlyCmsManager($channel);
+
+            $flyCmsUserResource = $flycms->createUser(
+                new CreateUserData()
+                    ->setData([
+                        'role_id' => $this->getFlyCmsUserRoleId($channel),
+                        'name' => $user->id,
+                        'email' => $user->email,
+                        'password' => Str::random(8),
+                        'api_key' => $apiKey = sha1(Str::random()),
+                    ])
+            );
+
+            $flyCmsUserData = [
+                'id' => $flyCmsUserResource->get('id'),
+                'api_key' => $apiKey,
+            ];
+
+            $platform->putMeta($userDataMetaKey, Json::encode($flyCmsUserData));
+        }
+
+        return $flyCmsUserData;
+    }
+
+    protected function getFlyCmsUserId(Channel $channel, User $user): string
+    {
+        return $this->getFlyCmsUserData($channel, $user)['id'];
     }
 
     protected function getFlyCmsUserRoleId(Channel $channel): string
@@ -226,8 +241,13 @@ abstract class FlyCmsTool extends PlatformManagerTool
     protected function resolveFileForChannel(Channel $channel, User $user, string $fileId): FileResource
     {
         $flycms = $this->getFlyCmsManager($channel, $user);
+        $flycmsUserId = $this->getFlyCmsUserId($channel, $user);
 
         if (! $file = $flycms->showFile($fileId)) {
+            throw new McpToolException("File [{$fileId}] not found.");
+        }
+
+        if (($file->get('user_id') ?? null) !== $flycmsUserId) {
             throw new McpToolException("File [{$fileId}] not found.");
         }
 

@@ -30,10 +30,10 @@ class ListFilesTool extends FlyCmsTool
 
         $pagination = $this->resolvePagination($request);
 
-        $fileFilter = null;
-        if (is_array($filterPayload = $request->get('file_filter')) && $filterPayload !== []) {
-            $fileFilter = (new FileFilter)->setFilterData($filterPayload);
-        }
+        $filterPayload = is_array($request->get('file_filter')) ? $request->get('file_filter') : [];
+        $filterPayload['user_id'] = $this->getFlyCmsUserId($channel, $user);
+
+        $fileFilter = (new FileFilter)->setFilterData($filterPayload);
 
         $orderDirection = $request->has('order_direction')
             ? (int) $request->integer('order_direction')
@@ -67,6 +67,9 @@ class ListFilesTool extends FlyCmsTool
      */
     public function schema(JsonSchema $schema): array
     {
+        $properties = (new FileFilter)->toJsonSchema($schema);
+        unset($properties['user_id']);
+
         return [
             'channel_id' => $schema->string()
                 ->description('The ULID of the channel that belongs to a platform with type = flycms')
@@ -75,8 +78,8 @@ class ListFilesTool extends FlyCmsTool
             'order_direction' => $schema->integer()
                 ->description('Sort by created_at: -1 = newer first, 1 = older first, omit for default order')
                 ->enum([-1, 1]),
-            'file_filter' => $schema->object(new FileFilter()->toJsonSchema($schema))
-                ->description('Optional filters when listing files'),
+            'file_filter' => $schema->object($properties)
+                ->description('Optional filters when listing files (scoped to the request user)'),
         ];
     }
 }

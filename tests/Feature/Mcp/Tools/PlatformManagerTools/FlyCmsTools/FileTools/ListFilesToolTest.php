@@ -5,6 +5,7 @@ namespace Tests\Feature\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools;
 use App\Enums\PlatformType;
 use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\ChannelTools\CreateChannelTool;
+use Tests\Feature\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\Concerns\CreatesFlyCmsFilesForUser;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\ListFilesTool;
 use App\Models\Channel;
 use App\Models\Client;
@@ -15,12 +16,17 @@ use Tests\TestCase;
 
 class ListFilesToolTest extends TestCase
 {
+    use CreatesFlyCmsFilesForUser;
     use RefreshDatabase;
 
     public function test_lists_files_for_channel_platform(): void
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'hero-banner', 'code' => 'hero-banner']);
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'weekend-ideas', 'ext' => 'webp']);
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'storefront-intro', 'ext' => 'mp4', 'code' => 'storefront-intro']);
 
         $response = AppServer::actingAs($user)->tool(ListFilesTool::class, [
             'channel_id' => $channel->id,
@@ -45,6 +51,10 @@ class ListFilesToolTest extends TestCase
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
 
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'hero-banner', 'code' => 'hero-banner']);
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'weekend-ideas', 'ext' => 'webp']);
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'storefront-intro', 'ext' => 'mp4', 'code' => 'storefront-intro']);
+
         $response = AppServer::actingAs($user)->tool(ListFilesTool::class, [
             'channel_id' => $channel->id,
             'file_filter' => [
@@ -66,6 +76,8 @@ class ListFilesToolTest extends TestCase
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'storefront-intro', 'ext' => 'mp4', 'code' => 'storefront-intro']);
 
         $response = AppServer::actingAs($user)->tool(ListFilesTool::class, [
             'channel_id' => $channel->id,
@@ -89,6 +101,9 @@ class ListFilesToolTest extends TestCase
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
 
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'asset-one']);
+        $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'asset-two']);
+
         $response = AppServer::actingAs($user)->tool(ListFilesTool::class, [
             'channel_id' => $channel->id,
             'page' => 1,
@@ -108,6 +123,12 @@ class ListFilesToolTest extends TestCase
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
 
+        $oldestId = $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'oldest']);
+        $this->travel(1)->seconds();
+        $middleId = $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'middle']);
+        $this->travel(1)->seconds();
+        $newestId = $this->createFlyCmsFileForUser($user, $channel, ['filename' => 'newest']);
+
         $response = AppServer::actingAs($user)->tool(ListFilesTool::class, [
             'channel_id' => $channel->id,
             'order_direction' => -1,
@@ -115,17 +136,31 @@ class ListFilesToolTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertStructuredContent(function ($json): void {
-                $json->where('files.0.id', '01J00000000000000000000073')
-                    ->where('files.1.id', '01J00000000000000000000072')
-                    ->where('files.2.id', '01J00000000000000000000071');
+            ->assertStructuredContent(function ($json) use ($newestId, $middleId, $oldestId): void {
+                $json->where('files.0.id', $newestId)
+                    ->where('files.1.id', $middleId)
+                    ->where('files.2.id', $oldestId);
             });
+    }
+
+    public function test_does_not_list_files_owned_by_other_users(): void
+    {
+        $user = User::factory()->create();
+        $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+
+        $response = AppServer::actingAs($user)->tool(ListFilesTool::class, [
+            'channel_id' => $channel->id,
+        ]);
+
+        $response->assertHasErrors(['No files found.']);
     }
 
     public function test_returns_error_when_no_files_match(): void
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+
+        $this->createFlyCmsFileForUser($user, $channel, ['code' => 'owned-file']);
 
         $response = AppServer::actingAs($user)->tool(ListFilesTool::class, [
             'channel_id' => $channel->id,

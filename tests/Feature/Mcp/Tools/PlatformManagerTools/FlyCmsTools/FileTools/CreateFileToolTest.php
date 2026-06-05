@@ -47,6 +47,7 @@ class CreateFileToolTest extends TestCase
                     ->where('size', 14)
                     ->where('is_uploaded', true)
                     ->where('information', fn (mixed $information): bool => ((array) json_decode(json_encode($information), true)) === ['width' => 800])
+                    ->has('user_id')
                     ->has('id')
                     ->has('url')
                     ->etc();

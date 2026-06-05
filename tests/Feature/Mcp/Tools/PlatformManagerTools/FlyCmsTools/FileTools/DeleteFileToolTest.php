@@ -6,6 +6,7 @@ use App\Enums\PlatformType;
 use App\Facades\Platforms\FlyCms;
 use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\ChannelTools\CreateChannelTool;
+use Tests\Feature\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\Concerns\CreatesFlyCmsFilesForUser;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\DeleteFileTool;
 use App\Models\Channel;
 use App\Models\Client;
@@ -16,29 +17,34 @@ use Tests\TestCase;
 
 class DeleteFileToolTest extends TestCase
 {
+    use CreatesFlyCmsFilesForUser;
     use RefreshDatabase;
 
     public function test_deletes_file_for_channel_platform(): void
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+        $fileId = $this->createFlyCmsFileForUser($user, $channel, [
+            'filename' => 'hero-banner',
+            'ext' => 'jpg',
+            'code' => 'hero-banner',
+        ]);
 
         $response = AppServer::actingAs($user)->tool(DeleteFileTool::class, [
             'channel_id' => $channel->id,
-            'file_id' => '01J00000000000000000000071',
+            'file_id' => $fileId,
         ]);
 
         $response
             ->assertOk()
-            ->assertSee('Successfully deleted file [01J00000000000000000000071]')
+            ->assertSee("Successfully deleted file [{$fileId}]")
             ->assertName('platform-manager--flycms--delete-file-tool')
             ->assertDescription('Delete a FlyCMS file on the platform linked to the given channel.')
-            ->assertStructuredContent(function ($json): void {
-                $json->where('file_id', '01J00000000000000000000071');
+            ->assertStructuredContent(function ($json) use ($fileId): void {
+                $json->where('file_id', $fileId);
             });
 
-        $this->assertNull(FlyCms::showFile('01J00000000000000000000071'));
-        $this->assertCount(2, FlyCms::listFiles());
+        $this->assertNull(FlyCms::showFile($fileId));
     }
 
     public function test_returns_error_when_file_does_not_exist(): void

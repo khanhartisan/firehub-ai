@@ -5,6 +5,7 @@ namespace Tests\Feature\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools;
 use App\Enums\PlatformType;
 use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\ChannelTools\CreateChannelTool;
+use Tests\Feature\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\Concerns\CreatesFlyCmsFilesForUser;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\ShowFileTool;
 use App\Models\Channel;
 use App\Models\Client;
@@ -15,16 +16,23 @@ use Tests\TestCase;
 
 class ShowFileToolTest extends TestCase
 {
+    use CreatesFlyCmsFilesForUser;
     use RefreshDatabase;
 
     public function test_shows_file_for_channel_platform(): void
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+        $fileId = $this->createFlyCmsFileForUser($user, $channel, [
+            'filename' => 'hero-banner',
+            'ext' => 'jpg',
+            'code' => 'hero-banner',
+            'information' => ['alt' => 'Sample blog hero image'],
+        ]);
 
         $response = AppServer::actingAs($user)->tool(ShowFileTool::class, [
             'channel_id' => $channel->id,
-            'file_id' => '01J00000000000000000000071',
+            'file_id' => $fileId,
         ]);
 
         $response
@@ -32,8 +40,8 @@ class ShowFileToolTest extends TestCase
             ->assertSee('File details')
             ->assertName('platform-manager--flycms--show-file-tool')
             ->assertDescription('Show a FlyCMS file by ID for the platform linked to the given channel.')
-            ->assertStructuredContent(function ($json): void {
-                $json->where('id', '01J00000000000000000000071')
+            ->assertStructuredContent(function ($json) use ($fileId): void {
+                $json->where('id', $fileId)
                     ->where('code', 'hero-banner')
                     ->where('key', 'uploads/hero-banner.jpg')
                     ->where('type', 'image')
@@ -53,6 +61,19 @@ class ShowFileToolTest extends TestCase
         $response = AppServer::actingAs($user)->tool(ShowFileTool::class, []);
 
         $response->assertHasErrors();
+    }
+
+    public function test_returns_error_when_file_belongs_to_another_user(): void
+    {
+        $user = User::factory()->create();
+        $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+
+        $response = AppServer::actingAs($user)->tool(ShowFileTool::class, [
+            'channel_id' => $channel->id,
+            'file_id' => '01J00000000000000000000071',
+        ]);
+
+        $response->assertHasErrors(['File [01J00000000000000000000071] not found.']);
     }
 
     public function test_returns_error_when_file_does_not_exist(): void

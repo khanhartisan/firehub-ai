@@ -45,6 +45,27 @@ class FlyCmsToolTest extends TestCase
         );
 
         $this->assertSame($storedUserData['api_key'], $userFlycms->getConfig()?->getApiKey());
+        $this->assertNotEmpty($storedUserData['id']);
+    }
+
+    public function test_get_flycms_user_id_returns_same_persisted_user_id(): void
+    {
+        $tool = new class extends ShowWebsiteTool
+        {
+            public function flyCmsUserId(Channel $channel, User $user): string
+            {
+                return $this->getFlyCmsUserId($channel, $user);
+            }
+        };
+
+        $user = User::factory()->create();
+        $channel = $this->createFlyCmsChannel();
+
+        $firstId = $tool->flyCmsUserId($channel, $user);
+        $secondId = $tool->flyCmsUserId($channel, $user);
+
+        $this->assertSame($firstId, $secondId);
+        $this->assertSame($firstId, Json::decode($channel->platform->fresh()->getMetaValue('user-'.$user->id), true)['id']);
     }
 
     private function createFlyCmsChannel(): Channel

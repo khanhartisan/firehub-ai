@@ -6,6 +6,7 @@ use App\Enums\PlatformType;
 use App\Facades\Platforms\FlyCms;
 use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\ChannelTools\CreateChannelTool;
+use Tests\Feature\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\Concerns\CreatesFlyCmsFilesForUser;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\UpdateFileTool;
 use App\Models\Channel;
 use App\Models\Client;
@@ -16,16 +17,22 @@ use Tests\TestCase;
 
 class UpdateFileToolTest extends TestCase
 {
+    use CreatesFlyCmsFilesForUser;
     use RefreshDatabase;
 
     public function test_updates_file_for_channel_platform(): void
     {
         $user = User::factory()->create();
         $channel = $this->createFlyCmsChannel($user, 'Main Blog');
+        $fileId = $this->createFlyCmsFileForUser($user, $channel, [
+            'filename' => 'hero-banner',
+            'ext' => 'jpg',
+            'code' => 'hero-banner',
+        ]);
 
         $response = AppServer::actingAs($user)->tool(UpdateFileTool::class, [
             'channel_id' => $channel->id,
-            'file_id' => '01J00000000000000000000071',
+            'file_id' => $fileId,
             'update_file_data' => [
                 'code' => 'updated-hero',
                 'information' => ['alt' => 'Updated alt text'],
@@ -37,15 +44,15 @@ class UpdateFileToolTest extends TestCase
             ->assertSee('Successfully updated the file')
             ->assertName('platform-manager--flycms--update-file-tool')
             ->assertDescription('Update a FlyCMS file on the platform linked to the given channel.')
-            ->assertStructuredContent(function ($json): void {
-                $json->where('id', '01J00000000000000000000071')
+            ->assertStructuredContent(function ($json) use ($fileId): void {
+                $json->where('id', $fileId)
                     ->where('code', 'updated-hero')
                     ->where('key', 'uploads/hero-banner.jpg')
                     ->where('information', fn (mixed $information): bool => ((array) json_decode(json_encode($information), true)) === ['alt' => 'Updated alt text'])
                     ->etc();
             });
 
-        $file = FlyCms::showFile('01J00000000000000000000071');
+        $file = FlyCms::showFile($fileId);
         $this->assertNotNull($file);
         $this->assertSame('updated-hero', $file->getData()['code']);
     }

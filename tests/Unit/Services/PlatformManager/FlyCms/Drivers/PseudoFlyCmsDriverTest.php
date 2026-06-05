@@ -1254,6 +1254,40 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->driver->deleteFile('missing-id');
     }
 
+    public function test_list_files_filters_by_user_id(): void
+    {
+        $filter = (new FileFilter)->setFilterData([
+            'user_id' => '01J00000000000000000000061',
+        ]);
+
+        $files = $this->driver->listFiles(fileFilter: $filter);
+
+        $this->assertCount(1, $files);
+        $this->assertSame('hero-banner', $files[0]->getData()['code']);
+    }
+
+    public function test_create_file_sets_authenticated_user_id(): void
+    {
+        $this->driver->updateUser('01J00000000000000000000062', (new UpdateUserData)->setData([
+            'api_key' => 'user-api-key-62',
+        ]));
+
+        $this->driver->setConfig(new Config([
+            'base_url' => 'https://flycms.example.test',
+            'api_key' => 'user-api-key-62',
+        ]));
+
+        $created = $this->driver->createFile(
+            'binary-content',
+            (new CreateFileData)->setData([
+                'ext' => 'png',
+                'filename' => 'owned-asset',
+            ])
+        );
+
+        $this->assertSame('01J00000000000000000000062', $created->getData()['user_id']);
+    }
+
     public function test_list_files_filters_by_post_id(): void
     {
         $filter = (new FileFilter)->setFilterData([

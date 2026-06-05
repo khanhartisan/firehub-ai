@@ -157,6 +157,23 @@ trait InteractsWithPseudoFlyCmsUsers
     {
         return new UserResource($this->userRecordForOutput($user));
     }
+
+    protected function resolveAuthenticatedFlyCmsUserId(): ?string
+    {
+        $apiKey = $this->getConfig()?->getApiKey();
+
+        if ($apiKey === null) {
+            return null;
+        }
+
+        foreach (self::$users as $user) {
+            if (($user['api_key'] ?? null) === $apiKey) {
+                return $user['id'] ?? null;
+            }
+        }
+
+        return null;
+    }
     protected function applyUserFilter(array $users, UserFilter $userFilter): array
     {
         $filterData = $userFilter->getFilterData();

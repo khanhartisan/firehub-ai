@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools;
 
+use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\FlyCms;
 use App\Contracts\PlatformManager\FlyCms\Resources\DomainResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
@@ -34,6 +35,8 @@ abstract class FlyCmsTool extends PlatformManagerTool
         $platform = $channel->platform;
 
         $flycms = \App\Facades\Platforms\FlyCms::driver();
+
+        /** @var Config $platformConfig */
         if ($platformConfig = $platform->config) {
             $flycms->setConfig($platformConfig);
         }

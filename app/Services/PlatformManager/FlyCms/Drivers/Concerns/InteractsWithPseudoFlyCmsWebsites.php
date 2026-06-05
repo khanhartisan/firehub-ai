@@ -109,6 +109,7 @@ trait InteractsWithPseudoFlyCmsWebsites
                 'page_route' => '/page/{page}',
                 'post_route' => '/post/{post}',
                 'website_tag_route' => '/tag/{websiteTag}',
+                'theme_id' => '01J00000000000000000000081',
                 'traffic_statistics' => [
                     'visits_7d' => 1280,
                     'pageviews_7d' => 3420,
@@ -132,6 +133,7 @@ trait InteractsWithPseudoFlyCmsWebsites
                 'page_route' => '/pages/{page}',
                 'post_route' => '/articles/{post}',
                 'website_tag_route' => '/topics/{websiteTag}',
+                'theme_id' => '01J00000000000000000000082',
                 'traffic_statistics' => null,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -155,6 +157,7 @@ trait InteractsWithPseudoFlyCmsWebsites
             'page_route' => null,
             'post_route' => null,
             'website_tag_route' => null,
+            'theme_id' => null,
             'traffic_statistics' => null,
             'meta' => [],
         ];

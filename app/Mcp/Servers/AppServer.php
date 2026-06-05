@@ -44,6 +44,8 @@ use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\DeleteTagTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\ListTagsTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\ShowTagTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\TagTools\UpdateTagTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\ThemeTools\ListThemesTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\ThemeTools\ShowThemeTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\CreateWebsiteTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\ShowWebsiteTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\UpdateWebsiteTool;
@@ -177,6 +179,10 @@ class AppServer extends Server
             UpdateFileTool::class,
             ListFilesTool::class,
             DeleteFileTool::class,
+
+            // Theme tools
+            ListThemesTool::class,
+            ShowThemeTool::class,
         ]);
     }
 }

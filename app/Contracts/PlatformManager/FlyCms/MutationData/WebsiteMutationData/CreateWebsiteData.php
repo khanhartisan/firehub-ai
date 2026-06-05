@@ -34,6 +34,10 @@ class CreateWebsiteData extends MutationData
                 ->string()
                 ->nullable()
                 ->description('URI path for posts. Example: /post/{post}'),
+            'theme_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Theme ID to assign to the website'),
         ];
     }
 }

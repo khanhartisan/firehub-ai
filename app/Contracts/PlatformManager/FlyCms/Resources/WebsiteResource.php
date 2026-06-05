@@ -42,6 +42,10 @@ class WebsiteResource extends Resource implements MetableResource
                 ->string()
                 ->nullable()
                 ->description('Website tag route'),
+            'theme_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Theme ID assigned to the website'),
             'traffic_statistics' => $schema
                 ->object()
                 ->nullable()

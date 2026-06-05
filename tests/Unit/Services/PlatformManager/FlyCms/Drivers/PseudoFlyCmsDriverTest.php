@@ -58,6 +58,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertNotNull($website);
         $this->assertSame('Sample Blog', $website->getData()['name']);
         $this->assertSame('active', $website->getData()['status']);
+        $this->assertSame('01J00000000000000000000081', $website->getData()['theme_id']);
         $this->assertSame('Sample Blog', $website->getData()['meta']['site-name']);
     }
 
@@ -72,6 +73,7 @@ class PseudoFlyCmsDriverTest extends TestCase
             'status' => 'active',
             'name' => 'New Site',
             'post_route' => '/posts/{post}',
+            'theme_id' => '01J00000000000000000000083',
         ]);
 
         $created = $this->driver->createWebsite($createWebsiteData);
@@ -79,6 +81,7 @@ class PseudoFlyCmsDriverTest extends TestCase
 
         $this->assertSame('New Site', $data['name']);
         $this->assertSame('/posts/{post}', $data['post_route']);
+        $this->assertSame('01J00000000000000000000083', $data['theme_id']);
         $this->assertNotEmpty($data['id']);
         $this->assertSame(0, $data['domains_count']);
         $this->assertSame(0, $data['public_posts_count']);
@@ -91,6 +94,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         $updateWebsiteData = (new UpdateWebsiteData)->setData([
             'name' => 'Renamed Blog',
             'status' => 'inactive',
+            'theme_id' => '01J00000000000000000000082',
         ]);
 
         $updated = $this->driver->updateWebsite('01J00000000000000000000001', $updateWebsiteData);
@@ -98,6 +102,7 @@ class PseudoFlyCmsDriverTest extends TestCase
 
         $this->assertSame('Renamed Blog', $data['name']);
         $this->assertSame('inactive', $data['status']);
+        $this->assertSame('01J00000000000000000000082', $data['theme_id']);
         $this->assertSame('/assets/{path}', $data['asset_route']);
         $this->assertSame('Renamed Blog', $this->driver->showWebsite('01J00000000000000000000001')?->getData()['name']);
     }

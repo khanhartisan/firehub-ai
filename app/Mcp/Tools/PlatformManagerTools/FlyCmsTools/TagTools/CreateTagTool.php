@@ -32,7 +32,7 @@ class CreateTagTool extends FlyCmsTool
             throw new McpToolException('Provide create_tag_data with at least name and slug.');
         }
 
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
 
         try {
             $createPayload['website_id'] = $flycmsWebsiteId;

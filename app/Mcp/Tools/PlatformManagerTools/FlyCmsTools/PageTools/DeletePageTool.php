@@ -25,10 +25,10 @@ class DeletePageTool extends FlyCmsTool
         $this->validateChannel($channel);
 
         $pageId = (string) $request->get('page_id');
-        $this->resolvePageForChannel($channel, $pageId);
+        $this->resolvePageForChannel($channel, $user, $pageId);
 
         try {
-            $this->getFlyCmsManager($channel)->deletePage($pageId);
+            $this->getFlyCmsManager($channel, $user)->deletePage($pageId);
         } catch (InvalidArgumentException $e) {
             throw new McpToolException($e->getMessage(), previous: $e);
         }

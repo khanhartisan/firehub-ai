@@ -33,11 +33,11 @@ class UpdateMenuTool extends FlyCmsTool
             throw new McpToolException('Provide at least one field in update_menu_data.');
         }
 
-        $this->resolveMenuForChannel($channel, $menuId);
+        $this->resolveMenuForChannel($channel, $user, $menuId);
 
         try {
             $updateMenuData = (new UpdateMenuData)->setData($updatePayload);
-            $menuData = $this->getFlyCmsManager($channel)->updateMenu($menuId, $updateMenuData);
+            $menuData = $this->getFlyCmsManager($channel, $user)->updateMenu($menuId, $updateMenuData);
 
             return McpResponse::updated('menu', $menuData->toMcpStructuredData());
         } catch (FlyCmsException|InvalidArgumentException $e) {

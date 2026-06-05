@@ -30,7 +30,7 @@ class UpdateWebsiteTool extends FlyCmsTool
             throw new McpToolException('Channel '.$channel->id.' does not have a FlyCMS website reference.');
         }
 
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
 
         $updatePayload = $request->get('update_website_data');
 

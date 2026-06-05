@@ -177,6 +177,35 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame('test-key', $this->driver->getConfig()?->getApiKey());
     }
 
+    public function test_reset_restores_seeded_data(): void
+    {
+        $this->driver->deleteWebsite('01J00000000000000000000001');
+
+        $this->assertCount(1, $this->driver->listWebsites());
+
+        PseudoFlyCmsDriver::reset();
+
+        $this->assertCount(2, $this->driver->listWebsites());
+    }
+
+    public function test_clone_shares_in_memory_store_with_parent(): void
+    {
+        $clone = $this->driver->clone();
+
+        $this->assertNotSame($this->driver, $clone);
+
+        $updateWebsiteData = (new UpdateWebsiteData)->setData([
+            'name' => 'Renamed Via Clone',
+        ]);
+
+        $clone->updateWebsite('01J00000000000000000000001', $updateWebsiteData);
+
+        $this->assertSame(
+            'Renamed Via Clone',
+            $this->driver->showWebsite('01J00000000000000000000001')?->getData()['name']
+        );
+    }
+
     public function test_it_seeds_sample_domains(): void
     {
         $domains = $this->driver->listDomains();

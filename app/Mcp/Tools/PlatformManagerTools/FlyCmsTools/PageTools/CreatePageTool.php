@@ -32,7 +32,7 @@ class CreatePageTool extends FlyCmsTool
             throw new McpToolException('Provide create_page_data with at least slug and title.');
         }
 
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
 
         try {
             $createPayload['website_id'] = $flycmsWebsiteId;

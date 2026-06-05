@@ -42,52 +42,79 @@ use Illuminate\Support\Str;
 class PseudoFlyCmsDriver extends FlyCmsService
 {
     /** @var array<string, array<string, mixed>> */
-    protected array $websites = [];
+    protected static array $websites = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $menus = [];
+    protected static array $menus = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $tags = [];
+    protected static array $tags = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $domains = [];
+    protected static array $domains = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $pages = [];
+    protected static array $pages = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $posts = [];
+    protected static array $posts = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $users = [];
+    protected static array $users = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $roles = [];
+    protected static array $roles = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $files = [];
+    protected static array $files = [];
 
     /** @var array<string, array<string, mixed>> */
-    protected array $themes = [];
+    protected static array $themes = [];
 
     public function __construct()
     {
-        $this->seedSampleWebsites();
-        $this->seedSampleDomains();
-        $this->seedSampleThemes();
-        $this->seedSampleMenus();
-        $this->seedSampleTags();
-        $this->seedSamplePages();
-        $this->seedSamplePosts();
-        $this->seedSampleRoles();
-        $this->seedSampleUsers();
-        $this->seedSampleFiles();
+        self::ensureSeeded();
+    }
+
+    public static function reset(): void
+    {
+        self::$websites = [];
+        self::$menus = [];
+        self::$tags = [];
+        self::$domains = [];
+        self::$pages = [];
+        self::$posts = [];
+        self::$users = [];
+        self::$roles = [];
+        self::$files = [];
+        self::$themes = [];
+
+        self::ensureSeeded();
+    }
+
+    protected static function ensureSeeded(): void
+    {
+        if (self::$websites !== []) {
+            return;
+        }
+
+        /** @var self $instance */
+        $instance = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $instance->seedSampleWebsites();
+        $instance->seedSampleDomains();
+        $instance->seedSampleThemes();
+        $instance->seedSampleMenus();
+        $instance->seedSampleTags();
+        $instance->seedSamplePages();
+        $instance->seedSamplePosts();
+        $instance->seedSampleRoles();
+        $instance->seedSampleUsers();
+        $instance->seedSampleFiles();
     }
 
     public function showTheme(string $themeId): ?ThemeResource
     {
-        $theme = $this->themes[$themeId] ?? null;
+        $theme = self::$themes[$themeId] ?? null;
 
         if ($theme === null) {
             return null;
@@ -101,7 +128,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
      */
     public function listThemes(int $page = 1, int $limit = 100, ?ThemeFilter $themeFilter = null): array
     {
-        $themes = array_values($this->themes);
+        $themes = array_values(self::$themes);
 
         if ($themeFilter !== null) {
             $themes = $this->applyThemeFilter($themes, $themeFilter);
@@ -118,7 +145,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function showFile(string $fileId): ?FileResource
     {
-        $file = $this->files[$fileId] ?? null;
+        $file = self::$files[$fileId] ?? null;
 
         if ($file === null) {
             return null;
@@ -149,14 +176,14 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'created_at' => $now,
         ]);
 
-        $this->files[$fileId] = $file;
+        self::$files[$fileId] = $file;
 
         return $this->toFileResource($file);
     }
 
     public function updateFile(string $fileId, UpdateFileData $updateFileData): FileResource
     {
-        $file = $this->files[$fileId] ?? null;
+        $file = self::$files[$fileId] ?? null;
 
         if ($file === null) {
             throw new \InvalidArgumentException("File [{$fileId}] not found.");
@@ -169,7 +196,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
         $file = array_merge($file, $data);
 
-        $this->files[$fileId] = $file;
+        self::$files[$fileId] = $file;
 
         return $this->toFileResource($file);
     }
@@ -182,7 +209,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
                               ?int $orderDirection = null,
                               ?FileFilter $fileFilter = null): array
     {
-        $files = array_values($this->files);
+        $files = array_values(self::$files);
 
         if ($fileFilter !== null) {
             $files = $this->applyFileFilter($files, $fileFilter);
@@ -210,7 +237,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function deleteFile(string $fileId): FileResource
     {
-        $file = $this->files[$fileId] ?? null;
+        $file = self::$files[$fileId] ?? null;
 
         if ($file === null) {
             throw new \InvalidArgumentException("File [{$fileId}] not found.");
@@ -218,14 +245,14 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
         $resource = $this->toFileResource($file);
 
-        unset($this->files[$fileId]);
+        unset(self::$files[$fileId]);
 
         return $resource;
     }
 
     public function showDomain(string $domainId): ?DomainResource
     {
-        $domain = $this->domains[$domainId] ?? null;
+        $domain = self::$domains[$domainId] ?? null;
 
         if ($domain === null) {
             return null;
@@ -239,7 +266,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
      */
     public function listDomains(int $page = 1, int $limit = 100, ?DomainFilter $domainFilter = null): array
     {
-        $domains = array_values($this->domains);
+        $domains = array_values(self::$domains);
 
         if ($domainFilter !== null) {
             $domains = $this->applyDomainFilter($domains, $domainFilter);
@@ -256,7 +283,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function showWebsite(string $websiteId): ?WebsiteResource
     {
-        $website = $this->websites[$websiteId] ?? null;
+        $website = self::$websites[$websiteId] ?? null;
 
         if ($website === null) {
             return null;
@@ -281,14 +308,14 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'meta' => [],
         ]);
 
-        $this->websites[$websiteId] = $website;
+        self::$websites[$websiteId] = $website;
 
         return new WebsiteResource($website);
     }
 
     public function updateWebsite(string $websiteId, UpdateWebsiteData $updateWebsiteData): WebsiteResource
     {
-        $website = $this->websites[$websiteId] ?? null;
+        $website = self::$websites[$websiteId] ?? null;
 
         if ($website === null) {
             throw new \InvalidArgumentException("Website [{$websiteId}] not found.");
@@ -303,7 +330,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => now()->toIso8601String(),
         ]);
 
-        $this->websites[$websiteId] = $website;
+        self::$websites[$websiteId] = $website;
 
         return new WebsiteResource($website);
     }
@@ -313,7 +340,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
      */
     public function listWebsites(int $page = 1, int $limit = 100, ?WebsiteFilter $websiteFilter = null): array
     {
-        $websites = array_values($this->websites);
+        $websites = array_values(self::$websites);
 
         if ($websiteFilter !== null) {
             $websites = $this->applyWebsiteFilter($websites, $websiteFilter);
@@ -330,18 +357,18 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function deleteWebsite(string $websiteId): bool
     {
-        if (! isset($this->websites[$websiteId])) {
+        if (! isset(self::$websites[$websiteId])) {
             return false;
         }
 
-        unset($this->websites[$websiteId]);
+        unset(self::$websites[$websiteId]);
 
         return true;
     }
 
     public function showMenu(string $menuId): ?MenuResource
     {
-        $menu = $this->menus[$menuId] ?? null;
+        $menu = self::$menus[$menuId] ?? null;
 
         if ($menu === null) {
             return null;
@@ -362,14 +389,14 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => $now,
         ]);
 
-        $this->menus[$menuId] = $menu;
+        self::$menus[$menuId] = $menu;
 
         return new MenuResource($menu);
     }
 
     public function updateMenu(string $menuId, UpdateMenuData $updateMenuData): MenuResource
     {
-        $menu = $this->menus[$menuId] ?? null;
+        $menu = self::$menus[$menuId] ?? null;
 
         if ($menu === null) {
             throw new \InvalidArgumentException("Menu [{$menuId}] not found.");
@@ -384,7 +411,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => now()->toIso8601String(),
         ]);
 
-        $this->menus[$menuId] = $menu;
+        self::$menus[$menuId] = $menu;
 
         return new MenuResource($menu);
     }
@@ -395,7 +422,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     public function listMenus(string $websiteId): array
     {
         $menus = array_values(array_filter(
-            $this->menus,
+            self::$menus,
             static fn (array $menu): bool => ($menu['website_id'] ?? null) === $websiteId
         ));
 
@@ -407,18 +434,18 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function deleteMenu(string $menuId): bool
     {
-        if (! isset($this->menus[$menuId])) {
+        if (! isset(self::$menus[$menuId])) {
             return false;
         }
 
-        unset($this->menus[$menuId]);
+        unset(self::$menus[$menuId]);
 
         return true;
     }
 
     public function showTag(string $tagId): ?TagResource
     {
-        $tag = $this->tags[$tagId] ?? null;
+        $tag = self::$tags[$tagId] ?? null;
 
         if ($tag === null) {
             return null;
@@ -440,14 +467,14 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => $now,
         ]);
 
-        $this->tags[$tagId] = $tag;
+        self::$tags[$tagId] = $tag;
 
         return $this->toTagResource($tag);
     }
 
     public function updateTag(string $tagId, UpdateTagData $updateTagData): TagResource
     {
-        $tag = $this->tags[$tagId] ?? null;
+        $tag = self::$tags[$tagId] ?? null;
 
         if ($tag === null) {
             throw new \InvalidArgumentException("Tag [{$tagId}] not found.");
@@ -464,7 +491,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => now()->toIso8601String(),
         ]);
 
-        $this->tags[$tagId] = $tag;
+        self::$tags[$tagId] = $tag;
 
         return $this->toTagResource($tag);
     }
@@ -475,7 +502,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     public function listTags(string $websiteId, int $page = 1, int $limit = 100, ?TagFilter $tagFilter = null): array
     {
         $tags = array_values(array_filter(
-            $this->tags,
+            self::$tags,
             static fn (array $tag): bool => ($tag['website_id'] ?? null) === $websiteId
         ));
 
@@ -494,18 +521,18 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function deleteTag(string $tagId): bool
     {
-        if (! isset($this->tags[$tagId])) {
+        if (! isset(self::$tags[$tagId])) {
             return false;
         }
 
-        unset($this->tags[$tagId]);
+        unset(self::$tags[$tagId]);
 
         return true;
     }
 
     public function showPage(string $pageId): ?PageResource
     {
-        $page = $this->pages[$pageId] ?? null;
+        $page = self::$pages[$pageId] ?? null;
 
         if ($page === null) {
             return null;
@@ -526,14 +553,14 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => $now,
         ]);
 
-        $this->pages[$pageId] = $page;
+        self::$pages[$pageId] = $page;
 
         return new PageResource($page);
     }
 
     public function updatePage(string $pageId, UpdatePageData $updatePageData): PageResource
     {
-        $page = $this->pages[$pageId] ?? null;
+        $page = self::$pages[$pageId] ?? null;
 
         if ($page === null) {
             throw new \InvalidArgumentException("Page [{$pageId}] not found.");
@@ -548,7 +575,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => now()->toIso8601String(),
         ]);
 
-        $this->pages[$pageId] = $page;
+        self::$pages[$pageId] = $page;
 
         return new PageResource($page);
     }
@@ -559,7 +586,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     public function listPages(string $websiteId, int $page = 1, int $limit = 100): array
     {
         $pages = array_values(array_filter(
-            $this->pages,
+            self::$pages,
             static fn (array $page): bool => ($page['website_id'] ?? null) === $websiteId
         ));
 
@@ -574,16 +601,16 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function deletePage(string $pageId): void
     {
-        if (! isset($this->pages[$pageId])) {
+        if (! isset(self::$pages[$pageId])) {
             throw new \InvalidArgumentException("Page [{$pageId}] not found.");
         }
 
-        unset($this->pages[$pageId]);
+        unset(self::$pages[$pageId]);
     }
 
     public function showPost(string $postId): ?PostResource
     {
-        $post = $this->posts[$postId] ?? null;
+        $post = self::$posts[$postId] ?? null;
 
         if ($post === null) {
             return null;
@@ -610,7 +637,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'published_at' => ($data['visibility'] ?? 'public') === 'public' ? $now : null,
         ]);
 
-        $this->posts[$postId] = $post;
+        self::$posts[$postId] = $post;
 
         return $this->toPostResource($post);
     }
@@ -624,7 +651,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             throw new \InvalidArgumentException('Post id is required for update.');
         }
 
-        $post = $this->posts[$postId] ?? null;
+        $post = self::$posts[$postId] ?? null;
 
         if ($post === null) {
             throw new \InvalidArgumentException("Post [{$postId}] not found.");
@@ -651,7 +678,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
                 : null;
         }
 
-        $this->posts[$postId] = $post;
+        self::$posts[$postId] = $post;
 
         return $this->toPostResource($post);
     }
@@ -666,7 +693,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
                               ?PostFilter $postFilter = null): array
     {
         $posts = array_values(array_filter(
-            $this->posts,
+            self::$posts,
             static fn (array $post): bool => ($post['website_id'] ?? null) === $websiteId
         ));
 
@@ -696,18 +723,18 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function deletePost(string $postId): bool
     {
-        if (! isset($this->posts[$postId])) {
+        if (! isset(self::$posts[$postId])) {
             return false;
         }
 
-        unset($this->posts[$postId]);
+        unset(self::$posts[$postId]);
 
         return true;
     }
 
     public function showUser(string $userId): ?UserResource
     {
-        $user = $this->users[$userId] ?? null;
+        $user = self::$users[$userId] ?? null;
 
         if ($user === null) {
             return null;
@@ -729,14 +756,14 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => $now,
         ]);
 
-        $this->users[$userId] = $user;
+        self::$users[$userId] = $user;
 
         return $this->toUserResource($user);
     }
 
     public function updateUser(string $userId, UpdateUserData $updateUserData): UserResource
     {
-        $user = $this->users[$userId] ?? null;
+        $user = self::$users[$userId] ?? null;
 
         if ($user === null) {
             throw new \InvalidArgumentException("User [{$userId}] not found.");
@@ -752,7 +779,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => now()->toIso8601String(),
         ]);
 
-        $this->users[$userId] = $user;
+        self::$users[$userId] = $user;
 
         return $this->toUserResource($user);
     }
@@ -762,7 +789,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
      */
     public function listUsers(int $page = 1, int $limit = 100, ?UserFilter $userFilter = null): array
     {
-        $users = array_values($this->users);
+        $users = array_values(self::$users);
 
         if ($userFilter !== null) {
             $users = $this->applyUserFilter($users, $userFilter);
@@ -779,18 +806,18 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function deleteUser(string $userId): bool
     {
-        if (! isset($this->users[$userId])) {
+        if (! isset(self::$users[$userId])) {
             return false;
         }
 
-        unset($this->users[$userId]);
+        unset(self::$users[$userId]);
 
         return true;
     }
 
     public function showRole(string $roleId): ?RoleResource
     {
-        $role = $this->roles[$roleId] ?? null;
+        $role = self::$roles[$roleId] ?? null;
 
         if ($role === null) {
             return null;
@@ -812,14 +839,14 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => $now,
         ]);
 
-        $this->roles[$roleId] = $role;
+        self::$roles[$roleId] = $role;
 
         return new RoleResource($role);
     }
 
     public function updateRole(string $roleId, UpdateRoleData $updateRoleData): RoleResource
     {
-        $role = $this->roles[$roleId] ?? null;
+        $role = self::$roles[$roleId] ?? null;
 
         if ($role === null) {
             throw new \InvalidArgumentException("Role [{$roleId}] not found.");
@@ -834,7 +861,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
             'updated_at' => now()->toIso8601String(),
         ]);
 
-        $this->roles[$roleId] = $role;
+        self::$roles[$roleId] = $role;
 
         return new RoleResource($role);
     }
@@ -844,7 +871,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
      */
     public function listRoles(int $page = 1, int $perPage = 100, ?RoleFilter $roleFilter = null): array
     {
-        $roles = array_values($this->roles);
+        $roles = array_values(self::$roles);
 
         if ($roleFilter !== null) {
             $roles = $this->applyRoleFilter($roles, $roleFilter);
@@ -861,7 +888,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     public function deleteRole(string $roleId): RoleResource
     {
-        $role = $this->roles[$roleId] ?? null;
+        $role = self::$roles[$roleId] ?? null;
 
         if ($role === null) {
             throw new \InvalidArgumentException("Role [{$roleId}] not found.");
@@ -869,7 +896,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
         $resource = new RoleResource($role);
 
-        unset($this->roles[$roleId]);
+        unset(self::$roles[$roleId]);
 
         return $resource;
     }
@@ -878,7 +905,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     {
         $now = now()->toIso8601String();
 
-        $this->websites = [
+        self::$websites = [
             '01J00000000000000000000001' => array_merge($this->defaultWebsiteAttributes(), [
                 'id' => '01J00000000000000000000001',
                 'status' => 'active',
@@ -929,7 +956,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     {
         $now = now()->toIso8601String();
 
-        $this->themes = [
+        self::$themes = [
             '01J00000000000000000000081' => array_merge($this->defaultThemeAttributes(), [
                 'id' => '01J00000000000000000000081',
                 'name' => 'Good News',
@@ -968,7 +995,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
 
     protected function seedSampleDomains(): void
     {
-        $this->domains = [
+        self::$domains = [
             '01J00000000000000000000031' => array_merge($this->defaultDomainAttributes(), [
                 'id' => '01J00000000000000000000031',
                 'website_id' => '01J00000000000000000000001',
@@ -1006,7 +1033,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     {
         $now = now()->toIso8601String();
 
-        $this->menus = [
+        self::$menus = [
             '01J00000000000000000000011' => array_merge($this->defaultMenuAttributes(), [
                 'id' => '01J00000000000000000000011',
                 'website_id' => '01J00000000000000000000001',
@@ -1061,7 +1088,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     {
         $now = now()->toIso8601String();
 
-        $this->tags = [
+        self::$tags = [
             '01J00000000000000000000021' => array_merge($this->defaultTagAttributes(), [
                 'id' => '01J00000000000000000000021',
                 'website_id' => '01J00000000000000000000001',
@@ -1115,7 +1142,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     {
         $now = now()->toIso8601String();
 
-        $this->pages = [
+        self::$pages = [
             '01J00000000000000000000041' => array_merge($this->defaultPageAttributes(), [
                 'id' => '01J00000000000000000000041',
                 'website_id' => '01J00000000000000000000001',
@@ -1158,7 +1185,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
         $newer = now()->subDay()->toIso8601String();
         $now = now()->toIso8601String();
 
-        $this->posts = [
+        self::$posts = [
             '01J00000000000000000000051' => array_merge($this->defaultPostAttributes(), [
                 'id' => '01J00000000000000000000051',
                 'website_id' => '01J00000000000000000000001',
@@ -1356,7 +1383,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
         $thumbnailFileId = $post['thumbnail_file_id'] ?? null;
 
         if (is_string($thumbnailFileId) && $thumbnailFileId !== '') {
-            $file = $this->files[$thumbnailFileId] ?? null;
+            $file = self::$files[$thumbnailFileId] ?? null;
             $resourceData['thumbnailFile'] = $file !== null
                 ? $this->fileRecordForOutput($file)
                 : null;
@@ -1376,7 +1403,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
         $tags = [];
 
         foreach ($tagIds as $tagId) {
-            $tag = $this->tags[$tagId] ?? null;
+            $tag = self::$tags[$tagId] ?? null;
 
             if ($tag === null) {
                 continue;
@@ -1444,7 +1471,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
         $thumbnailFileId = $tag['thumbnail_file_id'] ?? null;
 
         if (is_string($thumbnailFileId) && $thumbnailFileId !== '') {
-            $file = $this->files[$thumbnailFileId] ?? null;
+            $file = self::$files[$thumbnailFileId] ?? null;
             $resourceData['thumbnailFile'] = $file !== null
                 ? $this->fileRecordForOutput($file)
                 : null;
@@ -1460,7 +1487,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
         $older = now()->subDays(2)->toIso8601String();
         $newer = now()->subDay()->toIso8601String();
 
-        $this->files = [
+        self::$files = [
             '01J00000000000000000000071' => array_merge($this->defaultFileAttributes(), [
                 'id' => '01J00000000000000000000071',
                 'code' => 'hero-banner',
@@ -1514,7 +1541,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     {
         $now = now()->toIso8601String();
 
-        $this->roles = [
+        self::$roles = [
             '01J00000000000000000000091' => array_merge($this->defaultRoleAttributes(), [
                 'id' => '01J00000000000000000000091',
                 'name' => 'Editor',
@@ -1536,7 +1563,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     {
         $now = now()->toIso8601String();
 
-        $this->users = [
+        self::$users = [
             '01J00000000000000000000061' => array_merge($this->defaultUserAttributes(), [
                 'id' => '01J00000000000000000000061',
                 'role_id' => '01J00000000000000000000091',

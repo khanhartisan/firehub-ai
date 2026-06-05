@@ -24,7 +24,7 @@ class ListMenusTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $menus = $this->getFlyCmsManager($channel)->listMenus($this->requireFlyCmsWebsiteId($channel));
+        $menus = $this->getFlyCmsManager($channel, $user)->listMenus($this->requireFlyCmsWebsiteId($channel));
 
         if (!$menus) {
             throw new McpToolException('No menus found.');

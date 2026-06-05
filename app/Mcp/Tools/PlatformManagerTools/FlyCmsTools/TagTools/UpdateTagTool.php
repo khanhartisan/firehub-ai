@@ -33,11 +33,11 @@ class UpdateTagTool extends FlyCmsTool
             throw new McpToolException('Provide at least one field in update_tag_data.');
         }
 
-        $this->resolveTagForChannel($channel, $tagId);
+        $this->resolveTagForChannel($channel, $user, $tagId);
 
         try {
             $updateTagData = (new UpdateTagData)->setData($updatePayload);
-            $tagData = $this->getFlyCmsManager($channel)->updateTag($tagId, $updateTagData);
+            $tagData = $this->getFlyCmsManager($channel, $user)->updateTag($tagId, $updateTagData);
 
             return McpResponse::updated('tag', $tagData->toMcpStructuredData());
         } catch (FlyCmsException|InvalidArgumentException $e) {

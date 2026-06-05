@@ -28,7 +28,7 @@ class ListPagesTool extends FlyCmsTool
         $this->validateChannel($channel);
 
         $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
 
         $pagination = $this->resolvePagination($request);
 

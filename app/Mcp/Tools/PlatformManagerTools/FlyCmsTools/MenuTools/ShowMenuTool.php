@@ -23,7 +23,7 @@ class ShowMenuTool extends FlyCmsTool
         $this->validateChannel($channel);
 
         $menuId = (string) $request->get('menu_id');
-        $menuData = $this->resolveMenuForChannel($channel, $menuId);
+        $menuData = $this->resolveMenuForChannel($channel, $user, $menuId);
 
         return McpResponse::details('Menu', $menuData->toMcpStructuredData());
     }

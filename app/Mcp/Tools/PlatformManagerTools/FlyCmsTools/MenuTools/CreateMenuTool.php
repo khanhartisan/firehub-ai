@@ -34,7 +34,7 @@ class CreateMenuTool extends FlyCmsTool
         try {
             $createPayload['website_id'] = $this->requireFlyCmsWebsiteId($channel);
             $createMenuData = (new CreateMenuData)->setData($createPayload);
-            $menuData = $this->getFlyCmsManager($channel)->createMenu($createMenuData);
+            $menuData = $this->getFlyCmsManager($channel, $user)->createMenu($createMenuData);
 
             return McpResponse::created('menu', $menuData->toMcpStructuredData());
         } catch (FlyCmsException $e) {

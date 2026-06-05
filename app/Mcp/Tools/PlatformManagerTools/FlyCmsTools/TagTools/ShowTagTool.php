@@ -24,7 +24,7 @@ class ShowTagTool extends FlyCmsTool
         $this->validateChannel($channel);
 
         $tagId = (string) $request->get('tag_id');
-        $tagData = $this->resolveTagForChannel($channel, $tagId);
+        $tagData = $this->resolveTagForChannel($channel, $user, $tagId);
 
         return McpResponse::details('Tag', $tagData->toMcpStructuredData());
     }

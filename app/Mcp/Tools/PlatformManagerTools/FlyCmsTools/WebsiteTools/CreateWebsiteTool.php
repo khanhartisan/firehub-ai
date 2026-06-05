@@ -29,7 +29,7 @@ class CreateWebsiteTool extends FlyCmsTool
         $channel = McpAccess::channel($user, $request->get('channel_id'));
         $this->validateChannel($channel);
 
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
 
         // Check if the website exists
         if ($flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel, false)

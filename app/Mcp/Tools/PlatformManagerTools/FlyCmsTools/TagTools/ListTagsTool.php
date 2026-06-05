@@ -35,7 +35,7 @@ class ListTagsTool extends FlyCmsTool
             $tagFilter = (new TagFilter)->setFilterData($filterPayload);
         }
 
-        $tags = $this->getFlyCmsManager($channel)->listTags(
+        $tags = $this->getFlyCmsManager($channel, $user)->listTags(
                 $this->requireFlyCmsWebsiteId($channel),
                 $pagination->page,
                 $pagination->perPage,

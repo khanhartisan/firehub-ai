@@ -23,7 +23,7 @@ class ShowPageTool extends FlyCmsTool
         $this->validateChannel($channel);
 
         $pageId = (string) $request->get('page_id');
-        $pageData = $this->resolvePageForChannel($channel, $pageId);
+        $pageData = $this->resolvePageForChannel($channel, $user, $pageId);
 
         return McpResponse::details('Page', $pageData->toMcpStructuredData());
     }

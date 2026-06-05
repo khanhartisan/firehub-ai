@@ -93,14 +93,17 @@ abstract class FlyCmsTool extends PlatformManagerTool
                 $platform->putMeta($userDataMetaKey, Json::encode($flyCmsUserData));
             }
 
-            // Now return a new flycms manager instance as a user
-            /** @var Config $userFlyCmsConfig */
-            $userFlyCmsConfig = $platformConfig->clone();
-            $userFlyCmsConfig->setApiKey($flyCmsUserData['api_key']);
-
+            // Now make a new flycms manager instance as a user
             /** @var FlyCms $userFlyCms */
             $userFlyCms = $flycms->clone();
-            $userFlyCms->setConfig($userFlyCmsConfig);
+
+            if ($platformConfig instanceof Config) {
+                /** @var Config $userFlyCmsConfig */
+                $userFlyCmsConfig = $platformConfig->clone();
+                $userFlyCmsConfig->setApiKey($flyCmsUserData['api_key']);
+
+                $userFlyCms->setConfig($userFlyCmsConfig);
+            }
 
             return $userFlyCms;
         }
@@ -155,9 +158,9 @@ abstract class FlyCmsTool extends PlatformManagerTool
         return $flycmsWebsiteId;
     }
 
-    protected function resolveTagForChannel(Channel $channel, string $tagId): TagResource
+    protected function resolveTagForChannel(Channel $channel, User $user, string $tagId): TagResource
     {
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
         $websiteId = $this->requireFlyCmsWebsiteId($channel);
 
         if (! $tag = $flycms->showTag($tagId)) {
@@ -171,9 +174,9 @@ abstract class FlyCmsTool extends PlatformManagerTool
         return $tag;
     }
 
-    protected function resolveMenuForChannel(Channel $channel, string $menuId): MenuResource
+    protected function resolveMenuForChannel(Channel $channel, User $user, string $menuId): MenuResource
     {
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
         $websiteId = $this->requireFlyCmsWebsiteId($channel);
 
         if (! $menu = $flycms->showMenu($menuId)) {
@@ -187,9 +190,9 @@ abstract class FlyCmsTool extends PlatformManagerTool
         return $menu;
     }
 
-    protected function resolvePageForChannel(Channel $channel, string $pageId): PageResource
+    protected function resolvePageForChannel(Channel $channel, User $user, string $pageId): PageResource
     {
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
         $websiteId = $this->requireFlyCmsWebsiteId($channel);
 
         if (! $page = $flycms->showPage($pageId)) {
@@ -203,9 +206,9 @@ abstract class FlyCmsTool extends PlatformManagerTool
         return $page;
     }
 
-    protected function resolveDomainForChannel(Channel $channel, string $domainId): DomainResource
+    protected function resolveDomainForChannel(Channel $channel, User $user, string $domainId): DomainResource
     {
-        $flycms = $this->getFlyCmsManager($channel);
+        $flycms = $this->getFlyCmsManager($channel, $user);
         $websiteId = $this->requireFlyCmsWebsiteId($channel);
 
         if (! $domain = $flycms->showDomain($domainId)) {

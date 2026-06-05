@@ -24,7 +24,7 @@ class ShowWebsiteTool extends FlyCmsTool
         $this->validateChannel($channel);
 
         $flycmsWebsiteId = $this->requireFlyCmsWebsiteId($channel);
-        if (! $websiteData = $this->getFlyCmsManager($channel)->showWebsite($flycmsWebsiteId)) {
+        if (! $websiteData = $this->getFlyCmsManager($channel, $user)->showWebsite($flycmsWebsiteId)) {
             throw new McpToolException("Website [{$flycmsWebsiteId}] not found.");
         }
 

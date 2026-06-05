@@ -23,7 +23,7 @@ class ShowDomainTool extends FlyCmsTool
         $this->validateChannel($channel);
 
         $domainId = (string) $request->get('domain_id');
-        $domainData = $this->resolveDomainForChannel($channel, $domainId);
+        $domainData = $this->resolveDomainForChannel($channel, $user, $domainId);
 
         return McpResponse::details('Domain', $domainData->toMcpStructuredData());
     }

@@ -11,9 +11,21 @@ class Config extends \App\Contracts\PlatformManager\Config
         return $this->config['base_url'] ?? null;
     }
 
+    public function setBaseUrl(string $url): static
+    {
+        $this->config['base_url'] = $url;
+        return $this;
+    }
+
     public function getApiKey(): ?string
     {
         return $this->config['api_key'] ?? null;
+    }
+
+    public function setApiKey(string $apiKey): static
+    {
+        $this->config['api_key'] = $apiKey;
+        return $this;
     }
 
     public function toJsonSchema(JsonSchema $schema): array

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\PlatformManager\FlyCms\Drivers\Concerns;
+namespace App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns;
 
 use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFileData;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\PlatformManager\FlyCms\Drivers\Concerns;
+namespace App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns;
 
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;

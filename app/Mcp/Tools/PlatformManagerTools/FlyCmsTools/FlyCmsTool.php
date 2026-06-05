@@ -8,6 +8,7 @@ use App\Contracts\PlatformManager\FlyCms\FlyCms;
 use App\Contracts\PlatformManager\FlyCms\MutationData\RoleMutationData\CreateRoleData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\CreateUserData;
 use App\Contracts\PlatformManager\FlyCms\Resources\DomainResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\FileResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PageResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\RoleResource;
@@ -220,5 +221,16 @@ abstract class FlyCmsTool extends PlatformManagerTool
         }
 
         return $domain;
+    }
+
+    protected function resolveFileForChannel(Channel $channel, User $user, string $fileId): FileResource
+    {
+        $flycms = $this->getFlyCmsManager($channel, $user);
+
+        if (! $file = $flycms->showFile($fileId)) {
+            throw new McpToolException("File [{$fileId}] not found.");
+        }
+
+        return $file;
     }
 }

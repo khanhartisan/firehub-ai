@@ -24,6 +24,11 @@ use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ListDomainsTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ShowDomainTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\CreateFileTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\DeleteFileTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\ListFilesTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\ShowFileTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\UpdateFileTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\CreateMenuTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\DeleteMenuTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\ListMenusTool;
@@ -165,6 +170,13 @@ class AppServer extends Server
             UpdatePageTool::class,
             ListPagesTool::class,
             DeletePageTool::class,
+
+            // File tools
+            CreateFileTool::class,
+            ShowFileTool::class,
+            UpdateFileTool::class,
+            ListFilesTool::class,
+            DeleteFileTool::class,
         ]);
     }
 }

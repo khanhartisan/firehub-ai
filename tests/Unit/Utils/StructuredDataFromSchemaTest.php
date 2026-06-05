@@ -255,4 +255,25 @@ class StructuredDataFromSchemaTest extends TestCase
 
         $this->assertSame(['name' => 'Acme'], $result);
     }
+
+    public function test_preserves_open_ended_object_values(): void
+    {
+        $properties = [
+            'information' => $this->schema->object(),
+        ];
+
+        $result = StructuredDataFromSchema::fromSchema($properties, [
+            'information' => [
+                'width' => 800,
+                'alt' => 'Hero image',
+            ],
+        ]);
+
+        $this->assertEquals([
+            'information' => (object) [
+                'width' => 800,
+                'alt' => 'Hero image',
+            ],
+        ], $result);
+    }
 }

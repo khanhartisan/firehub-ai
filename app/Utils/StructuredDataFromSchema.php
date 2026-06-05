@@ -60,13 +60,35 @@ final class StructuredDataFromSchema
     private static function normalizeValueForType(Type $type, mixed $value, array $attributes): mixed
     {
         return match ($type::class) {
-            ObjectType::class => (object) self::fromSchema(
-                $attributes['properties'] ?? [],
-                is_array($value) ? $value : []
-            ),
+            ObjectType::class => self::normalizeObjectValue($value, $attributes),
             ArrayType::class => self::normalizeArrayValue($value, $attributes),
             default => $value,
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private static function normalizeObjectValue(mixed $value, array $attributes): object
+    {
+        $properties = $attributes['properties'] ?? [];
+
+        if ($properties === []) {
+            if (is_array($value)) {
+                return (object) $value;
+            }
+
+            if (is_object($value)) {
+                return $value;
+            }
+
+            return (object) [];
+        }
+
+        return (object) self::fromSchema(
+            $properties,
+            is_array($value) ? $value : []
+        );
     }
 
     /**

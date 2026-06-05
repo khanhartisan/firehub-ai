@@ -6,6 +6,7 @@ use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\RoleFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\ThemeFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
@@ -14,6 +15,8 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFil
 use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\UpdateFileData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\RoleMutationData\CreateRoleData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\RoleMutationData\UpdateRoleData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\CreateMenuData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\UpdateMenuData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\CreatePageData;
@@ -1009,6 +1012,124 @@ class PseudoFlyCmsDriverTest extends TestCase
     {
         $pageOne = $this->driver->listUsers(page: 1, limit: 1);
         $pageTwo = $this->driver->listUsers(page: 2, limit: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
+    }
+
+    public function test_list_users_filters_by_role_id(): void
+    {
+        $filter = (new UserFilter)->setFilterData([
+            'role_id' => '01J00000000000000000000092',
+        ]);
+
+        $users = $this->driver->listUsers(userFilter: $filter);
+
+        $this->assertCount(1, $users);
+        $this->assertSame('Sam Manager', $users[0]->getData()['name']);
+    }
+
+    public function test_it_seeds_sample_roles(): void
+    {
+        $roles = $this->driver->listRoles();
+
+        $this->assertCount(2, $roles);
+        $this->assertSame('Editor', $roles[0]->getData()['name']);
+        $this->assertSame('Manager', $roles[1]->getData()['name']);
+    }
+
+    public function test_show_role_returns_matching_resource(): void
+    {
+        $role = $this->driver->showRole('01J00000000000000000000091');
+
+        $this->assertNotNull($role);
+        $this->assertSame('Editor', $role->getData()['name']);
+        $this->assertSame(['posts.create', 'posts.update', 'posts.delete'], $role->getData()['abilities']);
+    }
+
+    public function test_show_role_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showRole('unknown-id'));
+    }
+
+    public function test_create_role_persists_in_memory(): void
+    {
+        $createRoleData = (new CreateRoleData)->setData([
+            'name' => 'Contributor',
+            'abilities' => ['posts.create'],
+        ]);
+
+        $created = $this->driver->createRole($createRoleData);
+        $data = $created->getData();
+
+        $this->assertSame('Contributor', $data['name']);
+        $this->assertSame(['posts.create'], $data['abilities']);
+        $this->assertNotEmpty($data['id']);
+        $this->assertNotNull($this->driver->showRole($data['id']));
+        $this->assertCount(3, $this->driver->listRoles());
+    }
+
+    public function test_update_role_merges_changes(): void
+    {
+        $updateRoleData = (new UpdateRoleData)->setData([
+            'name' => 'Senior Editor',
+            'abilities' => ['posts.create', 'posts.update', 'posts.delete', 'posts.publish'],
+        ]);
+
+        $updated = $this->driver->updateRole('01J00000000000000000000091', $updateRoleData);
+
+        $this->assertSame('Senior Editor', $updated->getData()['name']);
+        $this->assertSame(
+            ['posts.create', 'posts.update', 'posts.delete', 'posts.publish'],
+            $updated->getData()['abilities']
+        );
+    }
+
+    public function test_update_role_throws_for_unknown_id(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Role [unknown-id] not found.');
+
+        $this->driver->updateRole('unknown-id', new UpdateRoleData);
+    }
+
+    public function test_delete_role_removes_record(): void
+    {
+        $deleted = $this->driver->deleteRole('01J00000000000000000000091');
+
+        $this->assertSame('Editor', $deleted->getData()['name']);
+        $this->assertNull($this->driver->showRole('01J00000000000000000000091'));
+        $this->assertCount(1, $this->driver->listRoles());
+    }
+
+    public function test_delete_role_throws_for_unknown_id(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Role [missing-id] not found.');
+
+        $this->driver->deleteRole('missing-id');
+    }
+
+    public function test_list_roles_filters_by_search(): void
+    {
+        $filter = (new RoleFilter)->setFilterData([
+            'search' => 'manager',
+        ]);
+
+        $roles = $this->driver->listRoles(roleFilter: $filter);
+
+        $this->assertCount(1, $roles);
+        $this->assertSame('Manager', $roles[0]->getData()['name']);
+    }
+
+    public function test_list_roles_supports_pagination(): void
+    {
+        $pageOne = $this->driver->listRoles(page: 1, perPage: 1);
+        $pageTwo = $this->driver->listRoles(page: 2, perPage: 1);
 
         $this->assertCount(1, $pageOne);
         $this->assertCount(1, $pageTwo);

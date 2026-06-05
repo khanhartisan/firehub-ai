@@ -24,6 +24,10 @@ class CreateUserData extends MutationData
                 ->string()
                 ->required()
                 ->description('User password'),
+            'role_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Role ID'),
             'api_key' => $schema
                 ->string()
                 ->nullable()

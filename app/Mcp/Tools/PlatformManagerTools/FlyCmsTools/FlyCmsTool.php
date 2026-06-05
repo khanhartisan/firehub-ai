@@ -3,7 +3,9 @@
 namespace App\Mcp\Tools\PlatformManagerTools\FlyCmsTools;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
+use App\Contracts\PlatformManager\FlyCms\Filters\RoleFilter;
 use App\Contracts\PlatformManager\FlyCms\FlyCms;
+use App\Contracts\PlatformManager\FlyCms\MutationData\RoleMutationData\CreateRoleData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\CreateUserData;
 use App\Contracts\PlatformManager\FlyCms\Resources\DomainResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
@@ -74,6 +76,7 @@ abstract class FlyCmsTool extends PlatformManagerTool
                 $flyCmsUserResource = $flycms->createUser(
                     new CreateUserData()
                         ->setData([
+                            'role_id' => $this->getFlyCmsUserRoleId($channel),
                             'name' => $user->id,
                             'email' => $user->email,
                             'password' => Str::random(8),
@@ -103,6 +106,41 @@ abstract class FlyCmsTool extends PlatformManagerTool
         }
 
         return $flycms;
+    }
+
+    protected function getFlyCmsUserRoleId(Channel $channel): string
+    {
+        /** @var Platform $platform */
+        $platform = $channel->platform;
+
+        $roleIdMetaKey = 'user-role-id';
+
+        // Return role id if saved
+        if ($roleId = $platform->getMetaValue($roleIdMetaKey)) {
+            return $roleId;
+        }
+
+        $flycms = $this->getFlyCmsManager($channel);
+
+        // Search for an existing role
+        $roles = $flycms->listRoles(1, 1, new RoleFilter()->setFilterData([
+            'search' => $platform->id,
+        ]));
+
+        // Return the existing role if found
+        if ($roles and $role = $roles[0]) {
+            $platform->putMeta($roleIdMetaKey, $roleId = $role->get('id'));
+            return $roleId;
+        }
+
+        // Create a new role
+        $newRole = $flycms->createRole(new CreateRoleData()->setData([
+            'name' => $platform->id,
+            'abilities' => ['*']
+        ]));
+
+        $platform->putMeta($roleIdMetaKey, $roleId = $newRole->get('id'));
+        return $roleId;
     }
 
     protected function requireFlyCmsWebsiteId(Channel $channel, bool $throwException = true): ?string

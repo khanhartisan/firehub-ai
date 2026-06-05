@@ -2,7 +2,9 @@
 
 namespace App\Contracts\PlatformManager;
 
-interface PlatformManager
+use App\Contracts\Clonable;
+
+interface PlatformManager extends Clonable
 {
     public function setConfig(Config $config): static;
 

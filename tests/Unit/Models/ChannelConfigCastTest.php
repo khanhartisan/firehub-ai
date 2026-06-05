@@ -77,6 +77,11 @@ class FakePlatformManager implements PlatformManagerContract
     {
         return new FakeChannelConfig;
     }
+
+    public function clone(): static
+    {
+        return new static;
+    }
 }
 
 class NullChannelConfigPlatformManager extends FakePlatformManager

@@ -93,6 +93,11 @@ class PlatformCastFakePlatformManager implements PlatformManagerContract
     {
         return null;
     }
+
+    public function clone(): static
+    {
+        return new static;
+    }
 }
 
 class PlatformCastNullPlatformConfigPlatformManager extends PlatformCastFakePlatformManager

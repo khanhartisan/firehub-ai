@@ -2,12 +2,13 @@
 
 namespace App\Contracts\PlatformManager;
 
+use App\Contracts\Clonable;
 use App\Contracts\ProvidesJsonSchema;
 use App\Contracts\Serializable;
 use App\Utils\StructuredDataFromSchema;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 
-abstract class Config implements ProvidesJsonSchema, Serializable
+abstract class Config implements Clonable, ProvidesJsonSchema, Serializable
 {
     use \App\Concerns\Serializable;
 
@@ -31,6 +32,11 @@ abstract class Config implements ProvidesJsonSchema, Serializable
         );
 
         return $this;
+    }
+
+    public function clone(): Clonable
+    {
+        return new static($this->getConfig());
     }
 
     public function toArray(): array

@@ -7,6 +7,11 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class DomainResource extends Resource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'domains';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

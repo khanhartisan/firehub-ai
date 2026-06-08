@@ -18,6 +18,8 @@ abstract class Resource implements Serializable, StructuredMcpResource
         $this->setData($resourceData);
     }
 
+    abstract public static function resourceNamespace(): string;
+
     public function getData(): array
     {
         return $this->resourceData;

@@ -8,6 +8,11 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class WebsiteResource extends Resource implements MetableResource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'websites';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

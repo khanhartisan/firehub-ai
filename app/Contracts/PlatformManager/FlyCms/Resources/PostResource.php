@@ -7,6 +7,11 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class PostResource extends Resource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'posts';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

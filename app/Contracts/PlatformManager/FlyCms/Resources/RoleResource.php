@@ -7,6 +7,11 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class RoleResource extends Resource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'roles';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

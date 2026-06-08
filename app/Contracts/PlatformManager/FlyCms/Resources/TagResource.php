@@ -7,6 +7,11 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class TagResource extends Resource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'tags';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

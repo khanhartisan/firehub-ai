@@ -7,6 +7,11 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class PageResource extends Resource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'pages';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

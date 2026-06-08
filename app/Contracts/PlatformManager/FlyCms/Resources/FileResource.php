@@ -7,6 +7,11 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class FileResource extends Resource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'files';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

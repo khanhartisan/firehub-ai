@@ -8,6 +8,11 @@ use Illuminate\JsonSchema\Types\Type;
 
 class MenuResource extends Resource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'menus';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

@@ -7,6 +7,11 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class ThemeResource extends Resource
 {
+    public static function resourceNamespace(): string
+    {
+        return 'themes';
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

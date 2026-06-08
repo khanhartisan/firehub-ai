@@ -1246,7 +1246,7 @@ class PseudoFlyCmsDriverTest extends TestCase
     {
         $deleted = $this->driver->deleteFile('01J00000000000000000000071');
 
-        $this->assertSame('hero-banner', $deleted->getData()['code']);
+        $this->assertTrue($deleted);
         $this->assertNull($this->driver->showFile('01J00000000000000000000071'));
         $this->assertCount(2, $this->driver->listFiles());
     }

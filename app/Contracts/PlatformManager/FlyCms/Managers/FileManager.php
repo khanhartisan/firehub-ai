@@ -32,5 +32,5 @@ interface FileManager
                               ?int $orderDirection = null,
                               ?FileFilter $fileFilter = null): array;
 
-    public function deleteFile(string $fileId): FileResource;
+    public function deleteFile(string $fileId): bool;
 }

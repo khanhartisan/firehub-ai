@@ -103,7 +103,7 @@ trait InteractsWithPseudoFlyCmsFiles
         );
     }
 
-    public function deleteFile(string $fileId): FileResource
+    public function deleteFile(string $fileId): bool
     {
         $file = self::$files[$fileId] ?? null;
 
@@ -115,7 +115,7 @@ trait InteractsWithPseudoFlyCmsFiles
 
         unset(self::$files[$fileId]);
 
-        return $resource;
+        return true;
     }
     protected function defaultFileAttributes(): array
     {

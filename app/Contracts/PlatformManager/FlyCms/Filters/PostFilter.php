@@ -10,6 +10,10 @@ class PostFilter extends Filter
     public function toJsonSchema(JsonSchema $schema): array
     {
         return [
+            'website_id' => $schema
+                ->string()
+                ->nullable()
+                ->description('Filter by website id (get from channel reference)'),
             'ids' => $schema
                 ->string()
                 ->nullable()

@@ -30,14 +30,16 @@ abstract class MutationData implements ProvidesJsonSchema, Serializable
         return $this;
     }
 
+    public function get(string $key): mixed
+    {
+        return $this->getData()[$key] ?? null;
+    }
+
     public function getData(): ?array
     {
         return $this->data;
     }
 
-    /**
-     * @throws ValidationException
-     */
     public function validateData(?array $data): void
     {
         $rules = $this->validationRulesFromJsonSchema(

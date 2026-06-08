@@ -9,7 +9,7 @@ class TagResource extends Resource
 {
     public static function resourceNamespace(): string
     {
-        return 'tags';
+        return 'website_tags';
     }
 
     public static function getMcpOutputSchema(JsonSchema $schema): array

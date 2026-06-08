@@ -4,6 +4,7 @@ namespace App\Services\PlatformManager\FlyCms;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\FlyCms;
+use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsDriver;
 use Illuminate\Support\Manager;
 
 class FlyCmsManager extends Manager
@@ -19,5 +20,10 @@ class FlyCmsManager extends Manager
 
         return (new Drivers\PseudoFlyCmsDriver)
             ->setConfig(new Config($config));
+    }
+
+    protected function createFlycmsDriver(): FlyCms
+    {
+        return new FlyCmsDriver();
     }
 }

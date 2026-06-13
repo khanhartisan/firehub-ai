@@ -52,7 +52,7 @@ class FlyCmsDriver extends FlyCmsService
             'headers' => [
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-                'x-api-key' => $config->getApiKey(),
+                'api-key' => $config->getApiKey(),
             ]
         ]);
     }
@@ -62,15 +62,24 @@ class FlyCmsDriver extends FlyCmsService
      */
     protected function sendApiRequest(string $method, string $apiPath, array $guzzleConfig = []): ResponseInterface
     {
+        $uri = '/api/'.$apiPath;
         try {
             return $this
                 ->getApiClient()
-                ->request($method, '/api/'.$apiPath, $guzzleConfig);
+                ->request($method, $uri, $guzzleConfig);
         } catch (RequestException $exception) {
             if ($exception->hasResponse()) {
                 $response = $exception->getResponse();
+                $responseContents = $response->getBody()->getContents();
+
+                if (env('APP_DEBUG')) {
+                    \Log::info([$method, $uri, $guzzleConfig, $responseContents]);
+                }
+
                 throw new FlyCmsException(
-                    Json::decode($response->getBody()->getContents())?->message ?? 'Unknown api error'
+                    ($apiMessage = Json::decode($responseContents)?->message)
+                        ? 'Platform API Error: '.$apiMessage
+                        : 'Unknown api error'
                 );
             }
 
@@ -159,7 +168,7 @@ class FlyCmsDriver extends FlyCmsService
                                    MutationData $data): Resource
     {
         $response = $this->sendApiRequest('POST', $resourceClass::resourceNamespace(), [
-            'json' => $data->toArray()
+            'json' => $data->toArray()['data']
         ]);
 
         if (!$data = $this->parseResponseData($response)) {
@@ -183,7 +192,7 @@ class FlyCmsDriver extends FlyCmsService
                                    MutationData $data): Resource
     {
         $response = $this->sendApiRequest('PATCH', $resourceClass::resourceNamespace().'/'.$resourceId, [
-            'json' => $data->toArray()
+            'json' => $data->toArray()['data']
         ]);
 
         if (!$data = $this->parseResponseData($response)) {

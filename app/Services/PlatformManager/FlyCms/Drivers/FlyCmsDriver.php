@@ -74,9 +74,12 @@ class FlyCmsDriver extends FlyCmsService
                 );
             }
 
-            throw new FlyCmsException('Unknown api request error', $exception);
+            throw new FlyCmsException('Unknown api request error', $exception->getCode(), $exception);
         } catch (GuzzleException $e) {
-            throw new FlyCmsException('Unknown api request error', $e);
+            if (env('APP_DEBUG') and app()->runningInConsole()) {
+                dump($e);
+            }
+            throw new FlyCmsException('Unknown api request error', $e->getCode(), $e);
         } catch (Exception) {
             throw new FlyCmsException('Unknown error');
         }

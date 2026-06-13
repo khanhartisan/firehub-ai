@@ -73,6 +73,10 @@ class AppServer extends Server
         //
     ];
 
+    public int $maxPaginationLength = 500;
+
+    public int $defaultPaginationLength = 500;
+
     protected function boot(): void
     {
         $this->addMethod('tools/call', AppCallTool::class);

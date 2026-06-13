@@ -117,6 +117,14 @@ class FlyCmsDriver extends FlyCmsService
                                   ?string $sort = null,
                                   ?Filter $filter = null): array
     {
+        $filterQuery = [];
+        foreach (isset($filter) ? $filter->toArray() : [] as $key => $value) {
+            if (!$value) {
+                continue;
+            }
+            $filterQuery['filter['.$key.']'] = $value;
+        }
+
         $response = $this->sendApiRequest('GET', $resourceClass::resourceNamespace(), [
             'query' => array_merge(
                 [
@@ -124,7 +132,7 @@ class FlyCmsDriver extends FlyCmsService
                     'limit' => $perPage,
                     'sort' => $sort ?? '',
                 ],
-                isset($filter) ? $filter->toArray() : []
+                $filterQuery
             ),
         ]);
 

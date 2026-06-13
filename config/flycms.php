@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('FLYCMS_DRIVER', 'pseudo'),
+    'default' => env('FLYCMS_DRIVER', 'flycms'),
 
     /*
     |--------------------------------------------------------------------------

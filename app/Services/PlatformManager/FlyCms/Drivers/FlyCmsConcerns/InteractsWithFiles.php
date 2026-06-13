@@ -2,11 +2,16 @@
 
 namespace App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns;
 
+use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
 use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFileData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\UpdateFileData;
 use App\Contracts\PlatformManager\FlyCms\Resources\FileResource;
+use App\Utils\Json;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
 use InvalidArgumentException;
 
 trait InteractsWithFiles
@@ -30,21 +35,36 @@ trait InteractsWithFiles
         $ext = (string) ($mutationData['ext'] ?? 'jpg');
         $filename = is_string($mutationData['filename'] ?? null) && $mutationData['filename'] !== ''
             ? $mutationData['filename']
-            : 'upload.'.$ext;
+            : null;
+        $uploadFilename = $filename ?? ('upload.'.$ext);
+        $storageId = $this->resolveFlyCmsStorageId();
+
+        $signatureResponse = $this->requestFileUploadSignature($storageId, $ext, $filename);
+        $endpoint = (string) ($signatureResponse['endpoint'] ?? '');
+        $signature = $signatureResponse['signature'] ?? null;
+
+        if ($endpoint === '' || ! is_array($signature) || $signature === []) {
+            throw new FlyCmsException('Failed to request file upload signature');
+        }
+
+        $this->uploadFileToSignedStorage($endpoint, $signature, $content, $uploadFilename);
+
+        $key = (string) ($signature['key'] ?? $signature['Key'] ?? '');
+
+        if ($key === '') {
+            throw new FlyCmsException('Failed to resolve uploaded file key');
+        }
+
+        $createPayload = array_filter([
+            'storage_id' => $storageId,
+            'key' => $key,
+            'code' => $mutationData['code'] ?? null,
+            'type' => $this->resolveFileTypeFromExt($ext),
+            'information' => $mutationData['information'] ?? null,
+        ], static fn (mixed $value): bool => $value !== null);
 
         $response = $this->sendApiRequest('POST', FileResource::resourceNamespace(), [
-            'multipart' => [
-                [
-                    'name' => 'file',
-                    'contents' => $content,
-                    'filename' => $filename,
-                ],
-                [
-                    'name' => 'data',
-                    'contents' => json_encode($createFileData->toArray()),
-                    'headers' => ['Content-Type' => 'application/json'],
-                ],
-            ],
+            'json' => $createPayload,
         ]);
 
         if (! $responseData = $this->parseResponseData($response)) {
@@ -114,5 +134,99 @@ trait InteractsWithFiles
         }
 
         throw new InvalidArgumentException('File data must be a string or stream resource.');
+    }
+
+    protected function resolveFlyCmsStorageId(): string
+    {
+        $config = $this->getConfig();
+
+        if (! $config instanceof Config) {
+            throw new FlyCmsException('FlyCms config is not set');
+        }
+
+        $storageId = $config->getStorageId();
+
+        if (! is_string($storageId) || $storageId === '') {
+            throw new FlyCmsException('FlyCms storage_id is not configured');
+        }
+
+        return $storageId;
+    }
+
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws FlyCmsException
+     */
+    protected function requestFileUploadSignature(string $storageId, string $ext, ?string $filename): array
+    {
+        $payload = [
+            'storage_id' => $storageId,
+            'ext' => $ext,
+        ];
+
+        if ($filename !== null && $filename !== '') {
+            $payload['filename'] = $filename;
+        }
+
+        $response = $this->sendApiRequest('POST', FileResource::resourceNamespace().':signature', [
+            'json' => $payload,
+        ]);
+
+        $data = Json::decode((string) $response->getBody(), true);
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $signature
+     *
+     * @throws FlyCmsException
+     */
+    protected function uploadFileToSignedStorage(string $endpoint, array $signature, string $content, string $filename): void
+    {
+        $multipart = [];
+
+        foreach ($signature as $name => $value) {
+            if (! is_string($name) || $name === '') {
+                continue;
+            }
+
+            $multipart[] = [
+                'name' => $name,
+                'contents' => is_scalar($value) || $value === null ? (string) $value : '',
+            ];
+        }
+
+        $multipart[] = [
+            'name' => 'file',
+            'contents' => $content,
+            'filename' => $filename,
+        ];
+
+        try {
+            $response = (new Client)->request('POST', $endpoint, [
+                'multipart' => $multipart,
+            ]);
+        } catch (RequestException $exception) {
+            throw new FlyCmsException('Failed to upload file to storage', $exception);
+        } catch (GuzzleException $exception) {
+            throw new FlyCmsException('Failed to upload file to storage', $exception);
+        }
+
+        $statusCode = $response->getStatusCode();
+
+        if ($statusCode < 200 || $statusCode >= 300) {
+            throw new FlyCmsException('Failed to upload file to storage');
+        }
+    }
+
+    protected function resolveFileTypeFromExt(string $ext): string
+    {
+        return match ($ext) {
+            'jpg', 'jpeg', 'png', 'webp', 'gif' => 'image',
+            'mp4', 'webm' => 'video',
+            default => 'unknown',
+        };
     }
 }

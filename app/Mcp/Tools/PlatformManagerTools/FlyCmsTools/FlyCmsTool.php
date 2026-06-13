@@ -47,7 +47,7 @@ abstract class FlyCmsTool extends PlatformManagerTool
         /** @var Platform $platform */
         $platform = $channel->platform;
 
-        $flycms = \App\Facades\Platforms\FlyCms::driver('flycms');
+        $flycms = \App\Facades\Platforms\FlyCms::driver();
 
         /** @var Config $platformConfig */
         if ($platformConfig = $platform->config) {

@@ -27,4 +27,13 @@ enum PublicationStatus: int implements DescribableEnum
             default => 'Unknown',
         };
     }
+
+    public static function retriableStatuses(): array
+    {
+        return [
+            static::TIMEOUT,
+            static::FAILED,
+            static::ERROR,
+        ];
+    }
 }

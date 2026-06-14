@@ -126,6 +126,13 @@ class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpRes
                 ->object(new ArticleContext()->toJsonSchema($schema))
                 ->description('Article semantic context')
                 ->nullable(),
+
+            'publications' => $schema
+                ->array()
+                ->items(
+                    $schema
+                        ->object(Publication::getMcpOutputSchema($schema))
+                ),
         ];
     }
 

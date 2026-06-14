@@ -28,6 +28,8 @@ return new class extends Migration
             $table->timestamps();
             $table->dateTime('published_at')->nullable()->index();
 
+            $table->unsignedTinyInteger('attempts')->default(0);
+
             $table->unique(['channel_id', 'publishable_type', 'publishable_id'], 'publication_unique');
             $table->index(['publishable_type', 'publishable_id', 'id'], 'publication_publishable_index');
             $table->index(['channel_id', 'published_at']);

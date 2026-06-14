@@ -7,6 +7,7 @@ use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewRes
 use App\Mcp\Server\Methods\AppCallTool;
 use App\Mcp\Tools\ArticleTools\CreateArticleTool;
 use App\Mcp\Tools\ArticleTools\ListArticlesTool;
+use App\Mcp\Tools\ArticleTools\PublishArticleTool;
 use App\Mcp\Tools\ArticleTools\ShowArticleTool;
 use App\Mcp\Tools\ArticleTools\UpdateArticleContextTool;
 use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
@@ -98,6 +99,7 @@ class AppServer extends Server
         $this->tools = array_merge($this->tools, [
             CreateArticleTool::class,
             ListArticlesTool::class,
+            PublishArticleTool::class,
             ShowArticleTool::class,
             UpdateArticleContextTool::class,
         ]);

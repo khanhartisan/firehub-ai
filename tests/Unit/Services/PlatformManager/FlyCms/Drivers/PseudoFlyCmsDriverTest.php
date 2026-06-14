@@ -27,6 +27,12 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\CreateUse
 use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\UpdateUserData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\CreateWebsiteData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\UpdateWebsiteData;
+use App\Contracts\DOM\Article as DOMArticle;
+use App\Enums\ArticleStatus;
+use App\Enums\PublicationStatus;
+use App\Models\Article;
+use App\Models\Channel;
+use App\Models\Publication;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoFlyCmsDriver;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -1348,5 +1354,103 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame('01J00000000000000000000073', $files[0]->getData()['id']);
         $this->assertSame('01J00000000000000000000072', $files[1]->getData()['id']);
         $this->assertSame('01J00000000000000000000071', $files[2]->getData()['id']);
+    }
+
+    public function test_publish_article_returns_awaiting_when_article_is_not_ready(): void
+    {
+        $result = $this->driver->publishArticle($this->makePublication(
+            articleStatus: ArticleStatus::UNREADY,
+        ));
+
+        $this->assertSame(PublicationStatus::AWAITING, $result->getStatus());
+        $this->assertNull($result->getReference());
+    }
+
+    public function test_publish_article_returns_failed_when_channel_has_no_website_reference(): void
+    {
+        $result = $this->driver->publishArticle($this->makePublication(
+            websiteId: null,
+        ));
+
+        $this->assertSame(PublicationStatus::FAILED, $result->getStatus());
+        $this->assertNull($result->getReference());
+    }
+
+    public function test_publish_article_returns_error_when_publishable_is_not_an_article(): void
+    {
+        $publication = $this->makePublication();
+        $publication->setRelation('publishable', new Channel);
+
+        $result = $this->driver->publishArticle($publication);
+
+        $this->assertSame(PublicationStatus::ERROR, $result->getStatus());
+        $this->assertNull($result->getReference());
+    }
+
+    public function test_publish_article_creates_post_and_returns_published_reference(): void
+    {
+        $publication = $this->makePublication();
+
+        $result = $this->driver->publishArticle($publication);
+
+        $this->assertSame(PublicationStatus::PUBLISHED, $result->getStatus());
+        $this->assertNotNull($result->getReference());
+
+        $post = $this->driver->showPost((string) $result->getReference());
+
+        $this->assertNotNull($post);
+        $this->assertSame('01J00000000000000000000001', $post->getData()['website_id']);
+        $this->assertSame('launch-update', $post->getData()['slug']);
+        $this->assertSame('Launch Update', $post->getData()['title']);
+        $this->assertSame('A short summary.', $post->getData()['description']);
+        $this->assertSame('<article><p>Article body</p></article>', $post->getData()['content']);
+        $this->assertSame('01J00000000000000000000021', $post->getData()['tags'][0]['id']);
+    }
+
+    public function test_publish_article_updates_existing_post_when_publication_has_reference(): void
+    {
+        $publication = $this->makePublication(postReference: '01J00000000000000000000051');
+        $publication->title = 'Updated Launch Title';
+        $publication->description = 'Updated summary.';
+
+        $result = $this->driver->publishArticle($publication);
+
+        $this->assertSame(PublicationStatus::PUBLISHED, $result->getStatus());
+        $this->assertSame('01J00000000000000000000051', $result->getReference());
+
+        $post = $this->driver->showPost('01J00000000000000000000051');
+
+        $this->assertNotNull($post);
+        $this->assertSame('Updated Launch Title', $post->getData()['title']);
+        $this->assertSame('Updated summary.', $post->getData()['description']);
+        $this->assertSame('hello-world', $post->getData()['slug']);
+    }
+
+    private function makePublication(
+        ?string $websiteId = '01J00000000000000000000001',
+        ArticleStatus $articleStatus = ArticleStatus::READY,
+        ?string $postReference = null,
+    ): Publication {
+        $channel = new Channel;
+        $channel->reference = $websiteId;
+
+        $article = new Article;
+        $article->id = '01J00000000000000000000091';
+        $article->status = $articleStatus;
+        $article->title = 'Launch Update';
+        $article->excerpt = 'A short summary.';
+        $article->article = DOMArticle::fromHtml('<article><p>Article body</p></article>');
+
+        $publication = new Publication;
+        $publication->reference = $postReference;
+        $publication->title = 'Launch Update';
+        $publication->description = 'A short summary.';
+        $publication->meta = [
+            'tag_ids' => ['01J00000000000000000000021'],
+        ];
+        $publication->setRelation('channel', $channel);
+        $publication->setRelation('publishable', $article);
+
+        return $publication;
     }
 }

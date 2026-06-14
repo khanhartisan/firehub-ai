@@ -2,6 +2,7 @@
 
 namespace App\Contracts\PlatformManager\FlyCms;
 
+use App\Contracts\PlatformManager\ArticlePlatformManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\DomainManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\FileManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\MenuManager;
@@ -16,6 +17,7 @@ use App\Contracts\PlatformManager\PlatformManager;
 
 interface FlyCms
     extends
+    ArticlePlatformManager,
     PlatformManager,
     DomainManager,
     FileManager,

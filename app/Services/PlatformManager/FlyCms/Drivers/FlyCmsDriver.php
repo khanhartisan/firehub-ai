@@ -7,6 +7,7 @@ use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
 use App\Contracts\PlatformManager\FlyCms\Filter;
 use App\Contracts\PlatformManager\FlyCms\MutationData;
 use App\Contracts\PlatformManager\FlyCms\Resource;
+use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithArticles;
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithDomains;
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithFiles;
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithMenus;
@@ -27,6 +28,7 @@ use Psr\Http\Message\ResponseInterface;
 
 class FlyCmsDriver extends FlyCmsService
 {
+    use InteractsWithArticles;
     use InteractsWithDomains;
     use InteractsWithFiles;
     use InteractsWithMenus;

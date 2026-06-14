@@ -2,6 +2,8 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Resources\OverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
 use App\Mcp\Server\Methods\AppCallTool;
 use App\Mcp\Tools\ArticleTools\CreateArticleTool;
 use App\Mcp\Tools\ArticleTools\ListArticlesTool;
@@ -60,13 +62,14 @@ use Laravel\Mcp\Server\Attributes\Version;
 
 #[Name('App Server')]
 #[Version('0.0.1')]
-#[Instructions('MCP Server')]
+#[Instructions('MCP server for content operations and platform publishing. Read app://overview first; for FlyCMS, also read platform-manager://flycms/overview.')]
 class AppServer extends Server
 {
     protected array $tools = [];
 
     protected array $resources = [
-        //
+        OverviewResource::class,
+        FlyCmsOverviewResource::class,
     ];
 
     protected array $prompts = [

@@ -4,8 +4,11 @@ namespace App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
+use App\Contracts\PlatformManager\FlyCms\Filters\PartFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\SubjectFilter;
+use App\Contracts\PlatformManager\FlyCms\MutationData\PartMutationData\CreatePartData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\SubjectMutationData\CreateSubjectData;
+use App\Contracts\PlatformManager\FlyCms\Resources\PartResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\SubjectResource;
 use App\Contracts\PlatformManager\PublishingResult;
 use App\Models\Article;
@@ -24,7 +27,8 @@ trait InteractsWithArticles
             throw new \InvalidArgumentException('The publishable resource is not an instance of Article.');
         }
 
-        $subject = $this->ensureSubject($publication);
+        $subjectResource = $this->ensureSubject($publication);
+        $partResource = $this->ensurePart($subjectResource);
 
         // TODO: Continue to implement
 
@@ -68,6 +72,46 @@ trait InteractsWithArticles
                     'branch_id' => $config->getBranchId(),
                     'code' => $article->id,
                     'title' => $article->title,
+                ]),
+        );
+    }
+
+    /**
+     * @throws FlyCmsException
+     */
+    protected function ensurePart(SubjectResource $subject): PartResource
+    {
+        $subjectId = $subject->get('id');
+
+        if (! is_string($subjectId) || $subjectId === '') {
+            throw new FlyCmsException('Subject id is required.');
+        }
+
+        $existingPart = $this->listResources(
+            PartResource::class,
+            1,
+            1,
+            null,
+            (new PartFilter)->setFilterData([
+                'subject_id' => $subjectId,
+                'sequence' => 1,
+            ]),
+        );
+
+        if ($existingPart) {
+            /** @var PartResource */
+            return $existingPart[0];
+        }
+
+        /** @var PartResource */
+        return $this->createResource(
+            PartResource::class,
+            new CreatePartData()
+                ->setData([
+                    'subject_id' => $subjectId,
+                    'sequence' => 1,
+                    'title' => $subject->get('title'),
+                    'description' => $subject->get('description'),
                 ]),
         );
     }

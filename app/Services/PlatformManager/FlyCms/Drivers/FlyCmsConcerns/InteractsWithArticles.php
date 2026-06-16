@@ -4,10 +4,14 @@ namespace App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
+use App\Contracts\PlatformManager\FlyCms\Filters\ContentFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PartFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\SubjectFilter;
+use App\Contracts\PlatformManager\FlyCms\MutationData\ContentMutationData\CreateContentData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\ContentMutationData\UpdateContentData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PartMutationData\CreatePartData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\SubjectMutationData\CreateSubjectData;
+use App\Contracts\PlatformManager\FlyCms\Resources\ContentResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PartResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\SubjectResource;
 use App\Contracts\PlatformManager\PublishingResult;
@@ -29,6 +33,7 @@ trait InteractsWithArticles
 
         $subjectResource = $this->ensureSubject($publication);
         $partResource = $this->ensurePart($subjectResource);
+        $this->ensureContent($partResource, $publication);
 
         // TODO: Continue to implement
 
@@ -114,5 +119,89 @@ trait InteractsWithArticles
                     'description' => $subject->get('description'),
                 ]),
         );
+    }
+
+    /**
+     * @throws FlyCmsException
+     */
+    protected function ensureContent(PartResource $part, Publication $publication): ContentResource
+    {
+        $article = $publication->publishable;
+
+        if (! $article instanceof Article) {
+            throw new FlyCmsException('The publishable resource is not an instance of Article.');
+        }
+
+        $partId = $part->get('id');
+
+        if (! is_string($partId) || $partId === '') {
+            throw new FlyCmsException('Part id is required.');
+        }
+
+        $filterData = ['part_id' => $partId];
+
+        if (is_string($publication->reference) && $publication->reference !== '') {
+            $filterData['post_id'] = $publication->reference;
+        }
+
+        $existingContent = $this->listResources(
+            ContentResource::class,
+            1,
+            1,
+            null,
+            (new ContentFilter)->setFilterData($filterData),
+        );
+
+        if ($existingContent) {
+            $contentId = $existingContent[0]->get('id');
+
+            if (! is_string($contentId) || $contentId === '') {
+                throw new FlyCmsException('Content id is required.');
+            }
+
+            /** @var ContentResource */
+            return $this->updateResource(
+                ContentResource::class,
+                $contentId,
+                new UpdateContentData()
+                    ->setData(array_filter([
+                        'title' => $publication->title ?? $article->title,
+                        'description' => $publication->description ?? $article->excerpt,
+                        'content' => $this->articleContentHtml($article),
+                        'post_id' => $publication->reference,
+                    ], static fn (mixed $value): bool => $value !== null)),
+            );
+        }
+
+        /** @var ContentResource */
+        return $this->createResource(
+            ContentResource::class,
+            new CreateContentData()
+                ->setData(array_filter([
+                    'part_id' => $partId,
+                    'lang' => $this->resolveContentLang($article),
+                    'title' => $publication->title ?? $article->title,
+                    'description' => $publication->description ?? $article->excerpt,
+                    'content' => $this->articleContentHtml($article),
+                    'post_id' => $publication->reference,
+                ], static fn (mixed $value): bool => $value !== null)),
+        );
+    }
+
+    protected function resolveContentLang(Article $article): string
+    {
+        return $article->language?->value ?: 'default';
+    }
+
+    protected function articleContentHtml(Article $article): ?string
+    {
+        $content = $article->illustrated_article?->toHtml()
+            ?: $article->article?->toHtml();
+
+        if (! is_string($content) || $content === '') {
+            return null;
+        }
+
+        return $content;
     }
 }

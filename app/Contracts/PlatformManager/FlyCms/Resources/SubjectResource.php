@@ -16,6 +16,7 @@ class SubjectResource extends Resource
     {
         return [
             'id' => $schema->string()->description('Subject unique ID'),
+            'branch_id' => $schema->string()->description('Subject branch ID'),
             'code' => $schema->string()->description('Subject unique code'),
             'title' => $schema->string()->description('Subject title'),
             'description' => $schema->string()->description('Subject description'),

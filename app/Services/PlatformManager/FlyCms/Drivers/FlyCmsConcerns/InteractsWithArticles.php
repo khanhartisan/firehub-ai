@@ -7,15 +7,20 @@ use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
 use App\Contracts\PlatformManager\FlyCms\Filters\ContentFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PartFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\SubjectFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\ThumbnailFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\ContentMutationData\CreateContentData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\ContentMutationData\UpdateContentData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PartMutationData\CreatePartData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\SubjectMutationData\CreateSubjectData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\ThumbnailMutationData\CreateThumbnailData;
 use App\Contracts\PlatformManager\FlyCms\Resources\ContentResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\FileResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PartResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\SubjectResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\ThumbnailResource;
 use App\Contracts\PlatformManager\PublishingResult;
 use App\Models\Article;
+use App\Models\File;
 use App\Models\Publication;
 use Exception;
 
@@ -33,9 +38,11 @@ trait InteractsWithArticles
 
         $subjectResource = $this->ensureSubject($publication);
         $partResource = $this->ensurePart($subjectResource);
-        $this->ensureContent($partResource, $publication);
+        $contentResource = $this->ensureContent($partResource, $publication);
+        $thumbnailResource = $this->ensureThumbnail($subjectResource);
+        $thumbnailFileResource = $this->ensureThumbnailFile($publication, $thumbnailResource);
 
-        // TODO: Continue to implement
+        // TODO: Ensure post
 
         throw new \BadMethodCallException('FlyCmsDriver::publishArticle is not implemented yet.');
     }
@@ -186,6 +193,68 @@ trait InteractsWithArticles
                     'post_id' => $publication->reference,
                 ], static fn (mixed $value): bool => $value !== null)),
         );
+    }
+
+    /**
+     * @throws FlyCmsException
+     */
+    protected function ensureThumbnail(SubjectResource $subjectResource): ThumbnailResource
+    {
+        $existingThumbnail = $this->listResources(
+            ThumbnailResource::class,
+            1,
+            1,
+            null,
+            new ThumbnailFilter()->setFilterData([
+                'branch_id' => $subjectResource->get('branch_id'),
+                'subject_id' => $subjectId = $subjectResource->get('id'),
+            ])
+        );
+
+        if ($existingThumbnail) {
+            /** @var ThumbnailResource */
+            return $existingThumbnail[0];
+        }
+
+        /** @var ThumbnailResource */
+        return $this->createResource(
+            ThumbnailResource::class,
+            new CreateThumbnailData()
+                ->setData([
+                    'subject_id' => $subjectId
+                ])
+        );
+    }
+
+    protected function ensureThumbnailFile(Publication $publication,
+                                           ThumbnailResource $thumbnailResource): ?FileResource
+    {
+        /** @var Article $article */
+        $article = $publication->publishable;
+
+        /** @var array $filesData */
+        $filesData = $thumbnailResource->get('files') ?: [];
+
+        if (!$article->thumbnail_file_id
+            or !$thumbnailFile = $article->thumbnailFile
+        ) {
+            return $filesData[0] ?? null;
+        }
+
+        foreach ($filesData as $fileData) {
+            $fileResource = FileResource::fromArray($fileData);
+            if ($fileResource->get('code') === $thumbnailFile->id) {
+                return $fileResource;
+            }
+        }
+
+        return $this->uploadThumbnailFile($thumbnailFile, $thumbnailResource);
+    }
+
+    protected function uploadThumbnailFile(File $thumbnailFile,
+                                           ThumbnailResource $thumbnailResource): FileResource
+    {
+        // TODO: Implement upload thumbnail file
     }
 
     protected function resolveContentLang(Article $article): string

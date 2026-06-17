@@ -68,6 +68,11 @@ class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpRes
         return $this->belongsTo(Client::class);
     }
 
+    public function thumbnailFile(): BelongsTo
+    {
+        return $this->belongsTo(File::class, 'thumbnail_file_id');
+    }
+
     public static function getMcpOutputSchema(JsonSchema $schema): array
     {
         return [

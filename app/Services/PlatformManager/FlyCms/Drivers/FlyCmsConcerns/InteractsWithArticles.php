@@ -386,6 +386,7 @@ trait InteractsWithArticles
                                   array $tagResources = []): PostResource
     {
         // TODO: Implement ensure post
+        return new PostResource([]);
     }
 
     /**

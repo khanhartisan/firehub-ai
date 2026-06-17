@@ -112,6 +112,26 @@ trait InteractsWithFiles
         return $this->deleteResource(FileResource::class, $fileId);
     }
 
+    /**
+     * @throws FlyCmsException
+     */
+    protected function attachFile(string $fileId, string $resourceType, string $resourceId, ?array $metadata = null): void
+    {
+        $payload = array_filter([
+            'resource_type' => $resourceType,
+            'resource_id' => $resourceId,
+            'metadata' => $metadata,
+        ], static fn (mixed $value): bool => $value !== null);
+
+        $response = $this->sendApiRequest('POST', FileResource::resourceNamespace().'/'.$fileId.':attach', [
+            'json' => $payload,
+        ]);
+
+        if (! $this->parseResponseData($response)) {
+            throw new FlyCmsException('Failed to attach file to resource.');
+        }
+    }
+
     protected function resolveFileSort(?int $orderDirection): ?string
     {
         if ($orderDirection === null) {

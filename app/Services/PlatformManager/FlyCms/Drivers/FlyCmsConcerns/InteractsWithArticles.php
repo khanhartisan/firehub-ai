@@ -5,11 +5,13 @@ namespace App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns;
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
 use App\Contracts\PlatformManager\FlyCms\Filters\ContentFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PartFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\SubjectFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\ThumbnailFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\ContentMutationData\CreateContentData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\ContentMutationData\UpdateContentData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFileData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PartMutationData\CreatePartData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\SubjectMutationData\CreateSubjectData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\ThumbnailMutationData\CreateThumbnailData;
@@ -26,6 +28,7 @@ use App\Models\Article;
 use App\Models\File;
 use App\Models\Publication;
 use Exception;
+use Illuminate\Support\Facades\Storage;
 
 trait InteractsWithArticles
 {
@@ -264,13 +267,106 @@ trait InteractsWithArticles
             }
         }
 
+        if ($existingFile = $this->findFlyCmsFileByCode($thumbnailFile->id)) {
+            $thumbnailId = $thumbnailResource->get('id');
+
+            if (! is_string($thumbnailId) || $thumbnailId === '') {
+                throw new FlyCmsException('Thumbnail id is required.');
+            }
+
+            $fileId = $existingFile->get('id');
+
+            if (! is_string($fileId) || $fileId === '') {
+                throw new FlyCmsException('FlyCms file id is required.');
+            }
+
+            $this->attachFile($fileId, 'thumbnail', $thumbnailId);
+
+            return $existingFile;
+        }
+
         return $this->uploadThumbnailFile($thumbnailFile, $thumbnailResource);
     }
 
+    /**
+     * @throws FlyCmsException
+     */
+    protected function findFlyCmsFileByCode(string $code): ?FileResource
+    {
+        if ($code === '') {
+            return null;
+        }
+
+        $files = $this->listFiles(
+            1,
+            1,
+            null,
+            (new FileFilter)->setFilterData([
+                'code' => $code,
+            ]),
+        );
+
+        if ($files === []) {
+            return null;
+        }
+
+        /** @var FileResource */
+        return $files[0];
+    }
+
+    /**
+     * @throws FlyCmsException
+     */
     protected function uploadThumbnailFile(File $thumbnailFile,
                                            ThumbnailResource $thumbnailResource): FileResource
     {
-        // TODO: Implement upload thumbnail file
+        if (!$thumbnailId = $thumbnailResource->get('id') or !is_string($thumbnailId)) {
+            throw new FlyCmsException('Thumbnail id is required.');
+        }
+
+        if (! is_string($thumbnailFile->path) || $thumbnailFile->path === ''
+            || ! Storage::exists($thumbnailFile->path)
+        ) {
+            throw new FlyCmsException('Thumbnail file is not available for upload.');
+        }
+
+        $content = Storage::get($thumbnailFile->path);
+
+        if (! is_string($content) || $content === '') {
+            throw new FlyCmsException('Thumbnail file content is empty.');
+        }
+
+        $ext = $this->resolveThumbnailFileExt($thumbnailFile);
+
+        $fileResource = $this->createFile(
+            $content,
+            (new CreateFileData)->setData([
+                'ext' => $ext,
+                'code' => $thumbnailFile->id,
+                'filename' => 'thumbnail-'.$thumbnailFile->id,
+            ]),
+        );
+
+        $fileId = $fileResource->get('id');
+
+        if (! is_string($fileId) || $fileId === '') {
+            throw new FlyCmsException('Failed to create thumbnail file.');
+        }
+
+        $this->attachFile($fileId, 'thumbnail', $thumbnailId);
+
+        return $fileResource;
+    }
+
+    protected function resolveThumbnailFileExt(File $thumbnailFile): string
+    {
+        $ext = strtolower((string) ($thumbnailFile->extension ?? ''));
+
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+            return $ext;
+        }
+
+        return 'jpg';
     }
 
     /**

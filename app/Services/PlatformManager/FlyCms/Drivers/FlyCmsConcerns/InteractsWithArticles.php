@@ -16,9 +16,12 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\ThumbnailMutationData\Crea
 use App\Contracts\PlatformManager\FlyCms\Resources\ContentResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\FileResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PartResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\PostResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\SubjectResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\ThumbnailResource;
 use App\Contracts\PlatformManager\PublishingResult;
+use App\Enums\PublicationStatus;
 use App\Models\Article;
 use App\Models\File;
 use App\Models\Publication;
@@ -36,24 +39,40 @@ trait InteractsWithArticles
             throw new \InvalidArgumentException('The publishable resource is not an instance of Article.');
         }
 
-        $subjectResource = $this->ensureSubject($publication);
+        $subjectResource = $this->ensureSubject($article);
         $partResource = $this->ensurePart($subjectResource);
         $contentResource = $this->ensureContent($partResource, $publication);
         $thumbnailResource = $this->ensureThumbnail($subjectResource);
-        $thumbnailFileResource = $this->ensureThumbnailFile($publication, $thumbnailResource);
+        $thumbnailFileResource = $this->ensureThumbnailFile($article, $thumbnailResource);
+        $tagResources = $this->ensureTags($publication);
 
-        // TODO: Ensure post
+        $post = $this->ensurePost(
+            $publication,
+            $subjectResource,
+            $contentResource,
+            $thumbnailFileResource,
+            $tagResources
+        );
 
-        throw new \BadMethodCallException('FlyCmsDriver::publishArticle is not implemented yet.');
+        if (!$postId = $post->get('id')) {
+            return new PublishingResult(
+                PublicationStatus::ERROR,
+                null,
+                'API server return null post ID'
+            );
+        }
+
+        return new PublishingResult(
+            PublicationStatus::PUBLISHED,
+            $postId
+        );
     }
 
     /**
      * @throws FlyCmsException
      */
-    protected function ensureSubject(Publication $publication): SubjectResource
+    protected function ensureSubject(Article $article): SubjectResource
     {
-        $article = $publication->publishable;
-
         /** @var Config $config */
         $config = $this->getConfig();
 
@@ -226,12 +245,9 @@ trait InteractsWithArticles
         );
     }
 
-    protected function ensureThumbnailFile(Publication $publication,
+    protected function ensureThumbnailFile(Article $article,
                                            ThumbnailResource $thumbnailResource): ?FileResource
     {
-        /** @var Article $article */
-        $article = $publication->publishable;
-
         /** @var array $filesData */
         $filesData = $thumbnailResource->get('files') ?: [];
 
@@ -255,6 +271,35 @@ trait InteractsWithArticles
                                            ThumbnailResource $thumbnailResource): FileResource
     {
         // TODO: Implement upload thumbnail file
+    }
+
+    /**
+     * Ensure post
+     *
+     * @param Publication $publication
+     * @param SubjectResource $subjectResource
+     * @param ContentResource $contentResource
+     * @param FileResource|null $thumbnailFile
+     * @param array $tagResources
+     * @return PostResource
+     */
+    protected function ensurePost(Publication $publication,
+                                  SubjectResource $subjectResource,
+                                  ContentResource $contentResource,
+                                  ?FileResource $thumbnailFile = null,
+                                  array $tagResources = []): PostResource
+    {
+        // TODO: Implement ensure post
+    }
+
+    /**
+     * @param Publication $publication
+     * @return TagResource[]
+     */
+    protected function ensureTags(Publication $publication): array
+    {
+        // TODO: Implement ensure tags
+        return [];
     }
 
     protected function resolveContentLang(Article $article): string

@@ -9,7 +9,9 @@ final readonly class PublishingResult implements Serializable
 {
     use \App\Concerns\Serializable;
 
-    public function __construct(protected PublicationStatus $status, protected ?string $reference = null)
+    public function __construct(protected PublicationStatus $status,
+                                protected ?string $reference = null,
+                                protected ?string $errorLogs = null)
     {
 
     }
@@ -24,11 +26,17 @@ final readonly class PublishingResult implements Serializable
         return $this->reference;
     }
 
+    public function getErrorLogs(): ?string
+    {
+        return $this->errorLogs;
+    }
+
     public function toArray(): array
     {
         return [
-            'status' => $this->status->value,
-            'reference' => $this->reference,
+            'status' => $this->getStatus()->value,
+            'reference' => $this->getReference(),
+            'error_logs' => $this->getErrorLogs(),
         ];
     }
 
@@ -43,9 +51,14 @@ final readonly class PublishingResult implements Serializable
             throw new \Exception('reference must be a string');
         }
 
+        if (isset($data['error_logs']) and !is_string($data['error_logs'])) {
+            throw new \Exception('error logs must be a string');
+        }
+
         return new static(
             $status,
-            $data['reference'] ?? null
+            $data['reference'] ?? null,
+            $data['error_logs'] ?? null
         );
     }
 }

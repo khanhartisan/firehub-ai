@@ -17,6 +17,7 @@ use App\Services\Synthesizer\Illustration\Director\IllustrationDirectorManager;
 use App\Services\Synthesizer\Illustration\Illustrator\IllustratorManager;
 use App\Services\Synthesizer\OutlineBuilder\OutlineBuilderManager;
 use App\Services\Synthesizer\Researcher\ResearcherManager;
+use App\Services\Synthesizer\Tagger\TaggerManager;
 use App\Services\Synthesizer\Writer\WriterManager;
 use Illuminate\Support\Manager;
 use Illuminate\Support\Str;
@@ -99,6 +100,9 @@ class SynthesizerManager extends Manager
         $writer = $this->container->make(WriterManager::class)->driver(
             $this->resolveDriverName($driverConfig['writer'] ?? null, 'basic')
         );
+        $tagger = $this->container->make(TaggerManager::class)->driver(
+            $this->resolveDriverName($driverConfig['tagger'] ?? null, 'basic')
+        );
 
         $illustrationConfig = $driverConfig['illustration'] ?? [];
         $illustrationDirector = $this->container->make(IllustrationDirectorManager::class)->driver(
@@ -120,6 +124,7 @@ class SynthesizerManager extends Manager
             'editor' => $editor,
             'critics' => $critics,
             'writer' => $writer,
+            'tagger' => $tagger,
             'illustrationDirector' => $illustrationDirector,
             'illustrators' => $illustrators,
         ]);

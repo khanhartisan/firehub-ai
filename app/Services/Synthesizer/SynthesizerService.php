@@ -12,6 +12,7 @@ use App\Contracts\Synthesizer\Illustration\Illustrator;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
 use App\Contracts\Synthesizer\Researcher\Researcher;
 use App\Contracts\Synthesizer\Synthesizer;
+use App\Contracts\Synthesizer\Tagger\Tagger;
 
 class SynthesizerService implements Synthesizer
 {
@@ -23,6 +24,7 @@ class SynthesizerService implements Synthesizer
         protected Editor $editor,
         protected array $critics = [],
         protected Writer $writer,
+        protected Tagger $tagger,
         protected Director $illustrationDirector,
         protected array $illustrators = [],
     ) {
@@ -110,6 +112,18 @@ class SynthesizerService implements Synthesizer
     public function getWriter(): Writer
     {
         return $this->writer;
+    }
+
+    public function setTagger(Tagger $tagger): static
+    {
+        $this->tagger = $tagger;
+
+        return $this;
+    }
+
+    public function getTagger(): Tagger
+    {
+        return $this->tagger;
     }
 
     public function setIllustrationDirector(Director $director): static

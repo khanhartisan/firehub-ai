@@ -223,6 +223,13 @@ return [
         ],
     ],
 
+    'tagger' => [
+        'default' => 'basic',
+        'drivers' => [
+            'basic' => [],
+        ],
+    ],
+
     'illustration_director' => [
         'default' => 'openai',
         'drivers' => [

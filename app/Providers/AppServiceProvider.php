@@ -66,6 +66,7 @@ use App\Services\Synthesizer\Illustration\Illustrator\IllustratorManager;
 use App\Services\Synthesizer\OutlineBuilder\OutlineBuilderManager;
 use App\Services\Synthesizer\Researcher\ResearcherManager;
 use App\Services\Synthesizer\SynthesizerManager;
+use App\Services\Synthesizer\Tagger\TaggerManager;
 use App\Services\Synthesizer\Writer\WriterManager;
 use App\Services\TextEmbedding\TextEmbeddingManager;
 use App\Services\VectorDB\VectorDBManager;
@@ -141,6 +142,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(IdeaAuditorManager::class);
         $this->app->singleton(IdeaPickerManager::class);
         $this->app->singleton(IdeaForgeManager::class);
+        $this->app->singleton(TaggerManager::class);
         $this->app->singleton(IllustrationDirectorManager::class);
         $this->app->singleton(IllustratorManager::class);
     }

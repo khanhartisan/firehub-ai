@@ -29,6 +29,7 @@ use App\Contracts\Synthesizer\Researcher\ConflictedPoints;
 use App\Contracts\Synthesizer\Researcher\ConsolidationResult;
 use App\Contracts\Synthesizer\Researcher\RelevantPoint;
 use App\Contracts\Synthesizer\Researcher\Researcher;
+use App\Contracts\Synthesizer\Tagger\Tagger;
 use App\Services\Synthesizer\SynthesizerService;
 use Tests\TestCase;
 
@@ -43,6 +44,7 @@ class SynthesizerServiceTest extends TestCase
         $editorA = $this->makeEditor();
         $criticA = $this->makeCritic();
         $writerA = $this->makeWriter();
+        $taggerA = $this->makeTagger();
         $illustrationDirectorA = $this->makeIllustrationDirector();
         $illustratorA = $this->makeIllustrator();
         $illustratorB = $this->makeIllustrator();
@@ -55,6 +57,7 @@ class SynthesizerServiceTest extends TestCase
             editor: $editorA,
             critics: [$criticA],
             writer: $writerA,
+            tagger: $taggerA,
             illustrationDirector: $illustrationDirectorA,
             illustrators: [$illustratorA],
         );
@@ -66,6 +69,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($editorA, $service->getEditor());
         $this->assertSame([$criticA], $service->getCritics());
         $this->assertSame($writerA, $service->getWriter());
+        $this->assertSame($taggerA, $service->getTagger());
         $this->assertSame($illustrationDirectorA, $service->getIllustrationDirector());
         $this->assertSame([$illustratorA], $service->getIllustrators());
 
@@ -76,6 +80,7 @@ class SynthesizerServiceTest extends TestCase
         $editorB = $this->makeEditor();
         $criticB = $this->makeCritic();
         $writerB = $this->makeWriter();
+        $taggerB = $this->makeTagger();
         $illustrationDirectorB = $this->makeIllustrationDirector();
 
         $this->assertSame($service, $service->setIdeaForge($ideaForgeB));
@@ -85,6 +90,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($service, $service->setEditor($editorB));
         $this->assertSame($service, $service->setCritics([$criticB]));
         $this->assertSame($service, $service->setWriter($writerB));
+        $this->assertSame($service, $service->setTagger($taggerB));
         $this->assertSame($service, $service->setIllustrationDirector($illustrationDirectorB));
         $this->assertSame($service, $service->setIllustrators([$illustratorB, new \stdClass()]));
 
@@ -95,6 +101,7 @@ class SynthesizerServiceTest extends TestCase
         $this->assertSame($editorB, $service->getEditor());
         $this->assertSame([$criticB], $service->getCritics());
         $this->assertSame($writerB, $service->getWriter());
+        $this->assertSame($taggerB, $service->getTagger());
         $this->assertSame($illustrationDirectorB, $service->getIllustrationDirector());
         $this->assertSame([$illustratorB], $service->getIllustrators());
     }
@@ -303,6 +310,20 @@ class SynthesizerServiceTest extends TestCase
             public function getIllustrationAnchors(Article $article, array $illustrationResults): array
             {
                 return [];
+            }
+        };
+    }
+
+    protected function makeTagger(): Tagger
+    {
+        return new class implements Tagger
+        {
+            public function suggestTags(
+                Article $article,
+                ?SemanticContext $authorContext = null,
+                ?SemanticContext $generalContext = null
+            ): array {
+                return ['general'];
             }
         };
     }

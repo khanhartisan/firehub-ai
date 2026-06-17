@@ -32,6 +32,7 @@ final class SynthesizerDriverProfiles
                 CriticProfileEntry::entry('basic', 'general', 6),
             ],
             'writer' => 'basic',
+            'tagger' => 'basic',
             'illustration' => [
                 'director' => 'basic',
                 'illustrators' => ['basic'],
@@ -65,6 +66,7 @@ final class SynthesizerDriverProfiles
                 CriticProfileEntry::entry('openai', 'fingerprint', 6, ['max_rectification_rounds' => 6]),
             ],
             'writer' => 'openai',
+            'tagger' => 'basic',
             'illustration' => [
                 'director' => 'openai',
                 'illustrators' => [
@@ -103,6 +105,7 @@ final class SynthesizerDriverProfiles
                 CriticProfileEntry::entry('openai_compatible', 'fingerprint', 6, ['max_rectification_rounds' => 6]),
             ],
             'writer' => 'openai_compatible',
+            'tagger' => 'basic',
             'illustration' => [
                 'director' => 'openai_compatible',
                 'illustrators' => [

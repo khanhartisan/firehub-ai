@@ -11,6 +11,7 @@ use App\Contracts\Synthesizer\Illustration\Director;
 use App\Contracts\Synthesizer\Illustration\Illustrator;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineBuilder;
 use App\Contracts\Synthesizer\Researcher\Researcher;
+use App\Contracts\Synthesizer\Tagger\Tagger;
 
 interface Synthesizer
 {
@@ -47,6 +48,10 @@ interface Synthesizer
     public function setWriter(Writer $writer): static;
 
     public function getWriter(): Writer;
+
+    public function setTagger(Tagger $tagger): static;
+
+    public function getTagger(): Tagger;
 
     public function setIllustrationDirector(Director $director): static;
 

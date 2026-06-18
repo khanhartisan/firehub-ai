@@ -27,7 +27,7 @@ class UpdateTagToolTest extends TestCase
             'channel_id' => $channel->id,
             'tag_id' => '01J00000000000000000000021',
             'update_tag_data' => [
-                'name' => 'Tech',
+                'display_name' => 'Tech',
                 'slug' => 'tech',
                 'is_featured' => false,
                 'thumbnail_file_id' => '01J00000000000000000000072',
@@ -41,7 +41,7 @@ class UpdateTagToolTest extends TestCase
             ->assertDescription('Update a FlyCMS tag on the website linked to the given channel.')
             ->assertStructuredContent(function ($json): void {
                 $json->where('id', '01J00000000000000000000021')
-                    ->where('name', 'Tech')
+                    ->where('display_name', 'Tech')
                     ->where('slug', 'tech')
                     ->where('is_featured', false)
                     ->where('website_id', '01J00000000000000000000001')
@@ -52,7 +52,7 @@ class UpdateTagToolTest extends TestCase
 
         $tag = FlyCms::showTag('01J00000000000000000000021');
         $this->assertNotNull($tag);
-        $this->assertSame('Tech', $tag->getData()['name']);
+        $this->assertSame('Tech', $tag->getData()['display_name']);
         $this->assertSame('01J00000000000000000000072', $tag->getData()['thumbnail_file_id']);
     }
 

@@ -79,9 +79,11 @@ class TagResource extends Resource
     {
         $tagResource = parent::fromArray($data);
 
-        $tagResource->set('display_name', $data['name']);
+        if (!$tagResource->get('display_name')) {
+            $tagResource->set('display_name', $data['name']);
+        }
 
-        if (!isset($data['tag'])) {
+        if (isset($data['tag'])) {
             $tagResource->set('name', $data['tag']['name']);
         }
 

@@ -67,12 +67,25 @@ trait InteractsWithTags
      */
     public function updateTag(string $tagId, UpdateTagData $updateTagData): TagResource
     {
-        /** @var TagResource */
-        return $this->updateResource(
-            TagResource::class,
-            $tagId,
-            $updateTagData
+        $updateTagData = $updateTagData->getData();
+        if (isset($updateTagData['display_name'])) {
+            $updateTagData['name'] = $updateTagData['display_name'];
+            unset($updateTagData['display_name']);
+        }
+
+        $response = $this->sendApiRequest(
+            'PATCH',
+            TagResource::resourceNamespace().'/'.$tagId,
+            [
+                'json' => $updateTagData
+            ]
         );
+
+        if (!$data = $this->parseResponseData($response)) {
+            throw new FlyCmsException('Failed to update tag (Unknown error)');
+        }
+
+        return TagResource::fromArray($data);
     }
 
     /**

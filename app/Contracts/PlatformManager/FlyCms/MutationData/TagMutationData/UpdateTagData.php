@@ -25,16 +25,4 @@ class UpdateTagData extends CreateTagData
 
         return $data;
     }
-
-    public function getData(): ?array
-    {
-        $data = parent::getData();
-
-        if (isset($data['display_name'])) {
-            $data['name'] = $data['display_name'];
-            unset($data['display_name']);
-        }
-
-        return $data;
-    }
 }

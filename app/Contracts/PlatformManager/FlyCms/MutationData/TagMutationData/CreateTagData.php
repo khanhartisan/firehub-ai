@@ -27,7 +27,7 @@ class CreateTagData extends MutationData
                 ->description('Tag name'),
             'display_name' => $schema
                 ->string()
-                ->required()
+                ->nullable()
                 ->description('Tag display name'),
             'description' => $schema
                 ->string()
@@ -65,5 +65,18 @@ class CreateTagData extends MutationData
     protected function getTagGuidelinesResourceName(): string
     {
         return $this->tagGuidelinesResourceName ??= new TagGuidelinesResource()->name();
+    }
+
+    public function getData(): ?array
+    {
+        if (!$data = parent::getData()) {
+            return $data;
+        }
+
+        if (!isset($data['display_name'])) {
+            $data['display_name'] = $data['name'];
+        }
+
+        return $data;
     }
 }

@@ -56,7 +56,7 @@ abstract class MutationData implements ProvidesJsonSchema, Serializable
     public function toArray(): array
     {
         return [
-            'data' => $this->data,
+            'data' => $this->getData(),
         ];
     }
 

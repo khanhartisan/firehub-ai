@@ -66,6 +66,8 @@ class BuildArticleJobTest extends TestCase
         $this->assertArrayHasKey('idea', $stageData);
         $this->assertArrayHasKey('brief', $stageData);
         $this->assertArrayHasKey('outline', $stageData);
+        $this->assertArrayHasKey('tagging', $stageData);
+        $this->assertNotEmpty($stageData['tagging']['suggested_tags'] ?? []);
         $this->assertArrayHasKey('draft', $stageData);
         Bus::assertDispatched(BuildArticleJob::class);
     }

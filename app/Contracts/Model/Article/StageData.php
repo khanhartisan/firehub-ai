@@ -7,6 +7,7 @@ use App\Contracts\Model\Article\StageData\IdeaStageData;
 use App\Contracts\Model\Article\StageData\IllustrationStageData;
 use App\Contracts\Model\Article\StageData\RectificationStageData;
 use App\Contracts\Model\Article\StageData\ResearchStageData;
+use App\Contracts\Model\Article\StageData\TaggingStageData;
 use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\Writer\Draft;
 use App\Contracts\Synthesizer\BriefBuilder\Brief;
@@ -24,6 +25,7 @@ final class StageData implements \App\Contracts\Serializable
     protected ?Draft $draft = null;
     protected ?RectificationStageData $rectification = null;
     protected ?IllustrationStageData $illustration = null;
+    protected ?TaggingStageData $tagging = null;
 
     /**
      * @param array<string, mixed> $data
@@ -50,6 +52,7 @@ final class StageData implements \App\Contracts\Serializable
             'draft' => $this->draft?->toArray(),
             'rectification' => $this->rectification?->toArray(),
             'illustration' => $this->illustration?->toArray(),
+            'tagging' => $this->tagging?->toArray(),
         ], static fn ($v): bool => $v !== null);
     }
 
@@ -150,6 +153,18 @@ final class StageData implements \App\Contracts\Serializable
         return $this;
     }
 
+    public function getTaggingStageData(): TaggingStageData
+    {
+        return $this->tagging ??= new TaggingStageData;
+    }
+
+    public function setTaggingStageData(TaggingStageData $tagging): static
+    {
+        $this->tagging = $tagging;
+
+        return $this;
+    }
+
     public function getResearchStageData(): ResearchStageData
     {
         return $this->research ??= new ResearchStageData;
@@ -202,6 +217,10 @@ final class StageData implements \App\Contracts\Serializable
 
         if (isset($data['illustration']) && is_array($data['illustration'])) {
             $this->setIllustrationStageData(IllustrationStageData::fromArray($data['illustration']));
+        }
+
+        if (isset($data['tagging']) && is_array($data['tagging'])) {
+            $this->setTaggingStageData(TaggingStageData::fromArray($data['tagging']));
         }
     }
 }

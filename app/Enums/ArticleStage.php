@@ -12,4 +12,5 @@ enum ArticleStage: int
     case RECTIFICATION = 6;
     case ILLUSTRATION = 7;
     case FINAL = 8;
+    case TAGGING = 9;
 }

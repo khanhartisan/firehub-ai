@@ -12,6 +12,7 @@ use App\Jobs\BuildArticleJobConcerns\HandleIdeaStage;
 use App\Jobs\BuildArticleJobConcerns\HandleIllustrationStage;
 use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
 use App\Jobs\BuildArticleJobConcerns\HandleRectificationStage;
+use App\Jobs\BuildArticleJobConcerns\HandleTaggingStage;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStage;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSemanticContext;
@@ -34,7 +35,7 @@ use Illuminate\Support\Facades\Cache;
  *   article is not processed concurrently.
  * - Marks the row PROCESSING, calls the handler for the current {@see ArticleStage}, then
  *   interprets the result (see below).
- * - Stage implementations live in traits (HandleIdeaStage, HandleBriefStage, HandleRectificationStage, …). They persist
+ * - Stage implementations live in traits (HandleIdeaStage, HandleBriefStage, HandleRectificationStage, HandleTaggingStage, …). They persist
  *   progress by mutating the {@see StageData} tree from {@see InteractsWithArticleStageData::getStageData()}
  *   (same object as {@see Article::$stage_data}), then {@see static::touchArticleQuietly()}.
  *   Shared accessors: {@see InteractsWithArticleStageData}, {@see InteractsWithSynthesizer}.
@@ -59,6 +60,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     use HandleBriefStage;
     use HandleDraftStage;
     use HandleOutlineStage;
+    use HandleTaggingStage;
     use HandleRectificationStage;
     use HandleIllustrationStage;
 
@@ -194,6 +196,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             ArticleStage::RESEARCH => $this->handleResearchStage(),
             ArticleStage::BRIEF => $this->handleBriefStage(),
             ArticleStage::OUTLINE => $this->handleOutlineStage(),
+            ArticleStage::TAGGING => $this->handleTaggingStage(),
             ArticleStage::DRAFT => $this->handleDraftStage(),
             ArticleStage::RECTIFICATION => $this->handleRectificationStage(),
             ArticleStage::ILLUSTRATION => $this->handleIllustrationStage(),
@@ -207,7 +210,8 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             ArticleStage::IDEA => ArticleStage::RESEARCH,
             ArticleStage::RESEARCH => ArticleStage::BRIEF,
             ArticleStage::BRIEF => ArticleStage::OUTLINE,
-            ArticleStage::OUTLINE => ArticleStage::DRAFT,
+            ArticleStage::OUTLINE => ArticleStage::TAGGING,
+            ArticleStage::TAGGING => ArticleStage::DRAFT,
             ArticleStage::DRAFT => ArticleStage::RECTIFICATION,
             ArticleStage::RECTIFICATION => ArticleStage::ILLUSTRATION,
             ArticleStage::ILLUSTRATION, ArticleStage::FINAL => ArticleStage::FINAL,

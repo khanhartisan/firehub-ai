@@ -19,6 +19,7 @@ use App\Contracts\VectorDB\VectorDB;
 use App\Contracts\VerticalResolver\VerticalResolver;
 use App\Models\Article;
 use App\Models\ArticleIntent;
+use App\Models\ArticleTag;
 use App\Models\Author;
 use App\Models\Channel;
 use App\Models\Client;
@@ -155,6 +156,7 @@ class AppServiceProvider extends ServiceProvider
         $models = [
             Article::class,
             ArticleIntent::class,
+            ArticleTag::class,
             Author::class,
             Channel::class,
             Client::class,

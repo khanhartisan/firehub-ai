@@ -20,7 +20,10 @@ class Tag extends Model implements PageCountableContract, ShouldCascade
 
     public function getCascadeDetails(): CascadeDetails|array
     {
-        return new CascadeDetails($this->hasMany(PageTag::class));
+        return [
+            new CascadeDetails($this->hasMany(PageTag::class)),
+            new CascadeDetails($this->hasMany(ArticleTag::class)),
+        ];
     }
 
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
@@ -33,5 +36,12 @@ class Tag extends Model implements PageCountableContract, ShouldCascade
         return $this->belongsToMany(Page::class)
             ->using(PageTag::class)
             ->as('page_tag');
+    }
+
+    public function articles(): BelongsToMany
+    {
+        return $this->belongsToMany(Article::class)
+            ->using(ArticleTag::class)
+            ->as('article_tag');
     }
 }

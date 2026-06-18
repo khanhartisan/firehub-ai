@@ -50,6 +50,7 @@ class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpRes
     {
         return [
             new CascadeDetails($this->hasMany(ArticleIntent::class)),
+            new CascadeDetails($this->hasMany(ArticleTag::class)),
         ];
     }
 
@@ -172,6 +173,13 @@ class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpRes
             ->using(ArticleIntent::class)
             ->as('article_intent')
             ->withPivot(['relevance']);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class)
+            ->using(ArticleTag::class)
+            ->as('article_tag');
     }
 
     public function isEmbeddable(): bool

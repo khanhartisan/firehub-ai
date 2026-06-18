@@ -505,6 +505,7 @@ class PseudoFlyCmsDriverTest extends TestCase
             'website_id' => '01J00000000000000000000001',
             'thumbnail_file_id' => '01J00000000000000000000072',
             'name' => 'Travel',
+            'display_name' => 'Travel Stories',
             'slug' => 'travel',
             'is_featured' => true,
             'description' => 'Travel stories',
@@ -514,6 +515,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         $data = $created->getData();
 
         $this->assertSame('Travel', $data['name']);
+        $this->assertSame('Travel Stories', $data['display_name']);
         $this->assertSame('travel', $data['slug']);
         $this->assertTrue($data['is_featured']);
         $this->assertSame('01J00000000000000000000001', $data['website_id']);
@@ -528,7 +530,7 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_update_tag_merges_changes(): void
     {
         $updateTagData = (new UpdateTagData)->setData([
-            'name' => 'Tech',
+            'display_name' => 'Tech',
             'slug' => 'tech',
             'is_featured' => false,
             'description' => 'Updated description',
@@ -538,32 +540,36 @@ class PseudoFlyCmsDriverTest extends TestCase
         $updated = $this->driver->updateTag('01J00000000000000000000021', $updateTagData);
         $data = $updated->getData();
 
-        $this->assertSame('Tech', $data['name']);
+        $this->assertSame('Technology', $data['name']);
+        $this->assertSame('Tech', $data['display_name']);
         $this->assertSame('tech', $data['slug']);
         $this->assertFalse($data['is_featured']);
         $this->assertSame('Updated description', $data['description']);
         $this->assertSame('01J00000000000000000000072', $data['thumbnail_file_id']);
         $this->assertSame('uploads/weekend-ideas.webp', $data['thumbnailFile']['key']);
         $this->assertSame('01J00000000000000000000001', $data['website_id']);
-        $this->assertSame('Tech', $this->driver->showTag('01J00000000000000000000021')?->getData()['name']);
+        $this->assertSame('Technology', $this->driver->showTag('01J00000000000000000000021')?->getData()['name']);
+        $this->assertSame('Tech', $this->driver->showTag('01J00000000000000000000021')?->getData()['display_name']);
     }
 
     public function test_update_tag_ignores_website_id(): void
     {
         $updateTagData = (new UpdateTagData)->setData([
             'website_id' => '01J00000000000000000000002',
-            'name' => 'Still Technology',
+            'display_name' => 'Still Technology',
         ]);
 
         $updated = $this->driver->updateTag('01J00000000000000000000021', $updateTagData);
 
         $this->assertSame('01J00000000000000000000001', $updated->getData()['website_id']);
+        $this->assertSame('Technology', $updated->getData()['name']);
+        $this->assertSame('Still Technology', $updated->getData()['display_name']);
     }
 
     public function test_update_tag_throws_for_unknown_id(): void
     {
         $updateTagData = (new UpdateTagData)->setData([
-            'name' => 'Missing Tag',
+            'display_name' => 'Missing Tag',
         ]);
 
         $this->expectException(InvalidArgumentException::class);

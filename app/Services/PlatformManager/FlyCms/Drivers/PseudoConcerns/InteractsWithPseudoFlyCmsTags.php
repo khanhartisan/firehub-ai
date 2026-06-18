@@ -52,7 +52,7 @@ trait InteractsWithPseudoFlyCmsTags
             static fn (mixed $value): bool => $value !== null
         );
 
-        unset($data['website_id']);
+        unset($data['website_id'], $data['name']);
 
         $tag = array_merge($tag, $data, [
             'updated_at' => now()->toIso8601String(),
@@ -106,6 +106,7 @@ trait InteractsWithPseudoFlyCmsTags
                 'website_id' => '01J00000000000000000000001',
                 'is_featured' => true,
                 'name' => 'Technology',
+                'display_name' => 'Technology',
                 'description' => 'Articles about technology and software.',
                 'slug' => 'technology',
                 'seo_title' => '{{ tag.name }} | Sample Blog',
@@ -122,6 +123,7 @@ trait InteractsWithPseudoFlyCmsTags
                 'website_id' => '01J00000000000000000000001',
                 'is_featured' => false,
                 'name' => 'Lifestyle',
+                'display_name' => 'Lifestyle',
                 'description' => null,
                 'slug' => 'lifestyle',
                 'seo_title' => null,
@@ -137,6 +139,7 @@ trait InteractsWithPseudoFlyCmsTags
                 'website_id' => '01J00000000000000000000002',
                 'is_featured' => false,
                 'name' => 'Shop',
+                'display_name' => 'Shop',
                 'description' => 'Storefront product topics.',
                 'slug' => 'shop',
                 'seo_title' => 'Shop | Demo Storefront',
@@ -155,6 +158,7 @@ trait InteractsWithPseudoFlyCmsTags
             'website_id' => null,
             'is_featured' => false,
             'name' => 'Untitled Tag',
+            'display_name' => 'Untitled Tag',
             'description' => null,
             'slug' => 'untitled-tag',
             'seo_title' => null,

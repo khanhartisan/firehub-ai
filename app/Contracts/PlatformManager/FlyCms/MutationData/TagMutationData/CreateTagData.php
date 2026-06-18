@@ -25,6 +25,10 @@ class CreateTagData extends MutationData
                 ->string()
                 ->required()
                 ->description('Tag name'),
+            'display_name' => $schema
+                ->string()
+                ->required()
+                ->description('Tag display name'),
             'description' => $schema
                 ->string()
                 ->max(255)

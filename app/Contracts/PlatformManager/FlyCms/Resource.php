@@ -57,6 +57,12 @@ abstract class Resource implements Serializable, StructuredMcpResource
         return $this->resourceData[$key] ?? null;
     }
 
+    public function set(string $key, mixed $value): static
+    {
+        $this->resourceData[$key] = $value;
+        return $this;
+    }
+
     public function toMcpStructuredData(): array
     {
         return StructuredDataFromSchema::fromSchema(

@@ -26,7 +26,10 @@ class TagResource extends Resource
                 ->description('Is this tag a featured tag?'),
             'name' => $schema
                 ->string()
-                ->description('Tag name'),
+                ->description('Tag name as a base identity, cannot be changed after creation'),
+            'display_name' => $schema
+                ->string()
+                ->description('Tag display name to show to the end users, can be changed after creation'),
             'description' => $schema
                 ->string()
                 ->max(255)
@@ -70,5 +73,18 @@ class TagResource extends Resource
                 ->object(FileResource::getMcpOutputSchema($schema))
                 ->nullable()
         ];
+    }
+
+    public static function fromArray(array $data): static
+    {
+        $tagResource = parent::fromArray($data);
+
+        $tagResource->set('display_name', $data['name']);
+
+        if (!isset($data['tag'])) {
+            $tagResource->set('name', $data['tag']['name']);
+        }
+
+        return $tagResource;
     }
 }

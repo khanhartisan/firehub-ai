@@ -3,10 +3,13 @@
 namespace App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns;
 
 use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
+use App\Contracts\PlatformManager\FlyCms\Filters\BaseTagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
+use App\Contracts\PlatformManager\FlyCms\MutationData\BaseTagMutationData\CreateBaseTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\UpdateTagData;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
+use App\Http\Resources\BaseTagResource;
 
 trait InteractsWithTags
 {
@@ -24,11 +27,39 @@ trait InteractsWithTags
      */
     public function createTag(CreateTagData $createTagData): TagResource
     {
-        /** @var TagResource */
-        return $this->createResource(
-            TagResource::class,
-            $createTagData
-        );
+        $baseTagName = $createTagData->get('name');
+        $baseTag = $this->ensureBaseTag($baseTagName);
+
+        $existing = $this->listTags(
+            $createTagData->get('website_id'),
+            1,
+            1,
+            new TagFilter()->setFilterData([
+                'tag_id' => $baseTag->get('id'),
+            ])
+        )[0] ?? null;
+
+        // Update if already exists
+        if ($existing) {
+            return $this->updateTag(
+                $existing->get('id'),
+                new UpdateTagData()->setData($createTagData->getData())
+            );
+        }
+
+        // Otherwise create new
+        $createTagData = $createTagData->getData();
+        $createTagData['name'] = $createTagData['display_name'];
+        unset($createTagData['display_name']);
+        $response = $this->sendApiRequest('POST', TagResource::resourceNamespace(), [
+            'json' => $createTagData
+        ]);
+
+        if (!$data = $this->parseResponseData($response)) {
+            throw new FlyCmsException('Failed to create resource (Unknown error)');
+        }
+
+        return TagResource::fromArray($data);
     }
 
     /**
@@ -42,6 +73,35 @@ trait InteractsWithTags
             $tagId,
             $updateTagData
         );
+    }
+
+    /**
+     * @throws FlyCmsException
+     */
+    protected function ensureBaseTag(string $name): BaseTagResource
+    {
+        $existingBaseTag = $this->listResources(
+            BaseTagResource::class,
+            1,
+            1,
+            null,
+            new BaseTagFilter()->setFilterData([
+                'name' => $name,
+            ])
+        );
+
+        if (!$existingBaseTag) {
+            /** @var BaseTagResource */
+            return $this->createResource(
+                BaseTagResource::class,
+                new CreateBaseTagData()->setData([
+                    'name' => $name,
+                ])
+            );
+        }
+
+        /** @var BaseTagResource */
+        return $existingBaseTag[0];
     }
 
     /**

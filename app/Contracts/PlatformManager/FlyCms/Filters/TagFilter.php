@@ -10,6 +10,7 @@ class TagFilter extends Filter
     public function toJsonSchema(JsonSchema $schema): array
     {
         return [
+            'tag_id' => $schema->string()->nullable()->description('Base tag id'),
             'website_id' => $schema
                 ->string()
                 ->nullable()

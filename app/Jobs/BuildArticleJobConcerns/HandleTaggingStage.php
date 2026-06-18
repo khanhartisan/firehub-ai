@@ -7,6 +7,8 @@ use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
 use App\Models\Article;
+use App\Models\Tag;
+use Illuminate\Support\Facades\DB;
 
 /**
  * TAGGING stage: suggests tags for the outline via the synthesizer tagger.
@@ -24,23 +26,37 @@ trait HandleTaggingStage
         }
 
         $taggingData = $this->getStageData()->getTaggingStageData();
-        if ($taggingData->hasSuggestedTags()) {
-            return true;
+        if (! $taggingData->hasSuggestedTags()) {
+            $authorContext = $this->getStageData()->getIdeaStageData()->getSelectedAuthorContext();
+            $tags = $this->synthesizer()
+                ->getTagger()
+                ->suggestTags(
+                    $this->outlineToTaggingContent($outline),
+                    $authorContext instanceof AuthorContext ? $authorContext : null,
+                    $this->buildSemanticContext(),
+                );
+
+            $taggingData->setSuggestedTags($tags);
         }
 
-        $authorContext = $this->getStageData()->getIdeaStageData()->getSelectedAuthorContext();
-        $tags = $this->synthesizer()
-            ->getTagger()
-            ->suggestTags(
-                $this->outlineToTaggingContent($outline),
-                $authorContext instanceof AuthorContext ? $authorContext : null,
-                $this->buildSemanticContext(),
-            );
-
-        $taggingData->setSuggestedTags($tags);
+        $this->syncArticleTags($article, $taggingData->getSuggestedTags());
         $this->touchArticleQuietly();
 
         return true;
+    }
+
+    /**
+     * @param  string[]  $tagNames
+     */
+    protected function syncArticleTags(Article $article, array $tagNames): void
+    {
+        DB::transaction(function () use ($article, $tagNames): void {
+            $tagIds = collect($tagNames)
+                ->map(fn (string $name): string => Tag::query()->firstOrCreate(['name' => $name])->id)
+                ->all();
+
+            $article->tags()->sync($tagIds);
+        });
     }
 
     protected function outlineToTaggingContent(Outline $outline): string

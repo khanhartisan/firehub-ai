@@ -68,6 +68,11 @@ class BuildArticleJobTest extends TestCase
         $this->assertArrayHasKey('outline', $stageData);
         $this->assertArrayHasKey('tagging', $stageData);
         $this->assertNotEmpty($stageData['tagging']['suggested_tags'] ?? []);
+        $article->load('tags');
+        $this->assertSame(
+            $stageData['tagging']['suggested_tags'],
+            $article->tags->pluck('name')->values()->all(),
+        );
         $this->assertArrayHasKey('draft', $stageData);
         Bus::assertDispatched(BuildArticleJob::class);
     }

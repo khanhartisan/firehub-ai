@@ -319,7 +319,7 @@ class SynthesizerServiceTest extends TestCase
         return new class implements Tagger
         {
             public function suggestTags(
-                Article $article,
+                string $content,
                 ?SemanticContext $authorContext = null,
                 ?SemanticContext $generalContext = null
             ): array {

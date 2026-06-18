@@ -3,7 +3,6 @@
 namespace App\Contracts\Synthesizer\Tagger;
 
 use App\Contracts\CommonData\SemanticContext;
-use App\Contracts\DOM\Article;
 
 interface Tagger
 {
@@ -11,7 +10,7 @@ interface Tagger
      * @return string[]
      */
     public function suggestTags(
-        Article $article,
+        string $content,
         ?SemanticContext $authorContext = null,
         ?SemanticContext $generalContext = null
     ): array;

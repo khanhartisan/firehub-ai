@@ -5,6 +5,7 @@ namespace App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns;
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
 use App\Contracts\PlatformManager\FlyCms\Resources\PostResource;
 use Illuminate\Support\Str;
 
@@ -25,7 +26,7 @@ trait InteractsWithPseudoFlyCmsPosts
     {
         $postId = (string) Str::ulid();
         $now = now()->toIso8601String();
-        $data = $createPostData->getData() ?? [];
+        $data = $this->normalizePostMutationData($createPostData->getData() ?? []);
         $tagIds = $data['tag_ids'] ?? [];
         unset($data['tag_ids']);
 
@@ -46,7 +47,7 @@ trait InteractsWithPseudoFlyCmsPosts
 
     public function updatePost(UpdatePostData $updatePostData): PostResource
     {
-        $data = $updatePostData->getData() ?? [];
+        $data = $this->normalizePostMutationData($updatePostData->getData() ?? []);
         $postId = $data['id'] ?? null;
 
         if (! is_string($postId) || $postId === '') {
@@ -323,5 +324,90 @@ trait InteractsWithPseudoFlyCmsPosts
         }
 
         return $posts;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function normalizePostMutationData(array $data): array
+    {
+        if (isset($data['content']) && is_array($data['content'])) {
+            $content = $data['content'];
+
+            if (array_key_exists('content', $content)) {
+                $data['content'] = $content['content'];
+            } else {
+                unset($data['content']);
+            }
+
+            if (isset($content['lang'])) {
+                $data['lang'] = $content['lang'];
+            }
+        }
+
+        if (isset($data['tag_names']) && is_array($data['tag_names'])) {
+            $websiteId = is_string($data['website_id'] ?? null) ? $data['website_id'] : null;
+            $data['tag_ids'] = $this->resolvePostTagIdsByNames($data['tag_names'], $websiteId);
+            unset($data['tag_names']);
+        }
+
+        unset($data['branch_id'], $data['code'], $data['note']);
+
+        return $data;
+    }
+
+    /**
+     * @param  list<string>  $tagNames
+     * @return list<string>
+     */
+    protected function resolvePostTagIdsByNames(array $tagNames, ?string $websiteId): array
+    {
+        $tagIds = [];
+
+        foreach ($tagNames as $tagName) {
+            if (! is_string($tagName) || $tagName === '') {
+                continue;
+            }
+
+            $existingTagId = null;
+
+            foreach (self::$tags as $tag) {
+                if (strcasecmp((string) ($tag['name'] ?? ''), $tagName) !== 0) {
+                    continue;
+                }
+
+                if ($websiteId !== null && ($tag['website_id'] ?? null) !== $websiteId) {
+                    continue;
+                }
+
+                $existingTagId = $tag['id'] ?? null;
+                break;
+            }
+
+            if (is_string($existingTagId) && $existingTagId !== '') {
+                $tagIds[] = $existingTagId;
+
+                continue;
+            }
+
+            if ($websiteId === null || $websiteId === '') {
+                continue;
+            }
+
+            $createdTag = $this->createTag((new CreateTagData)->setData([
+                'website_id' => $websiteId,
+                'name' => $tagName,
+                'slug' => Str::slug($tagName) ?: 'tag',
+            ]));
+
+            $tagId = $createdTag->get('id');
+
+            if (is_string($tagId) && $tagId !== '') {
+                $tagIds[] = $tagId;
+            }
+        }
+
+        return $tagIds;
     }
 }

@@ -770,6 +770,8 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_create_post_persists_in_memory(): void
     {
         $createPostData = (new CreatePostData)->setData([
+            'branch_id' => '01J00000000000000000000001',
+            'code' => 'TEST-POST-CODE',
             'website_id' => '01J00000000000000000000001',
             'slug' => 'draft-post',
             'title' => 'Draft Post',
@@ -777,6 +779,9 @@ class PseudoFlyCmsDriverTest extends TestCase
             'thumbnail_file_id' => '01J00000000000000000000072',
             'visibility' => 'public',
             'tag_ids' => ['01J00000000000000000000021'],
+            'content' => [
+                'content' => '<p>Draft content</p>',
+            ],
         ]);
 
         $created = $this->driver->createPost($createPostData);

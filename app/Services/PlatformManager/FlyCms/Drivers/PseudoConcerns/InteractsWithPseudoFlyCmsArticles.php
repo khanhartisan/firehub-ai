@@ -33,15 +33,26 @@ trait InteractsWithPseudoFlyCmsArticles
             return new PublishingResult(PublicationStatus::FAILED);
         }
 
-        $post = is_string($publication->reference) && $publication->reference !== ''
+        $contentHtml = $this->articleContentHtml($article);
+
+        if (! is_string($contentHtml) || $contentHtml === '') {
+            return new PublishingResult(PublicationStatus::ERROR, null, 'Article content is empty.');
+        }
+
+        $isUpdate = is_string($publication->reference) && $publication->reference !== '';
+        $payload = $this->postPayloadFromPublication($publication, $article, $contentHtml, $isUpdate);
+
+        $post = $isUpdate
             ? $this->updatePost((new UpdatePostData)->setData([
                 'id' => $publication->reference,
-                ...$this->postPayloadFromPublication($publication, $article),
+                ...$payload,
             ]))
             : $this->createPost((new CreatePostData)->setData([
+                'branch_id' => '01J00000000000000000000001',
+                'code' => $article->id,
                 'website_id' => $websiteId,
                 'slug' => $this->resolvePostSlug($article, $publication),
-                ...$this->postPayloadFromPublication($publication, $article),
+                ...$payload,
             ]));
 
         $postId = $post->get('id');
@@ -56,24 +67,59 @@ trait InteractsWithPseudoFlyCmsArticles
     /**
      * @return array<string, mixed>
      */
-    protected function postPayloadFromPublication(Publication $publication, Article $article): array
+    protected function postPayloadFromPublication(Publication $publication,
+                                                  Article $article,
+                                                  string $contentHtml,
+                                                  bool $isUpdate): array
     {
         $meta = is_array($publication->meta) ? $publication->meta : [];
 
         $title = $publication->title ?? $article->title;
         $description = $publication->description ?? $article->excerpt;
+        $lang = $this->resolveContentLang($article);
 
-        return array_filter([
+        $payload = array_filter([
             'title' => $title,
             'description' => $description,
-            'content' => $this->articleContentHtml($article),
+            'lang' => $lang,
             'seo_title' => $meta['seo_title'] ?? $title,
             'seo_description' => $meta['seo_description'] ?? $description,
             'visibility' => $meta['visibility'] ?? 'public',
             'restriction' => $meta['restriction'] ?? 0,
-            'tag_ids' => $meta['tag_ids'] ?? [],
             'thumbnail_file_id' => $article->thumbnail_file_id,
+            'content' => array_filter([
+                'lang' => $lang,
+                'title' => $title,
+                'description' => $description,
+                'content' => $contentHtml,
+            ], static fn (mixed $value): bool => $value !== null),
         ], static fn (mixed $value): bool => $value !== null);
+
+        return array_merge($payload, $this->resolvePublicationPostTags($publication, $article, $isUpdate));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function resolvePublicationPostTags(Publication $publication, Article $article, bool $isUpdate): array
+    {
+        $meta = is_array($publication->meta) ? $publication->meta : [];
+
+        if (isset($meta['tag_ids']) && is_array($meta['tag_ids'])) {
+            return ['tag_ids' => array_values($meta['tag_ids'])];
+        }
+
+        $tagNames = $article->tags
+            ->pluck('name')
+            ->filter(static fn (mixed $name): bool => is_string($name) && $name !== '')
+            ->values()
+            ->all();
+
+        if ($tagNames !== []) {
+            return ['tag_names' => $tagNames];
+        }
+
+        return $isUpdate ? ['tag_ids' => []] : [];
     }
 
     protected function resolvePostSlug(Article $article, Publication $publication): string
@@ -86,6 +132,11 @@ trait InteractsWithPseudoFlyCmsArticles
         }
 
         return 'post-'.Str::lower(substr($article->id, -8));
+    }
+
+    protected function resolveContentLang(Article $article): string
+    {
+        return $article->language?->value ?: 'default';
     }
 
     protected function articleContentHtml(Article $article): ?string

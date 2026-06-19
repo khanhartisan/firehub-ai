@@ -24,11 +24,15 @@ trait InteractsWithPosts
      */
     public function createPost(CreatePostData $createPostData): PostResource
     {
-        /** @var PostResource */
-        return $this->createResource(
-            PostResource::class,
-            $createPostData
-        );
+        $response = $this->sendApiRequest('POST', PostResource::resourceNamespace().':composite', [
+            'json' => $createPostData->toArray()['data'],
+        ]);
+
+        if (! $data = $this->parseResponseData($response)) {
+            throw new FlyCmsException('Failed to create post (Unknown error)');
+        }
+
+        return PostResource::fromArray($data);
     }
 
     /**
@@ -43,12 +47,17 @@ trait InteractsWithPosts
             throw new FlyCmsException('Post id is required for update.');
         }
 
-        /** @var PostResource */
-        return $this->updateResource(
-            PostResource::class,
-            $postId,
-            $updatePostData
-        );
+        unset($data['id']);
+
+        $response = $this->sendApiRequest('PATCH', PostResource::resourceNamespace().'/'.$postId.':composite', [
+            'json' => $data,
+        ]);
+
+        if (! $data = $this->parseResponseData($response)) {
+            throw new FlyCmsException('Failed to update post (Unknown error)');
+        }
+
+        return PostResource::fromArray($data);
     }
 
     /**

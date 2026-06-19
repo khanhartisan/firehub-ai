@@ -14,6 +14,29 @@ class Str extends \Illuminate\Support\Str
         'csv', 'txt', 'rtf',
     ];
 
+    public static function appendLimit(string $baseString,
+                                       string $appendString,
+                                       int $limit,
+                                       string $start = '...'): string
+    {
+        $newString = static::of($baseString.$appendString);
+
+        if ($newString->length() <= $limit) {
+            return $newString->toString();
+        }
+
+        $limit = abs($limit);
+        $startLength = strlen($start);
+        if ($limit <= $startLength) {
+            throw new \InvalidArgumentException('limit must be at least '.($startLength + 1));
+        }
+
+        return $newString
+            ->take(-1 * ($limit - $startLength))
+            ->prepend($start)
+            ->toString();
+    }
+
     /**
      * Sanitize and normalize the keyword to a canonical form.
      * - Convert to UTF-8 and strip BOM.

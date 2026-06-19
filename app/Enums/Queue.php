@@ -11,6 +11,7 @@ enum Queue: string
     case KEYWORD_RESEARCHING = 'keyword_researching';
     case PAGE_SCRAPING = 'page_scraping';
     case FILE_SCRAPING = 'file_scraping';
+    case PUBLISHING = 'publishing';
 
     case SCHEDULER = 'scheduler';
 

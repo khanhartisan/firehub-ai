@@ -50,3 +50,6 @@ Schedule::job(new \App\Jobs\ResolveIntentJob())->everyMinute();
 // Cascading jobs
 Schedule::job(new CascadeDelete)->everyMinute();
 Schedule::job(new CascadeRestore)->everyMinute();
+
+// Publishing jobs
+Schedule::job(new \App\Jobs\DispatchPublishingJob())->everyMinute();

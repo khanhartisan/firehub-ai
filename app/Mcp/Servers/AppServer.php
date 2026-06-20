@@ -75,12 +75,6 @@ class AppServer extends Server
 
     protected array $resources = [
         OverviewResource::class,
-        FlyCmsOverviewResource::class,
-        WebsiteGuidelinesResource::class,
-        PageGuidelinesResource::class,
-        MenuGuidelinesResource::class,
-        FileGuidelinesResource::class,
-        TagGuidelinesResource::class,
     ];
 
     protected array $prompts = [
@@ -95,6 +89,9 @@ class AppServer extends Server
     {
         $this->addMethod('tools/call', AppCallTool::class);
 
+        // Register resources
+        $this->registerFlyCmsResources();
+
         // Register tools
         $this->registerArticleTools();
         $this->registerAuthorTools();
@@ -102,6 +99,18 @@ class AppServer extends Server
         $this->registerClientTools();
         $this->registerPlatformTools();
         $this->registerPlatformManagerFlyCmsTools();
+    }
+
+    protected function registerFlyCmsResources(): void
+    {
+        $this->resources = array_merge($this->resources, [
+            FlyCmsOverviewResource::class,
+            WebsiteGuidelinesResource::class,
+            PageGuidelinesResource::class,
+            MenuGuidelinesResource::class,
+            FileGuidelinesResource::class,
+            TagGuidelinesResource::class,
+        ]);
     }
 
     protected function registerArticleTools(): void

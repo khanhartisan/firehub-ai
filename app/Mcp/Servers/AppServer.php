@@ -4,6 +4,7 @@ namespace App\Mcp\Servers;
 
 use App\Mcp\Resources\OverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\MenuGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\PageGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\TagGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\WebsiteGuidelinesResource;
@@ -76,6 +77,7 @@ class AppServer extends Server
         FlyCmsOverviewResource::class,
         WebsiteGuidelinesResource::class,
         PageGuidelinesResource::class,
+        MenuGuidelinesResource::class,
         TagGuidelinesResource::class,
     ];
 

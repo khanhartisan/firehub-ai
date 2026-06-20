@@ -75,7 +75,7 @@ Once the website is provisioned, manage FlyCMS entities through the channel:
 
 All CMS operations require `channel_id`.
 
-For tag-specific editorial rules, read `file://resources/tag-guidelines-resource` when available.
+For tag-specific editorial rules, read `file://resources/tag-guidelines-resource`.
 
 ## Access rules
 

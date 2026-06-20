@@ -54,7 +54,7 @@ class TagResource extends Resource
             'content' => $schema
                 ->string()
                 ->nullable()
-                ->description('Tag body content in HTML format'),
+                ->description('Tag body content in liquid template format'),
             'public_posts_count' => $schema
                 ->integer()
                 ->description('Posts count'),

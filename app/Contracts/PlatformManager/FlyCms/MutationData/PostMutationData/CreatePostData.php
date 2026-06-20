@@ -114,7 +114,7 @@ class CreatePostData extends MutationData
                 ->string()
                 ->required()
                 ->max(65536)
-                ->description('Post body in HTML format'),
+                ->description('Post body in liquid template format'),
         ];
     }
 }

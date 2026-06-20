@@ -87,7 +87,7 @@ MARKDOWN,
             [
                 'title' => 'Liquid template fields',
                 'content' => <<<'MARKDOWN'
-`seo_title`, `seo_description`, and `seo_h1` use **Liquid template syntax**. FlyCMS renders them in the context of the current tag page.
+`seo_title`, `seo_description`, `seo_h1`, and `content` are **parsed by the Liquid engine** before output. FlyCMS renders them in the context of the current tag page.
 
 ### Syntax
 
@@ -138,21 +138,27 @@ Examples:
 MARKDOWN,
             ],
             [
-                'title' => '`content` field (HTML)',
+                'title' => '`content` field (Liquid)',
                 'content' => <<<'MARKDOWN'
-`content` is **HTML**, not Liquid. Use it for a short introduction above the tag's post list.
+`content` is a **Liquid template** parsed by the same engine as the SEO fields. Use it for a short introduction above the tag's post list.
 
 Guidelines:
 
-1. Use semantic HTML: `<p>`, `<h2>`, `<ul>`, `<li>`, `<strong>`, etc.
-2. Keep it brief — a lead paragraph or short overview is enough.
-3. Do not paste full articles here; posts carry long-form content.
-4. Omit `content` when the tag archive does not need intro copy.
+1. Use `{{ tag.* }}` when intro copy should follow the tag record.
+2. Plain HTML without Liquid tags still works — the engine treats it as static markup.
+3. Treat `{{` and `{%` as Liquid syntax; they are interpreted, not passed through literally.
+4. Keep it brief — a lead paragraph or short overview is enough.
+5. Do not paste full articles here; posts carry long-form content.
+6. Omit `content` when the tag archive does not need intro copy.
 
-Example:
+Examples:
 
-```html
-<p>Browse our latest technology articles, tutorials, and product reviews.</p>
+```
+<p>Browse our latest {{ tag.name }} articles, tutorials, and product reviews.</p>
+```
+
+```
+<p>Technology tag landing page.</p>
 ```
 MARKDOWN,
             ],
@@ -180,7 +186,7 @@ MARKDOWN,
   "seo_title": "{{ tag.name }} | Sample Blog",
   "seo_description": "Read the latest technology posts on Sample Blog.",
   "seo_h1": "{{ tag.name }}",
-  "content": "<p>Technology tag landing page.</p>"
+  "content": "<p>Browse our latest {{ tag.name }} posts on Sample Blog.</p>"
 }
 ```
 

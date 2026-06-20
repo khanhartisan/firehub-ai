@@ -58,7 +58,7 @@ class CreateTagData extends MutationData
             'content' => $schema
                 ->string()
                 ->nullable()
-                ->description('Tag body content in HTML format. See resource: '.$this->getTagGuidelinesResourceName()),
+                ->description('Tag body content in liquid template format. See resource: '.$this->getTagGuidelinesResourceName()),
         ];
     }
 

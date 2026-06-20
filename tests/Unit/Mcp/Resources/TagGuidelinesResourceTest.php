@@ -31,6 +31,8 @@ class TagGuidelinesResourceTest extends TestCase
         $this->assertStringContainsString(McpToolName::quoted($tools['show']), $markdown);
         $this->assertStringContainsString(McpToolName::quoted($tools['publish_article']), $markdown);
         $this->assertStringContainsString('## Liquid template fields', $markdown);
+        $this->assertStringContainsString('parsed by the Liquid engine', $markdown);
+        $this->assertStringContainsString('## `content` field (Liquid)', $markdown);
     }
 
     public function test_resource_returns_rendered_guidelines(): void

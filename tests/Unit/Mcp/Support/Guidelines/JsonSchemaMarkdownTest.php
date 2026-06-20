@@ -25,7 +25,7 @@ class JsonSchemaMarkdownTest extends TestCase
         $this->assertStringContainsString('`slug`', $markdown);
         $this->assertStringContainsString('`seo_title`', $markdown);
         $this->assertStringContainsString('Liquid template', $markdown);
-        $this->assertStringContainsString('HTML', $markdown);
+        $this->assertStringContainsString('`content`', $markdown);
         $this->assertStringNotContainsString('`website_id`', $markdown);
         $this->assertStringNotContainsString('See resource:', $markdown);
     }

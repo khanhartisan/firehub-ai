@@ -20,7 +20,7 @@ class PostResource extends Resource
             'slug' => $schema->string()->description('Post URL slug'),
             'title' => $schema->string()->description('Post title'),
             'description' => $schema->string()->description('Post description'),
-            'content' => $schema->string()->description('Post content in HTML format'),
+            'content' => $schema->string()->description('Post content in liquid template format'),
             'seo_title' => $schema->string()->description('Post SEO title'),
             'seo_description' => $schema->string()->description('Post SEO description'),
             'visibility' => $schema

@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Resources\PlatformManagerResources\FlyCmsResources;
 
-use App\Contracts\PlatformManager\FlyCms\Guidelines\TagFlyCmsGuidelines;
+use App\Contracts\PlatformManager\FlyCms\Guidelines\PageFlyCmsGuidelines;
 use App\Mcp\Resources\OverviewResource;
 use App\Mcp\Support\PlatformManager\FlyCms\FlyCmsGuidelinesRenderer;
 use Laravel\Mcp\Request;
@@ -12,11 +12,11 @@ use Laravel\Mcp\Server\Attributes\MimeType;
 use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Attributes\Uri;
 
-#[Title('FlyCMS Tag Guidelines')]
-#[Description('Editorial and formatting rules for FlyCMS tag fields: identity, SEO liquid templates, and liquid content.')]
-#[Uri('file://resources/tag-guidelines-resource')]
+#[Title('FlyCMS Page Guidelines')]
+#[Description('Editorial and formatting rules for FlyCMS pages: slugs, titles, liquid SEO, and page content.')]
+#[Uri('file://resources/page-guidelines-resource')]
 #[MimeType('text/markdown')]
-class TagGuidelinesResource extends FlyCmsResource
+class PageGuidelinesResource extends FlyCmsResource
 {
     /**
      * @return list<class-string<\App\Mcp\Resources\Resource>>
@@ -32,7 +32,7 @@ class TagGuidelinesResource extends FlyCmsResource
     public function handle(Request $request): Response
     {
         return Response::text(FlyCmsGuidelinesRenderer::render(
-            TagFlyCmsGuidelines::class,
+            PageFlyCmsGuidelines::class,
             self::class,
             static::breadcrumbParents(),
         ));

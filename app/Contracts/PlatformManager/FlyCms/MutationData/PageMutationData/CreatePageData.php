@@ -3,12 +3,17 @@
 namespace App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData;
 
 use App\Contracts\PlatformManager\FlyCms\MutationData;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\PageGuidelinesResource;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 
 class CreatePageData extends MutationData
 {
+    protected string $pageGuidelinesResourceName;
+
     public function toJsonSchema(JsonSchema $schema): array
     {
+        $guidelines = $this->getPageGuidelinesResourceName();
+
         return [
             'website_id' => $schema
                 ->string()
@@ -17,7 +22,7 @@ class CreatePageData extends MutationData
             'slug' => $schema
                 ->string()
                 ->required()
-                ->description('Page URL slug in kebab-case'),
+                ->description('Page URL slug in kebab-case. See resource: '.$guidelines),
             'title' => $schema
                 ->string()
                 ->max(255)
@@ -27,17 +32,22 @@ class CreatePageData extends MutationData
                 ->string()
                 ->max(255)
                 ->nullable()
-                ->description('Page SEO title in liquid template format'),
+                ->description('Page SEO title in liquid template format. See resource: '.$guidelines),
             'seo_description' => $schema
                 ->string()
                 ->max(255)
                 ->nullable()
-                ->description('Page SEO description'),
+                ->description('Page SEO description in liquid template format. See resource: '.$guidelines),
             'content' => $schema
                 ->string()
                 ->max(255)
                 ->nullable()
-                ->description('Page content in liquid template format'),
+                ->description('Page content in liquid template format. See resource: '.$guidelines),
         ];
+    }
+
+    protected function getPageGuidelinesResourceName(): string
+    {
+        return $this->pageGuidelinesResourceName ??= new PageGuidelinesResource()->name();
     }
 }

@@ -55,7 +55,7 @@ class UpdatePostData extends CreatePostData
                 ->string()
                 ->nullable()
                 ->max(65536)
-                ->description('Post body in HTML format'),
+                ->description('Post body in liquid template format'),
         ];
     }
 }

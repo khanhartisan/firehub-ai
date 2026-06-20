@@ -6,6 +6,7 @@ use App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns\InteractsWithPseu
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns\InteractsWithPseudoFlyCmsDomains;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns\InteractsWithPseudoFlyCmsFiles;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns\InteractsWithPseudoFlyCmsMenus;
+use App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns\InteractsWithPseudoFlyCmsMeta;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns\InteractsWithPseudoFlyCmsPages;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns\InteractsWithPseudoFlyCmsPosts;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns\InteractsWithPseudoFlyCmsRoles;
@@ -22,6 +23,7 @@ class PseudoFlyCmsDriver extends FlyCmsService
     use InteractsWithPseudoFlyCmsDomains;
     use InteractsWithPseudoFlyCmsFiles;
     use InteractsWithPseudoFlyCmsMenus;
+    use InteractsWithPseudoFlyCmsMeta;
     use InteractsWithPseudoFlyCmsPages;
     use InteractsWithPseudoFlyCmsPosts;
     use InteractsWithPseudoFlyCmsRoles;

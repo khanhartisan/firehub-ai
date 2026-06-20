@@ -6,6 +6,7 @@ use App\Contracts\PlatformManager\ArticlePlatformManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\DomainManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\FileManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\MenuManager;
+use App\Contracts\PlatformManager\FlyCms\Managers\MetaManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\PageManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\PostManager;
 use App\Contracts\PlatformManager\FlyCms\Managers\RoleManager;
@@ -22,6 +23,7 @@ interface FlyCms
     DomainManager,
     FileManager,
     MenuManager,
+    MetaManager,
     PageManager,
     PostManager,
     RoleManager,

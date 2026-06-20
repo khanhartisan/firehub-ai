@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\PlatformManager\FlyCms\Drivers;
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
+use App\Contracts\PlatformManager\FlyCms\Filters\MetaFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\PostFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\RoleFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
@@ -19,6 +20,7 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\RoleMutationData\CreateRol
 use App\Contracts\PlatformManager\FlyCms\MutationData\RoleMutationData\UpdateRoleData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\CreateMenuData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\MenuMutationData\UpdateMenuData;
+use App\Contracts\PlatformManager\FlyCms\MutationData\MetaMutationData\PutMetaData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\CreatePageData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PageMutationData\UpdatePageData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
@@ -66,6 +68,92 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame('active', $website->getData()['status']);
         $this->assertSame('01J00000000000000000000081', $website->getData()['theme_id']);
         $this->assertSame('Sample Blog', $website->getData()['meta']['site-name']);
+    }
+
+    public function test_put_meta_upserts_website_meta(): void
+    {
+        $websiteId = '01J00000000000000000000001';
+
+        $putMetaData = (new PutMetaData)->setData([
+            'metable_type' => 'website',
+            'metable_id' => $websiteId,
+            'meta' => [
+                ['key' => 'site-name', 'value' => 'Updated Blog'],
+                ['key' => 'home-seo-title', 'value' => 'Updated Home Title'],
+            ],
+        ]);
+
+        $metaResources = $this->driver->putMeta($putMetaData);
+
+        $this->assertCount(2, $metaResources);
+        $this->assertSame('Updated Blog', $metaResources[0]->getData()['value']);
+        $this->assertSame('site-name', $metaResources[0]->getData()['key']);
+
+        $website = $this->driver->showWebsite($websiteId);
+
+        $this->assertSame('Updated Blog', $website->getData()['meta']['site-name']);
+        $this->assertSame('Updated Home Title', $website->getData()['meta']['home-seo-title']);
+        $this->assertSame('10', $website->getData()['meta']['items-per-page']);
+    }
+
+    public function test_put_meta_throws_for_unknown_website(): void
+    {
+        $putMetaData = (new PutMetaData)->setData([
+            'metable_type' => 'website',
+            'metable_id' => 'unknown-id',
+            'meta' => [
+                ['key' => 'site-name', 'value' => 'Updated Blog'],
+            ],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Website [unknown-id] not found.');
+
+        $this->driver->putMeta($putMetaData);
+    }
+
+    public function test_list_meta_filters_by_website(): void
+    {
+        $websiteId = '01J00000000000000000000001';
+        $meta = $this->driver->listMeta('website', $websiteId);
+
+        $this->assertNotEmpty($meta);
+        $this->assertContainsOnlyInstancesOf(\App\Contracts\PlatformManager\FlyCms\Resources\MetaResource::class, $meta);
+
+        foreach ($meta as $record) {
+            $data = $record->getData();
+            $this->assertSame('website', $data['metable_type']);
+            $this->assertSame($websiteId, $data['metable_id']);
+        }
+
+        $siteName = collect($meta)->first(
+            static fn ($record): bool => $record->getData()['key'] === 'site-name'
+        );
+
+        $this->assertNotNull($siteName);
+        $this->assertSame('Sample Blog', $siteName->getData()['value']);
+    }
+
+    public function test_delete_meta_removes_record_and_website_meta(): void
+    {
+        $websiteId = '01J00000000000000000000001';
+        $meta = $this->driver->listMeta(
+            'website',
+            $websiteId,
+            metaFilter: (new MetaFilter)->setFilterData(['key' => 'site-name'])
+        );
+
+        $this->assertCount(1, $meta);
+        $metaId = $meta[0]->getData()['id'];
+
+        $this->assertTrue($this->driver->deleteMeta($metaId));
+        $this->assertFalse($this->driver->deleteMeta($metaId));
+        $this->assertNull(collect($this->driver->listMeta(
+            'website',
+            $websiteId,
+            metaFilter: (new MetaFilter)->setFilterData(['key' => 'site-name'])
+        ))->first());
+        $this->assertArrayNotHasKey('site-name', $this->driver->showWebsite($websiteId)->getData()['meta']);
     }
 
     public function test_show_website_returns_null_for_unknown_id(): void

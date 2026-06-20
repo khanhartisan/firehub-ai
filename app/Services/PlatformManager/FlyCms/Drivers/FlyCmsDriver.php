@@ -11,6 +11,7 @@ use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithArti
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithDomains;
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithFiles;
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithMenus;
+use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithMeta;
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithPages;
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithPosts;
 use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithRoles;
@@ -32,6 +33,7 @@ class FlyCmsDriver extends FlyCmsService
     use InteractsWithDomains;
     use InteractsWithFiles;
     use InteractsWithMenus;
+    use InteractsWithMeta;
     use InteractsWithPages;
     use InteractsWithPosts;
     use InteractsWithRoles;

@@ -140,6 +140,7 @@ Platform-specific access rules are documented in each platform overview resource
 |-----|---------|
 | `app://overview` | This document |
 | `platform-manager://flycms/overview` | FlyCMS setup, concepts, and access rules |
+| `file://resources/website-guidelines-resource` | Editorial guidelines for FlyCMS website provisioning |
 | `file://resources/tag-guidelines-resource` | Editorial guidelines for FlyCMS tags |
 
 ## Practical tips

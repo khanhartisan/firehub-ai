@@ -58,14 +58,14 @@ Most FlyCMS tools require `channel_id` and will fail if the website is not provi
 
 1. Pick a FlyCMS platform.
 2. Create a channel linking the client to that platform.
-3. Provision a website on the channel (stores the website ID in `channel.reference`).
+3. Provision a website on the channel (stores the website ID in `channel.reference`). Read `file://resources/website-guidelines-resource` for route and theme setup.
 4. Choose a theme and apply it to the website.
 
 ### Manage CMS content
 
 Once the website is provisioned, manage FlyCMS entities through the channel:
 
-- **Website** — view or update site settings
+- **Website** — view or update site settings (see `file://resources/website-guidelines-resource`)
 - **Domains** — list or inspect domains attached to the website
 - **Pages** — create, update, list, or delete content pages
 - **Tags** — manage taxonomy labels (see tag guidelines resource for editorial rules)
@@ -75,7 +75,7 @@ Once the website is provisioned, manage FlyCMS entities through the channel:
 
 All CMS operations require `channel_id`.
 
-For tag-specific editorial rules, read `file://resources/tag-guidelines-resource`.
+For website provisioning rules, read `file://resources/website-guidelines-resource`. For tag-specific editorial rules, read `file://resources/tag-guidelines-resource`.
 
 ## Access rules
 

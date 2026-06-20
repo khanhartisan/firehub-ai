@@ -5,6 +5,7 @@ namespace App\Mcp\Servers;
 use App\Mcp\Resources\OverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\TagGuidelinesResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\WebsiteGuidelinesResource;
 use App\Mcp\Server\Methods\AppCallTool;
 use App\Mcp\Tools\ArticleTools\CreateArticleTool;
 use App\Mcp\Tools\ArticleTools\ListArticlesTool;
@@ -72,6 +73,7 @@ class AppServer extends Server
     protected array $resources = [
         OverviewResource::class,
         FlyCmsOverviewResource::class,
+        WebsiteGuidelinesResource::class,
         TagGuidelinesResource::class,
     ];
 

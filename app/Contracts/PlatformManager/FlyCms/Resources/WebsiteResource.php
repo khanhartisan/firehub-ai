@@ -82,6 +82,14 @@ class WebsiteResource extends Resource implements MetableResource
                 ->string()
                 ->nullable()
                 ->description('Home SEO Description (liquid template format)'),
+            'author-seo-title' => $schema
+                ->string()
+                ->nullable()
+                ->description('Author SEO Title (liquid template format)'),
+            'author-seo-description' => $schema
+                ->string()
+                ->nullable()
+                ->description('Author SEO Description (liquid template format)'),
             'tag-seo-title' => $schema
                 ->string()
                 ->nullable()

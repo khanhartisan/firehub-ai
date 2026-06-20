@@ -143,6 +143,7 @@ Platform-specific access rules are documented in each platform overview resource
 | `file://resources/website-guidelines-resource` | Editorial guidelines for FlyCMS website provisioning |
 | `file://resources/page-guidelines-resource` | Editorial guidelines for FlyCMS pages |
 | `file://resources/menu-guidelines-resource` | Editorial guidelines for FlyCMS menus |
+| `file://resources/file-guidelines-resource` | Editorial guidelines for FlyCMS file uploads |
 | `file://resources/tag-guidelines-resource` | Editorial guidelines for FlyCMS tags |
 
 ## Practical tips

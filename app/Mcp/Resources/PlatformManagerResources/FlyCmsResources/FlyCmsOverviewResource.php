@@ -70,12 +70,12 @@ Once the website is provisioned, manage FlyCMS entities through the channel:
 - **Pages** — create, update, list, or delete content pages (see `file://resources/page-guidelines-resource`)
 - **Tags** — manage taxonomy labels (see `file://resources/tag-guidelines-resource`)
 - **Menus** — manage navigation structures (see `file://resources/menu-guidelines-resource`)
-- **Files** — upload and manage media assets
+- **Files** — upload and manage media assets (see `file://resources/file-guidelines-resource`)
 - **Themes** — browse available themes during setup
 
 All CMS operations require `channel_id`.
 
-For website provisioning rules, read `file://resources/website-guidelines-resource`. For page editorial rules, read `file://resources/page-guidelines-resource`. For menu navigation rules, read `file://resources/menu-guidelines-resource`. For tag-specific editorial rules, read `file://resources/tag-guidelines-resource`.
+For website provisioning rules, read `file://resources/website-guidelines-resource`. For page editorial rules, read `file://resources/page-guidelines-resource`. For menu navigation rules, read `file://resources/menu-guidelines-resource`. For file upload rules, read `file://resources/file-guidelines-resource`. For tag-specific editorial rules, read `file://resources/tag-guidelines-resource`.
 
 ## Access rules
 

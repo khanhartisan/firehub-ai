@@ -210,7 +210,7 @@ MARKDOWN,
                     "1. **Create tags before publishing articles** — use %s to publish posts to the website.\n"
                     ."2. **Reuse website SEO defaults** — leave `seo_title` / `seo_description` null unless a tag needs custom metadata.\n"
                     ."3. **Use `is_featured` sparingly** — reserve featured tags for homepage or navigation highlights.\n"
-                    .'4. **Upload thumbnails first** — use %s or %s, then pass `thumbnail_file_id` when creating the tag.'."\n"
+                    .'4. **Upload thumbnails first** — read `file://resources/file-guidelines-resource`, then use %s or %s and pass `thumbnail_file_id` when creating the tag.'."\n"
                     .'5. **Inspect results** — use %s after create/update to verify rendered fields.',
                     McpToolName::quoted($relatedTools['publish_article']),
                     McpToolName::quoted($relatedTools['create_file']),

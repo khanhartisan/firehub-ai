@@ -7,6 +7,9 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\Update
 use App\Contracts\PlatformManager\FlyCms\ProvidesFlyCmsGuidelines;
 use App\Contracts\PlatformManager\FlyCms\Resources\WebsiteResource;
 use App\Mcp\Support\McpToolName;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\DeleteMetaTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\ListMetaTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\PutMetaTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\ThemeTools\ListThemesTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\ThemeTools\ShowThemeTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\WebsiteTools\CreateWebsiteTool;
@@ -26,6 +29,9 @@ class WebsiteFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
             'create' => CreateWebsiteTool::class,
             'update' => UpdateWebsiteTool::class,
             'show' => ShowWebsiteTool::class,
+            'list_meta' => ListMetaTool::class,
+            'put_meta' => PutMetaTool::class,
+            'delete_meta' => DeleteMetaTool::class,
             'list_themes' => ListThemesTool::class,
             'show_theme' => ShowThemeTool::class,
         ];

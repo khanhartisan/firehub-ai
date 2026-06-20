@@ -42,6 +42,9 @@ use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\DeleteMenuTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\ListMenusTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\ShowMenuTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MenuTools\UpdateMenuTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\DeleteMetaTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\ListMetaTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\PutMetaTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools\CreatePageTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools\DeletePageTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\PageTools\ListPagesTool;
@@ -175,6 +178,11 @@ class AppServer extends Server
             CreateWebsiteTool::class,
             ShowWebsiteTool::class,
             UpdateWebsiteTool::class,
+
+            // Meta tools
+            ListMetaTool::class,
+            PutMetaTool::class,
+            DeleteMetaTool::class,
 
             // Domain tools
             ShowDomainTool::class,

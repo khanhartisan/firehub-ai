@@ -10,6 +10,7 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\CreateUse
 use App\Contracts\PlatformManager\FlyCms\Resources\DomainResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\FileResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\MenuResource;
+use App\Contracts\PlatformManager\FlyCms\Resources\MetaResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\PageResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\RoleResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
@@ -252,5 +253,19 @@ abstract class FlyCmsTool extends PlatformManagerTool
         }
 
         return $file;
+    }
+
+    protected function resolveMetaForChannel(Channel $channel, User $user, string $metaId): MetaResource
+    {
+        $flycms = $this->getFlyCmsManager($channel, $user);
+        $websiteId = $this->requireFlyCmsWebsiteId($channel);
+
+        foreach ($flycms->listMeta('website', $websiteId) as $meta) {
+            if (($meta->get('id') ?? null) === $metaId) {
+                return $meta;
+            }
+        }
+
+        throw new McpToolException("Meta [{$metaId}] not found.");
     }
 }

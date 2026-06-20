@@ -169,23 +169,33 @@ Use `tools/list` or tool descriptions for the full catalog.
 
 ### Clients
 
+Editorial tenants (brands).
+
 - {$clientTools}
 
 ### Authors
+
+Writing personas for a client.
 
 - {$authorTools}
 
 ### Articles
 
+AI-built content for a client.
+
 - {$articleTools}
-
-### Channels
-
-- {$channelTools}
 
 ### Platforms
 
+External publishing backend (e.g. FlyCMS).
+
 - {$listPlatforms}, {$createPlatform} (super), {$updatePlatform} (super), {$updatePlatformConfig} (super)
+
+### Channels
+
+A client's publishing channel on a platform.
+
+- {$channelTools}
 
 ## Pagination
 
@@ -208,13 +218,6 @@ Errors are tool errors with clear messages (missing access, invalid IDs, etc.).
 | Platform write | Super user only (`is_super`) |
 
 Platform-specific rules live in each platform overview.
-
-## MCP resources
-
-| URI | Purpose |
-|-----|---------|
-| `{$overviewUri}` | This document |
-| `{$flyCmsOverviewUri}` | FlyCMS setup, concepts, tools, and access rules |
 
 ## Practical tips
 

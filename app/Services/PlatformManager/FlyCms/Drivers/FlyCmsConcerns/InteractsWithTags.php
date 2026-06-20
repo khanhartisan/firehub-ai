@@ -8,8 +8,8 @@ use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\BaseTagMutationData\CreateBaseTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\CreateTagData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\TagMutationData\UpdateTagData;
+use App\Contracts\PlatformManager\FlyCms\Resources\BaseTagResource;
 use App\Contracts\PlatformManager\FlyCms\Resources\TagResource;
-use App\Http\Resources\BaseTagResource;
 
 trait InteractsWithTags
 {
@@ -49,6 +49,7 @@ trait InteractsWithTags
 
         // Otherwise create new
         $createTagData = $createTagData->getData();
+        $createTagData['tag_id'] = $baseTag->get('id');
         $createTagData['name'] = $createTagData['display_name'];
         unset($createTagData['display_name']);
         $response = $this->sendApiRequest('POST', TagResource::resourceNamespace(), [

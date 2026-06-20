@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Contracts\PlatformManager\FlyCms\Resources;
 
 use App\Contracts\PlatformManager\FlyCms\Resource;
 use Illuminate\Contracts\JsonSchema\JsonSchema;

@@ -2,6 +2,8 @@
 
 namespace App\Mcp\Resources\PlatformManagerResources\FlyCmsResources;
 
+use App\Mcp\Resources\OverviewResource;
+use App\Mcp\Support\Guidelines\McpResourceReference;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -22,14 +24,21 @@ class FlyCmsOverviewResource extends FlyCmsResource
 
     private static function content(): string
     {
-        return <<<'MARKDOWN'
+        $overviewUri = McpResourceReference::fromResourceClass(OverviewResource::class)['uri'];
+        $websiteGuidelinesUri = McpResourceReference::fromResourceClass(WebsiteGuidelinesResource::class)['uri'];
+        $pageGuidelinesUri = McpResourceReference::fromResourceClass(PageGuidelinesResource::class)['uri'];
+        $tagGuidelinesUri = McpResourceReference::fromResourceClass(TagGuidelinesResource::class)['uri'];
+        $menuGuidelinesUri = McpResourceReference::fromResourceClass(MenuGuidelinesResource::class)['uri'];
+        $fileGuidelinesUri = McpResourceReference::fromResourceClass(FileGuidelinesResource::class)['uri'];
+
+        return <<<MARKDOWN
 # FlyCMS Platform Overview
 
-Read this resource when working with FlyCMS channels and CMS content. For the general MCP domain model (clients, articles, channels), start with `app://overview`.
+FlyCMS channels and CMS content. For clients, articles, and channels, start with `{$overviewUri}`.
 
 ## How FlyCMS fits in
 
-A **channel** links a client to a FlyCMS **platform**. Once provisioned, the channel's `reference` field stores the FlyCMS **website ID**.
+A **channel** links a client to a FlyCMS **platform**. After provisioning, `channel.reference` holds the FlyCMS **website ID**.
 
 ```
 Channel (client + flycms platform)
@@ -44,59 +53,57 @@ Channel (client + flycms platform)
 
 ## Prerequisites
 
-Before using FlyCMS tools, ensure:
+Before FlyCMS tools:
 
-1. A channel exists linking the client to a platform with `type = flycms`.
-2. The user has access to the channel's client.
-3. A website is provisioned on the channel, which sets `channel.reference` to the FlyCMS website ID.
+1. Channel linking the client to a `type = flycms` platform.
+2. User access to the channel's client.
+3. Provisioned website (`channel.reference` set).
 
-Most FlyCMS tools require `channel_id` and will fail if the website is not provisioned. Use `tools/list` to discover available FlyCMS tools (prefixed `platform-manager--flycms--`).
+Most tools require `channel_id` and fail without a provisioned website. Discover tools via `tools/list` (prefix `platform-manager--flycms--`).
 
 ## Recommended workflows
 
 ### Set up FlyCMS publishing
 
 1. Pick a FlyCMS platform.
-2. Create a channel linking the client to that platform.
-3. Provision a website on the channel (stores the website ID in `channel.reference`). Read `file://resources/website-guidelines-resource` for route and theme setup.
-4. Choose a theme and apply it to the website.
+2. Create a channel for the client.
+3. Provision a website (sets `channel.reference`). See `{$websiteGuidelinesUri}` for routes and theme setup.
+4. Choose and apply a theme.
 
 ### Manage CMS content
 
-Once the website is provisioned, manage FlyCMS entities through the channel:
+After provisioning, manage entities via the channel (all require `channel_id`):
 
-- **Website** — view or update site settings (see `file://resources/website-guidelines-resource`)
-- **Domains** — list or inspect domains attached to the website
-- **Pages** — create, update, list, or delete content pages (see `file://resources/page-guidelines-resource`)
-- **Tags** — manage taxonomy labels (see `file://resources/tag-guidelines-resource`)
-- **Menus** — manage navigation structures (see `file://resources/menu-guidelines-resource`)
-- **Files** — upload and manage media assets (see `file://resources/file-guidelines-resource`)
-- **Themes** — browse available themes during setup
-
-All CMS operations require `channel_id`.
-
-For website provisioning rules, read `file://resources/website-guidelines-resource`. For page editorial rules, read `file://resources/page-guidelines-resource`. For menu navigation rules, read `file://resources/menu-guidelines-resource`. For file upload rules, read `file://resources/file-guidelines-resource`. For tag-specific editorial rules, read `file://resources/tag-guidelines-resource`.
+| Entity | Operations | Guidelines |
+|--------|------------|------------|
+| Website | view, update | `{$websiteGuidelinesUri}` |
+| Domains | list, inspect | — |
+| Pages | CRUD | `{$pageGuidelinesUri}` |
+| Tags | CRUD | `{$tagGuidelinesUri}` |
+| Menus | CRUD | `{$menuGuidelinesUri}` |
+| Files | upload, manage | `{$fileGuidelinesUri}` |
+| Themes | browse during setup | `{$websiteGuidelinesUri}` |
 
 ## Access rules
 
 | Scope | Rule |
 |-------|------|
-| Channel | Must belong to a client the user can access |
-| Platform type | Channel platform must be `flycms` |
-| Website | `channel.reference` must be set (website provisioned) |
-| Website-scoped resources | Tags, menus, pages, domains must belong to the channel's website |
-| Files | Must belong to the user's FlyCMS user scope on the platform |
+| Channel | Client accessible to user |
+| Platform type | Must be `flycms` |
+| Website | `channel.reference` must be set |
+| Website-scoped resources | Tags, menus, pages, domains belong to channel website |
+| Files | Belong to user's FlyCMS user scope |
 
 ## Authentication model
 
-FlyCMS tools act on behalf of the authenticated MCP user. The server provisions a per-user FlyCMS API key on first use and scopes file operations to that user.
+Tools act as the authenticated MCP user. The server provisions a per-user FlyCMS API key on first use; file operations are scoped to that user.
 
 ## Practical tips
 
-1. **Provision first** — create the website on a new channel before other CMS operations.
-2. **Always pass `channel_id`** — it is required on every FlyCMS tool.
-3. **Read tool schemas** — mutation tools accept structured payloads; inspect each tool's input schema before calling.
-4. **Use themes early** — pick and apply a theme during website setup before creating pages.
+1. **Provision first** — create the website before other CMS work.
+2. **Always pass `channel_id`** — required on every FlyCMS tool.
+3. **Read tool schemas** — mutation tools use structured payloads; inspect input schemas before calling.
+4. **Pick a theme early** — apply during website setup, before pages.
 MARKDOWN;
     }
 }

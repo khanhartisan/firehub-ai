@@ -38,11 +38,11 @@ class TagFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
         $relatedTools = static::relatedTools();
 
         return sprintf(
-            'Read this resource before creating or updating FlyCMS tags with %s.',
+            'Use with %s when creating or updating FlyCMS tags.',
             McpToolName::quotedFromMap($relatedTools, 'create', 'update'),
         )."\n\n"
-        ."For channel setup and website provisioning, start with `platform-manager://flycms/overview`.\n\n"
-        .'`website_id` is set automatically from the channel reference; do not rely on passing a different website ID in MCP tools.';
+        ."For channel setup, see `platform-manager://flycms/overview`.\n\n"
+        .'`website_id` comes from `channel.reference`; do not pass a different website ID.';
     }
 
     public static function createMutationDataClass(): string
@@ -78,61 +78,46 @@ class TagFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
             [
                 'title' => 'Identity rules',
                 'content' => <<<'MARKDOWN'
-1. **Pick `name` carefully** — it is the canonical tag identity and is fixed after creation.
-2. **Use `display_name` for public wording** — update this when the label shown on the site should change without creating a new tag.
-3. **Keep `slug` in kebab-case** — lowercase words separated by hyphens, e.g. `weekend-travel`, `ai-tools`.
-4. **Keep `description` concise** — one sentence is usually enough; it is plain text, not HTML or Liquid.
+1. **`name`** — canonical identity; fixed after creation.
+2. **`display_name`** — public label without creating a new tag.
+3. **`slug`** — kebab-case, e.g. `weekend-travel`, `ai-tools`.
+4. **`description`** — one plain-text sentence; not HTML or Liquid.
 MARKDOWN,
             ],
             [
                 'title' => 'Liquid template fields',
                 'content' => <<<'MARKDOWN'
-`seo_title`, `seo_description`, `seo_h1`, and `content` are **parsed by the Liquid engine** before output. FlyCMS renders them in the context of the current tag page.
+`seo_title`, `seo_description`, `seo_h1`, and `content` are **parsed by the Liquid engine** in tag context.
 
 ### Syntax
 
-- Output a value: `{{ tag.field }}`
-- Literal text mixed with variables: `{{ tag.name }} | Sample Blog`
-- Leave a field `null` to fall back to website-level defaults in website meta:
-  - `tag-seo-title`
-  - `tag-seo-description`
-
-Set explicit per-tag values when a tag needs custom SEO or heading copy.
+- Output: `{{ tag.field }}`
+- Mixed text: `{{ tag.name }} | Sample Blog`
+- `null` SEO falls back to website meta `tag-seo-title` / `tag-seo-description`
 
 ### Available `tag` variables
 
 | Variable | Description |
 |----------|-------------|
-| `{{ tag.name }}` | Tag display name shown on the site |
-| `{{ tag.display_name }}` | Same public label as `tag.name` when set |
-| `{{ tag.slug }}` | Tag URL slug |
-| `{{ tag.description }}` | Short tag description, if set |
+| `{{ tag.name }}` | Tag display name |
+| `{{ tag.display_name }}` | Same as `tag.name` when set |
+| `{{ tag.slug }}` | URL slug |
+| `{{ tag.description }}` | Short description |
 
-Prefer `{{ tag.name }}` for titles and headings unless you need another field.
+Prefer `{{ tag.name }}` for titles and headings.
 
-### `seo_title` and `seo_description`
+### `seo_title` / `seo_description`
 
-- Write for search results and browser tabs.
-- Keep titles short and specific to the tag topic.
-- Descriptions should summarize what readers will find in that tag archive.
+Search/browser copy. Keep titles short; descriptions summarize the tag archive.
+
+### `seo_h1`
+
+Primary on-page heading. Plain text or HTML when the theme expects rich markup.
 
 Examples:
 
 ```
 {{ tag.name }} | Sample Blog
-Read the latest {{ tag.name }} posts on Sample Blog.
-```
-
-### `seo_h1`
-
-- Controls the primary on-page heading.
-- Liquid output is injected into the page heading area; plain text is usually enough.
-- You may include HTML when the theme expects rich heading markup.
-
-Examples:
-
-```
-{{ tag.name }}
 <h1>{{ tag.name }}</h1>
 ```
 MARKDOWN,
@@ -140,16 +125,13 @@ MARKDOWN,
             [
                 'title' => '`content` field (Liquid)',
                 'content' => <<<'MARKDOWN'
-`content` is a **Liquid template** parsed by the same engine as the SEO fields. Use it for a short introduction above the tag's post list.
+`content` is a **Liquid template** for a short intro above the post list.
 
-Guidelines:
-
-1. Use `{{ tag.* }}` when intro copy should follow the tag record.
-2. Plain HTML without Liquid tags still works — the engine treats it as static markup.
-3. Treat `{{` and `{%` as Liquid syntax; they are interpreted, not passed through literally.
-4. Keep it brief — a lead paragraph or short overview is enough.
-5. Do not paste full articles here; posts carry long-form content.
-6. Omit `content` when the tag archive does not need intro copy.
+1. Use `{{ tag.* }}` when copy should track the tag record.
+2. Plain HTML without Liquid tags works as static markup.
+3. `{{` and `{%` are interpreted as Liquid syntax.
+4. Keep brief — a lead paragraph is enough; posts carry long-form content.
+5. Omit when no intro copy is needed.
 
 Examples:
 
@@ -207,11 +189,11 @@ MARKDOWN,
             [
                 'title' => 'Practical tips',
                 'content' => sprintf(
-                    "1. **Create tags before publishing articles** — use %s to publish posts to the website.\n"
-                    ."2. **Reuse website SEO defaults** — leave `seo_title` / `seo_description` null unless a tag needs custom metadata.\n"
-                    ."3. **Use `is_featured` sparingly** — reserve featured tags for homepage or navigation highlights.\n"
-                    .'4. **Upload thumbnails first** — read `file://resources/file-guidelines-resource`, then use %s or %s and pass `thumbnail_file_id` when creating the tag.'."\n"
-                    .'5. **Inspect results** — use %s after create/update to verify rendered fields.',
+                    "1. **Tags before publishing** — %s publishes posts to the website.\n"
+                    ."2. **Reuse SEO defaults** — leave `seo_title` / `seo_description` null when possible.\n"
+                    ."3. **`is_featured` sparingly** — reserve for homepage/navigation highlights.\n"
+                    .'4. **Thumbnails first** — see `file://resources/file-guidelines-resource`, then %s or %s; pass `thumbnail_file_id`.'."\n"
+                    .'5. **Verify** — %s after create/update.',
                     McpToolName::quoted($relatedTools['publish_article']),
                     McpToolName::quoted($relatedTools['create_file']),
                     McpToolName::quoted($relatedTools['list_files']),

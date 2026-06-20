@@ -36,12 +36,12 @@ class PageFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
         $relatedTools = static::relatedTools();
 
         return sprintf(
-            'Read this resource before creating or updating FlyCMS pages with %s.',
+            'Use with %s when creating or updating FlyCMS pages.',
             McpToolName::quotedFromMap($relatedTools, 'create', 'update'),
         )."\n\n"
-        .'Pages are static CMS content served at the website `page_route` (for example `/page/{page}`). Provision the website first — see `file://resources/website-guidelines-resource`.'."\n\n"
-        .'`website_id` is set automatically from the channel reference; do not rely on passing a different website ID in MCP tools.'."\n\n"
-        .'Only the **mutation payload reference** and **response fields** sections are generated from FlyCMS contracts.';
+        .'Static CMS pages served at `page_route` (e.g. `/page/{page}`). Provision the website first — see `file://resources/website-guidelines-resource`.'."\n\n"
+        .'`website_id` comes from `channel.reference`; do not pass a different website ID.'."\n\n"
+        .'Schema tables below are generated from FlyCMS contracts.';
     }
 
     public static function createMutationDataClass(): string
@@ -80,7 +80,7 @@ class PageFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
             [
                 'title' => 'What FlyCMS pages are',
                 'content' => <<<'MARKDOWN'
-A **page** is a custom static content page on a FlyCMS website — for example About, Contact, or Shipping Policy.
+Custom static pages — About, Contact, policies, etc.
 
 ```
 Website
@@ -90,32 +90,30 @@ Website
       ├── seo_title / seo_description / content (all parsed by Liquid)
 ```
 
-**Pages vs posts vs tags.** Pages are standalone editorial content with a fixed slug. Posts are article-driven publishing output. Tags are taxonomy archive landing pages.
+**Pages vs posts vs tags.** Pages are fixed-slug editorial content; posts are published articles; tags are taxonomy archives.
 
-**Menus.** Pages are often linked from menus using a relative path (for example `/page/about`) or a full URL.
+**Menus.** Link pages with relative paths (e.g. `/page/about`) or full URLs.
 MARKDOWN,
             ],
             [
                 'title' => 'Identity rules',
                 'content' => <<<'MARKDOWN'
-1. **Pick a clear `slug`** — kebab-case URL segment, e.g. `about-us`, `privacy-policy`.
-2. **Use `title` for the editorial page name** — shown in CMS output and often used in SEO templates.
-3. **Keep slugs stable** — changing a slug after publishing breaks existing links and menu entries.
-4. **Match the website route** — the public URL is built from `page_route` on the website plus the page slug.
+1. **`slug`** — kebab-case URL segment, e.g. `about-us`, `privacy-policy`.
+2. **`title`** — editorial name; often used in SEO templates.
+3. **Stable slugs** — changes break links and menu entries.
+4. **Match `page_route`** — public URL = website route + slug.
 MARKDOWN,
             ],
             [
                 'title' => 'Liquid template fields',
                 'content' => <<<'MARKDOWN'
-`seo_title`, `seo_description`, and `content` are **parsed by the Liquid engine** before output. FlyCMS renders them in the context of the current page.
+`seo_title`, `seo_description`, and `content` are **parsed by the Liquid engine** in page context.
 
 ### Syntax
 
-- Output a value: `{{ page.field }}`
-- Literal text mixed with variables: `{{ page.title }} | Sample Blog`
-- Leave `seo_title` or `seo_description` `null` to fall back to website meta defaults:
-  - `page-seo-title`
-  - `page-seo-description`
+- Output: `{{ page.field }}`
+- Mixed text: `{{ page.title }} | Sample Blog`
+- `null` SEO falls back to website meta `page-seo-title` / `page-seo-description`
 
 ### Available `page` variables
 
@@ -124,7 +122,7 @@ MARKDOWN,
 | `{{ page.title }}` | Page title |
 | `{{ page.slug }}` | Page URL slug |
 
-Prefer `{{ page.title }}` in SEO fields unless you need another value.
+Prefer `{{ page.title }}` unless another field is needed.
 
 SEO examples:
 
@@ -137,14 +135,12 @@ MARKDOWN,
             [
                 'title' => '`content` field (Liquid)',
                 'content' => <<<'MARKDOWN'
-`content` is a **Liquid template** parsed by the same engine as the SEO fields. Use it for the page body.
+`content` is a **Liquid template** for the page body (same engine as SEO fields).
 
-Guidelines:
-
-1. Use `{{ page.* }}` for copy that should follow the page record.
-2. Plain HTML without Liquid tags still works — the engine treats it as static markup.
-3. Treat `{{` and `{%` as Liquid syntax; they are interpreted, not passed through literally.
-4. Omit `content` when the theme supplies the page body.
+1. Use `{{ page.* }}` when copy should track the page record.
+2. Plain HTML without Liquid tags works as static markup.
+3. `{{` and `{%` are interpreted as Liquid syntax.
+4. Omit `content` when the theme supplies the body.
 
 Examples:
 
@@ -194,18 +190,18 @@ MARKDOWN,
 }
 ```
 
-Plain HTML and text in `content` still pass through the Liquid engine; they simply have no `{{` or `{%` tags to expand.
+Plain HTML/text without Liquid tags still passes through the engine unchanged.
 MARKDOWN,
             ],
             [
                 'title' => 'Practical tips',
                 'content' => sprintf(
-                    "1. **Provision the website first** — confirm `page_route` via %s before creating pages.\n"
-                    ."2. **Reuse website SEO defaults** — leave `seo_title` / `seo_description` null unless a page needs custom metadata.\n"
-                    ."3. **Use Liquid in `content`** — `{{ page.title }}` and other variables resolve when the body should track the page record.\n"
-                    ."4. **List before creating duplicates** — use %s to check for an existing slug.\n"
-                    ."5. **Inspect results** — use %s after create/update to verify fields.\n"
-                    .'6. **Delete carefully** — use %s only when a page should be permanently removed.',
+                    "1. **Website first** — confirm `page_route` via %s.\n"
+                    ."2. **Reuse SEO defaults** — leave `seo_title` / `seo_description` null when possible.\n"
+                    ."3. **Liquid in `content`** — `{{ page.title }}` tracks the page record.\n"
+                    ."4. **List before create** — %s avoids duplicate slugs.\n"
+                    ."5. **Verify** — %s after create/update.\n"
+                    .'6. **Delete carefully** — %s removes the page permanently.',
                     McpToolName::quoted($relatedTools['show']),
                     McpToolName::quoted($relatedTools['list']),
                     McpToolName::quoted($relatedTools['show']),

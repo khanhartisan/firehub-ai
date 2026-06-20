@@ -49,7 +49,7 @@ final class FlyCmsGuidelinesRenderer
                     $metaSchema,
                     array_keys($metaSchema),
                     heading: 'Meta fields',
-                    intro: 'Site-wide settings returned under `meta` on website responses. SEO values use Liquid template syntax where noted.',
+                    intro: 'Site-wide settings under `meta` on website responses. SEO keys may use Liquid syntax.',
                 );
             }
         }

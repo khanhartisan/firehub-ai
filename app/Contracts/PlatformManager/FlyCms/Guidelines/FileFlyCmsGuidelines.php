@@ -38,12 +38,12 @@ class FileFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
         $relatedTools = static::relatedTools();
 
         return sprintf(
-            'Read this resource before uploading or managing FlyCMS files with %s.',
+            'Use with %s when uploading or managing FlyCMS files.',
             McpToolName::quotedFromMap($relatedTools, 'create', 'update', 'list'),
         )."\n\n"
-        .'Files are media assets stored on the FlyCMS platform — images and videos used as tag thumbnails, post media, and other CMS attachments.'."\n\n"
-        .'File operations require a FlyCMS `channel_id` but **not** a provisioned website. Uploads are scoped to the authenticated MCP user\'s FlyCMS account on that platform.'."\n\n"
-        .'Only the **mutation payload reference** and **response fields** sections are generated from FlyCMS contracts. The base64 upload field is documented below.';
+        .'Media assets — images and videos for tag thumbnails, post media, and CMS attachments.'."\n\n"
+        .'Requires `channel_id` but **not** a provisioned website. Uploads are scoped to the authenticated user\'s FlyCMS account.'."\n\n"
+        .'Schema tables below are generated from FlyCMS contracts. The base64 upload field is documented below.';
     }
 
     public static function createMutationDataClass(): string
@@ -79,7 +79,7 @@ class FileFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
             [
                 'title' => 'What FlyCMS files are',
                 'content' => <<<'MARKDOWN'
-A **file** is an uploaded media record on FlyCMS — typically an image or video binary stored in platform storage.
+Uploaded media — images/videos in platform storage.
 
 ```
 Channel (flycms platform)
@@ -90,9 +90,9 @@ Channel (flycms platform)
       └── url (public URL when uploaded)
 ```
 
-**Common uses.** Tag thumbnails (`thumbnail_file_id`), post media, and reusable branded assets referenced by FlyCMS ID.
+**Uses.** Tag thumbnails (`thumbnail_file_id`), post media, reusable assets by FlyCMS ID.
 
-**User scope.** List and access rules filter files to the MCP user's FlyCMS user account. You cannot manage another user's uploads through these tools.
+**Scope.** Files belong to the MCP user's FlyCMS account; you cannot manage another user's uploads.
 MARKDOWN,
             ],
             [
@@ -109,13 +109,13 @@ Uploads use %s with three top-level fields:
 
 ### Steps
 
-1. Read the source file bytes from disk or generated output.
-2. Base64-encode the binary content for `file_data`.
-3. Pass `create_file_data.ext` matching the real file format.
+1. Read source bytes.
+2. Base64-encode for `file_data`.
+3. Set `create_file_data.ext` to match the format.
 4. Optionally set `filename`, `code`, or `information`.
-5. Store the returned `id` for later references — for example `thumbnail_file_id` in %s.
+5. Store returned `id` — e.g. `thumbnail_file_id` in %s.
 
-`ext` and `filename` cannot be changed after upload. To replace a file, upload a new one and update downstream references.
+`ext` and `filename` are immutable after upload. Replace by uploading anew and updating references.
 MARKDOWN,
                     McpToolName::quoted($relatedTools['create']),
                     McpToolName::quoted($relatedTools['create_tag']),
@@ -135,7 +135,7 @@ MARKDOWN,
 | `mp4` | `video` | Short video clips |
 | `webm` | `video` | Web-optimized video |
 
-Pick the extension that matches the encoded bytes in `file_data`. Mismatched extensions can produce incorrect mime types or upload failures.
+Match `ext` to encoded bytes; mismatches can cause wrong mime types or upload failures.
 MARKDOWN,
             ],
             [
@@ -143,19 +143,15 @@ MARKDOWN,
                 'content' => <<<'MARKDOWN'
 ### `filename`
 
-Optional original filename hint. When omitted, FlyCMS generates a storage name from the upload.
+Optional original filename hint; FlyCMS generates a storage name when omitted.
 
 ### `code`
 
-Optional stable lookup key for your own workflows. Use kebab-case or snake_case identifiers such as `hero-banner` or `tag_technology_thumb`.
-
-List files by `code` through `file_filter.code` on the list tool.
+Optional stable lookup key — kebab-case or snake_case, e.g. `hero-banner`. Filter by `file_filter.code` on list.
 
 ### `information`
 
-Optional JSON object for extra metadata — for example image `alt` text, `width`, `height`, or video `duration`. FlyCMS stores this object as-is; themes and templates decide how to use it.
-
-Updates can change `code` and `information` only. Binary content is not replaced through the update tool.
+Optional JSON metadata — e.g. image `alt`, `width`, `height`, video `duration`. Updates can change `code` and `information` only; binary content is not replaced.
 MARKDOWN,
             ],
             [
@@ -211,11 +207,11 @@ MARKDOWN,
             [
                 'title' => 'Practical tips',
                 'content' => sprintf(
-                    "1. **Upload before referencing** — create the file first, then pass its `id` to tag/post mutations.\n"
-                    ."2. **List to reuse assets** — use %s to find an existing thumbnail instead of uploading duplicates.\n"
-                    ."3. **Keep base64 valid** — invalid `file_data` encoding fails before upload starts.\n"
-                    ."4. **Inspect uploads** — use %s to confirm `url`, `type`, `size`, and `is_uploaded`.\n"
-                    .'5. **Delete carefully** — use %s only when nothing still references the file ID.',
+                    "1. **Upload first** — create file, then pass `id` to tag/post mutations.\n"
+                    ."2. **Reuse assets** — %s finds existing thumbnails.\n"
+                    ."3. **Valid base64** — invalid `file_data` fails before upload.\n"
+                    ."4. **Verify** — %s confirms `url`, `type`, `size`, `is_uploaded`.\n"
+                    .'5. **Delete carefully** — %s only when nothing references the file ID.',
                     McpToolName::quoted($relatedTools['list']),
                     McpToolName::quoted($relatedTools['show']),
                     McpToolName::quoted($relatedTools['delete']),

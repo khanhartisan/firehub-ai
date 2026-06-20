@@ -105,23 +105,23 @@ class OverviewResource extends Resource
         return <<<MARKDOWN
 # MCP Server Overview
 
-Read this resource first when working with this MCP server. It explains what the server does, how data is organized, and which tools to use in common workflows.
+Start here: domain model, workflows, tools, access rules, and related resources.
 
 ## What this server is
 
-This is a system for **content operations**. The MCP server exposes authenticated tools so AI agents can:
+**Content operations** MCP server. Authenticated tools let agents:
 
 1. Manage **editorial tenants** (clients, authors, articles).
-2. Configure **publishing channels** that connect a client to an external platform.
-3. Manage platform content through a channel (see platform-specific resources).
+2. Configure **channels** linking clients to external platforms.
+3. Manage platform content via channels (see platform overview resources).
 
-The content production pipeline runs in the background and is **not** exposed through MCP. Focus on clients, articles, channels, and platform-manager tools.
+The article build pipeline runs in the background and is **not** exposed via MCP.
 
 ## Authentication
 
 - Endpoint: `/mcp/app` (Bearer token).
-- Every tool requires an authenticated user.
-- Access is scoped to clients the user belongs to, except where noted below.
+- All tools require an authenticated user.
+- Access is scoped to the user's clients unless noted below.
 
 ## Domain model
 
@@ -138,32 +138,32 @@ User
 
 ### 1. Onboard a client
 
-1. {$listClients} — find existing clients.
+1. {$listClients} — find clients.
 2. {$createClient} — create if needed.
-3. {$updateClientContext} — set brand voice, industry, niches, guidelines.
-4. {$createAuthor} + {$updateAuthorContext} — define writing personas.
+3. {$updateClientContext} — brand voice, industry, niches, guidelines.
+4. {$createAuthor} + {$updateAuthorContext} — writing personas.
 
 ### 2. Produce an article
 
 1. {$createArticle} with `client_id`.
 2. Optionally {$updateArticleContext} for article-specific guidance.
 3. {$showArticle} — poll until `status` is `READY` (or handle `FAILED` / `ERROR`).
-4. Use article content from the structured response when publishing to a platform.
+4. Publish using structured content from the response.
 
 ### 3. Publish to a platform
 
 1. {$listPlatforms} — pick a platform.
 2. {$createChannel} — link client to platform.
-3. Read `{$flyCmsOverviewUri}` (or the relevant platform overview resource) for provisioning and CMS operations.
+3. Read `{$flyCmsOverviewUri}` (or the relevant platform overview) for provisioning and CMS work.
 
 ## Tool naming
 
-Tools use kebab-case names derived from their class name:
+Kebab-case names from class names:
 
-- Core tools: {$listClients}, {$createArticle}, etc.
-- Platform-manager tools: prefixed with `platform-manager--{platform}--` (see platform overview resources for details).
+- Core: {$listClients}, {$createArticle}, etc.
+- Platform-manager: `platform-manager--{platform}--` prefix (see platform overviews).
 
-Use `tools/list` or tool descriptions to discover the full catalog.
+Use `tools/list` or tool descriptions for the full catalog.
 
 ## Tool groups
 
@@ -189,30 +189,25 @@ Use `tools/list` or tool descriptions to discover the full catalog.
 
 ## Pagination
 
-List tools support pagination. Defaults:
-
-- `per_page`: 500
-- `page`: 1
-
-Pass `per_page` and `page` when listing large collections.
+List tools paginate (`per_page` default 500, `page` default 1). Pass both for large collections.
 
 ## Responses
 
-Tools return human-readable text plus **structured content** (JSON). Prefer structured fields for IDs and nested data; use text for status messages.
+Tools return text plus **structured JSON**. Prefer structured fields for IDs and nested data; use text for status.
 
-Errors are returned as tool errors with clear messages (e.g. missing access, invalid IDs).
+Errors are tool errors with clear messages (missing access, invalid IDs, etc.).
 
-## Access rules (summary)
+## Access rules
 
 | Scope | Rule |
 |-------|------|
 | Client | User must belong to the client |
-| Author | Must be accessible by the user (via client) |
-| Article | Must belong to an accessible client |
-| Channel | Must belong to an accessible client |
+| Author | Accessible via client |
+| Article | Belongs to an accessible client |
+| Channel | Belongs to an accessible client |
 | Platform write | Super user only (`is_super`) |
 
-Platform-specific access rules are documented in each platform overview resource.
+Platform-specific rules live in each platform overview.
 
 ## MCP resources
 
@@ -223,11 +218,11 @@ Platform-specific access rules are documented in each platform overview resource
 
 ## Practical tips
 
-1. **Start with clients** — almost every workflow needs a `client_id`.
-2. **Set context early** — client and author context materially affect article quality.
-3. **Poll articles** — the build pipeline is asynchronous; use {$showArticle} to track progress.
-4. **Use schemas** — call {$getChannelConfigSchema} and read tool input schemas before mutating config.
-5. **Read platform overviews** — before CMS operations, read the relevant platform resource (e.g. `{$flyCmsOverviewUri}`).
+1. **Clients first** — most workflows need `client_id`.
+2. **Set context early** — client and author context drive article quality.
+3. **Poll articles** — async pipeline; use {$showArticle}.
+4. **Read schemas** — call {$getChannelConfigSchema} and tool input schemas before config changes.
+5. **Read platform overviews** — before CMS work (e.g. `{$flyCmsOverviewUri}`).
 MARKDOWN;
     }
 

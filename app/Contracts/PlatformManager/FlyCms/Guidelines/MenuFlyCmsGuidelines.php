@@ -38,13 +38,13 @@ class MenuFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
         $relatedTools = static::relatedTools();
 
         return sprintf(
-            'Read this resource before creating or updating FlyCMS menus with %s.',
+            'Use with %s when creating or updating FlyCMS menus.',
             McpToolName::quotedFromMap($relatedTools, 'create', 'update'),
         )."\n\n"
-        .'Menus define website navigation — for example header (`main`) and footer (`footer`) link groups. Provision the website first — see `file://resources/website-guidelines-resource`.'."\n\n"
-        .'Create pages and tags before linking to them — see `file://resources/page-guidelines-resource` and `file://resources/tag-guidelines-resource`.'."\n\n"
-        .'`website_id` is set automatically from the channel reference; do not rely on passing a different website ID in MCP tools.'."\n\n"
-        .'Only the **mutation payload reference** and **response fields** sections are generated from FlyCMS contracts. Item shape and link formats are documented below.';
+        .'Navigation groups — e.g. header `main`, footer `footer`. Provision the website first — see `file://resources/website-guidelines-resource`.'."\n\n"
+        .'Create pages and tags before linking them — see page and tag guideline resources.'."\n\n"
+        .'`website_id` comes from `channel.reference`; do not pass a different website ID.'."\n\n"
+        .'Schema tables below are generated from FlyCMS contracts. Item shape and link formats are documented below.';
     }
 
     public static function createMutationDataClass(): string
@@ -84,7 +84,7 @@ class MenuFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
                 'title' => 'What FlyCMS menus are',
                 'content' => sprintf(
                     <<<'MARKDOWN'
-A **menu** is a named navigation group on a FlyCMS website. Themes render menus by `key` — for example a header bar from `main` and a footer row from `footer`.
+Named navigation groups rendered by theme `key` — e.g. `main` (header), `footer`.
 
 ```
 Website
@@ -97,7 +97,7 @@ Website
            └── items[] (optional nested submenu)
 ```
 
-**One menu per key.** Each `key` identifies a navigation slot. Use %s to inspect existing menus before creating duplicates for the same key.
+**One menu per key.** Use %s before creating duplicate keys.
 MARKDOWN,
                     McpToolName::quoted($relatedTools['list']),
                 ),
@@ -106,7 +106,7 @@ MARKDOWN,
                 'title' => 'Menu keys',
                 'content' => sprintf(
                     <<<'MARKDOWN'
-`key` is a kebab-case identifier that tells the theme which navigation area to fill.
+Kebab-case theme slot identifier.
 
 ### Common keys
 
@@ -115,16 +115,12 @@ MARKDOWN,
 | `main` | Primary header navigation |
 | `footer` | Footer links |
 
-Most themes support at least `main` and `footer`. Other themes may define additional keys.
+Most themes support `main` and `footer`. Other themes may define more.
 
-### Theme-specific keys
+1. %s — read theme `guidelines`.
+2. Use only keys the active theme documents.
 
-Inspect the website theme before choosing keys:
-
-1. Use %s to read the theme `guidelines` field.
-2. Pass only keys the active theme documents.
-
-Use a stable key per navigation area — changing keys after launch may leave the theme without expected menu content.
+Keep keys stable — changes can leave themes without expected menu content.
 MARKDOWN,
                     McpToolName::quoted($relatedTools['show_theme']),
                 ),
@@ -143,10 +139,10 @@ Each entry in `items` is an object with:
 
 Guidelines:
 
-1. **Keep labels short** — one to three words for top-level items.
-2. **Order matters** — items render in array order.
-3. **Use nesting sparingly** — one submenu level is usually enough.
-4. **Replace the full tree on update** — passing `items` replaces the entire menu tree for that menu.
+1. **Short labels** — one to three words for top-level items.
+2. **Order matters** — array order is render order.
+3. **Nest sparingly** — one submenu level is usually enough.
+4. **Full tree on update** — `items` replaces the entire menu.
 MARKDOWN,
             ],
             [
@@ -156,7 +152,7 @@ MARKDOWN,
 
 ### 1. Relative path
 
-Use for on-site pages, posts, tags, or the homepage. Build paths from the website route settings in `file://resources/website-guidelines-resource`.
+On-site paths from website routes in `file://resources/website-guidelines-resource`.
 
 | Target | Example `page_route` | Example link |
 |--------|----------------------|--------------|
@@ -165,27 +161,15 @@ Use for on-site pages, posts, tags, or the homepage. Build paths from the websit
 | Post slug `hello-world` | `/post/{post}` | `/post/hello-world` |
 | Tag slug `technology` | `/tag/{websiteTag}` | `/tag/technology` |
 
-Always match the provisioned route pattern — do not assume `/about` when `page_route` is `/page/{page}`.
+Match provisioned route patterns — not `/about` when `page_route` is `/page/{page}`.
 
 ### 2. Full URL
 
-Use for external destinations:
-
-```
-https://example.com/docs
-```
-
-Set `new_tab` to `1` for external links when the theme should open them separately.
+External destinations, e.g. `https://example.com/docs`. Set `new_tab` to `1` when opening separately.
 
 ### 3. Tag reference
 
-Use when linking directly to a tag by FlyCMS ID:
-
-```
-link:website_tag,01hw720nn5ef2dztvftfg5m47q
-```
-
-Resolve tag IDs with the tag show/list tools before building menu payloads.
+Direct tag by FlyCMS ID, e.g. `link:website_tag,01hw720nn5ef2dztvftfg5m47q`. Resolve IDs via tag show/list tools first.
 MARKDOWN,
             ],
             [
@@ -262,11 +246,11 @@ MARKDOWN,
             [
                 'title' => 'Practical tips',
                 'content' => sprintf(
-                    "1. **Confirm routes first** — read website `page_route`, `post_route`, and `website_tag_route` before writing relative links.\n"
-                    ."2. **List existing menus** — use %s to avoid duplicate keys.\n"
-                    ."3. **Inspect theme keys** — use %s when a theme may not support `main` / `footer`.\n"
-                    ."4. **Verify after changes** — use %s to confirm item order, links, and nesting.\n"
-                    .'5. **Delete carefully** — use %s only when a menu should be permanently removed.',
+                    "1. **Confirm routes** — read `page_route`, `post_route`, `website_tag_route` first.\n"
+                    ."2. **List menus** — %s avoids duplicate keys.\n"
+                    ."3. **Check theme keys** — %s when `main` / `footer` may be unsupported.\n"
+                    ."4. **Verify** — %s confirms order, links, nesting.\n"
+                    .'5. **Delete carefully** — %s removes the menu permanently.',
                     McpToolName::quoted($relatedTools['list']),
                     McpToolName::quoted($relatedTools['show_theme']),
                     McpToolName::quoted($relatedTools['show']),

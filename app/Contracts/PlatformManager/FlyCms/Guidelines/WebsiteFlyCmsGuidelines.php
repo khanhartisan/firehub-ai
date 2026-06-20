@@ -36,13 +36,12 @@ class WebsiteFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
         $relatedTools = static::relatedTools();
 
         return sprintf(
-            'Read this resource before provisioning or updating a FlyCMS website with %s or %s.',
+            'Use with %s or %s when provisioning or updating a FlyCMS website.',
             McpToolName::quoted($relatedTools['create']),
             McpToolName::quoted($relatedTools['update']),
         )."\n\n"
-        .'This is the **first CMS step** on a FlyCMS channel. A successful create stores the website ID in `channel.reference`, which unlocks tags, pages, menus, files, and publishing.'."\n\n"
-        .'For channel setup context, read `platform-manager://flycms/overview`. For tag/page editorial rules, read their dedicated guideline resources after the website exists.'."\n\n"
-        .'Only the **mutation payload reference**, **response fields**, and **meta fields** sections are generated from FlyCMS contracts.';
+        .'First CMS step on a channel — success stores the website ID in `channel.reference`, unlocking tags, pages, menus, files, and publishing.'."\n\n"
+        .'See `platform-manager://flycms/overview` for channel setup. Schema tables below are generated from FlyCMS contracts.';
     }
 
     public static function createMutationDataClass(): string
@@ -86,7 +85,7 @@ class WebsiteFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
                 'title' => 'What FlyCMS websites are',
                 'content' => sprintf(
                     <<<'MARKDOWN'
-A **website** is the root CMS container on a FlyCMS platform. Each FlyCMS channel provisions exactly one website; its ID becomes `channel.reference`.
+Each FlyCMS channel provisions one **website**; its ID becomes `channel.reference`.
 
 ```
 Channel (client + flycms platform)
@@ -98,9 +97,9 @@ Channel (client + flycms platform)
       └── Themes (selected at setup)
 ```
 
-**Internal vs public naming.** `name` is for internal/editorial display in MCP responses. Public site branding usually lives in meta `site-name`.
+**Naming.** `name` is internal/editorial; public branding usually lives in meta `site-name`.
 
-**Provisioning behavior.** %s is idempotent: if the channel already has a website reference, it returns the existing website instead of creating a duplicate.
+**Idempotent create.** %s returns the existing website when `channel.reference` is already set.
 MARKDOWN,
                     McpToolName::quoted($relatedTools['create']),
                 ),
@@ -108,7 +107,7 @@ MARKDOWN,
             [
                 'title' => 'Route patterns',
                 'content' => <<<'MARKDOWN'
-Route fields define URL templates for the public site. Use leading slashes and FlyCMS placeholders in curly braces.
+URL templates for the public site. Use leading slashes and `{placeholder}` tokens.
 
 | Field | Placeholder | Example |
 |-------|-------------|---------|
@@ -119,10 +118,10 @@ Route fields define URL templates for the public site. Use leading slashes and F
 
 Guidelines:
 
-1. **Set routes during provisioning** — pick patterns before creating pages, tags, or publishing posts.
-2. **Keep placeholders exact** — `{page}`, `{post}`, and `{websiteTag}` are required token names.
-3. **Stay consistent** — changing routes after content exists can break published URLs.
-4. **Use simple paths** — lowercase segments work best, e.g. `/articles/{post}` instead of deeply nested paths.
+1. **Set routes at provisioning** — before pages, tags, or posts.
+2. **Keep placeholders exact** — `{page}`, `{post}`, `{websiteTag}`.
+3. **Stay consistent** — route changes can break published URLs.
+4. **Prefer simple paths** — e.g. `/articles/{post}` over deep nesting.
 
 Example route set:
 
@@ -140,15 +139,13 @@ MARKDOWN,
                 'title' => 'Theme selection',
                 'content' => sprintf(
                     <<<'MARKDOWN'
-Assign `theme_id` during create or update to control layout, supported menu keys, and theme-specific behavior.
+Set `theme_id` on create/update for layout, menu keys, and theme behavior.
 
-Workflow:
+1. %s — browse themes.
+2. %s — read `guidelines` for supported menu keys.
+3. Pass theme `id` as `theme_id` in `create_website_data` or `update_website_data`.
 
-1. Use %s to browse available themes.
-2. Use %s to inspect a theme's `guidelines` field for supported menu keys and editorial notes.
-3. Pass the theme `id` as `theme_id` in `create_website_data` or `update_website_data`.
-
-Most themes support `main` and `footer` menu keys by default. Always read the theme guidelines before creating menus.
+Most themes support `main` and `footer`. Read theme guidelines before creating menus.
 MARKDOWN,
                     McpToolName::quoted($relatedTools['list_themes']),
                     McpToolName::quoted($relatedTools['show_theme']),
@@ -157,7 +154,7 @@ MARKDOWN,
             [
                 'title' => 'Liquid meta defaults',
                 'content' => <<<'MARKDOWN'
-Website `meta` stores site-wide defaults. Several SEO keys use **Liquid template syntax** and act as fallbacks when entity-level SEO fields are null:
+Site-wide defaults in `meta`. SEO keys use **Liquid** and fall back when entity SEO is null:
 
 | Meta key | Used as fallback for |
 |----------|----------------------|
@@ -179,7 +176,7 @@ Example SEO defaults:
 Read the latest posts on {{ site.name }}.
 ```
 
-Set defaults here first, then override per tag/page/post only when needed.
+Set defaults here; override per entity only when needed.
 MARKDOWN,
             ],
             [
@@ -221,11 +218,11 @@ MARKDOWN,
             [
                 'title' => 'Practical tips',
                 'content' => sprintf(
-                    "1. **Provision before CMS work** — create the website before tags, pages, menus, or publishing.\n"
-                    ."2. **Verify provisioning** — use %s to confirm `channel.reference` and inspect routes/meta.\n"
-                    ."3. **Pick a theme early** — use %s and %s before creating menus.\n"
-                    ."4. **Set SEO defaults in meta** — configure `tag-seo-*`, `page-seo-*`, and `post-seo-*` before creating entities.\n"
-                    .'5. **Keep `status` accurate** — use `inactive` only when the site should not serve public content.',
+                    "1. **Provision first** — website before tags, pages, menus, or publishing.\n"
+                    ."2. **Verify** — %s confirms `channel.reference`, routes, and meta.\n"
+                    ."3. **Theme early** — %s and %s before menus.\n"
+                    ."4. **SEO defaults** — set `tag-seo-*`, `page-seo-*`, `post-seo-*` in meta first.\n"
+                    .'5. **`status`** — use `inactive` only when the site should not be public.',
                     McpToolName::quoted($relatedTools['show']),
                     McpToolName::quoted($relatedTools['list_themes']),
                     McpToolName::quoted($relatedTools['show_theme']),

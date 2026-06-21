@@ -29,6 +29,7 @@ class OpenAITaggerDriver extends TaggerService
 
     public function suggestTags(
         string $content,
+        array $recentTags = [],
         ?SemanticContext $authorContext = null,
         ?SemanticContext $generalContext = null
     ): array {
@@ -38,7 +39,7 @@ class OpenAITaggerDriver extends TaggerService
         }
 
         $data = $this->requestStructuredJson(
-            $this->buildPrompt($content, $authorContext, $generalContext),
+            $this->buildPrompt($content, $recentTags, $authorContext, $generalContext),
             'tagger_suggest_tags',
             $this->buildSchema(),
             'Failed to suggest tags with OpenAI'
@@ -64,11 +65,13 @@ class OpenAITaggerDriver extends TaggerService
 
     protected function buildPrompt(
         string $content,
+        array $recentTags,
         ?SemanticContext $authorContext,
         ?SemanticContext $generalContext
     ): string {
         $payload = [
             'content' => $content,
+            'recent_tags' => array_values($recentTags),
             'author_context' => $authorContext?->toArray(),
             'general_context' => $generalContext?->toArray(),
             'max_tags' => $this->getMaxTags(),
@@ -84,6 +87,7 @@ Rules:
 - Keep tags short and lowercase.
 - Prefer broad-but-meaningful taxonomy terms.
 - Avoid punctuation-heavy or duplicate tags.
+- Reuse "recent_tags" when they fit the content; otherwise introduce new tags that stay consistent with that taxonomy.
 - Return at most "max_tags" items.
 - If the content lacks clear topical signal, return a single fallback tag: "general".
 

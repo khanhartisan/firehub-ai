@@ -6,7 +6,10 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\OutlineBuilder\Outline;
 use App\Contracts\Synthesizer\OutlineBuilder\OutlineItem;
+use App\Enums\ArticleStatus;
 use App\Models\Article;
+use App\Models\ArticleTag;
+use App\Models\Client;
 use App\Models\Tag;
 use Illuminate\Support\Facades\DB;
 
@@ -32,6 +35,7 @@ trait HandleTaggingStage
                 ->getTagger()
                 ->suggestTags(
                     $this->outlineToTaggingContent($outline),
+                    $this->getRecentTags(),
                     $authorContext instanceof AuthorContext ? $authorContext : null,
                     $this->buildSemanticContext(),
                 );
@@ -43,6 +47,42 @@ trait HandleTaggingStage
         $this->touchArticleQuietly();
 
         return true;
+    }
+
+    protected function getRecentTags(): array
+    {
+        $article = $this->article;
+
+        /** @var Client $client */
+        if (!$client = $article->client) {
+            return [];
+        }
+
+        if (!$latestArticleIds = Article::query()
+            ->where('client_id', $client->id)
+            ->whereIn('status', [ArticleStatus::READY, ArticleStatus::PUBLISHED])
+            ->take(100)
+            ->orderBy('status')
+            ->orderByDesc('id')
+            ->pluck('id')
+            ->toArray()
+        ) {
+            return [];
+        }
+
+        if (!$tagIds = ArticleTag::query()
+            ->whereIn('article_id', $latestArticleIds)
+            ->groupBy('tag_id')
+            ->pluck('tag_id')
+            ->toArray()
+        ) {
+            return [];
+        }
+
+        return Tag::query()
+            ->whereIn('id', array_slice($tagIds, 0, 100))
+            ->pluck('name')
+            ->toArray();
     }
 
     /**

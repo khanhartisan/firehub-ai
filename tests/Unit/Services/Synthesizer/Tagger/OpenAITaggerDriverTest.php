@@ -43,12 +43,20 @@ class OpenAITaggerDriverTest extends TestCase
         ]);
 
         $client = Mockery::mock(OpenAIClient::class);
-        $client->shouldReceive('createResponse')->once()->andReturn($response);
+        $client->shouldReceive('createResponse')
+            ->once()
+            ->withArgs(function ($input, $options) {
+                $prompt = $input->toArray()[0]['content'][0]['text'] ?? '';
+
+                return str_contains($prompt, '"recent_tags":["ai","developer tools"]');
+            })
+            ->andReturn($response);
 
         $driver = new OpenAITaggerDriver($client, ['model' => 'gpt-4o-mini', 'max_tags' => 3]);
 
         $tags = $driver->suggestTags(
             'How AI coding tools improve software team delivery velocity.',
+            ['ai', 'developer tools'],
             (new SemanticContext)->set('voice', 'Author voice', 'Operator-first and pragmatic')
         );
 

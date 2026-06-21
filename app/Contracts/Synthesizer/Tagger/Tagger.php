@@ -11,6 +11,7 @@ interface Tagger
      */
     public function suggestTags(
         string $content,
+        array $recentTags = [],
         ?SemanticContext $authorContext = null,
         ?SemanticContext $generalContext = null
     ): array;

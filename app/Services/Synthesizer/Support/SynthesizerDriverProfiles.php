@@ -66,7 +66,7 @@ final class SynthesizerDriverProfiles
                 CriticProfileEntry::entry('openai', 'fingerprint', 6, ['max_rectification_rounds' => 6]),
             ],
             'writer' => 'openai',
-            'tagger' => 'basic',
+            'tagger' => 'openai',
             'illustration' => [
                 'director' => 'openai',
                 'illustrators' => [
@@ -105,7 +105,7 @@ final class SynthesizerDriverProfiles
                 CriticProfileEntry::entry('openai_compatible', 'fingerprint', 6, ['max_rectification_rounds' => 6]),
             ],
             'writer' => 'openai_compatible',
-            'tagger' => 'basic',
+            'tagger' => 'openai_compatible',
             'illustration' => [
                 'director' => 'openai_compatible',
                 'illustrators' => [

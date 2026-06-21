@@ -41,6 +41,8 @@ use App\Services\Synthesizer\OutlineBuilder\Drivers\OpenAICompatibleOutlineBuild
 use App\Services\Synthesizer\Researcher\Drivers\OpenAICompatibleResearcherDriver;
 use App\Services\Synthesizer\Researcher\Drivers\OpenAIResearcherDriver;
 use App\Services\Synthesizer\Support\MaxRectificationRoundsResolver;
+use App\Services\Synthesizer\Tagger\Drivers\OpenAICompatibleTaggerDriver;
+use App\Services\Synthesizer\Tagger\Drivers\OpenAITaggerDriver;
 use App\Services\Synthesizer\Writer\Drivers\OpenAICompatibleWriterDriver;
 use App\Services\Synthesizer\SynthesizerManager;
 use App\Services\Synthesizer\SynthesizerService;
@@ -156,6 +158,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertNotEmpty($driver->getCritics());
         $this->assertContainsOnlyInstancesOf(OpenAICriticDriver::class, $driver->getCritics());
         $this->assertInstanceOf(OpenAIWriterDriver::class, $driver->getWriter());
+        $this->assertInstanceOf(OpenAITaggerDriver::class, $driver->getTagger());
         $this->assertInstanceOf(OpenAIDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertNotEmpty($driver->getIllustrators());
         $this->assertInstanceOf(OpenAIIllustratorDriver::class, $driver->getIllustrators()[0]);
@@ -177,6 +180,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(OpenAICompatibleOutlineBuilderDriver::class, $driver->getOutlineBuilder());
         $this->assertInstanceOf(OpenAICompatibleEditorDriver::class, $driver->getEditor());
         $this->assertInstanceOf(OpenAICompatibleWriterDriver::class, $driver->getWriter());
+        $this->assertInstanceOf(OpenAICompatibleTaggerDriver::class, $driver->getTagger());
         $this->assertInstanceOf(OpenAICompatibleDirectorDriver::class, $driver->getIllustrationDirector());
         $this->assertInstanceOf(OpenAICompatibleIllustratorDriver::class, $driver->getIllustrators()[0]);
     }

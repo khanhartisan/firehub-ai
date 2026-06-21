@@ -227,6 +227,16 @@ return [
         'default' => 'basic',
         'drivers' => [
             'basic' => [],
+            'openai' => [
+                'model' => env('SYNTHESIZER_OPENAI_TAGGER_MODEL', 'gpt-4o-mini'),
+                'temperature' => 0.1,
+                'max_tags' => 8,
+            ],
+            'openai_compatible' => array_merge($openaiCompatibleConnection, [
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_TAGGER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'temperature' => 0.1,
+                'max_tags' => 8,
+            ]),
         ],
     ],
 

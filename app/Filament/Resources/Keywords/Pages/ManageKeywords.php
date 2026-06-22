@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Keywords\Pages;
 
+use App\Enums\Country;
+use App\Enums\Language;
 use App\Filament\Resources\Keywords\KeywordResource;
 use App\Models\Keyword;
 use App\Utils\Str;
@@ -26,6 +28,8 @@ class ManageKeywords extends ManageRecords
      */
     private const CSV_HEADER_ALIASES = [
         'keyword' => ['keyword', 'keywords', 'kw', 'query', 'search term', 'term'],
+        'language' => ['language', 'lang', 'locale', 'hl'],
+        'country' => ['country', 'geo', 'region', 'gl', 'location'],
         'volume' => ['global volume', 'search volume', 'volume', 'vol', 'avg search volume'],
         'difficulty' => ['difficulty', 'keyword difficulty', 'kd', 'seo difficulty'],
     ];
@@ -59,7 +63,7 @@ class ManageKeywords extends ManageRecords
                     Textarea::make('csv_content')
                         ->label('CSV content')
                         ->rows(12)
-                        ->placeholder("keyword,volume,difficulty\nexample keyword,1200,35")
+                        ->placeholder("keyword,language,country,volume,difficulty\nexample keyword,en,US,1200,35")
                         ->required(fn (callable $get): bool => $get('input_method') === 'paste')
                         ->visible(fn (callable $get): bool => $get('input_method') === 'paste'),
                     Toggle::make('has_header')
@@ -155,8 +159,19 @@ class ManageKeywords extends ManageRecords
                             continue;
                         }
 
-                        // TODO: static makeHash() migrated to instance method ->generateHash()
-                        $hash = Keyword::makeHash($keyword);
+                        $language = $this->parseNullableLanguage($hasHeader
+                            ? $this->extractColumnFromHeaderAliases($record, 'language')
+                            : ($record[3] ?? null));
+                        $country = $this->parseNullableCountry($hasHeader
+                            ? $this->extractColumnFromHeaderAliases($record, 'country')
+                            : ($record[4] ?? null));
+
+                        $keywordModel = new Keyword;
+                        $keywordModel->keyword = $keyword;
+                        $keywordModel->language = $language;
+                        $keywordModel->country = $country;
+                        $hash = $keywordModel->generateHash();
+
                         $volume = $this->parseNullableUnsignedInteger($hasHeader
                             ? $this->extractColumnFromHeaderAliases($record, 'volume')
                             : ($record[1] ?? null));
@@ -166,6 +181,8 @@ class ManageKeywords extends ManageRecords
 
                         $rowsByHash[$hash] = [
                             'keyword' => $keyword,
+                            'language' => $language?->value,
+                            'country' => $country?->value,
                             'hash' => $hash,
                             'volume' => $volume,
                             'difficulty' => $difficulty,
@@ -204,7 +221,7 @@ class ManageKeywords extends ManageRecords
                         Keyword::query()->upsert(
                             $chunk,
                             ['hash'],
-                            ['keyword', 'volume', 'difficulty', 'updated_at', 'deleted_at']
+                            ['keyword', 'language', 'country', 'volume', 'difficulty', 'updated_at', 'deleted_at']
                         );
                     }
 
@@ -255,6 +272,47 @@ class ManageKeywords extends ManageRecords
         $header = preg_replace('/[^a-z0-9]+/u', ' ', $header) ?? '';
 
         return trim($header);
+    }
+
+    private function parseNullableLanguage(mixed $value): ?Language
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        $direct = Language::tryFrom($raw);
+        if ($direct !== null) {
+            return $direct;
+        }
+
+        foreach (Language::cases() as $case) {
+            if (strcasecmp($case->value, $raw) === 0) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
+    private function parseNullableCountry(mixed $value): ?Country
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        return Country::tryFrom(strtoupper($raw));
     }
 
     private function parseNullableUnsignedInteger(mixed $value): ?int

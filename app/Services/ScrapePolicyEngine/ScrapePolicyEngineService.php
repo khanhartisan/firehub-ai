@@ -4,6 +4,7 @@ namespace App\Services\ScrapePolicyEngine;
 
 use App\Contracts\ScrapePolicyEngine\PolicyResult;
 use App\Contracts\ScrapePolicyEngine\ScrapePolicyEngine as ScrapePolicyEngineContract;
+use App\Enums\Queue as QueueEnum;
 use App\Enums\ScrapingStatus;
 use App\Models\Page;
 use App\Models\Snapshot;
@@ -31,8 +32,6 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
 
     public function calculateInitialScrapingTime(Page $page): CarbonInterface
     {
-        // TODO: We need a check for system current backlogs (ie pending ignore scraping budget pages)
-        // And set the init scraping time reasonably so the system will only scrape if it's free
         if ($page->ignore_scraping_budget) {
             return now();
         }
@@ -41,15 +40,24 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
             return $page->next_scrape_at;
         }
 
+        $now = Carbon::now();
+
+        return $this->applyPriorityBacklogDeferral(
+            $this->resolveBudgetCandidate($page, $now),
+            $now,
+        );
+    }
+
+    protected function resolveBudgetCandidate(Page $page, CarbonInterface $now): CarbonInterface
+    {
         if (! $source = $page->source) {
-            return now();
+            return $now->copy();
         }
 
         if (! $this->sourceHasAnyBudget($source)) {
-            return now();
+            return $now->copy();
         }
 
-        $now = Carbon::now();
         $excludePageId = $page->exists ? (string) $page->getKey() : null;
         $candidate = $now->copy();
 
@@ -81,7 +89,7 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
             }
 
             if ($nextStarts === []) {
-                return $candidate->lt($now) ? $now : $candidate;
+                return $candidate;
             }
 
             $candidate = $nextStarts[0];
@@ -93,6 +101,55 @@ abstract class ScrapePolicyEngineService implements ScrapePolicyEngineContract
         }
 
         return $candidate;
+    }
+
+    /**
+     * Priority pages bypass source budgets and can saturate scraping capacity.
+     * Defer immediate scheduling for budget-respecting pages until backlog fits queue slots.
+     */
+    protected function applyPriorityBacklogDeferral(CarbonInterface $candidate, CarbonInterface $floor): CarbonInterface
+    {
+        $adjusted = $candidate->lt($floor) ? $floor->copy() : $candidate->copy();
+
+        if ($adjusted->gt($floor)) {
+            return $adjusted;
+        }
+
+        $slotsAvailable = QueueEnum::PAGE_SCRAPING->slotsAvailable();
+        $backlog = $this->priorityScrapingBacklogCount();
+
+        if ($backlog <= $slotsAvailable) {
+            return $adjusted;
+        }
+
+        $excess = $backlog - $slotsAvailable;
+
+        return $adjusted->copy()->addMinutes($excess * $this->priorityBacklogDeferMinutes());
+    }
+
+    protected function priorityScrapingBacklogCount(): int
+    {
+        return Page::query()
+            ->where('ignore_scraping_budget', true)
+            ->where(function ($query) {
+                $query->whereIn('scraping_status', self::IN_FLIGHT_STATUSES)
+                    ->orWhere(function ($query) {
+                        $query->where('scraping_status', ScrapingStatus::PENDING)
+                            ->where(function ($query) {
+                                $query->whereNull('next_scrape_at')
+                                    ->orWhere('next_scrape_at', '<=', now());
+                            });
+                    });
+            })
+            ->count();
+    }
+
+    protected function priorityBacklogDeferMinutes(): int
+    {
+        $minutes = $this->config['priority_backlog_defer_minutes']
+            ?? config('scrapepolicyengine.priority_backlog_defer_minutes', 5);
+
+        return max(1, (int) $minutes);
     }
 
     protected function sourceHasAnyBudget(Source $source): bool

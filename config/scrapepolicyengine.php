@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Priority Backlog Defer Minutes
+    |--------------------------------------------------------------------------
+    |
+    | When budget-respecting pages would scrape immediately but priority pages
+    | (ignore_scraping_budget) exceed available page_scraping queue slots, each
+    | excess page adds this many minutes to the initial scrape time.
+    |
+    */
+
+    'priority_backlog_defer_minutes' => (int) env('SCRAPE_POLICY_ENGINE_PRIORITY_BACKLOG_DEFER_MINUTES', 360),
+
+    /*
+    |--------------------------------------------------------------------------
     | ScrapePolicyEngine Drivers
     |--------------------------------------------------------------------------
     |

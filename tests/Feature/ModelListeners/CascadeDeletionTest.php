@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\ModelListeners;
 
+use App\Jobs\ForceDeleteSnapshots;
 use App\Models\Page;
 use App\Models\PageTag;
 use App\Models\PageVertical;
@@ -30,6 +31,7 @@ class CascadeDeletionTest extends TestCase
     {
         for ($i = 0; $i < $maxIterations; $i++) {
             CascadeDelete::dispatch();
+            ForceDeleteSnapshots::dispatch();
         }
     }
 

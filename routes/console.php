@@ -56,3 +56,6 @@ Schedule::job(new \App\Jobs\DispatchPublishingJob())->everyMinute();
 
 // Force delete files
 Schedule::job(new \App\Jobs\ForceDeleteFiles())->everyMinute();
+
+// Force delete snapshots
+Schedule::job(new \App\Jobs\ForceDeleteSnapshots())->everyMinute();

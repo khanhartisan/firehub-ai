@@ -76,24 +76,19 @@ class Snapshot extends Model implements ShouldCascade
         )->where('fileables.fileable_type', $this->getMorphClass());
     }
 
-    public function fileables(): HasMany
-    {
-        return $this
-            ->hasMany(Fileable::class, 'fileable_id')
-            ->where('fileable_type', $this->getMorphClass());
-    }
-
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            new CascadeDetails($this->fileables()),
+            new CascadeDetails(
+                $this
+                    ->hasMany(Fileable::class, 'fileable_id')
+                    ->where('fileable_type', $this->getMorphClass())
+            ),
         ];
     }
 
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
     {
-        // TODO: Need a force delete job running in the background to delete snapshot files
-        // Currently this returns true, but it must return false
-        return true;
+        return false;
     }
 }

@@ -4,11 +4,8 @@ namespace App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
-use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
-use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFileData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
-use App\Contracts\PlatformManager\FlyCms\Resources\FileResource;
 use App\Contracts\PlatformManager\PublishingResult;
 use App\Enums\ArticleStatus;
 use App\Enums\PublicationStatus;
@@ -16,10 +13,11 @@ use App\Models\Article;
 use App\Models\File;
 use App\Models\Publication;
 use App\Utils\Str;
-use Illuminate\Support\Facades\Storage;
 
 trait InteractsWithArticles
 {
+    use InteractsWithFlyCmsArticleFiles;
+
     public function publishArticle(Publication $publication): PublishingResult
     {
         $publication->loadMissing(['channel', 'publishable']);
@@ -164,47 +162,22 @@ trait InteractsWithArticles
             return null;
         }
 
-        $existingFile = $this->findFlyCmsFileByCode($thumbnailFile->id);
-
-        if ($existingFile) {
-            $fileId = $existingFile->get('id');
-
-            return is_string($fileId) && $fileId !== '' ? $fileId : null;
+        if (! is_string($thumbnailFile->path) || $thumbnailFile->path === '') {
+            throw new FlyCmsException('Failed to resolve thumbnail file for publishing.');
         }
 
-        $uploadedFile = $this->uploadArticleFile($thumbnailFile);
-        $fileId = $uploadedFile?->get('id');
+        $uploadedFile = $this->resolveOrUploadFlyCmsFile(
+            $thumbnailFile->id,
+            $thumbnailFile->path,
+            $this->resolveImageFileExt($thumbnailFile),
+        );
+        $fileId = $uploadedFile->get('id');
 
         if (! is_string($fileId) || $fileId === '') {
             throw new FlyCmsException('Failed to resolve thumbnail file for publishing.');
         }
 
         return $fileId;
-    }
-
-    /**
-     * @throws FlyCmsException
-     */
-    protected function uploadArticleFile(File $file): ?FileResource
-    {
-        if (! is_string($file->path) || $file->path === '' || ! Storage::exists($file->path)) {
-            return null;
-        }
-
-        $content = Storage::get($file->path);
-
-        if (! is_string($content) || $content === '') {
-            return null;
-        }
-
-        return $this->createFile(
-            $content,
-            (new CreateFileData)->setData([
-                'ext' => $this->resolveImageFileExt($file),
-                'code' => $file->id,
-                'filename' => 'file-'.$file->id,
-            ]),
-        );
     }
 
     protected function resolvePostSlug(Article $article, Publication $publication): string
@@ -217,32 +190,6 @@ trait InteractsWithArticles
         }
 
         return 'post-'.Str::lower(substr($article->id, -8));
-    }
-
-    /**
-     * @throws FlyCmsException
-     */
-    protected function findFlyCmsFileByCode(string $code): ?FileResource
-    {
-        if ($code === '') {
-            return null;
-        }
-
-        $files = $this->listFiles(
-            1,
-            1,
-            null,
-            (new FileFilter)->setFilterData([
-                'code' => $code,
-            ]),
-        );
-
-        if ($files === []) {
-            return null;
-        }
-
-        /** @var FileResource */
-        return $files[0];
     }
 
     protected function resolveImageFileExt(File $file): string
@@ -259,17 +206,5 @@ trait InteractsWithArticles
     protected function resolveContentLang(Article $article): string
     {
         return $article->language?->value ?: 'default';
-    }
-
-    protected function articleContentHtml(Article $article): ?string
-    {
-        $content = $article->illustrated_article?->toHtml()
-            ?: $article->article?->toHtml();
-
-        if (! is_string($content) || $content === '') {
-            return null;
-        }
-
-        return $content;
     }
 }

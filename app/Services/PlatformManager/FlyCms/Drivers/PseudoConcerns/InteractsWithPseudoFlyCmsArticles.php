@@ -9,10 +9,13 @@ use App\Enums\ArticleStatus;
 use App\Enums\PublicationStatus;
 use App\Models\Article;
 use App\Models\Publication;
+use App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns\InteractsWithFlyCmsArticleFiles;
 use App\Utils\Str;
 
 trait InteractsWithPseudoFlyCmsArticles
 {
+    use InteractsWithFlyCmsArticleFiles;
+
     public function publishArticle(Publication $publication): PublishingResult
     {
         $publication->loadMissing(['channel', 'publishable']);
@@ -137,17 +140,5 @@ trait InteractsWithPseudoFlyCmsArticles
     protected function resolveContentLang(Article $article): string
     {
         return $article->language?->value ?: 'default';
-    }
-
-    protected function articleContentHtml(Article $article): ?string
-    {
-        $content = $article->illustrated_article?->toHtml()
-            ?: $article->article?->toHtml();
-
-        if (! is_string($content) || $content === '') {
-            return null;
-        }
-
-        return $content;
     }
 }

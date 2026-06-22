@@ -30,12 +30,17 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\UserMutationData\UpdateUse
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\CreateWebsiteData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\UpdateWebsiteData;
 use App\Contracts\DOM\Article as DOMArticle;
+use App\Contracts\Filesystem\File as FilesystemFile;
+use App\Contracts\Model\Article\IllustrationData;
+use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
+use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Enums\ArticleStatus;
 use App\Enums\PublicationStatus;
 use App\Models\Article;
 use App\Models\Channel;
 use App\Models\Publication;
 use App\Services\PlatformManager\FlyCms\Drivers\PseudoFlyCmsDriver;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use Tests\TestCase;
 
@@ -1523,6 +1528,61 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame('Updated Launch Title', $post->getData()['title']);
         $this->assertSame('Updated summary.', $post->getData()['description']);
         $this->assertSame('hello-world', $post->getData()['slug']);
+    }
+
+    public function test_publish_article_uploads_internal_images_and_rewrites_src_with_liquid_filters(): void
+    {
+        Storage::fake();
+
+        $storagePath = 'illustrations/generated/test-image.png';
+        Storage::put($storagePath, 'fake-image-content');
+
+        $publication = $this->makePublication();
+        $article = $publication->publishable;
+        $this->assertInstanceOf(Article::class, $article);
+
+        $article->article = DOMArticle::fromArray([
+            'identifier' => 'article-root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'sec1',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Article body'],
+                ],
+            ],
+        ]);
+
+        $result = (new IllustrationResult)
+            ->addFile((new FilesystemFile)->setPath($storagePath));
+
+        $article->illustration = (new IllustrationData)
+            ->setIllustrationResults([$result])
+            ->setIllustrationAnchors([
+                new IllustrationAnchor($result->getIdentifier(), 'sec1', true),
+            ]);
+
+        $publishResult = $this->driver->publishArticle($publication);
+
+        $this->assertSame(PublicationStatus::PUBLISHED, $publishResult->getStatus());
+
+        $post = $this->driver->showPost((string) $publishResult->getReference());
+        $this->assertNotNull($post);
+
+        $content = (string) $post->getData()['content'];
+        $expectedCode = 'storage-'.substr(hash('sha256', $storagePath), 0, 40);
+        $expectedKey = 'uploads/file-'.$expectedCode.'.png';
+
+        $this->assertStringContainsString($expectedKey, $content);
+        $this->assertStringContainsString('img_url: 850', $content);
+        $this->assertStringContainsString('img_url: 400', $content);
+        $this->assertStringContainsString('img_url: 600', $content);
+        $this->assertStringContainsString('400w', $content);
+        $this->assertStringContainsString('srcset=', $content);
+        $this->assertStringContainsString('sizes=', $content);
+        $this->assertStringNotContainsString($storagePath, $content);
     }
 
     private function makePublication(

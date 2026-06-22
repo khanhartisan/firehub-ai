@@ -53,3 +53,6 @@ Schedule::job(new CascadeRestore)->everyMinute();
 
 // Publishing jobs
 Schedule::job(new \App\Jobs\DispatchPublishingJob())->everyMinute();
+
+// Force delete files
+Schedule::job(new \App\Jobs\ForceDeleteFiles())->everyMinute();

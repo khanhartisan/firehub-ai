@@ -20,7 +20,7 @@ class File extends EmbeddableModel implements ShouldCascade
 
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
     {
-        return true;
+        return false;
     }
 
     protected $casts = [

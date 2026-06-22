@@ -86,9 +86,6 @@ class Snapshot extends Model implements ShouldCascade
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            // TODO: On fileable deleted -> check if the corresponding file is orphan
-            // If yes -> delete the file.
-            // We'll also need a force delete job to delete the file in the background
             new CascadeDetails($this->fileables()),
         ];
     }

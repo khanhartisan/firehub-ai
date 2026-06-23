@@ -1,0 +1,45 @@
+# Scheduler Deployment
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: firehub-scheduler-cronjob
+  namespace: {{ K8S_NAMESPACE }}
+  labels:
+    app: scheduler
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: scheduler
+        spec:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                    - key: '{{ NODE_LABEL_SELECTOR_KEY }}'
+                      operator: In
+                      values:
+                        - "{{ SCHEDULER_DEPLOYMENT_NODE_LABEL_SELECTOR_VALUE }}"
+          containers:
+            - name: scheduler-container
+              image: '{{ PHP_IMAGE }}'
+              imagePullPolicy: {{ IMAGE_PULL_POLICY }}
+              command: ['php']
+              args: ['artisan', 'schedule:run']
+              envFrom:
+                - configMapRef:
+                    name: firehub-env
+                - secretRef:
+                    name: firehub-secret
+              resources:
+                limits:
+                  cpu: '{{ SCHEDULER_CPU_LIMIT }}'
+                  memory: '{{ SCHEDULER_MEMORY_LIMIT }}'
+                requests:
+                  cpu: '{{ SCHEDULER_CPU_REQUEST }}'
+                  memory: '{{ SCHEDULER_MEMORY_REQUEST }}'
+          restartPolicy: OnFailure

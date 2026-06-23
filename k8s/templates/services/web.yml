@@ -1,0 +1,14 @@
+# Web Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: firehub-web-service
+  namespace: {{ K8S_NAMESPACE }}
+  labels:
+    app: web
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+  selector:
+    app: web

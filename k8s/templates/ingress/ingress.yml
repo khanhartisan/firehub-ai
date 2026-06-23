@@ -1,0 +1,24 @@
+# Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: firehub-ingress
+  namespace: {{ K8S_NAMESPACE }}
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-hide-headers: "X-Powered-By"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ APP_HOST }}
+      http:
+        paths:
+
+          # Default path
+          - pathType: Prefix
+            path: '/'
+            backend:
+              service:
+                name: firehub-web-service
+                port:
+                  number: 80

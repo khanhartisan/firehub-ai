@@ -1,0 +1,45 @@
+# Worker Deployment (queue default)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firehub-default-worker-deployment
+  namespace: {{ K8S_NAMESPACE }}
+  labels:
+    app: worker-default
+spec:
+  replicas: {{ WORKER_DEFAULT_REPLICAS }}
+  selector:
+    matchLabels:
+      app: worker-default
+  template:
+    metadata:
+      labels:
+        app: worker-default
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: '{{ NODE_LABEL_SELECTOR_KEY }}'
+                  operator: In
+                  values:
+                    - "{{ WORKER_DEPLOYMENT_NODE_LABEL_SELECTOR_VALUE }}"
+      containers:
+        - name: worker-container
+          image: '{{ PHP_IMAGE }}'
+          imagePullPolicy: {{ IMAGE_PULL_POLICY }}
+          command: ['php']
+          args: ['artisan', 'queue:work', '--queue=default', '--max-jobs=100']
+          envFrom:
+            - configMapRef:
+                name: firehub-env
+            - secretRef:
+                name: firehub-secret
+          resources:
+            limits:
+              cpu: '{{ WORKER_CPU_LIMIT }}'
+              memory: '{{ WORKER_MEMORY_LIMIT }}'
+            requests:
+              cpu: '{{ WORKER_CPU_REQUEST }}'
+              memory: '{{ WORKER_MEMORY_REQUEST }}'

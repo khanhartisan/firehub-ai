@@ -1,0 +1,74 @@
+# Web Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firehub-web-deployment
+  namespace: {{ K8S_NAMESPACE }}
+  labels:
+    app: web
+spec:
+  replicas: {{ WEB_MIN_REPLICAS }}
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: '{{ NODE_LABEL_SELECTOR_KEY }}'
+                  operator: In
+                  values:
+                    - "{{ WEB_DEPLOYMENT_NODE_LABEL_SELECTOR_VALUE }}"
+      containers:
+        - name: web-container
+          image: '{{ PHP_IMAGE }}'
+          imagePullPolicy: {{ IMAGE_PULL_POLICY }}
+          command: ['/usr/bin/supervisord']
+          args: ['-n']
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: firehub-env
+            - secretRef:
+                name: firehub-secret
+          resources:
+            limits:
+              cpu: '{{ WEB_CPU_LIMIT }}'
+              memory: '{{ WEB_MEMORY_LIMIT }}'
+            requests:
+              cpu: '{{ WEB_CPU_REQUEST }}'
+              memory: '{{ WEB_MEMORY_REQUEST }}'
+---
+# HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: firehub-web-hpa
+  namespace: {{ K8S_NAMESPACE }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: firehub-web-deployment
+  minReplicas: {{ WEB_MIN_REPLICAS }}
+  maxReplicas: {{ WEB_MAX_REPLICAS }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ WEB_AVERAGE_CPU }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ WEB_AVERAGE_MEMORY }}

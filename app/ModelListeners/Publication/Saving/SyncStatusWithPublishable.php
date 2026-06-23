@@ -57,7 +57,9 @@ class SyncStatusWithPublishable extends ModelListener implements ModelListenerIn
         }
 
         /** @var Model $publishable */
-        $publishable = $publication->publishable;
+        if (!$publishable = $publication->publishable) {
+            return;
+        }
 
         if ($publishable instanceof Article) {
             $this->handleArticle($publishable, $publication);

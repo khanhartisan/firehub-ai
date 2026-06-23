@@ -1,15 +1,18 @@
 # Scraping Hub
 
-An application that schedules and runs web scraping for configured **sources**, discovers linked pages, classifies and parses content with AI, stores **snapshots**, and re-scrapes based on a **policy engine**. It exposes an admin panel (Filament) for managing Verticals, Sources, Entities, Snapshots, Clients, and Users.
+A content operations platform that scrapes configured web sources, builds a semantic knowledge graph, synthesizes AI articles for editorial clients, and publishes to external CMS platforms. It exposes a Filament admin panel for operations and an MCP server for agent-driven workflows.
 
 ---
 
 ## Table of contents
 
 - [Overview](#overview)
+- [Architecture](#architecture)
 - [Concepts and data model](#concepts-and-data-model)
-- [How scraping works](#how-scraping-works)
+- [Pipelines](#pipelines)
 - [Entrypoints and scheduling](#entrypoints-and-scheduling)
+- [Queues](#queues)
+- [MCP server](#mcp-server)
 - [Project structure](#project-structure)
 - [Configuration and environment](#configuration-and-environment)
 - [Setup and development](#setup-and-development)
@@ -21,88 +24,208 @@ An application that schedules and runs web scraping for configured **sources**, 
 
 ## Overview
 
-- **Stack:** PHP 8.4+
-- **Admin UI:** [Filament](https://filamentphp.com) 5 at `/admin`
-- **Queue:** Queues (default: database); scheduler and scraping run as queued jobs
-- **Storage:** Snapshots (raw HTML) stored on the default disk (local or S3 via `FILESYSTEM_DISK`)
-- **AI/APIs:** OpenAI and OpenAI-compatible drivers for PageClassifier, PageParser, ScrapePolicyEngine, and FileVision
+**Stack:** PHP 8.4+, Laravel 13, PostgreSQL with [pgvector](https://github.com/pgvector/pgvector)
 
-The app does not expose public HTTP APIs for scraping; all scraping is driven by the **scheduler** and the **admin** (e.g. creating sources/entities). The web route is a simple welcome view; the main behaviour lives in **console/scheduler** and **queue workers**.
+| Surface | Purpose |
+|---------|---------|
+| **Filament admin** | `/admin` — manage scraping data, content graph, clients, articles |
+| **MCP server** | `/mcp/app` — Sanctum-authenticated API for agents (clients, authors, articles, channels, FlyCMS) |
+| **Scheduler + queues** | Background scraping, embedding, intent resolution, article building, publishing |
+| **Artisan CLI** | Interactive onboarding (`assistance:make:*`), dev/debug commands, live service tests |
+
+**Key packages:** Filament 5, `laravel/ai`, `laravel/mcp`, `laravel/sanctum`, `pgvector/pgvector`, `khanhartisan/laravel-backbone` (relation cascade), Guzzle, Imagick
+
+**Storage:** Snapshots and files on the default disk (`local` or S3/MinIO via `FILESYSTEM_DISK`)
+
+**AI / external APIs:** OpenAI and OpenAI-compatible drivers; SearchAPI.io and Perplexity for keyword research; FlyCMS for publishing
+
+---
+
+## Architecture
+
+End-to-end flow:
+
+```
+Sources → Pages/Files → Snapshots
+              ↓
+         Embeddings (pgvector)
+              ↓
+    Intents ← Keywords ← Articles
+              ↓
+      BuildArticleJob (Synthesizer)
+              ↓
+    Publications → FlyCMS (via Channels)
+```
+
+**Major subsystems:**
+
+| Subsystem | Role |
+|-----------|------|
+| **Scraping** | Fetch pages and files, classify/parse with AI, store snapshots, discover links |
+| **Embeddings** | Vectorize Pages, Sources, Verticals, Intents, Articles, Files for similarity search |
+| **Intent resolution** | Link Keywords, Pages, and Articles to shared Intent clusters |
+| **Keyword research** | SERP and AI search via SearchAPI / Perplexity |
+| **Article synthesis** | Multi-stage AI pipeline (IdeaForge → Research → Brief → Outline → Draft → Rectification → Illustration → Final → Tagging) |
+| **Publishing** | Push ready articles to external platforms (FlyCMS) via Channels |
+| **Platform Manager** | FlyCMS API driver (+ pseudo driver for local dev) |
+| **MCP** | Agent-facing tools and guideline resources for content ops and CMS management |
+| **Semantic onboarding** | Interactive CLI to build Client and Author context with AI |
 
 ---
 
 ## Concepts and data model
 
-### Core entities
+### Scraping
 
 | Concept | Description |
-|--------|-------------|
-| **Vertical** | A category (e.g. "News", "Docs"). Has many Sources and Entities (via pivot). Used for grouping and entity counts. |
-| **Source** | A website root: `base_url` (e.g. `https://example.com`). Has many **Entities**. Sources are attached to Verticals. |
-| **Entity** | A single URL belonging to a Source. Has `url`, `url_hash` (sha1), `scraping_status`, `next_scrape_at`, optional classification fields (`type`, `page_type`, `content_type`, `temporal`), and relations to Snapshots, Tags, Verticals. |
-| **Snapshot** | One captured version of an Entity: raw HTML path (`file_path` on default disk), version number, status, metrics (content_length, link_count, fetch_duration_ms, etc.), and optional `error_logs`. |
-| **Tag** | Labels from the PageClassifier; many-to-many with Entity. |
-| **Client / User** | Filament auth and optional client model for access control. |
+|---------|-------------|
+| **Vertical** | Hierarchical taxonomy (e.g. "News", "Docs"). Linked to Sources and Pages. |
+| **Source** | Website root (`base_url`). Has scraping budgets, `schedule_scraping`, and many Pages. |
+| **Page** | A scraped URL belonging to a Source. Has `url`, `url_hash`, `scraping_status`, `scraping_stage`, `next_scrape_at`, classification fields, and optional vector embedding. |
+| **File** | Scraped/downloaded asset (images, etc.) with its own scrape pipeline. |
+| **Snapshot** | One captured version of a Page: raw HTML path, version, status, metrics, optional `error_logs`. |
+| **Tag** | Labels from PageClassifier; many-to-many with Pages. |
 
-### Scraping status (Entity)
+**Scraping status (Page / File):** PENDING → QUEUED → FETCHING → PROCESSING → SUCCESS (or FAILED / TIMEOUT / BLOCKED)
 
-- **PENDING** – Not yet queued; will be picked when `next_scrape_at <= now()` (or null).
-- **QUEUED** – Job dispatched to the `scraping` queue.
-- **FETCHING** – Job is running (HTTP fetch in progress).
-- **SUCCESS** – Last run succeeded; `next_scrape_at` set by policy.
-- **FAILED** – Non-recoverable or generic failure; retries with backoff.
-- **TIMEOUT** – Connect/timeout failure.
-- **BLOCKED** – e.g. HTTP 403/429; retries with backoff.
+### Content graph
 
-### Queues
+| Concept | Description |
+|---------|-------------|
+| **Intent** | Semantic topic cluster. Linked to Pages, Keywords, and Articles via pivots. |
+| **Keyword** | Search term with research status and SERP data; linked to Intents and Pages. |
+| **Client** | Editorial tenant (brand). Owns Articles, Authors, and Channels. |
+| **Author** | Writing persona for a Client, with structured context (voice, style, expertise). |
+| **Article** | AI-built content for a Client. Partitioned by `client_id`. Tracks `stage`, `stage_data`, `context`, and rendered `article` DOM. Status: UNREADY → READY → PUBLISHED (or FAILED / ERROR / REJECTED). |
 
-- **`scheduler`** – `ScheduleScrapeDueJob`, `ScrapeSourcesJob`. Run **one** worker so only one scheduler loop runs at a time.
-- **`scraping`** – `ScrapeEntityJob`. Scale workers as needed; queue size is capped via config to avoid unbounded growth.
-- **`default`** – General application jobs.
+### Distribution
+
+| Concept | Description |
+|---------|-------------|
+| **Platform** | External publishing backend (e.g. FlyCMS). Holds config and meta. |
+| **Channel** | A Client's publishing destination on a Platform. |
+| **Publication** | Morph link from a publishable (Article) to a Channel. Status lifecycle: AWAITING → PENDING → PUBLISHING → PUBLISHED (or TIMEOUT / FAILED / ERROR). |
+
+**Embeddable models** (`Page`, `Source`, `Vertical`, `Intent`, `Article`, `File`) each have `vector`, `is_embeddable`, and `is_embedded` columns managed by the embedding scheduler.
 
 ---
 
-## How scraping works
+## Pipelines
 
-1. **Scheduler (every minute)**  
-   - **ScheduleScrapeDueJob**  
-     - Finds entities that are due (by status and `next_scrape_at`) and have attempts under the max.  
-     - Dispatches up to a limit of `ScrapeEntityJob` to the `scraping` queue (respecting queue size cap), marks them QUEUED, then re-dispatches itself with a short delay.  
-     - Uses a cache lock so only one execution runs at a time even with multiple workers.  
-   - **ScrapeSourcesJob**  
-     - For sources that have **no** entity currently due for scraping, ensures an entity exists for the source’s `base_url` and dispatches one `ScrapeEntityJob` (home-page scrape). Runs in chunks with a time limit.
+### Page scraping (`ScrapePageJob` on `page_scraping`)
 
-2. **ScrapeEntityJob (per entity)**  
-   - Marks entity as FETCHING, fetches URL via **Scraper** (Guzzle).  
-   - On success:  
-     - Cleans HTML (**HtmlCleaner**), runs **PageClassifier** and **PageParser** (AI).  
-     - Stores raw HTML under default disk (`snapshots/{entity_id}/{ulid}.html`).  
-     - Creates a **Snapshot** and updates the Entity (type, description, dates, tags, etc.).  
-     - Runs **ScrapePolicyEngine** to get `next_scrape_at` and stores `policy_result`.  
-     - Sets entity to SUCCESS and resets attempts.  
-     - Discovers same-host links from the parser; creates new Entities for URLs not yet in DB and leaves them PENDING (scheduler will pick them up when due).  
-   - On failure: creates a failure Snapshot, increments attempts, sets backoff or stops if max attempts reached.
+Stages: FETCHING → DATA_PREPARING → DATA_PARSING → ENRICHMENT → FILE_ENRICHMENT → VERTICAL_RESOLUTION → POLICY_EVALUATION → FINISHING → EXPANDING (link discovery creates new Pages on the same host).
 
-3. **Persistence**  
-   - Snapshots are stored on the configured default filesystem (`storage/app/private` for local disk).  
-   - Entity counts per Vertical/Source/Tag (by type and status) are maintained via **EntityCount** and the **EntityCountListener** (from `khanhartisan/laravel-backbone`).
+On success: cleans HTML, runs PageClassifier and PageParser, stores raw HTML (`snapshots/{page_id}/{ulid}.html`), creates a Snapshot, updates the Page, runs ScrapePolicyEngine for `next_scrape_at`, and discovers same-host links.
+
+### File scraping (`ScrapeFileJob` on `file_scraping`)
+
+Similar staged pipeline for File records, including FileVision for image analysis.
+
+### Embedding (`EmbeddingJob` on `default`)
+
+`ScheduleEmbeddingJob` finds embeddable-but-not-embedded rows across all `EmbeddableModel` subclasses and dispatches `EmbeddingJob`, which calls `TextEmbedding` and stores vectors via pgvector.
+
+### Intent resolution (`ResolveIntentJob` on `page_scraping`)
+
+Batch-links Keywords, Articles, and Pages to Intents using vector similarity and `IntentResolver`. Waits for Intent embeddings before resolving.
+
+### Article building (`BuildArticleJob` on `article_building`)
+
+Nine stages, one stage worth of work per job execution, then self-dispatches:
+
+IDEA → RESEARCH → BRIEF → OUTLINE → DRAFT → RECTIFICATION → ILLUSTRATION → FINAL → TAGGING
+
+Uses the **Synthesizer** orchestrator and its subservices (IdeaForge, Researcher, BriefBuilder, OutlineBuilder, Writer, Editor, Critic, Tagger, Illustration). Marks the article READY at the end. Research stage dispatches `KeywordResearchJob` for SERP lookups.
+
+### Publishing (`PublishingJob` on `publishing`)
+
+`DispatchPublishingJob` picks Publications in PENDING or retriable statuses and dispatches `PublishingJob`, which calls FlyCMS to create/update posts with thumbnails and files.
+
+### Maintenance
+
+- `SetInitialScrapingTimeJob` — sets `next_scrape_at` for new Pages via ScrapePolicyEngine
+- `ForceDeleteFiles` / `ForceDeleteSnapshots` — hard-delete cascade-deleted storage
+- `CascadeDelete` / `CascadeRestore` — laravel-backbone relation cascade workers
 
 ---
 
 ## Entrypoints and scheduling
 
-- **Web:** `routes/web.php` – welcome page; no scraping endpoints.
-- **Console / scheduler:** `routes/console.php`  
-  - Registers two scheduled jobs (both every minute):  
-    - `Schedule::job(new ScheduleScrapeDueJob(limit: 50))->everyMinute();`  
-    - `Schedule::job(new ScrapeSourcesJob)->everyMinute();`  
-  - For the scheduler to run, use:  
-    - **Development:** `php artisan schedule:work` (or run the schedule from cron in production).  
-  - Queue workers must be running for the jobs to execute:  
-    - At least one worker on the **scheduler** queue (single worker recommended).  
-    - One or more workers on the **scraping** queue.
+| Route file | Purpose |
+|------------|---------|
+| `routes/web.php` | Welcome page |
+| `routes/ai.php` | MCP server at `/mcp/app` (Sanctum) |
+| `routes/console.php` | Scheduler — all jobs below run **every minute** |
 
-So the “entrypoint” for the scraping pipeline is the **scheduler** defined in `routes/console.php`, which enqueues jobs; the actual work is done by queue workers.
+**Scheduled jobs:**
+
+| Job | Function |
+|-----|----------|
+| `ScheduleScrapeDueJob` | Enqueue due Pages and retryable Files; self-redispatches with cache lock |
+| `ScrapeSourcesJob` | For sources with `schedule_scraping` and no due pages, ensure home Page exists |
+| `ScheduleEmbeddingJob` | Queue embedding jobs for unembedded models |
+| `SetInitialScrapingTimeJob` | Set initial `next_scrape_at` for new pages |
+| `ResolveIntentJob` | Batch intent resolution |
+| `DispatchPublishingJob` | Enqueue pending publications |
+| `CascadeDelete` / `CascadeRestore` | Relation cascade |
+| `ForceDeleteFiles` / `ForceDeleteSnapshots` | Storage cleanup |
+
+**Workers required:**
+
+- At least one worker on **`scheduler`** (single worker recommended — jobs use cache locks and self-dispatch)
+- Workers on **`page_scraping`**, **`file_scraping`**, **`article_building`**, **`keyword_researching`**, **`publishing`**, and **`default`** as needed
+
+In development, `composer dev` runs `queue:listen` which processes all queues.
+
+---
+
+## Queues
+
+| Queue | Jobs |
+|-------|------|
+| `scheduler` | ScheduleScrapeDueJob, ScrapeSourcesJob, ScheduleEmbeddingJob, DispatchPublishingJob, ScheduleKeywordResearchDueJob |
+| `page_scraping` | ScrapePageJob, ResolveIntentJob |
+| `file_scraping` | ScrapeFileJob |
+| `article_building` | BuildArticleJob |
+| `keyword_researching` | KeywordResearchJob |
+| `publishing` | PublishingJob |
+| `default` | EmbeddingJob, ForceDeleteFiles, ForceDeleteSnapshots |
+
+Queue size caps are configured in `config/queue.php` (env: `QUEUE_DEFAULT_MAX_SIZE`, `QUEUE_SCRAPING_MAX_SIZE`, `QUEUE_SCHEDULER_MAX_SIZE`). Unconfigured queues default to 100.
+
+---
+
+## MCP server
+
+**Endpoint:** `POST /mcp/app` with Sanctum Bearer token
+
+**Generate a token:**
+
+```bash
+php artisan sanctum:token
+```
+
+**Resources (read first):**
+
+- `app://overview` — domain model, workflows, access rules
+- `platform-manager://flycms/overview` — FlyCMS provisioning and CMS guidelines
+- FlyCMS guidelines for Websites, Pages, Menus, Files, Tags
+
+**Tool groups (~50 tools):**
+
+| Group | Tools |
+|-------|-------|
+| **Clients** | list, show, create, update, update_context |
+| **Authors** | list, show, create, update, update_context |
+| **Articles** | list, show, create, update_context, publish |
+| **Channels** | list, show, create, update, get_config_schema |
+| **Platforms** | list; create/update/update_config (super user only) |
+| **FlyCMS** | Websites, Domains, Tags, Menus, Pages, Files, Meta, Themes — full CRUD |
+
+Access is scoped to the authenticated user's Clients. Platform write operations require `User.is_super`.
+
+The article build pipeline (`BuildArticleJob`) is not exposed as an MCP tool. Once an article is queued for building, poll `show_article` until `status` is `READY`.
 
 ---
 
@@ -110,143 +233,232 @@ So the “entrypoint” for the scraping pipeline is the **scheduler** defined i
 
 ```
 app/
-├── Console/Commands/          # Artisan commands (e.g. TestPageEntity)
-├── Contracts/                 # Interfaces (Scraper, Classifier, Parser, ScrapePolicyEngine, FileVision, OpenAI)
-├── Enums/                     # Queue, ScrapingStatus, EntityType, PageType, ContentType, Temporal
-├── Facades/                   # Scraper, PageClassifier, PageParser, ScrapePolicyEngine, FileVision, OpenAI
-├── Filament/                  # Admin panel: Resources (Verticals, Sources, Entities, Snapshots, Clients, Users), Widgets
-├── Jobs/
-│   ├── ScheduleScrapeDueJob.php   # Scheduler: enqueue due entities, re-dispatch self
-│   ├── ScrapeSourcesJob.php       # Scheduler: ensure home-page entity per source, dispatch ScrapeEntityJob
-│   └── ScrapeEntityJob.php        # Fetch URL, classify/parse, store snapshot, policy, discover links
-├── ModelListeners/            # Entity: SetUrlHashListener, EntityCountListener (backbone package)
-├── Models/                    # Entity, Source, Vertical, Snapshot, Tag, Client, User, pivots
-├── Services/                  # Manager + driver implementations
-│   ├── Scraper/               # Guzzle driver
-│   ├── PageClassifier/        # OpenAI driver
-│   ├── PageParser/            # OpenAI driver
-│   ├── ScrapePolicyEngine/    # Dummy + OpenAI drivers
-│   ├── FileVision/            # (optional) OpenAI driver
-│   └── OpenAI/                # API client used by AI drivers
-└── Utils/                     # HtmlCleaner
+├── Console/Commands/          # assistance:make:*, sanctum:token, app:render-page, live-test:*
+├── Contracts/                 # Interfaces for all services and platform managers
+├── Enums/                     # Queue, ScrapingStatus, ScrapingStage, ArticleStage, ArticleStatus, etc.
+├── Facades/                   # Service facades (Scraper, Synthesizer, IntentResolver, PlatformManager, …)
+├── Filament/Resources/        # Admin: Verticals, Intents, Keywords, Tags, Sources, Pages, Snapshots,
+│                              #   Files, Clients, Articles, Users
+├── Jobs/                      # ScrapePageJob, ScrapeFileJob, BuildArticleJob, EmbeddingJob,
+│                              #   ResolveIntentJob, PublishingJob, scheduler jobs, …
+├── Mcp/                       # AppServer, tools, guideline resources
+├── ModelListeners/            # Counters, cascade hooks, intent resolution triggers
+├── Models/                    # Page, Source, Snapshot, File, Vertical, Tag, Intent, Keyword,
+│                              #   Client, Author, Article, Platform, Channel, Publication, …
+├── Services/
+│   ├── Scraper/               # Guzzle HTTP fetch
+│   ├── PageClassifier/        # AI page classification
+│   ├── PageParser/            # AI structured content extraction
+│   ├── FileVision/            # AI vision for image files
+│   ├── VerticalResolver/      # Assign verticals to pages
+│   ├── ScrapePolicyEngine/    # Rescrape scheduling
+│   ├── IntentResolver/        # Intent inference and linking
+│   ├── TextEmbedding/         # Laravel AI embedding drivers
+│   ├── VectorDB/              # pgvector similarity search
+│   ├── SearchEngine/          # SearchAPI, Perplexity
+│   ├── FactChecker/           # Research-stage fact checking
+│   ├── SemanticContextBuilder/# Interactive Client/Author onboarding
+│   ├── Synthesizer/           # Article build orchestrator + subservices
+│   ├── PlatformManager/       # FlyCMS driver + pseudo driver
+│   └── OpenAI/                # Shared OpenAI client
+└── Utils/                     # HtmlCleaner, UrlNormalizer, etc.
 
-config/
-├── queue.php                  # Queue connection, size limits, scrape attempts, ScrapeSourcesJob chunk/timeout
-├── scraper.php                # Guzzle timeout, redirects, headers
-├── openai.php                 # OpenAI + openai_compatible drivers
-├── pageclassifier.php, pageparser.php, scrapepolicyengine.php, filevision.php
-└── filesystems.php            # local / s3 for snapshots
+config/                        # scraper, pageclassifier, pageparser, filevision, scrapepolicyengine,
+                               # verticalresolver, intentresolver, text_embedding, vectordb,
+                               # search_engine, synthesizer, semantic_context_builder, flycms,
+                               # factchecker, openai, ai, queue, filesystems
 
-database/migrations/           # entities, sources, snapshots, verticals, tags, entity_vertical, source_vertical, jobs, cache, etc.
-
-routes/
-├── web.php                    # Welcome route
-└── console.php                # Schedule: ScheduleScrapeDueJob, ScrapeSourcesJob every minute
+docker/pgsql/                  # pgvector init script
+compose.yaml                   # Laravel Sail: app, pgvector PostgreSQL, Redis, MinIO
 ```
 
 ---
 
 ## Configuration and environment
 
-Copy `.env.example` to `.env` and set at least:
+Copy `.env.example` to `.env` and configure:
 
-- **App:** `APP_KEY`, `APP_URL`, `APP_SERVICE=scraping.hub`
-- **Database:** `DB_*` (e.g. PostgreSQL)
-- **Queue:** `QUEUE_CONNECTION=database` (or redis/sqs). Optional: `QUEUE_SCRAPING_MAX_SIZE`, `QUEUE_SCHEDULER_MAX_SIZE`, `SCRAPE_MAX_ATTEMPTS`, `SCRAPE_SOURCES_CHUNK_SIZE`, `SCRAPE_SOURCES_MAX_SECONDS`
-- **Cache / session:** Typically `CACHE_STORE`, `SESSION_DRIVER` (e.g. database)
-- **Filesystem:** `FILESYSTEM_DISK=local` (or `s3`). Snapshots go to the default disk (local root: `storage/app/private`).
-- **Scraper:** Optional: `SCRAPER_TIMEOUT`, `SCRAPER_USER_AGENT`, etc. in `config/scraper.php`
-- **OpenAI:** For AI features set `OPENAI_DRIVER`, `OPENAI_API_KEY`, `OPENAI_DEFAULT_MODEL`, etc.; for third-party OpenAI-style APIs use `OPENAI_COMPATIBLE_*` in `config/openai.php`
-- **ScrapePolicyEngine:** `SCRAPE_POLICY_ENGINE_DRIVER=dummy` (default) or `openai`; dummy uses `SCRAPE_POLICY_ENGINE_DUMMY_INTERVAL_HOURS`
+**App & database:**
 
-Relevant config keys:
+- `APP_KEY`, `APP_URL`, `APP_SERVICE=scraping.hub`
+- `DB_*` — PostgreSQL with pgvector (Sail provides `pgvector/pgvector:pg18`)
 
-- **config/queue.php:** `max_scrape_attempts`, `max_scraping_queue_size`, `max_scheduler_queue_size`, `scrape_sources_chunk_size`, `scrape_sources_max_seconds`
-- **config/scraper.php:** default driver `guzzle`, timeouts and headers
-- **config/openai.php:** drivers `openai`, `openai_compatible`
-- **config/scrapepolicyengine.php:** drivers `dummy`, `openai`
+**Queue & cache:**
+
+- `QUEUE_CONNECTION=database` (or `redis`)
+- `QUEUE_DEFAULT_MAX_SIZE`, `QUEUE_SCRAPING_MAX_SIZE`, `QUEUE_SCHEDULER_MAX_SIZE`
+- `SCRAPE_MAX_ATTEMPTS`, `ARTICLE_BUILD_MAX_ATTEMPTS`
+- `SCRAPE_SOURCES_CHUNK_SIZE`, `SCRAPE_SOURCES_MAX_SECONDS`
+
+**Filesystem:**
+
+- `FILESYSTEM_DISK=local` (or `s3` / MinIO in Sail)
+
+**AI service drivers** (each supports `openai` and `openai_compatible`):
+
+- `FILEVISION_DRIVER`, `PAGECLASSIFIER_DRIVER`, `PAGEPARSER_DRIVER`
+- `SCRAPE_POLICY_ENGINE_DRIVER`, `VERTICALRESOLVER_DRIVER`
+- `SYNTHESIZER_DRIVER` (+ `SYNTHESIZER_OPENAI_COMPATIBLE_*`)
+- `OPENAI_*`, `OPENAI_COMPATIBLE_*`
+
+**Search & research:**
+
+- `SEARCH_ENGINE_DRIVER`, `SEARCHAPI_*`, `PERPLEXITY_*`
+
+**Embeddings & vectors:**
+
+- `TEXT_EMBEDDING_*` in `config/text_embedding.php`
+- `VECTORDB_*` in `config/vectordb.php` (dimension default: 1536)
+
+**Publishing:**
+
+- `FLYCMS_*` in `config/flycms.php`
+
+**Onboarding:**
+
+- `SEMANTIC_CONTEXT_BUILDER_*` in `config/semantic_context_builder.php`
 
 ---
 
 ## Setup and development
 
-**Requirements:** PHP 8.4+, Composer, Node/npm (for Filament/Vite), PostgreSQL (or DB of choice).
+**Requirements:** PHP 8.4+ (with ext-imagick, ext-dom, ext-libxml), Composer, Node/npm, PostgreSQL with pgvector
+
+### With Laravel Sail (recommended)
+
+```bash
+composer install
+cp .env.example .env
+# Set DB_HOST=scraping.hub.pgsql and other Sail defaults
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail npm install && ./vendor/bin/sail npm run build
+./vendor/bin/sail artisan make:filament-user
+```
+
+Sail services (`compose.yaml`):
+
+| Service | Image | Ports |
+|---------|-------|-------|
+| `scraping.hub` | PHP 8.5 app | 80, 5173 (Vite) |
+| `scraping.hub.pgsql` | pgvector/pgvector:pg18 | 5432 |
+| `scraping.hub.redis` | Redis Alpine | 6379 |
+| `scraping.hub.minio` | MinIO | 9000, 8900 (console) |
+
+### Without Sail
 
 ```bash
 composer install
 cp .env.example .env
 php artisan key:generate
-# Set DB_* and other env vars
+# Set DB_* and other env vars; ensure pgvector extension is enabled
 php artisan migrate
 npm install && npm run build
-```
-
-**Create Filament admin user:**
-
-```bash
 php artisan make:filament-user
 ```
 
-**Run the app (dev):**
+### Run locally
 
-- Web: `php artisan serve`
-- Scheduler: `php artisan schedule:work`
-- Queues: run at least one worker for `scheduler` and one or more for `scraping`:
-
-```bash
-php artisan queue:work database --queue=scheduler
-php artisan queue:work database --queue=scraping
-```
-
-Or use the composer script (if defined):
+**All-in-one dev** (web + queue + logs + Vite):
 
 ```bash
 composer dev
 ```
 
-**Useful commands:**
+**Or run separately:**
 
-- `php artisan app:render-page-entity` – Interactive: pick an entity and run PageClassifier, PageParser, or HtmlCleaner for debugging.
+```bash
+php artisan serve
+php artisan schedule:work
+php artisan queue:work database --queue=scheduler
+php artisan queue:work database --queue=page_scraping,file_scraping,article_building,keyword_researching,publishing,default
+npm run dev
+```
+
+### Useful commands
+
+| Command | Purpose |
+|---------|---------|
+| `assistance:make:client` | Interactive AI-guided Client creation with context |
+| `assistance:make:author` | Interactive Author persona builder |
+| `sanctum:token` | Generate MCP API token |
+| `app:render-page` | Dev: re-run PageClassifier, PageParser, or HtmlCleaner on a Page |
+| `app:test-code` | Dev: intent resolver and embedding similarity test |
+| `live-test:*` | Live integration tests for each AI service |
 
 ---
 
 ## Deployment
 
-1. **Code and dependencies**  
-   - Deploy app (e.g. git pull), run `composer install --no-dev`, `php artisan migrate --force`, `npm ci && npm run build` (or use built assets).
-
-2. **Environment**  
-   - Configure `.env` for production (DB, `QUEUE_CONNECTION`, `FILESYSTEM_DISK`, `OPENAI_*` / `SCRAPE_POLICY_ENGINE_DRIVER`, etc.).  
-   - Ensure `APP_ENV=production`, `APP_DEBUG=false`, and a strong `APP_KEY`.
-
-3. **Scheduler**  
-   - Add cron: `* * * * * cd /path-to-app && php artisan schedule:run >> /dev/null 2>&1` (or use a process manager that runs `schedule:work`).
-
-4. **Queue workers**  
-   - Run at least **one** worker for the **scheduler** queue only (e.g. `php artisan queue:work database --queue=scheduler --tries=1`).  
-   - Run one or more workers for the **scraping** queue (e.g. `php artisan queue:work database --queue=scraping --tries=2`).  
-   - Use a process manager (Supervisor, systemd) and restart workers after deploy (e.g. `php artisan queue:restart`).
-
-5. **Storage**  
-   - If using S3 for snapshots, set `FILESYSTEM_DISK=s3` and AWS_* in `.env`.  
-   - Run `php artisan storage:link` if you serve public storage assets.
-
-6. **Filament**  
-   - Create an admin user with `php artisan make:filament-user` and access `/admin` over HTTPS.
+1. **Deploy code:** `composer install --no-dev`, `php artisan migrate --force`, `npm ci && npm run build`
+2. **Environment:** production `.env` with DB, queue, filesystem, OpenAI, FlyCMS, and search API keys. Set `APP_ENV=production`, `APP_DEBUG=false`.
+3. **Scheduler:** cron `* * * * * cd /path-to-app && php artisan schedule:run`
+4. **Queue workers** (Supervisor/systemd):
+   - One worker on `scheduler` (`--tries=1`)
+   - Workers on `page_scraping`, `file_scraping`, `article_building`, `keyword_researching`, `publishing`, `default`
+   - Restart after deploy: `php artisan queue:restart`
+5. **Storage:** set `FILESYSTEM_DISK=s3` and AWS/MinIO credentials if using object storage
+6. **Admin:** create user with `php artisan make:filament-user`, access `/admin` over HTTPS
+7. **MCP:** generate tokens with `php artisan sanctum:token` for agent access to `/mcp/app`
 
 ---
 
 ## Usage and operations
 
-- **Admin panel:** Log in at `/admin`. Manage Verticals, Sources, Entities, Snapshots, Clients, Users. Dashboard widgets show entity stats (e.g. by status, type, over time).
-- **Adding work:** Create a **Source** (base URL) and attach it to a Vertical. The scheduler will create the home-page entity if missing and enqueue it; from there, `ScrapeEntityJob` will discover same-host links and create new entities. You can also create or edit entities manually in Filament.
-- **Monitoring:** Check queue sizes (`QUEUE_SCRAPING_MAX_SIZE`, `QUEUE_SCHEDULER_MAX_SIZE`), failed jobs (`php artisan queue:failed`), and logs. Snapshots are stored on the default disk; inspect entity/snapshot records in the admin or DB.
-- **Policy:** With `SCRAPE_POLICY_ENGINE_DRIVER=dummy`, next scrape is after a fixed interval (e.g. 24h). With `openai`, the engine uses the entity/snapshot data to compute `next_scrape_at`.
+### Admin panel (`/admin`)
+
+| Navigation group | Resources |
+|------------------|-----------|
+| **Content** | Verticals, Intents (with Keywords/Pages/Articles relations), Keywords, Tags |
+| **Remote** | Sources, Pages, Snapshots, Files |
+| **Distribution** | Clients, Articles |
+| **Administration** | Users |
+
+Dashboard widgets show page stats by status, type, and over time.
+
+### Adding scraping work
+
+Create a **Source** (base URL) and attach it to a Vertical. The scheduler creates the home-page Page if missing and enqueues it. `ScrapePageJob` discovers same-host links and creates new Pages. You can also create or edit Pages manually.
+
+### Producing articles
+
+1. Create a **Client** (`assistance:make:client` or Filament/MCP)
+2. Create **Authors** with context (`assistance:make:author`)
+3. Create an **Article** (MCP or Filament)
+4. Monitor article `stage` and `status` in Filament or via MCP `show_article` as `BuildArticleJob` progresses through its stages on the `article_building` queue
+5. When `status` is READY, publish via MCP `publish_article` or create a Publication
+
+### Publishing
+
+1. Configure a **Platform** (FlyCMS) — super user via MCP
+2. Create a **Channel** linking a Client to the Platform
+3. Publish an article — creates a Publication; `DispatchPublishingJob` picks it up and runs `PublishingJob`
+
+### Monitoring
+
+- Queue sizes and failed jobs: `php artisan queue:failed`
+- Logs: `php artisan pail` (dev) or application log channel
+- Snapshots and files on the configured disk; records in admin or DB
 
 ---
 
 ## Testing
 
-- **PHPUnit:** `composer test` or `php artisan test`.
-- **Relevant tests:** e.g. `tests/Feature/Jobs/ScrapeEntityJobTest`, `tests/Unit/Services/...` (OpenAI, ScrapePolicyEngine, PageParser, PageClassifier, FileVision), `tests/Unit/Utils/HtmlCleanerTest`.
+```bash
+composer test
+# runs: ./vendor/bin/sail artisan test
+```
 
+Or directly:
+
+```bash
+php artisan test
+```
+
+**Test coverage areas:**
+
+- Jobs: `ScrapePageJob`, `BuildArticleJob`, `DispatchPublishingJob`, embedding, intent resolution
+- Services: OpenAI, ScrapePolicyEngine, PageParser, PageClassifier, FileVision, Synthesizer subservices, VectorDB, SearchEngine, FactChecker
+- MCP tools: client, author, article, channel, and FlyCMS tool tests
+- Utils: HtmlCleaner, structured data helpers

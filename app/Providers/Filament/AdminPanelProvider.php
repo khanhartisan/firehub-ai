@@ -2,6 +2,12 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\DistributionStatsWidget;
+use App\Filament\Widgets\PagesByStatusChartWidget;
+use App\Filament\Widgets\PagesByTypeChartWidget;
+use App\Filament\Widgets\PagesOverTimeChartWidget;
+use App\Filament\Widgets\PublicationsByStatusChartWidget;
+use App\Filament\Widgets\ScrapingHubStatsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -10,12 +16,6 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use App\Filament\Widgets\PagesByStatusChartWidget;
-use App\Filament\Widgets\PagesByTypeChartWidget;
-use App\Filament\Widgets\PagesOverTimeChartWidget;
-use App\Filament\Widgets\ScrapingHubStatsWidget;
-use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -35,8 +35,9 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->navigationGroups([
                 1 => 'Content',
-                2 => 'Administration',
-                3 => 'Integrations',
+                2 => 'Remote',
+                3 => 'Distribution',
+                4 => 'Administration',
             ])
             ->colors([
                 'primary' => Color::Amber,
@@ -49,7 +50,9 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 ScrapingHubStatsWidget::class,
+                DistributionStatsWidget::class,
                 PagesByStatusChartWidget::class,
+                PublicationsByStatusChartWidget::class,
                 PagesByTypeChartWidget::class,
                 PagesOverTimeChartWidget::class,
             ])

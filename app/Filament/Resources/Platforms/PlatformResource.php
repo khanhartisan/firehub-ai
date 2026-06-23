@@ -1,15 +1,13 @@
 <?php
 
-namespace App\Filament\Resources\Clients;
+namespace App\Filament\Resources\Platforms;
 
-use App\Enums\Language;
-use App\Filament\Resources\Clients\Pages\ManageClients;
-use App\Filament\Resources\Clients\Pages\ViewClient;
-use App\Filament\Resources\Clients\RelationManagers\ArticlesRelationManager;
-use App\Filament\Resources\Clients\RelationManagers\AuthorsRelationManager;
-use App\Filament\Resources\Clients\RelationManagers\ChannelsRelationManager;
+use App\Enums\PlatformType;
+use App\Filament\Resources\Platforms\Pages\ManagePlatforms;
+use App\Filament\Resources\Platforms\Pages\ViewPlatform;
+use App\Filament\Resources\Platforms\RelationManagers\ChannelsRelationManager;
 use App\Filament\Support\JsonField;
-use App\Models\Client;
+use App\Models\Platform;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -26,40 +24,41 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class ClientResource extends Resource
+class PlatformResource extends Resource
 {
-    protected static ?string $model = Client::class;
+    protected static ?string $model = Platform::class;
 
     protected static ?string $recordTitleAttribute = 'name';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Distribution';
 
-    protected static ?int $navigationSort = 100;
+    protected static ?int $navigationSort = 150;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWindow;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedServerStack;
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make('Client')
+                Section::make('Platform')
                     ->schema([
                         TextInput::make('name')
+                            ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
-                        Select::make('language')
-                            ->options(collect(Language::cases())->mapWithKeys(
-                                fn (Language $language): array => [$language->value => $language->value]
+                        Select::make('type')
+                            ->options(collect(PlatformType::cases())->mapWithKeys(
+                                fn (PlatformType $type): array => [$type->value => $type->name]
                             )->all())
-                            ->searchable()
-                            ->nullable(),
+                            ->required()
+                            ->disabledOn('edit'),
                         TextInput::make('channels_count')
                             ->numeric()
                             ->minValue(0)
                             ->disabled()
                             ->dehydrated(false)
                             ->visibleOn('edit'),
-                        JsonField::make('context', 'Client brand context (JSON).'),
+                        JsonField::make('config', 'Platform configuration (JSON).'),
                     ])
                     ->columns(2),
             ]);
@@ -71,11 +70,11 @@ class ClientResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
-                TextColumn::make('language')
-                    ->sortable()
-                    ->toggleable(),
+                    ->sortable(),
+                TextColumn::make('type')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state)
+                    ->sortable(),
                 TextColumn::make('channels_count')
                     ->label('Channels')
                     ->sortable(),
@@ -102,11 +101,13 @@ class ClientResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Client')
+                Section::make('Platform')
                     ->schema([
                         TextEntry::make('id')->label('ID'),
-                        TextEntry::make('name')->placeholder('—'),
-                        TextEntry::make('language')->placeholder('—'),
+                        TextEntry::make('name'),
+                        TextEntry::make('type')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state),
                         TextEntry::make('channels_count')->label('Channels'),
                         TextEntry::make('created_at')->dateTime(),
                         TextEntry::make('updated_at')->dateTime(),
@@ -118,17 +119,15 @@ class ClientResource extends Resource
     public static function getRelations(): array
     {
         return [
-            AuthorsRelationManager::class,
             ChannelsRelationManager::class,
-            ArticlesRelationManager::class,
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ManageClients::route('/'),
-            'view' => ViewClient::route('/{record}'),
+            'index' => ManagePlatforms::route('/'),
+            'view' => ViewPlatform::route('/{record}'),
         ];
     }
 }

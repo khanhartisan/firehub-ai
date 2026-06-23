@@ -1,15 +1,12 @@
 <?php
 
-namespace App\Filament\Resources\Clients;
+namespace App\Filament\Resources\Authors;
 
-use App\Enums\Language;
-use App\Filament\Resources\Clients\Pages\ManageClients;
-use App\Filament\Resources\Clients\Pages\ViewClient;
-use App\Filament\Resources\Clients\RelationManagers\ArticlesRelationManager;
-use App\Filament\Resources\Clients\RelationManagers\AuthorsRelationManager;
-use App\Filament\Resources\Clients\RelationManagers\ChannelsRelationManager;
+use App\Filament\Resources\Authors\Pages\ManageAuthors;
+use App\Filament\Resources\Authors\Pages\ViewAuthor;
+use App\Filament\Resources\Authors\RelationManagers\ArticlesRelationManager;
 use App\Filament\Support\JsonField;
-use App\Models\Client;
+use App\Models\Author;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -24,42 +21,35 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
-class ClientResource extends Resource
+class AuthorResource extends Resource
 {
-    protected static ?string $model = Client::class;
+    protected static ?string $model = Author::class;
 
     protected static ?string $recordTitleAttribute = 'name';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Distribution';
 
-    protected static ?int $navigationSort = 100;
+    protected static ?int $navigationSort = 200;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWindow;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make('Client')
+                Section::make('Author')
                     ->schema([
-                        TextInput::make('name')
-                            ->maxLength(255)
-                            ->unique(ignoreRecord: true),
-                        Select::make('language')
-                            ->options(collect(Language::cases())->mapWithKeys(
-                                fn (Language $language): array => [$language->value => $language->value]
-                            )->all())
+                        Select::make('client_id')
+                            ->relationship('client', 'name')
                             ->searchable()
-                            ->nullable(),
-                        TextInput::make('channels_count')
-                            ->numeric()
-                            ->minValue(0)
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->visibleOn('edit'),
-                        JsonField::make('context', 'Client brand context (JSON).'),
+                            ->preload()
+                            ->required(),
+                        TextInput::make('name')
+                            ->maxLength(255),
+                        JsonField::make('context', 'Author persona context (JSON).', 12),
                     ])
                     ->columns(2),
             ]);
@@ -73,18 +63,20 @@ class ClientResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->placeholder('—'),
-                TextColumn::make('language')
+                TextColumn::make('client.name')
+                    ->label('Client')
+                    ->searchable()
                     ->sortable()
-                    ->toggleable(),
-                TextColumn::make('channels_count')
-                    ->label('Channels')
-                    ->sortable(),
+                    ->placeholder('—'),
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
-                //
+                SelectFilter::make('client_id')
+                    ->relationship('client', 'name')
+                    ->searchable()
+                    ->preload(),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -102,12 +94,11 @@ class ClientResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Client')
+                Section::make('Author')
                     ->schema([
                         TextEntry::make('id')->label('ID'),
                         TextEntry::make('name')->placeholder('—'),
-                        TextEntry::make('language')->placeholder('—'),
-                        TextEntry::make('channels_count')->label('Channels'),
+                        TextEntry::make('client.name')->label('Client')->placeholder('—'),
                         TextEntry::make('created_at')->dateTime(),
                         TextEntry::make('updated_at')->dateTime(),
                     ])
@@ -118,8 +109,6 @@ class ClientResource extends Resource
     public static function getRelations(): array
     {
         return [
-            AuthorsRelationManager::class,
-            ChannelsRelationManager::class,
             ArticlesRelationManager::class,
         ];
     }
@@ -127,8 +116,8 @@ class ClientResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ManageClients::route('/'),
-            'view' => ViewClient::route('/{record}'),
+            'index' => ManageAuthors::route('/'),
+            'view' => ViewAuthor::route('/{record}'),
         ];
     }
 }

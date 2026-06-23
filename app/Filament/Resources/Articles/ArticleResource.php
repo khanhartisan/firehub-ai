@@ -4,26 +4,33 @@ namespace App\Filament\Resources\Articles;
 
 use App\Enums\ArticleStage;
 use App\Enums\ArticleStageStatus;
+use App\Enums\ArticleStatus;
 use App\Enums\Language;
 use App\Enums\Temporal;
 use App\Filament\Resources\Articles\Pages\ManageArticles;
+use App\Filament\Resources\Articles\Pages\ViewArticle;
+use App\Filament\Resources\Articles\RelationManagers\PublicationsRelationManager;
+use App\Filament\Support\JsonField;
 use App\Models\Article;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class ArticleResource extends Resource
@@ -44,9 +51,21 @@ class ArticleResource extends Resource
             ->components([
                 Section::make('Article')
                     ->schema([
-                        TextInput::make('client_id')
-                            ->required()
-                            ->maxLength(255),
+                        Select::make('client_id')
+                            ->relationship('client', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+                        Select::make('author_id')
+                            ->relationship('author', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->nullable(),
+                        Select::make('status')
+                            ->options(collect(ArticleStatus::cases())->mapWithKeys(
+                                fn (ArticleStatus $status): array => [$status->value => $status->name]
+                            )->all())
+                            ->required(),
                         Select::make('language')
                             ->options(collect(Language::cases())->mapWithKeys(
                                 fn (Language $language): array => [$language->value => $language->value]
@@ -74,6 +93,9 @@ class ArticleResource extends Resource
                         TextInput::make('intents_count')
                             ->numeric()
                             ->minValue(0),
+                        TextInput::make('attempts')
+                            ->numeric()
+                            ->minValue(0),
                         Toggle::make('is_embeddable'),
                         Toggle::make('is_embedded'),
                         Textarea::make('title')
@@ -82,38 +104,9 @@ class ArticleResource extends Resource
                         Textarea::make('excerpt')
                             ->rows(4)
                             ->columnSpanFull(),
-                        Textarea::make('context')
-                            ->rows(8)
-                            ->columnSpanFull(),
-                        Textarea::make('article')
-                            ->rows(14)
-                            ->columnSpanFull()
-                            ->formatStateUsing(static function ($state): string {
-                                if (is_string($state)) {
-                                    return $state;
-                                }
-
-                                if (is_array($state)) {
-                                    return (string) json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                                }
-
-                                if (is_object($state) && method_exists($state, 'toArray')) {
-                                    return (string) json_encode($state->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                                }
-
-                                return '';
-                            })
-                            ->dehydrateStateUsing(static function (?string $state): ?array {
-                                $state = trim((string) $state);
-                                if ($state === '') {
-                                    return null;
-                                }
-
-                                $decoded = json_decode($state, true);
-
-                                return is_array($decoded) ? $decoded : null;
-                            })
-                            ->helperText('JSON DOM payload for the article body.'),
+                        JsonField::make('context', 'Article context (JSON).'),
+                        JsonField::make('article', 'JSON DOM payload for the article body.', 14),
+                        JsonField::make('stage_data', 'Pipeline stage data (JSON).', 8),
                     ])
                     ->columns(2),
             ]);
@@ -123,13 +116,19 @@ class ArticleResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('client_id')
+                TextColumn::make('client.name')
+                    ->label('Client')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->placeholder('—'),
                 TextColumn::make('title')
                     ->searchable()
                     ->limit(80)
                     ->description(fn (Article $article): ?string => $article->excerpt),
+                TextColumn::make('status')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state)
+                    ->sortable(),
                 TextColumn::make('stage')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state)
@@ -137,15 +136,18 @@ class ArticleResource extends Resource
                 TextColumn::make('stage_status')
                     ->badge()
                     ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('author.name')
+                    ->label('Author')
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('language')
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('temporal')
+                TextColumn::make('intents_count')
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('intents_count')
-                    ->sortable(),
                 IconColumn::make('is_embedded')
                     ->boolean(),
                 TextColumn::make('updated_at')
@@ -153,9 +155,21 @@ class ArticleResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                //
+                SelectFilter::make('status')
+                    ->options(collect(ArticleStatus::cases())->mapWithKeys(
+                        fn (ArticleStatus $status): array => [$status->value => $status->name]
+                    )->all()),
+                SelectFilter::make('client_id')
+                    ->relationship('client', 'name')
+                    ->searchable()
+                    ->preload(),
+                SelectFilter::make('stage')
+                    ->options(collect(ArticleStage::cases())->mapWithKeys(
+                        fn (ArticleStage $stage): array => [$stage->value => $stage->name]
+                    )->all()),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -166,10 +180,50 @@ class ArticleResource extends Resource
             ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Article')
+                    ->schema([
+                        TextEntry::make('client.name')->label('Client')->placeholder('—'),
+                        TextEntry::make('author.name')->label('Author')->placeholder('—'),
+                        TextEntry::make('title')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('excerpt')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('status')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state),
+                        TextEntry::make('stage')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state),
+                        TextEntry::make('stage_status')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state),
+                        TextEntry::make('language')->placeholder('—'),
+                        TextEntry::make('temporal')->placeholder('—'),
+                        TextEntry::make('intents_count')->label('Intents'),
+                        TextEntry::make('attempts'),
+                        TextEntry::make('intent_resolved_at')->dateTime()->placeholder('—'),
+                        TextEntry::make('is_embeddable')->boolean(),
+                        TextEntry::make('is_embedded')->boolean(),
+                        TextEntry::make('updated_at')->dateTime(),
+                    ])
+                    ->columns(2),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            PublicationsRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => ManageArticles::route('/'),
+            'view' => ViewArticle::route('/{record}'),
         ];
     }
 }

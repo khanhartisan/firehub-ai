@@ -4,6 +4,7 @@ namespace App\Services\FactChecker;
 
 use App\Contracts\FactChecker\FactChecker as FactCheckerContract;
 use App\Contracts\OpenAI\OpenAIClient;
+use App\Services\OpenAI\OpenAIManager;
 use Illuminate\Support\Manager;
 
 class FactCheckerManager extends Manager
@@ -26,6 +27,16 @@ class FactCheckerManager extends Manager
 
         return new Drivers\OpenAIFactCheckerDriver(
             $this->container->make(OpenAIClient::class),
+            $config
+        );
+    }
+
+    protected function createOpenaiCompatibleDriver(): FactCheckerContract
+    {
+        $config = $this->config->get('factchecker.drivers.openai_compatible', []);
+
+        return new Drivers\OpenAICompatibleFactCheckerDriver(
+            $this->container->make(OpenAIManager::class),
             $config
         );
     }

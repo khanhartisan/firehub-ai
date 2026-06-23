@@ -21,6 +21,8 @@ return [
     |
     | Configure each available fact-checking driver here.
     |
+    | Supported drivers: "basic", "openai", "openai_compatible"
+    |
     */
 
     'drivers' => [
@@ -31,6 +33,10 @@ return [
 
         'openai' => [
             'model' => env('FACTCHECKER_OPENAI_MODEL', 'gpt-4o-mini'),
+        ],
+
+        'openai_compatible' => [
+            'model' => env('FACTCHECKER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
         ],
 
     ],

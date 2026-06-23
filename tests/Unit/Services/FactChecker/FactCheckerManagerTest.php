@@ -9,8 +9,10 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Facades\FactChecker;
 use App\Services\FactChecker\Drivers\BasicFactCheckerDriver;
+use App\Services\FactChecker\Drivers\OpenAICompatibleFactCheckerDriver;
 use App\Services\FactChecker\Drivers\OpenAIFactCheckerDriver;
 use App\Services\FactChecker\FactCheckerManager;
+use App\Services\OpenAI\OpenAIManager;
 use Illuminate\Support\Facades\Config;
 use Mockery;
 use Tests\TestCase;
@@ -51,6 +53,18 @@ class FactCheckerManagerTest extends TestCase
         $driver = $this->manager()->driver('basic');
 
         $this->assertInstanceOf(BasicFactCheckerDriver::class, $driver);
+    }
+
+    public function test_it_returns_openai_compatible_driver_when_requested_explicitly(): void
+    {
+        $mockOpenAIManager = Mockery::mock(OpenAIManager::class);
+        $mockOpenAIClient = Mockery::mock(OpenAIClient::class);
+        $mockOpenAIManager->shouldReceive('driver')->with('openai_compatible')->andReturn($mockOpenAIClient);
+        $this->app->instance(OpenAIManager::class, $mockOpenAIManager);
+
+        $driver = $this->manager()->driver('openai_compatible');
+
+        $this->assertInstanceOf(OpenAICompatibleFactCheckerDriver::class, $driver);
     }
 
     public function test_basic_driver_returns_verification_payload(): void

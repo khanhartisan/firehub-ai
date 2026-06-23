@@ -36,4 +36,9 @@ enum PublicationStatus: int implements DescribableEnum
             static::ERROR,
         ];
     }
+
+    public function isRetriable(): bool
+    {
+        return in_array($this, static::retriableStatuses());
+    }
 }

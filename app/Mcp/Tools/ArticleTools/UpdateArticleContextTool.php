@@ -16,7 +16,7 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 
-#[Description('Update the semantic context of an existing article.')]
+#[Description('Update the semantic context of an existing article. This tool is optional, if the context is empty, system will automatically fulfill.')]
 class UpdateArticleContextTool extends Tool
 {
     /**

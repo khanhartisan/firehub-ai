@@ -110,7 +110,7 @@ class GenerateK8sYml extends Command
 
         $configmap = collect($this->parseEnvFile())
             ->filter(function ($value, $key) use ($secret, $k8sConfig) {
-                return !in_array($key, array_merge($secret, $k8sConfig));
+                return !in_array($key, array_merge(array_keys($secret), array_keys($k8sConfig)));
             })->toArray();
 
         // Preview k8s config

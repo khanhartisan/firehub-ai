@@ -6,10 +6,12 @@ use App\Mcp\Exceptions\McpToolException;
 use Generator;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Throwable;
 
 class AppCallTool extends CallTool
 {
@@ -39,6 +41,21 @@ class AppCallTool extends CallTool
                 Response::error($exception->getMessage()),
                 $this->serializable($tool),
             );
+        }
+    }
+
+    protected function callHandler(callable $handler, JsonRpcRequest $request): mixed
+    {
+        try {
+            return $handler();
+        } catch (McpToolException $exception) {
+            return Response::error($exception->getMessage());
+        } catch (Throwable $throwable) {
+            if ($this instanceof Errable) {
+                return $this->toErrorResponse($throwable);
+            }
+
+            throw $this->toJsonRpcException($throwable, $request->id);
         }
     }
 }

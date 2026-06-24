@@ -86,7 +86,6 @@ class GenerateK8sYml extends Command
             'SENTRY_LARAVEL_DSN' => $this->askDeployEnv('SENTRY_LARAVEL_DSN', null, false),
 
             // DB
-            'DB_CONNECTION' => $this->askDeployEnv('DB_CONNECTION', 'pgsql'),
             'DB_HOST' => $this->askDeployEnv('DB_HOST'),
             'DB_PORT' => $this->askDeployEnv('DB_PORT', 3306),
             'DB_DATABASE' => $this->askDeployEnv('DB_DATABASE'),

@@ -73,6 +73,7 @@ use App\Services\TextEmbedding\TextEmbeddingManager;
 use App\Services\VectorDB\VectorDBManager;
 use App\Services\VerticalResolver\VerticalResolverManager;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 
@@ -126,6 +127,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Force https in production
+        if (env('APP_ENV') === 'production') {
+            URL::forceHttps();
+        }
+
         Model::unguard();
 
         $this->registerMorphMap();

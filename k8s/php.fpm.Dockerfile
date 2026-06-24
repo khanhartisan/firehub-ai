@@ -1,4 +1,4 @@
-FROM firehub:latest
+FROM firehub-base-image:latest
 
 ENV SUPERVISOR_PHP_USER=root
 ENV WWWUSER=www-data

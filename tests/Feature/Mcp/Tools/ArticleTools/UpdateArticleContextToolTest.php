@@ -32,7 +32,7 @@ class UpdateArticleContextToolTest extends TestCase
             ->assertOk()
             ->assertSee('Successfully updated the article context')
             ->assertName('update-article-context-tool')
-            ->assertDescription('Update the semantic context of an existing article.')
+            ->assertDescription('Update the semantic context of an existing article. This tool is optional, if the context is empty, system will automatically fulfill.')
             ->assertStructuredContent(function ($json) use ($article, $client): void {
                 $json->where('id', $article->id)
                     ->where('client_id', $client->id)

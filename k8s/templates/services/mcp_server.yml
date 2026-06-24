@@ -1,0 +1,14 @@
+# MCP Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: firehub-mcp-server-service
+  namespace: {{ K8S_NAMESPACE }}
+  labels:
+    app: mcp-server
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+  selector:
+    app: mcp-server

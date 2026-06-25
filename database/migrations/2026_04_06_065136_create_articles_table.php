@@ -26,6 +26,7 @@ return new class extends Migration
         ) PARTITION BY HASH (client_id)');
 
         Schema::table('articles', function (Blueprint $table) {
+            $table->ulid('author_id')->nullable();
             $table->string('language')->nullable();
             $table->string('temporal')->nullable();
 
@@ -65,6 +66,7 @@ return new class extends Migration
             $table->index(['is_embedded', 'intent_resolved_at', 'updated_at'], 'is_embedded_intent_resolved_at_index');
 
             $table->index(['status', 'id']);
+            $table->index(['author_id', 'id']);
         });
 
         for ($i = 0; $i < 128; $i++) {

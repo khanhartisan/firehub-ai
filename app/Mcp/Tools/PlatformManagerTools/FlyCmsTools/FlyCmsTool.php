@@ -108,7 +108,7 @@ abstract class FlyCmsTool extends PlatformManagerTool
                         ->setData([
                             'role_id' => $this->getFlyCmsUserRoleId($channel),
                             'name' => $user->id,
-                            'email' => $user->email,
+                            'email' => $user->id.'_'.$user->email,
                             'password' => Str::random(8),
                             'api_key' => $apiKey = sha1(Str::random()),
                         ])

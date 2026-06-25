@@ -7,6 +7,7 @@ use App\Enums\PlatformType;
 use App\Enums\PublicationStatus;
 use App\Enums\Queue;
 use App\Facades\Platforms\FlyCms;
+use App\Models\Article;
 use App\Models\Channel;
 use App\Models\Platform;
 use App\Models\Publication;
@@ -85,8 +86,20 @@ class PublishingJob implements ShouldQueue, ShouldBeUnique
     {
         $this->handlePlatform(function () {
             $flycms = FlyCms::driver();
+
+            $publication = $this->publication;
+
+            /** @var Channel $channel */
+            $channel = $publication->channel;
+
+            /** @var Platform $platform */
+            $platform = $channel->platform;
+            if ($platformConfig = $platform->config) {
+                $flycms->setConfig($platformConfig);
+            }
+
             $this->saveWithPublishingResult(
-                $flycms->publishArticle($this->publication)
+                $flycms->publishArticle($publication)
             );
         });
     }

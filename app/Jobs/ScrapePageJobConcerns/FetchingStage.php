@@ -19,6 +19,8 @@ use Psr\Http\Message\ResponseInterface;
 
 trait FetchingStage
 {
+    protected int $snapshotValidTime = 3600;
+
     protected function handleFetchingStage(Page $page): ?Snapshot
     {
         Debugger::devConsoleDump('Fetching, page '.$page->id);
@@ -26,6 +28,13 @@ trait FetchingStage
         // Update scraping status
         $page->scraping_status = ScrapingStatus::FETCHING;
         DB::transaction(fn () => $page->save());
+
+        // If the snapshot was just created recently
+        if ($currentSnapshot = $page->currentSnapshot
+            and abs($currentSnapshot->created_at->diffInSeconds(now())) <= $this->snapshotValidTime
+        ) {
+            return $currentSnapshot;
+        }
 
         $fetchStartedAt = microtime(true);
         try {

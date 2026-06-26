@@ -1585,6 +1585,55 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertStringNotContainsString($storagePath, $content);
     }
 
+    public function test_publish_article_preserves_single_quotes_in_liquid_image_urls(): void
+    {
+        Storage::fake();
+
+        $storagePath = 'illustrations/generated/test-image.png';
+        Storage::put($storagePath, 'fake-image-content');
+
+        $publication = $this->makePublication();
+        $article = $publication->publishable;
+        $this->assertInstanceOf(Article::class, $article);
+
+        $article->article = DOMArticle::fromArray([
+            'identifier' => 'article-root',
+            'type' => 'article',
+            'props' => [],
+            'children' => [
+                [
+                    'identifier' => 'sec1',
+                    'type' => 'p',
+                    'props' => [],
+                    'children' => ['Article body'],
+                ],
+            ],
+        ]);
+
+        $result = (new IllustrationResult)
+            ->addFile((new FilesystemFile)->setPath($storagePath));
+
+        $article->illustration = (new IllustrationData)
+            ->setIllustrationResults([$result])
+            ->setIllustrationAnchors([
+                new IllustrationAnchor($result->getIdentifier(), 'sec1', true),
+            ]);
+
+        $publishResult = $this->driver->publishArticle($publication);
+
+        $this->assertSame(PublicationStatus::PUBLISHED, $publishResult->getStatus());
+
+        $post = $this->driver->showPost((string) $publishResult->getReference());
+        $this->assertNotNull($post);
+
+        $content = (string) $post->getData()['content'];
+        $expectedCode = 'storage-'.substr(hash('sha256', $storagePath), 0, 40);
+        $expectedKey = 'uploads/file-'.$expectedCode.'.png';
+
+        $this->assertStringContainsString("{{ '{$expectedKey}' | img_url:", $content);
+        $this->assertStringNotContainsString('&#039;', $content);
+    }
+
     private function makePublication(
         ?string $websiteId = '01J00000000000000000000001',
         ArticleStatus $articleStatus = ArticleStatus::READY,

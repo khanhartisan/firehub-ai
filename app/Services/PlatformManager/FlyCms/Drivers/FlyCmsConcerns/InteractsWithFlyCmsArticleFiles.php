@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Storage;
 
 trait InteractsWithFlyCmsArticleFiles
 {
+    /** @var array<string, string> */
+    protected array $flyCmsLiquidUrlReplacements = [];
+
     /**
      * @return list<int>
      */
@@ -40,6 +43,7 @@ trait InteractsWithFlyCmsArticleFiles
         }
 
         $composed = DOMArticle::fromArray($baseArticle->toArray());
+        $this->flyCmsLiquidUrlReplacements = [];
 
         $illustration = $article->illustration;
         if ($illustration instanceof IllustrationData) {
@@ -47,6 +51,14 @@ trait InteractsWithFlyCmsArticleFiles
         }
 
         $html = $composed->toHtml();
+
+        if ($this->flyCmsLiquidUrlReplacements !== []) {
+            $html = str_replace(
+                array_keys($this->flyCmsLiquidUrlReplacements),
+                array_values($this->flyCmsLiquidUrlReplacements),
+                $html,
+            );
+        }
 
         return $html !== '' ? $html : null;
     }
@@ -135,10 +147,22 @@ trait InteractsWithFlyCmsArticleFiles
 
         return (new Element)
             ->setType(ElementType::IMG)
-            ->setProp('src', $this->flyCmsImageLiquidUrl($fileKey, $defaultWidth))
-            ->setProp('srcset', $this->flyCmsImageSrcset($fileKey, $widths))
+            ->setProp('src', $this->registerFlyCmsLiquidUrlReplacement(
+                $this->flyCmsImageLiquidUrl($fileKey, $defaultWidth),
+            ))
+            ->setProp('srcset', $this->registerFlyCmsLiquidUrlReplacement(
+                $this->flyCmsImageSrcset($fileKey, $widths),
+            ))
             ->setProp('sizes', '(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 850px')
             ->setProp('alt', $result->getIllustrationContext()?->getSubjectValue() ?: '');
+    }
+
+    protected function registerFlyCmsLiquidUrlReplacement(string $liquidUrl): string
+    {
+        $placeholder = '%%FLYCMS_LIQUID_'.count($this->flyCmsLiquidUrlReplacements).'%%';
+        $this->flyCmsLiquidUrlReplacements[$placeholder] = $liquidUrl;
+
+        return $placeholder;
     }
 
     /**
@@ -190,9 +214,7 @@ trait InteractsWithFlyCmsArticleFiles
 
     protected function flyCmsImageLiquidUrl(string $fileKey, int $width): string
     {
-        $escapedKey = str_replace("'", "\\'", $fileKey);
-
-        return "{{ '{$escapedKey}' | image_url: {$width} }}";
+        return "{{ '{$fileKey}' | img_url: {$width} }}";
     }
 
     /**

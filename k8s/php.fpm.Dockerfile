@@ -33,8 +33,8 @@ RUN composer install --ignore-platform-reqs --no-interaction --no-scripts --opti
 RUN npm install
 
 # Chmod
-RUN chown -R www-data:www-data /var/www/html \
- && chmod -R u+rwX /var/www/html
+# RUN chown -R www-data:www-data /var/www/html \
+# && chmod -R u+rwX /var/www/html
 
 # Expose port 80 of the nginx
 EXPOSE 80

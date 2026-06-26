@@ -1576,9 +1576,9 @@ class PseudoFlyCmsDriverTest extends TestCase
         $expectedKey = 'uploads/file-'.$expectedCode.'.png';
 
         $this->assertStringContainsString($expectedKey, $content);
-        $this->assertStringContainsString('img_url: 850', $content);
-        $this->assertStringContainsString('img_url: 400', $content);
-        $this->assertStringContainsString('img_url: 600', $content);
+        $this->assertStringContainsString('image_url: 850', $content);
+        $this->assertStringContainsString('image_url: 400', $content);
+        $this->assertStringContainsString('image_url: 600', $content);
         $this->assertStringContainsString('400w', $content);
         $this->assertStringContainsString('srcset=', $content);
         $this->assertStringContainsString('sizes=', $content);
@@ -1630,7 +1630,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         $expectedCode = 'storage-'.substr(hash('sha256', $storagePath), 0, 40);
         $expectedKey = 'uploads/file-'.$expectedCode.'.png';
 
-        $this->assertStringContainsString("{{ '{$expectedKey}' | img_url:", $content);
+        $this->assertStringContainsString("{{ '{$expectedKey}' | image_url:", $content);
         $this->assertStringNotContainsString('&#039;', $content);
     }
 

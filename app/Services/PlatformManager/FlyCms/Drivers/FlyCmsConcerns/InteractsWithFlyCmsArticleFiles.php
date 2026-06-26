@@ -214,7 +214,7 @@ trait InteractsWithFlyCmsArticleFiles
 
     protected function flyCmsImageLiquidUrl(string $fileKey, int $width): string
     {
-        return "{{ '{$fileKey}' | img_url: {$width} }}";
+        return "{{ '{$fileKey}' | image_url: {$width} }}";
     }
 
     /**

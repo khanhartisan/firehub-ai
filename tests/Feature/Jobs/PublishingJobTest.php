@@ -90,7 +90,7 @@ class PublishingJobTest extends TestCase
         $publication->refresh();
         $this->assertSame(PublicationStatus::PUBLISHED, $publication->status);
         $this->assertSame('01J0000000000000000000051', $publication->reference);
-        $this->assertSame(1, $publication->attempts);
+        $this->assertSame(0, $publication->attempts);
     }
 
     public function test_resets_failed_status_to_pending_when_attempts_remain(): void

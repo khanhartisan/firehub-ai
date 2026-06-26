@@ -101,6 +101,11 @@ class PublishingJob implements ShouldQueue, ShouldBeUnique
             $this->saveWithPublishingResult(
                 $flycms->publishArticle($publication)
             );
+
+            if ($publication->status === PublicationStatus::PUBLISHED) {
+                $publication->attempts = 0;
+                $publication->saveQuietly();
+            }
         });
     }
 

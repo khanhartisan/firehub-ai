@@ -18,6 +18,9 @@ trait InteractsWithArticles
 {
     use InteractsWithFlyCmsArticleFiles;
 
+    /**
+     * @throws FlyCmsException
+     */
     public function publishArticle(Publication $publication): PublishingResult
     {
         $publication->loadMissing(['channel', 'publishable']);

@@ -192,7 +192,7 @@ trait InteractsWithFlyCmsArticleFiles
     {
         $escapedKey = str_replace("'", "\\'", $fileKey);
 
-        return "{{ '{$escapedKey}' | img_url: {$width} }}";
+        return "{{ '{$escapedKey}' | image_url: {$width} }}";
     }
 
     /**

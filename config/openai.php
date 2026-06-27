@@ -41,7 +41,7 @@ return [
         'openai_compatible' => [
             'api_key' => env('OPENAI_COMPATIBLE_API_KEY'),
             'base_url' => env('OPENAI_COMPATIBLE_BASE_URL', 'https://api.openai.com/v1/'),
-            'default_model' => env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini'),
+            'default_model' => env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini'),
             'timeout' => (int) env('OPENAI_COMPATIBLE_TIMEOUT', 60),
             'beta_header' => env('OPENAI_COMPATIBLE_BETA_HEADER'),
         ],

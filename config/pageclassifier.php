@@ -31,12 +31,12 @@ return [
     'drivers' => [
 
         'openai' => [
-            'model' => env('PAGECLASSIFIER_OPENAI_MODEL', 'gpt-4o-mini'),
+            'model' => env('PAGECLASSIFIER_OPENAI_MODEL', 'gpt-5.4-mini'),
             'max_html_length' => env('PAGECLASSIFIER_MAX_HTML_LENGTH', 100000),
         ],
 
         'openai_compatible' => [
-            'model' => env('PAGECLASSIFIER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+            'model' => env('PAGECLASSIFIER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
             'max_html_length' => (int) env('PAGECLASSIFIER_OPENAI_COMPATIBLE_MAX_HTML_LENGTH', env('PAGECLASSIFIER_MAX_HTML_LENGTH', 100000)),
         ],
 

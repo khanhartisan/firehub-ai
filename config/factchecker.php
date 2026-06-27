@@ -32,11 +32,11 @@ return [
         ],
 
         'openai' => [
-            'model' => env('FACTCHECKER_OPENAI_MODEL', 'gpt-4o-mini'),
+            'model' => env('FACTCHECKER_OPENAI_MODEL', 'gpt-5.4-mini'),
         ],
 
         'openai_compatible' => [
-            'model' => env('FACTCHECKER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+            'model' => env('FACTCHECKER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
         ],
 
     ],

@@ -74,13 +74,13 @@ return [
         'default' => 'openai',
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_IDEA_ADVISOR_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_IDEA_ADVISOR_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 1.2,
                 'max_temporal_suggestions' => 8,
                 'max_intent_type_suggestions' => 8,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => (float) env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_ADVISOR_TEMPERATURE', 1.2),
                 'max_temporal_suggestions' => 8,
                 'max_intent_type_suggestions' => 8,
@@ -92,12 +92,12 @@ return [
         'default' => 'openai',
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_IDEA_AUDITOR_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_IDEA_AUDITOR_MODEL', 'gpt-5.4-mini'),
                 'temperature_uniqueness' => 0.1,
                 'temperature_audit' => 0.3,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_AUDITOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_AUDITOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature_uniqueness' => 0.1,
                 'temperature_audit' => 0.3,
             ]),
@@ -113,11 +113,11 @@ return [
         'default' => 'openai',
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_IDEA_PICKER_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_IDEA_PICKER_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.2,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_PICKER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_IDEA_PICKER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.2,
             ]),
         ],
@@ -128,12 +128,12 @@ return [
         'max_pages' => (int) env('SYNTHESIZER_RESEARCH_MAX_PAGES', 20),
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_RESEARCHER_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_RESEARCHER_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.2,
                 'max_points' => 16,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_RESEARCHER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_RESEARCHER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.2,
                 'max_points' => 16,
             ]),
@@ -144,12 +144,12 @@ return [
         'default' => 'openai',
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_BRIEF_BUILDER_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_BRIEF_BUILDER_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.2,
                 'max_instructions' => 6,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_BRIEF_BUILDER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_BRIEF_BUILDER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.2,
                 'max_instructions' => 6,
             ]),
@@ -160,13 +160,13 @@ return [
         'default' => 'openai',
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_OUTLINE_BUILDER_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_OUTLINE_BUILDER_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.2,
                 'max_items' => 20,
                 'max_depth' => 6,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_OUTLINE_BUILDER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_OUTLINE_BUILDER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.2,
                 'max_items' => 20,
                 'max_depth' => 6,
@@ -178,11 +178,11 @@ return [
         'default' => 'openai',
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_EDITOR_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_EDITOR_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.2,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_EDITOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_EDITOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.2,
             ]),
         ],
@@ -193,12 +193,12 @@ return [
         'drivers' => [
             'basic' => [],
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_CRITIC_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_CRITIC_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.2,
                 'max_criticisms_per_critic' => 10,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_CRITIC_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_CRITIC_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.2,
                 'max_criticisms_per_critic' => 10,
             ]),
@@ -209,13 +209,13 @@ return [
         'default' => 'openai',
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_WRITER_MODEL', env('SYNTHESIZER_OPENAI_AUTHOR_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_WRITER_MODEL', env('SYNTHESIZER_OPENAI_AUTHOR_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.5,
                 'max_children' => 1000,
                 'max_depth' => 20,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_WRITER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_WRITER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.5,
                 'max_children' => 1000,
                 'max_depth' => 20,
@@ -228,12 +228,12 @@ return [
         'drivers' => [
             'basic' => [],
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_TAGGER_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_TAGGER_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.1,
                 'max_tags' => 8,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_TAGGER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_TAGGER_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.1,
                 'max_tags' => 8,
             ]),
@@ -244,12 +244,12 @@ return [
         'default' => 'openai',
         'drivers' => [
             'openai' => [
-                'model' => env('SYNTHESIZER_OPENAI_ILLUSTRATION_DIRECTOR_MODEL', 'gpt-4o-mini'),
+                'model' => env('SYNTHESIZER_OPENAI_ILLUSTRATION_DIRECTOR_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.2,
                 'max_contexts' => 8,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
-                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATION_DIRECTOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+                'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_ILLUSTRATION_DIRECTOR_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.2,
                 'max_contexts' => 8,
             ]),

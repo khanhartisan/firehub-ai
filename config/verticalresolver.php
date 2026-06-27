@@ -31,7 +31,7 @@ return [
     'drivers' => [
 
         'openai' => [
-            'model' => env('VERTICALRESOLVER_OPENAI_MODEL', 'gpt-4o-mini'),
+            'model' => env('VERTICALRESOLVER_OPENAI_MODEL', 'gpt-5.4-mini'),
             'max_content_length' => (int) env('VERTICALRESOLVER_MAX_CONTENT_LENGTH', 50000),
         ],
 
@@ -42,7 +42,7 @@ return [
         ],
 
         'openai_compatible' => [
-            'model' => env('VERTICALRESOLVER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+            'model' => env('VERTICALRESOLVER_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
             'max_content_length' => (int) env('VERTICALRESOLVER_OPENAI_COMPATIBLE_MAX_CONTENT_LENGTH', env('VERTICALRESOLVER_MAX_CONTENT_LENGTH', 50000)),
         ],
 

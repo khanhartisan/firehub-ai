@@ -48,11 +48,11 @@ return [
         ],
 
         'openai' => [
-            'model' => env('SCRAPE_POLICY_ENGINE_OPENAI_MODEL', 'gpt-4o-mini'),
+            'model' => env('SCRAPE_POLICY_ENGINE_OPENAI_MODEL', 'gpt-5.4-mini'),
         ],
 
         'openai_compatible' => [
-            'model' => env('SCRAPE_POLICY_ENGINE_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')),
+            'model' => env('SCRAPE_POLICY_ENGINE_OPENAI_COMPATIBLE_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
         ],
 
     ],

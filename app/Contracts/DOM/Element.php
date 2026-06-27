@@ -6,6 +6,7 @@ use App\Concerns\AlwaysIdentifiable;
 use App\Concerns\Serializable as SerializableTrait;
 use App\Contracts\Identifiable;
 use App\Contracts\Serializable;
+use App\Utils\Str;
 use DOMDocument;
 use DOMElement as NativeDomElement;
 use DOMNode;
@@ -184,39 +185,24 @@ class Element implements Serializable, Identifiable
     }
 
     /**
-     * @param  list<Element>  $replacements
+     * @param list<Element> $replacements
+     * @throws Exception
      */
     public function replaceByIdentifier(string $identifier, array $replacements): bool
     {
-        if ($replacements === []) {
+        if ($replacements === [] or !$target = $this->findByIdentifier($identifier)) {
             return false;
         }
 
+        $target->setIdentifier($identifier = Str::random(4));
+
         foreach ($replacements as $replacement) {
-            if ($replacement instanceof self && $replacement->getIdentifier() !== $identifier) {
-                $this->removeByIdentifier($replacement->getIdentifier());
-            }
+            $this->insertBefore($identifier, $replacement);
         }
 
-        foreach ($this->children as $index => $child) {
-            if (! $child instanceof self) {
-                continue;
-            }
+        $this->removeByIdentifier($identifier);
 
-            if ($child->getIdentifier() === $identifier) {
-                array_splice($this->children, $index, 1, $replacements);
-
-                return true;
-            }
-        }
-
-        foreach ($this->children as $child) {
-            if ($child instanceof self && $child->replaceByIdentifier($identifier, $replacements)) {
-                return true;
-            }
-        }
-
-        return false;
+        return true;
     }
 
     /**

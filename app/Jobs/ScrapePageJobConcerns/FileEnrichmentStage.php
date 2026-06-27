@@ -34,11 +34,10 @@ trait FileEnrichmentStage
             $fileMap = [];
             foreach ($fileUrls as $fileUrl) {
                 $fileUrlNormalized = UrlNormalizer::normalize($fileUrl);
-                $fileUrlHash = sha1($fileUrlNormalized);
+                $fileUrlHash = File::getUrlHash($fileUrlNormalized);
                 if (!$file = File::query()->where('url_hash', $fileUrlHash)->first()) {
                     $file = new File();
                     $file->url = $fileUrlNormalized;
-                    $file->url_hash = $fileUrlHash;
                     $file->save();
                 }
 

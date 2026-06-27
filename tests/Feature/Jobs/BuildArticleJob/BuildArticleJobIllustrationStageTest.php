@@ -18,6 +18,8 @@ use App\Facades\Synthesizer;
 use App\Jobs\BuildArticleJob;
 use App\Models\Article;
 use App\Models\Client;
+use App\Models\File;
+use App\Models\Fileable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
@@ -266,6 +268,62 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $seedA = $articleA->stage_data->getIllustrationStageData()->getIllustrationResults()[0]->getSeed();
         $seedB = $articleB->stage_data->getIllustrationStageData()->getIllustrationResults()[0]->getSeed();
         $this->assertSame($seedA, $seedB);
+    }
+
+    public function test_illustration_stage_creates_file_records_linked_to_article(): void
+    {
+        [$article, $job] = $this->makeArticleAndJobAtIllustrationStage(
+            $this->makeDraftWithContentDom()
+        );
+
+        $this->runToCompletion($job, $article);
+        $article->refresh();
+
+        $paths = [];
+        foreach ($article->stage_data->getIllustrationStageData()->getIllustrationResults() as $result) {
+            foreach ($result->getFiles() as $file) {
+                $paths[] = $file->getPath();
+            }
+        }
+
+        $this->assertNotEmpty($paths);
+
+        foreach ($paths as $path) {
+            $this->assertDatabaseHas('files', [
+                'path' => $path,
+                'url' => 'storage://'.$path,
+            ]);
+        }
+
+        $this->assertSame(count($paths), $article->files()->count());
+
+        foreach ($article->files as $file) {
+            $this->assertInstanceOf(File::class, $file);
+            $this->assertDatabaseHas('fileables', [
+                'fileable_type' => $article->getMorphClass(),
+                'fileable_id' => $article->id,
+                'file_id' => $file->id,
+            ]);
+        }
+    }
+
+    public function test_illustration_file_records_are_idempotent_on_rerun(): void
+    {
+        [$article, $job] = $this->makeArticleAndJobAtIllustrationStage(
+            $this->makeDraftWithContentDom()
+        );
+
+        $this->runToCompletion($job, $article);
+        $article->refresh();
+
+        $fileCount = File::query()->count();
+        $fileableCount = Fileable::query()->count();
+
+        $this->runToCompletion($job, $article);
+        $article->refresh();
+
+        $this->assertSame($fileCount, File::query()->count());
+        $this->assertSame($fileableCount, Fileable::query()->count());
     }
 
     public function test_dummy_png_files_exist_in_storage_after_stage(): void

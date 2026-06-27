@@ -25,4 +25,13 @@ trait HasFiles
             ->hasMany(Fileable::class, 'fileable_id')
             ->where('fileable_type', $this->getMorphClass());
     }
+
+    public function attachFile(File $file): Fileable
+    {
+        return Fileable::query()->firstOrCreate([
+            'fileable_type' => $this->getMorphClass(),
+            'fileable_id' => $this->getKey(),
+            'file_id' => $file->id,
+        ]);
+    }
 }

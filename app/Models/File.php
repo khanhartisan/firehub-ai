@@ -69,4 +69,9 @@ class File extends EmbeddableModel implements ShouldCascade
     {
         return $this->description;
     }
+
+    public static function getUrlHash(string $url): string
+    {
+        return sha1($url);
+    }
 }

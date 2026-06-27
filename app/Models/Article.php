@@ -14,6 +14,7 @@ use App\Enums\ArticleStageStatus;
 use App\Enums\ArticleStatus;
 use App\Enums\Language;
 use App\Enums\Temporal;
+use App\Models\Concerns\HasFiles;
 use App\Models\Concerns\Publishable;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +26,7 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpResource
 {
     use Cascades;
+    use HasFiles;
     use Publishable;
 
     protected $casts = [

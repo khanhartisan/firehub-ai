@@ -3,8 +3,13 @@
 namespace App\Jobs\BuildArticleJobConcerns;
 
 use App\Contracts\DOM\Article as DOMArticle;
+use App\Contracts\Filesystem\File as FilesystemFile;
 use App\Contracts\Model\Article\IllustrationData;
+use App\Contracts\Synthesizer\Illustration\IllustrationResult;
+use App\Enums\ScrapingStatus;
 use App\Models\Article;
+use App\Models\File;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * ILLUSTRATION stage: resolves illustration contexts → generates one image per job run →
@@ -145,10 +150,71 @@ trait HandleIllustrationStage
             return false;
         }
         $stageData->addIllustrationResult($result);
+        $this->persistIllustrationFilesForResult($result);
 
         $this->touchArticleQuietly();
 
         return null;
+    }
+
+    /**
+     * Maps generated illustration storage paths to {@see File} records and attaches them to the article.
+     */
+    protected function persistIllustrationFilesForResult(IllustrationResult $result): void
+    {
+        $article = $this->article;
+        if (! $article instanceof Article) {
+            return;
+        }
+
+        $description = $result->getIllustrationContext()?->getSubjectValue();
+
+        foreach ($result->getFiles() as $filesystemFile) {
+            if (! $filesystemFile instanceof FilesystemFile) {
+                continue;
+            }
+
+            $path = trim($filesystemFile->getPath());
+            if ($path === '') {
+                continue;
+            }
+
+            $file = $this->resolveOrCreateFileFromStoragePath($path, $description);
+            $article->attachFile($file);
+        }
+    }
+
+    protected function resolveOrCreateFileFromStoragePath(string $path, ?string $description = null): File
+    {
+        if ($file = File::query()->where('path', $path)->first()) {
+            return $file;
+        }
+
+        $url = 'storage://'.$path;
+        $urlHash = File::getUrlHash($url);
+
+        if ($file = File::query()->where('url_hash', $urlHash)->first()) {
+            if (! is_string($file->path) || $file->path === '') {
+                $file->path = $path;
+                $file->saveQuietly();
+            }
+
+            return $file;
+        }
+
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: null;
+        $mimeType = Storage::exists($path) ? (Storage::mimeType($path) ?: null) : null;
+
+        return File::query()->create([
+            'url' => $url,
+            'path' => $path,
+            'extension' => $extension,
+            'mime_type' => $mimeType,
+            'size' => Storage::exists($path) ? Storage::size($path) : null,
+            'scraping_status' => ScrapingStatus::SUCCESS,
+            'scraped_at' => now(),
+            'description' => $description,
+        ]);
     }
 
     /**

@@ -99,6 +99,10 @@ class Element implements Serializable, Identifiable
 
     public function addChild(Element|string $child): static
     {
+        if ($child instanceof Element) {
+            $this->removeByIdentifier($child->getIdentifier());
+        }
+
         $this->children[] = $child;
 
         return $this;
@@ -125,11 +129,40 @@ class Element implements Serializable, Identifiable
      */
     private function insertRelativeToIdentifier(string $identifier, Element|string $child, bool $insertAfter): static
     {
+        if ($child instanceof Element) {
+            $this->removeByIdentifier($child->getIdentifier());
+        }
+
         if (! $this->tryInsertRelativeToIdentifier($identifier, $child, $insertAfter)) {
             throw new Exception('Child with the provided identifier was not found.');
         }
 
         return $this;
+    }
+
+    public function removeByIdentifier(string $identifier): bool
+    {
+        $removed = false;
+
+        for ($index = count($this->children) - 1; $index >= 0; $index--) {
+            $existingChild = $this->children[$index];
+            if (! $existingChild instanceof self) {
+                continue;
+            }
+
+            if ($existingChild->getIdentifier() === $identifier) {
+                array_splice($this->children, $index, 1);
+                $removed = true;
+            }
+        }
+
+        foreach ($this->children as $existingChild) {
+            if ($existingChild instanceof self && $existingChild->removeByIdentifier($identifier)) {
+                $removed = true;
+            }
+        }
+
+        return $removed;
     }
 
     private function tryInsertRelativeToIdentifier(string $identifier, Element|string $child, bool $insertAfter): bool

@@ -288,6 +288,77 @@ class ElementTest extends TestCase
         $root->insertAfter('missing-identifier', 'insert me');
     }
 
+    public function test_it_removes_existing_element_with_same_identifier_before_insert_after(): void
+    {
+        $anchor = (new Element)->setType(ElementType::P)->addChild('Anchor');
+        $duplicate = (new Element)->setType(ElementType::P)->setIdentifier('dup-1')->addChild('Old');
+        $replacement = (new Element)->setType(ElementType::P)->setIdentifier('dup-1')->addChild('New');
+
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->setChildren([$anchor, $duplicate]);
+
+        $parent->insertAfter($anchor->getIdentifier(), $replacement);
+
+        $children = $parent->getChildren();
+        $this->assertCount(2, $children);
+        $this->assertSame($anchor, $children[0]);
+        $this->assertSame($replacement, $children[1]);
+        $this->assertSame('New', $replacement->getChildren()[0]);
+    }
+
+    public function test_it_removes_existing_element_with_same_identifier_before_insert_before(): void
+    {
+        $anchor = (new Element)->setType(ElementType::P)->addChild('Anchor');
+        $duplicate = (new Element)->setType(ElementType::P)->setIdentifier('dup-1')->addChild('Old');
+        $replacement = (new Element)->setType(ElementType::P)->setIdentifier('dup-1')->addChild('New');
+
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->setChildren([$duplicate, $anchor]);
+
+        $parent->insertBefore($anchor->getIdentifier(), $replacement);
+
+        $children = $parent->getChildren();
+        $this->assertCount(2, $children);
+        $this->assertSame($replacement, $children[0]);
+        $this->assertSame($anchor, $children[1]);
+    }
+
+    public function test_it_removes_nested_duplicate_identifier_before_add_child(): void
+    {
+        $duplicate = (new Element)->setType(ElementType::SPAN)->setIdentifier('dup-1')->addChild('Nested old');
+        $inner = (new Element)->setType(ElementType::DIV)->addChild($duplicate);
+        $replacement = (new Element)->setType(ElementType::SPAN)->setIdentifier('dup-1')->addChild('Nested new');
+
+        $root = (new Element)->setType(ElementType::DIV)->addChild($inner);
+        $root->addChild($replacement);
+
+        $this->assertCount(0, $inner->getChildren());
+        $this->assertCount(2, $root->getChildren());
+        $this->assertSame($replacement, $root->getChildren()[1]);
+        $this->assertSame('Nested new', $replacement->getChildren()[0]);
+    }
+
+    public function test_it_removes_all_duplicates_with_same_identifier_before_insert(): void
+    {
+        $anchor = (new Element)->setType(ElementType::P)->addChild('Anchor');
+        $firstDuplicate = (new Element)->setType(ElementType::SPAN)->setIdentifier('dup-1')->addChild('First');
+        $secondDuplicate = (new Element)->setType(ElementType::SPAN)->setIdentifier('dup-1')->addChild('Second');
+        $replacement = (new Element)->setType(ElementType::SPAN)->setIdentifier('dup-1')->addChild('Replacement');
+
+        $parent = (new Element)
+            ->setType(ElementType::DIV)
+            ->setChildren([$firstDuplicate, $anchor, $secondDuplicate]);
+
+        $parent->insertAfter($anchor->getIdentifier(), $replacement);
+
+        $children = $parent->getChildren();
+        $this->assertCount(2, $children);
+        $this->assertSame($anchor, $children[0]);
+        $this->assertSame($replacement, $children[1]);
+    }
+
     public function test_it_builds_element_tree_from_single_root_html(): void
     {
         $element = Element::fromHtml(

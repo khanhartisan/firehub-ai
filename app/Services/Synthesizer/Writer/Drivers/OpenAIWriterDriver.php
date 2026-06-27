@@ -509,13 +509,12 @@ PROMPT;
             'general_context' => $generalContext?->toArray(),
         ];
         $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-        $referenceList = implode(', ', $targetReferences);
 
         return <<<PROMPT
 You are a senior editorial writer applying localized revisions to an article DOM.
 
 Every criticism in the input is tied to a DOM reference. Revise only those referenced nodes; leave all other nodes unchanged.
-Return one fix per target reference ({$referenceList}). Choose the DOM operation that best addresses the criticisms for that node.
+Choose the DOM operation that best addresses the criticisms for that node.
 
 Rules:
 - fixes[].reference must be one of target_references.
@@ -524,12 +523,14 @@ Rules:
 - replace: remove the node at reference and insert fixes[].elements in its place (1+ sibling nodes). When using one element, its identifier must equal reference. When splitting into multiple nodes, the first element should reuse reference; give additional siblings new unique identifiers not used elsewhere in the article.
 - insert_before: keep the node at reference; insert fixes[].elements immediately before it (new identifiers required).
 - insert_after: keep the node at reference; insert fixes[].elements immediately after it (new identifiers required).
-- Element identifiers are at most 4 characters; reuse existing identifiers from the input article when possible.
 - Preserve element types when reasonable; you may change children and props as needed to address the criticisms.
-- Do not return markdown or a full article—only the fixes array and rectifications.
 - rectifications[].reference must match a fix you applied (including removals).
 - rectifications[].confidence is how confident you are the fix fully addresses the related criticisms (0.00–1.00).
 - adjustments must be short, specific strings describing applied fixes (e.g. "Removed redundant section").
+
+Instructions:
+- The fixes will be executed sequentially.
+- In case you want to make a complex modification, for example: replacing multiple nodes by multiple nodes -> You can do that by: Create a "fix" to remove all the current nodes by their references, then create another fix to "insert after" the corresponding node.
 
 Input JSON:
 {$json}
@@ -580,15 +581,13 @@ PROMPT;
      */
     protected function buildTargetedRectifyArticleSchema(array $allowedReferences): array
     {
-        $fixCount = count($allowedReferences);
-
         return [
             'type' => 'object',
             'properties' => [
                 'fixes' => [
                     'type' => 'array',
-                    'minItems' => $fixCount,
-                    'maxItems' => $fixCount,
+                    'minItems' => 0,
+                    'maxItems' => min(count($allowedReferences) * 5, 100),
                     'items' => $this->buildTargetedFixItemSchema($allowedReferences),
                 ],
                 'rectifications' => $this->buildRectificationsSchema($allowedReferences),

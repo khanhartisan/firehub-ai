@@ -809,6 +809,14 @@ PROMPT;
             throw new RuntimeException('Failed to rectify article with OpenAI: no targeted fixes were applied.');
         }
 
+        // TODO: Debug
+        \App\Models\Meta::query()->create([
+            'metable_type' => 'debugging-writer-rectify-article',
+            'metable_id' => \App\Utils\Str::ulid(),
+            'key' => 'payload',
+            'value' => json_encode($payload)
+        ]);
+
         return (new RectifiedArticle)
             ->setArticle($rectified)
             ->setRectifications($this->hydrateRectificationsFromPayload($payload, $allowedReferences));

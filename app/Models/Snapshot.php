@@ -4,9 +4,8 @@ namespace App\Models;
 
 use App\Contracts\PageParser\PageData;
 use App\Enums\ScrapingStatus;
+use App\Models\Concerns\HasFiles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
@@ -15,6 +14,7 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 class Snapshot extends Model implements ShouldCascade
 {
     use Cascades;
+    use HasFiles;
 
     protected $fillable = [
         'page_id',
@@ -66,24 +66,10 @@ class Snapshot extends Model implements ShouldCascade
         return PageData::fromJson($pageDataJson);
     }
 
-    public function files(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            File::class,
-            'fileables',
-            'fileable_id',
-            'file_id'
-        )->where('fileables.fileable_type', $this->getMorphClass());
-    }
-
     public function getCascadeDetails(): CascadeDetails|array
     {
         return [
-            new CascadeDetails(
-                $this
-                    ->hasMany(Fileable::class, 'fileable_id')
-                    ->where('fileable_type', $this->getMorphClass())
-            ),
+            new CascadeDetails($this->fileables()),
         ];
     }
 

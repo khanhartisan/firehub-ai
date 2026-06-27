@@ -78,6 +78,14 @@ class PublishArticleTool extends Tool
                     $changed = true;
                 }
 
+                // Republish if already published
+                if ($publication->status === PublicationStatus::PUBLISHED) {
+                    $publication->status = PublicationStatus::PENDING;
+                    $publication->attempts = 0;
+                    $publication->save();
+                    $changed = true;
+                }
+
                 return $publication;
             });
         });

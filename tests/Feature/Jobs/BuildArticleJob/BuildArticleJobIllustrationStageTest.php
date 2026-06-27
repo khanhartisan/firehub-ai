@@ -305,6 +305,11 @@ class BuildArticleJobIllustrationStageTest extends TestCase
                 'file_id' => $file->id,
             ]);
         }
+
+        $firstPath = $paths[0];
+        $thumbnailFile = File::query()->find($article->thumbnail_file_id);
+        $this->assertInstanceOf(File::class, $thumbnailFile);
+        $this->assertSame($firstPath, $thumbnailFile->path);
     }
 
     public function test_illustration_file_records_are_idempotent_on_rerun(): void
@@ -318,12 +323,14 @@ class BuildArticleJobIllustrationStageTest extends TestCase
 
         $fileCount = File::query()->count();
         $fileableCount = Fileable::query()->count();
+        $thumbnailFileId = $article->thumbnail_file_id;
 
         $this->runToCompletion($job, $article);
         $article->refresh();
 
         $this->assertSame($fileCount, File::query()->count());
         $this->assertSame($fileableCount, Fileable::query()->count());
+        $this->assertSame($thumbnailFileId, $article->thumbnail_file_id);
     }
 
     public function test_dummy_png_files_exist_in_storage_after_stage(): void

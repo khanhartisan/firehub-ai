@@ -64,6 +64,7 @@ trait HandleIllustrationStage
         $article->illustration = (new IllustrationData)
             ->setIllustrationResults($stageData->getIllustrationResults())
             ->setIllustrationAnchors($stageData->getIllustrationAnchors());
+        $this->assignThumbnailFromIllustrationResults($stageData->getIllustrationResults());
         $this->touchArticleQuietly();
 
         return true;
@@ -215,6 +216,43 @@ trait HandleIllustrationStage
             'scraped_at' => now(),
             'description' => $description,
         ]);
+    }
+
+    /**
+     * Sets {@see Article::$thumbnail_file_id} from the first generated illustration file when unset.
+     *
+     * @param  IllustrationResult[]  $results
+     */
+    protected function assignThumbnailFromIllustrationResults(array $results): void
+    {
+        $article = $this->article;
+        if (! $article instanceof Article || $article->thumbnail_file_id) {
+            return;
+        }
+
+        foreach ($results as $result) {
+            if (! $result instanceof IllustrationResult) {
+                continue;
+            }
+
+            foreach ($result->getFiles() as $filesystemFile) {
+                if (! $filesystemFile instanceof FilesystemFile) {
+                    continue;
+                }
+
+                $path = trim($filesystemFile->getPath());
+                if ($path === '') {
+                    continue;
+                }
+
+                $file = File::query()->where('path', $path)->first();
+                if ($file instanceof File) {
+                    $article->thumbnail_file_id = $file->id;
+
+                    return;
+                }
+            }
+        }
     }
 
     /**

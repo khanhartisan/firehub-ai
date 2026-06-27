@@ -80,27 +80,12 @@ abstract class WriterService implements Writer
 
     protected function findElementByReference(Element $root, string $reference): ?Element
     {
-        if (trim($root->getIdentifier()) === $reference) {
-            return $root;
-        }
-
-        foreach ($root->getChildren() as $child) {
-            if (! $child instanceof Element) {
-                continue;
-            }
-
-            $found = $this->findElementByReference($child, $reference);
-            if ($found !== null) {
-                return $found;
-            }
-        }
-
-        return null;
+        return $root->findByIdentifier($reference);
     }
 
     protected function replaceElementByReference(Element $root, string $reference, Element $replacement): bool
     {
-        return $this->replaceElementsByReference($root, $reference, [$replacement]);
+        return $root->replaceByIdentifier($reference, [$replacement]);
     }
 
     /**
@@ -108,29 +93,7 @@ abstract class WriterService implements Writer
      */
     protected function replaceElementsByReference(Element $root, string $reference, array $replacements): bool
     {
-        if ($replacements === []) {
-            return false;
-        }
-
-        foreach ($root->getChildren() as $index => $child) {
-            if (! $child instanceof Element) {
-                continue;
-            }
-
-            if (trim($child->getIdentifier()) === $reference) {
-                $children = $root->getChildren();
-                array_splice($children, $index, 1, $replacements);
-                $root->setChildren($children);
-
-                return true;
-            }
-
-            if ($this->replaceElementsByReference($child, $reference, $replacements)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $root->replaceByIdentifier($reference, $replacements);
     }
 
     /**
@@ -138,29 +101,7 @@ abstract class WriterService implements Writer
      */
     protected function insertElementsBeforeReference(Element $root, string $reference, array $elements): bool
     {
-        if ($elements === []) {
-            return false;
-        }
-
-        foreach ($root->getChildren() as $index => $child) {
-            if (! $child instanceof Element) {
-                continue;
-            }
-
-            if (trim($child->getIdentifier()) === $reference) {
-                $children = $root->getChildren();
-                array_splice($children, $index, 0, $elements);
-                $root->setChildren($children);
-
-                return true;
-            }
-
-            if ($this->insertElementsBeforeReference($child, $reference, $elements)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $root->insertAllBefore($reference, $elements);
     }
 
     /**
@@ -168,52 +109,12 @@ abstract class WriterService implements Writer
      */
     protected function insertElementsAfterReference(Element $root, string $reference, array $elements): bool
     {
-        if ($elements === []) {
-            return false;
-        }
-
-        foreach ($root->getChildren() as $index => $child) {
-            if (! $child instanceof Element) {
-                continue;
-            }
-
-            if (trim($child->getIdentifier()) === $reference) {
-                $children = $root->getChildren();
-                array_splice($children, $index + 1, 0, $elements);
-                $root->setChildren($children);
-
-                return true;
-            }
-
-            if ($this->insertElementsAfterReference($child, $reference, $elements)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $root->insertAllAfter($reference, $elements);
     }
 
     protected function removeElementByReference(Element $root, string $reference): bool
     {
-        foreach ($root->getChildren() as $index => $child) {
-            if (! $child instanceof Element) {
-                continue;
-            }
-
-            if (trim($child->getIdentifier()) === $reference) {
-                $children = $root->getChildren();
-                array_splice($children, $index, 1);
-                $root->setChildren($children);
-
-                return true;
-            }
-
-            if ($this->removeElementByReference($child, $reference)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $root->removeChildByIdentifier($reference);
     }
 
     protected function assertRemovableReference(Article $article, string $reference): void

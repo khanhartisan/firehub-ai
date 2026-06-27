@@ -359,6 +359,90 @@ class ElementTest extends TestCase
         $this->assertSame($replacement, $children[1]);
     }
 
+    public function test_it_finds_element_by_identifier_in_tree(): void
+    {
+        $target = (new Element)->setType(ElementType::P)->setIdentifier('trg1')->addChild('Target');
+        $root = (new Element)
+            ->setType(ElementType::DIV)
+            ->setIdentifier('root')
+            ->addChild((new Element)->setType(ElementType::DIV)->addChild($target));
+
+        $this->assertSame($root, $root->findByIdentifier('root'));
+        $this->assertSame($target, $root->findByIdentifier('trg1'));
+        $this->assertNull($root->findByIdentifier('miss'));
+    }
+
+    public function test_it_removes_first_child_by_identifier(): void
+    {
+        $target = (new Element)->setType(ElementType::P)->setIdentifier('trg1')->addChild('Target');
+        $sibling = (new Element)->setType(ElementType::P)->addChild('Sibling');
+        $root = (new Element)->setType(ElementType::DIV)->setChildren([$target, $sibling]);
+
+        $this->assertTrue($root->removeChildByIdentifier('trg1'));
+        $this->assertCount(1, $root->getChildren());
+        $this->assertSame($sibling, $root->getChildren()[0]);
+        $this->assertFalse($root->removeChildByIdentifier('miss'));
+    }
+
+    public function test_it_replaces_element_by_identifier(): void
+    {
+        $target = (new Element)->setType(ElementType::P)->setIdentifier('trg1')->addChild('Old');
+        $sibling = (new Element)->setType(ElementType::P)->addChild('Sibling');
+        $replacement = (new Element)->setType(ElementType::P)->setIdentifier('trg1')->addChild('New');
+        $root = (new Element)->setType(ElementType::DIV)->setChildren([$target, $sibling]);
+
+        $this->assertTrue($root->replaceByIdentifier('trg1', [$replacement]));
+        $children = $root->getChildren();
+        $this->assertCount(2, $children);
+        $this->assertSame($replacement, $children[0]);
+        $this->assertSame('New', $replacement->getChildren()[0]);
+        $this->assertSame($sibling, $children[1]);
+    }
+
+    public function test_it_replaces_element_with_multiple_elements(): void
+    {
+        $target = (new Element)->setType(ElementType::P)->setIdentifier('trg1')->addChild('Old');
+        $first = (new Element)->setType(ElementType::P)->addChild('First');
+        $second = (new Element)->setType(ElementType::P)->addChild('Second');
+        $root = (new Element)->setType(ElementType::DIV)->addChild($target);
+
+        $this->assertTrue($root->replaceByIdentifier('trg1', [$first, $second]));
+        $children = $root->getChildren();
+        $this->assertCount(2, $children);
+        $this->assertSame($first, $children[0]);
+        $this->assertSame($second, $children[1]);
+    }
+
+    public function test_it_inserts_multiple_elements_before_identifier(): void
+    {
+        $anchor = (new Element)->setType(ElementType::P)->setIdentifier('anc1')->addChild('Anchor');
+        $first = (new Element)->setType(ElementType::P)->addChild('First');
+        $second = (new Element)->setType(ElementType::P)->addChild('Second');
+        $root = (new Element)->setType(ElementType::DIV)->addChild($anchor);
+
+        $this->assertTrue($root->insertAllBefore('anc1', [$first, $second]));
+        $children = $root->getChildren();
+        $this->assertCount(3, $children);
+        $this->assertSame($first, $children[0]);
+        $this->assertSame($second, $children[1]);
+        $this->assertSame($anchor, $children[2]);
+    }
+
+    public function test_it_inserts_multiple_elements_after_identifier(): void
+    {
+        $anchor = (new Element)->setType(ElementType::P)->setIdentifier('anc1')->addChild('Anchor');
+        $first = (new Element)->setType(ElementType::P)->addChild('First');
+        $second = (new Element)->setType(ElementType::P)->addChild('Second');
+        $root = (new Element)->setType(ElementType::DIV)->addChild($anchor);
+
+        $this->assertTrue($root->insertAllAfter('anc1', [$first, $second]));
+        $children = $root->getChildren();
+        $this->assertCount(3, $children);
+        $this->assertSame($anchor, $children[0]);
+        $this->assertSame($first, $children[1]);
+        $this->assertSame($second, $children[2]);
+    }
+
     public function test_it_builds_element_tree_from_single_root_html(): void
     {
         $element = Element::fromHtml(

@@ -140,6 +140,109 @@ class Element implements Serializable, Identifiable
         return $this;
     }
 
+    public function findByIdentifier(string $identifier): ?static
+    {
+        if ($this->getIdentifier() === $identifier) {
+            return $this;
+        }
+
+        foreach ($this->children as $child) {
+            if (! $child instanceof self) {
+                continue;
+            }
+
+            $found = $child->findByIdentifier($identifier);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    public function removeChildByIdentifier(string $identifier): bool
+    {
+        foreach ($this->children as $index => $child) {
+            if (! $child instanceof self) {
+                continue;
+            }
+
+            if ($child->getIdentifier() === $identifier) {
+                array_splice($this->children, $index, 1);
+
+                return true;
+            }
+        }
+
+        foreach ($this->children as $child) {
+            if ($child instanceof self && $child->removeChildByIdentifier($identifier)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<Element>  $replacements
+     */
+    public function replaceByIdentifier(string $identifier, array $replacements): bool
+    {
+        if ($replacements === []) {
+            return false;
+        }
+
+        foreach ($replacements as $replacement) {
+            if ($replacement instanceof self && $replacement->getIdentifier() !== $identifier) {
+                $this->removeByIdentifier($replacement->getIdentifier());
+            }
+        }
+
+        foreach ($this->children as $index => $child) {
+            if (! $child instanceof self) {
+                continue;
+            }
+
+            if ($child->getIdentifier() === $identifier) {
+                array_splice($this->children, $index, 1, $replacements);
+
+                return true;
+            }
+        }
+
+        foreach ($this->children as $child) {
+            if ($child instanceof self && $child->replaceByIdentifier($identifier, $replacements)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<Element|string>  $elements
+     */
+    public function insertAllBefore(string $identifier, array $elements): bool
+    {
+        if ($elements === []) {
+            return false;
+        }
+
+        return $this->tryInsertAllRelativeToIdentifier($identifier, $elements, false);
+    }
+
+    /**
+     * @param  list<Element|string>  $elements
+     */
+    public function insertAllAfter(string $identifier, array $elements): bool
+    {
+        if ($elements === []) {
+            return false;
+        }
+
+        return $this->tryInsertAllRelativeToIdentifier($identifier, $elements, true);
+    }
+
     public function removeByIdentifier(string $identifier): bool
     {
         $removed = false;
@@ -180,6 +283,37 @@ class Element implements Serializable, Identifiable
             }
 
             if ($existingChild->tryInsertRelativeToIdentifier($identifier, $child, $insertAfter)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<Element|string>  $elements
+     */
+    private function tryInsertAllRelativeToIdentifier(string $identifier, array $elements, bool $insertAfter): bool
+    {
+        foreach ($this->children as $index => $existingChild) {
+            if (! $existingChild instanceof self) {
+                continue;
+            }
+
+            if ($existingChild->getIdentifier() === $identifier) {
+                foreach ($elements as $element) {
+                    if ($element instanceof self) {
+                        $this->removeByIdentifier($element->getIdentifier());
+                    }
+                }
+
+                $insertIndex = $insertAfter ? $index + 1 : $index;
+                array_splice($this->children, $insertIndex, 0, $elements);
+
+                return true;
+            }
+
+            if ($existingChild->tryInsertAllRelativeToIdentifier($identifier, $elements, $insertAfter)) {
                 return true;
             }
         }

@@ -824,7 +824,7 @@ PROMPT;
         if ($operation === 'remove') {
             $this->assertRemovableReference($rectified, $reference);
 
-            if (! $this->removeElementByReference($rectified, $reference)) {
+            if (! $rectified->removeChildByIdentifier($reference)) {
                 throw new RuntimeException(
                     "Failed to rectify article with OpenAI: could not remove reference \"{$reference}\"."
                 );
@@ -840,12 +840,18 @@ PROMPT;
             );
         }
 
-        match ($operation) {
-            'replace' => $this->replaceElementsByReference($rectified, $reference, $elements),
-            'insert_before' => $this->insertElementsBeforeReference($rectified, $reference, $elements),
-            'insert_after' => $this->insertElementsAfterReference($rectified, $reference, $elements),
+        $applied = match ($operation) {
+            'replace' => $rectified->replaceByIdentifier($reference, $elements),
+            'insert_before' => $rectified->insertAllBefore($reference, $elements),
+            'insert_after' => $rectified->insertAllAfter($reference, $elements),
             default => false,
         };
+
+        if (! $applied) {
+            throw new RuntimeException(
+                "Failed to rectify article with OpenAI: could not apply operation \"{$operation}\" for reference \"{$reference}\"."
+            );
+        }
 
         return true;
     }

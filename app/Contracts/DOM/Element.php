@@ -141,7 +141,7 @@ class Element implements Serializable, Identifiable
         return $this;
     }
 
-    public function findByIdentifier(string $identifier): ?static
+    public function findByIdentifier(string $identifier): ?Element
     {
         if ($this->getIdentifier() === $identifier) {
             return $this;

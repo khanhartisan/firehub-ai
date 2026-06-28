@@ -664,7 +664,7 @@ PROMPT;
                         'operation' => [
                             'type' => 'string',
                             'const' => 'remove',
-                            'description' => 'Delete the node at reference from the article.',
+                            'description' => 'Remove the node at reference from the article.',
                         ],
                     ],
                     'required' => ['reference', 'operation'],
@@ -748,14 +748,6 @@ PROMPT;
         Article $article,
         array $payload,
     ): RectifiedArticle {
-
-        // TODO: Debug
-        \App\Models\Meta::query()->create([
-            'metable_type' => 'debugging-writer-rectify-article',
-            'metable_id' => \App\Utils\Str::ulid(),
-            'key' => 'payload',
-            'value' => json_encode($payload)
-        ]);
 
         $rectified = Article::fromArray($article->toArray());
         $appliedReferences = [];

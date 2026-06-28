@@ -173,6 +173,16 @@ trait HandleIdeaStage
         }
 
         $ideaData->setSelectedAuthorContext($selected);
+
+        // Set article's author_id
+        if ($authorId = $selected->getIdentifier()
+            and $authorId = explode('-', $authorId)
+            and $authorId = end($authorId)
+            and Author::query()->where('id', $authorId)->exists()
+        ) {
+            $this->article->author_id = $authorId;
+        }
+
         $this->touchArticleQuietly();
 
         return true;

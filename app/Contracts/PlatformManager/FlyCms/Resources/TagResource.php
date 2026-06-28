@@ -46,7 +46,7 @@ class TagResource extends Resource
             'seo_description' => $schema
                 ->string()
                 ->nullable()
-                ->description('Seo description'),
+                ->description('Seo description (liquid template format)'),
             'seo_h1' => $schema
                 ->string()
                 ->nullable()

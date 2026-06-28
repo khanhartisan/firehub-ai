@@ -86,23 +86,21 @@ class OpenAIWriterDriver extends WriterService
         $elementReferences = $this->collectElementReferences($article);
 
         if ($this->allCriticismsHaveReference($normalized)) {
-            $allowedReferences = $this->collectCriticismReferences($normalized, $elementReferences);
-            if ($allowedReferences === []) {
-                throw new RuntimeException('Cannot rectify article: referenced criticisms do not match any DOM nodes.');
+            if ($elementReferences === []) {
+                throw new RuntimeException('Cannot rectify article: article DOM has no identifiable elements.');
             }
 
             $payload = $this->generateTargetedRectifyArticlePayload(
                 $article,
                 $normalized,
-                $allowedReferences,
+                $elementReferences,
                 $authorContext,
                 $generalContext,
             );
 
-            return $this->hydrateTargetedRectifiedArticle($article, $payload, $allowedReferences);
+            return $this->hydrateTargetedRectifiedArticle($article, $payload);
         }
 
-        $allowedReferences = $this->collectCriticismReferences($normalized, $elementReferences);
         $payload = $this->generateFullArticleRectifyPayload(
             $article,
             $normalized,
@@ -110,7 +108,7 @@ class OpenAIWriterDriver extends WriterService
             $generalContext,
         );
 
-        return $this->hydrateFullArticleRectifiedArticle($payload, $allowedReferences);
+        return $this->hydrateFullArticleRectifiedArticle($payload);
     }
 
     /**
@@ -426,41 +424,19 @@ PROMPT;
     /**
      * @param  list<Criticism>  $criticisms
      * @param  list<string>  $elementReferences
-     * @return list<string>
-     */
-    protected function collectCriticismReferences(array $criticisms, array $elementReferences): array
-    {
-        $elementLookup = array_fill_keys($elementReferences, true);
-        $references = [];
-
-        foreach ($criticisms as $criticism) {
-            $reference = trim((string) ($criticism->getReference() ?? ''));
-            if ($reference === '' || ! isset($elementLookup[$reference])) {
-                continue;
-            }
-
-            $references[] = $reference;
-        }
-
-        return array_values(array_unique($references));
-    }
-
-    /**
-     * @param  list<Criticism>  $criticisms
-     * @param  list<string>  $allowedReferences
      * @return array<string, mixed>
      */
     protected function generateTargetedRectifyArticlePayload(
         Article $article,
         array $criticisms,
-        array $allowedReferences,
+        array $elementReferences,
         ?SemanticContext $authorContext,
         ?SemanticContext $generalContext,
     ): array {
         $data = $this->requestStructuredJson(
-            $this->buildTargetedRectifyArticlePrompt($article, $criticisms, $allowedReferences, $authorContext, $generalContext),
+            $this->buildTargetedRectifyArticlePrompt($article, $criticisms, $elementReferences, $authorContext, $generalContext),
             'author_rectify_article_targeted',
-            $this->buildTargetedRectifyArticleSchema($allowedReferences),
+            $this->buildTargetedRectifyArticleSchema($elementReferences),
             'Failed to rectify article with OpenAI',
         );
 
@@ -489,18 +465,18 @@ PROMPT;
 
     /**
      * @param  list<Criticism>  $criticisms
-     * @param  list<string>  $targetReferences
+     * @param  list<string>  $elementReferences
      */
     protected function buildTargetedRectifyArticlePrompt(
         Article $article,
         array $criticisms,
-        array $targetReferences,
+        array $elementReferences,
         ?SemanticContext $authorContext,
         ?SemanticContext $generalContext,
     ): string {
         $payload = [
             'article' => $article->toArray(),
-            'target_references' => $targetReferences,
+            'element_references' => $elementReferences,
             'criticisms' => array_map(
                 static fn (Criticism $criticism): array => $criticism->toArray(),
                 $criticisms
@@ -513,11 +489,11 @@ PROMPT;
         return <<<PROMPT
 You are a senior editorial writer applying localized revisions to an article DOM.
 
-Every criticism in the input is tied to a DOM reference. Revise only those referenced nodes; leave all other nodes unchanged.
-Choose the DOM operation that best addresses the criticisms for that node.
+Address the criticisms by choosing the DOM operations that best resolve them. You may modify any existing nodes as needed; leave unaffected nodes unchanged when possible.
+Choose the DOM operation that best addresses each criticism.
 
 Rules:
-- fixes[].reference must be one of target_references.
+- fixes[].reference must identify a DOM node that exists when that fix runs. Fixes execute sequentially; later fixes may target nodes introduced by earlier fixes in the sequence, not only element_references from the initial article.
 - fixes[].operation must be one of: remove, replace, insert_before, insert_after.
 - remove: delete the node at reference from the article (omit elements).
 - replace: remove the node at reference and insert fixes[].elements in its place (1+ sibling nodes). When using one element, its identifier must equal reference. When splitting into multiple nodes, the first element should reuse reference; give additional siblings new unique identifiers not used elsewhere in the article.
@@ -576,10 +552,10 @@ PROMPT;
     }
 
     /**
-     * @param  list<string>  $allowedReferences
+     * @param  list<string>  $elementReferences
      * @return array<string, mixed>
      */
-    protected function buildTargetedRectifyArticleSchema(array $allowedReferences): array
+    protected function buildTargetedRectifyArticleSchema(array $elementReferences): array
     {
         return [
             'type' => 'object',
@@ -587,10 +563,10 @@ PROMPT;
                 'fixes' => [
                     'type' => 'array',
                     'minItems' => 0,
-                    'maxItems' => min(count($allowedReferences) * 5, 100),
-                    'items' => $this->buildTargetedFixItemSchema($allowedReferences),
+                    'maxItems' => min(count($elementReferences) * 5, 100),
+                    'items' => $this->buildTargetedFixItemSchema(),
                 ],
-                'rectifications' => $this->buildRectificationsSchema($allowedReferences),
+                'rectifications' => $this->buildRectificationsSchema(),
             ],
             'required' => ['fixes', 'rectifications'],
             'additionalProperties' => false,
@@ -620,39 +596,29 @@ PROMPT;
     }
 
     /**
-     * @param  list<string>  $allowedReferences
      * @return array<string, mixed>
      */
-    protected function buildRectificationsSchema(array $allowedReferences): array
+    protected function buildRectificationsSchema(): array
     {
         return [
             'type' => 'array',
-            'items' => $this->buildRectificationItemSchema($allowedReferences),
+            'items' => $this->buildRectificationItemSchema(),
         ];
     }
 
     /**
-     * @param  list<string>|null  $allowedReferences
      * @return array<string, mixed>
      */
-    protected function buildRectificationItemSchema(
-        ?array $allowedReferences = null,
-        bool $referenceNullable = false,
-    ): array {
+    protected function buildRectificationItemSchema(bool $referenceNullable = false): array
+    {
         if ($referenceNullable) {
             $referenceSchema = [
                 'type' => ['string', 'null'],
                 'description' => 'DOM reference when the rectification maps to a section; null for article-wide changes.',
             ];
-        } elseif ($allowedReferences === null || $allowedReferences === []) {
-            $referenceSchema = [
-                'type' => 'string',
-                'description' => 'DOM reference identifier for the revised section.',
-            ];
         } else {
             $referenceSchema = [
                 'type' => 'string',
-                'enum' => $allowedReferences,
                 'description' => 'DOM reference identifier for the revised section.',
             ];
         }
@@ -680,14 +646,13 @@ PROMPT;
     }
 
     /**
-     * @param  list<string>  $allowedReferences
      * @return array<string, mixed>
      */
-    protected function buildTargetedFixItemSchema(array $allowedReferences): array
+    protected function buildTargetedFixItemSchema(): array
     {
         $referenceSchema = [
             'type' => 'string',
-            'enum' => $allowedReferences,
+            'description' => 'DOM node identifier to target when this fix runs.',
         ];
 
         return [
@@ -778,12 +743,10 @@ PROMPT;
 
     /**
      * @param  array<string, mixed>  $payload
-     * @param  list<string>  $allowedReferences
      */
     protected function hydrateTargetedRectifiedArticle(
         Article $article,
         array $payload,
-        array $allowedReferences,
     ): RectifiedArticle {
 
         // TODO: Debug
@@ -795,7 +758,6 @@ PROMPT;
         ]);
 
         $rectified = Article::fromArray($article->toArray());
-        $allowedLookup = array_fill_keys($allowedReferences, true);
         $appliedReferences = [];
 
         foreach ($payload['fixes'] ?? [] as $row) {
@@ -804,7 +766,7 @@ PROMPT;
             }
 
             $reference = trim((string) ($row['reference'] ?? ''));
-            if ($reference === '' || ! isset($allowedLookup[$reference])) {
+            if ($reference === '' || $this->findElementByReference($rectified, $reference) === null) {
                 continue;
             }
 
@@ -819,7 +781,7 @@ PROMPT;
 
         return (new RectifiedArticle)
             ->setArticle($rectified)
-            ->setRectifications($this->hydrateRectificationsFromPayload($payload, $allowedReferences));
+            ->setRectifications($this->hydrateRectificationsFromPayload($payload));
     }
 
     /**
@@ -915,35 +877,25 @@ PROMPT;
 
     /**
      * @param  array<string, mixed>  $payload
-     * @param  list<string>  $allowedReferences
      */
-    protected function hydrateFullArticleRectifiedArticle(
-        array $payload,
-        array $allowedReferences,
-    ): RectifiedArticle {
+    protected function hydrateFullArticleRectifiedArticle(array $payload): RectifiedArticle
+    {
         $article = $this->buildArticleFromPayload($payload);
         if ($article->getChildren() === []) {
             throw new RuntimeException('Failed to rectify article with OpenAI: empty article body.');
         }
 
-        $rectifications = $this->hydrateRectificationsFromPayload($payload, $allowedReferences, allowUnknownReferences: true);
-
         return (new RectifiedArticle)
             ->setArticle($article)
-            ->setRectifications($rectifications);
+            ->setRectifications($this->hydrateRectificationsFromPayload($payload));
     }
 
     /**
      * @param  array<string, mixed>  $payload
-     * @param  list<string>  $allowedReferences
      * @return list<Rectification>
      */
-    protected function hydrateRectificationsFromPayload(
-        array $payload,
-        array $allowedReferences,
-        bool $allowUnknownReferences = false,
-    ): array {
-        $allowedLookup = array_fill_keys($allowedReferences, true);
+    protected function hydrateRectificationsFromPayload(array $payload): array
+    {
         $rectifications = [];
 
         foreach ($payload['rectifications'] ?? [] as $row) {
@@ -959,11 +911,6 @@ PROMPT;
                     0,
                     $e
                 );
-            }
-
-            $reference = trim((string) ($rectification->getReference() ?? ''));
-            if ($reference !== '' && ! $allowUnknownReferences && ! isset($allowedLookup[$reference])) {
-                continue;
             }
 
             if ($rectification->getAdjustments() === []) {

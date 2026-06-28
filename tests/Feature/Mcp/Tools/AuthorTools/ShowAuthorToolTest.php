@@ -6,6 +6,7 @@ use App\Mcp\Servers\AppServer;
 use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
 use App\Mcp\Tools\AuthorTools\ShowAuthorTool;
 use App\Mcp\Tools\AuthorTools\UpdateAuthorContextTool;
+use App\Mcp\Tools\AuthorTools\UpdateAuthorTool;
 use App\Models\Author;
 use App\Models\Client;
 use App\Models\User;
@@ -15,6 +16,33 @@ use Tests\TestCase;
 class ShowAuthorToolTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_shows_author_bio_fields(): void
+    {
+        $user = User::factory()->create();
+        $client = $this->attachClient($user, 'Acme Corp');
+        $author = $this->createAuthor($user, $client, 'Editorial Lead');
+        $shortBio = 'Writes about product strategy.';
+        $bio = '<p>Seasoned editor with a decade of experience.</p>';
+
+        AppServer::actingAs($user)->tool(UpdateAuthorTool::class, [
+            'author_id' => $author->id,
+            'short_bio' => $shortBio,
+            'bio' => $bio,
+        ])->assertOk();
+
+        $response = AppServer::actingAs($user)->tool(ShowAuthorTool::class, [
+            'author_id' => $author->id,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertStructuredContent(function ($json) use ($shortBio, $bio): void {
+                $json->where('short_bio', $shortBio)
+                    ->where('bio', $bio)
+                    ->etc();
+            });
+    }
 
     public function test_shows_author_details(): void
     {

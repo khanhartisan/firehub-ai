@@ -15,6 +15,8 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->ulid('client_id')->index();
             $table->string('name')->nullable();
+            $table->string('short_bio')->nullable();
+            $table->text('bio')->nullable();
             $table->jsonb('context')->nullable();
             $table->unsignedInteger('articles_count')->default(0);
             $table->timestamps();

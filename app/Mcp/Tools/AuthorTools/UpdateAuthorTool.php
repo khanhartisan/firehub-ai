@@ -29,10 +29,17 @@ class UpdateAuthorTool extends Tool
             'author_id' => ['required', 'string'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'client_id' => ['sometimes', 'required', 'string'],
+            'short_bio' => ['nullable', 'string', 'max:255'],
+            'bio' => ['nullable', 'string', 'max:65535'],
         ]);
 
-        if (! $request->exists('name') && ! $request->exists('client_id')) {
-            throw new McpToolException('Provide at least one field to update (name or client_id).');
+        if (
+            ! $request->exists('name')
+            && ! $request->exists('client_id')
+            && ! $request->exists('short_bio')
+            && ! $request->exists('bio')
+        ) {
+            throw new McpToolException('Provide at least one field to update (name, client_id, short_bio, or bio).');
         }
 
         $user = McpAccess::user($request);
@@ -45,6 +52,14 @@ class UpdateAuthorTool extends Tool
 
         if ($request->exists('name')) {
             $author->name = (string) $request->get('name');
+        }
+
+        if ($request->exists('short_bio')) {
+            $author->short_bio = $request->get('short_bio');
+        }
+
+        if ($request->exists('bio')) {
+            $author->bio = $request->get('bio');
         }
 
         DB::transaction(function () use ($author): void {
@@ -69,6 +84,16 @@ class UpdateAuthorTool extends Tool
                 ->description('Author display name'),
             'client_id' => $schema->string()
                 ->description('The ULID of the client to move the author to'),
+            'short_bio' => $schema
+                ->string()
+                ->nullable()
+                ->max(255)
+                ->description('Author short bio, plain text format'),
+            'bio' => $schema
+                ->string()
+                ->nullable()
+                ->max(65535)
+                ->description('Author bio in HTML format'),
         ];
     }
 }

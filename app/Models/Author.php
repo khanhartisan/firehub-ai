@@ -43,6 +43,16 @@ class Author extends Model implements StructuredMcpResource
                 ->string()
                 ->nullable()
                 ->description('Author display name'),
+            'short_bio' => $schema
+                ->string()
+                ->nullable()
+                ->max(255)
+                ->description('Author short bio'),
+            'bio' => $schema
+                ->string()
+                ->nullable()
+                ->max(65535)
+                ->description('Author bio'),
             'created_at' => $schema->string()->description('Author created at'),
             'updated_at' => $schema->string()->description('Author updated at'),
         ];
@@ -65,6 +75,8 @@ class Author extends Model implements StructuredMcpResource
             'id' => $this->id,
             'client_id' => $this->client_id,
             'name' => $this->name,
+            'short_bio' => $this->short_bio,
+            'bio' => $this->bio,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

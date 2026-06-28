@@ -43,6 +43,65 @@ class CreateAuthorToolTest extends TestCase
         ]);
     }
 
+    public function test_creates_author_with_short_bio_and_bio(): void
+    {
+        $user = User::factory()->create();
+        $client = $this->attachClient($user, 'Acme Corp');
+        $name = 'Editorial Lead';
+        $shortBio = 'Writes about product strategy.';
+        $bio = '<p>Seasoned editor with a decade of experience.</p>';
+
+        $response = AppServer::actingAs($user)->tool(CreateAuthorTool::class, [
+            'client_id' => $client->id,
+            'name' => $name,
+            'short_bio' => $shortBio,
+            'bio' => $bio,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertStructuredContent(function ($json) use ($shortBio, $bio): void {
+                $json->where('short_bio', $shortBio)
+                    ->where('bio', $bio)
+                    ->etc();
+            });
+
+        $this->assertDatabaseHas('authors', [
+            'client_id' => $client->id,
+            'name' => $name,
+            'short_bio' => $shortBio,
+            'bio' => $bio,
+        ]);
+    }
+
+    public function test_creates_author_with_nullable_bio_fields(): void
+    {
+        $user = User::factory()->create();
+        $client = $this->attachClient($user, 'Acme Corp');
+
+        $response = AppServer::actingAs($user)->tool(CreateAuthorTool::class, [
+            'client_id' => $client->id,
+            'name' => 'Editorial Lead',
+            'short_bio' => null,
+            'bio' => null,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertStructuredContent(function ($json): void {
+                $json->where('short_bio', null)
+                    ->where('bio', null)
+                    ->etc();
+            });
+
+        $this->assertDatabaseHas('authors', [
+            'client_id' => $client->id,
+            'name' => 'Editorial Lead',
+            'short_bio' => null,
+            'bio' => null,
+        ]);
+    }
+
     public function test_validation_fails_when_client_id_is_missing(): void
     {
         $user = User::factory()->create();

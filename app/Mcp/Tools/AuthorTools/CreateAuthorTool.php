@@ -28,6 +28,8 @@ class CreateAuthorTool extends Tool
         $request->validate([
             'client_id' => ['required', 'string'],
             'name' => ['required', 'string', 'max:255'],
+            'short_bio' => ['nullable', 'string', 'max:255'],
+            'bio' => ['nullable', 'string', 'max:65535'],
         ]);
 
         $user = McpAccess::user($request);
@@ -36,6 +38,8 @@ class CreateAuthorTool extends Tool
         $author = new Author;
         $author->client()->associate($client);
         $author->name = (string) $request->get('name');
+        $author->short_bio = $request->get('short_bio');
+        $author->bio = $request->get('bio');
 
         DB::transaction(function () use ($author): void {
             $author->save();
@@ -52,12 +56,24 @@ class CreateAuthorTool extends Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'client_id' => $schema->string()
+            'client_id' => $schema
+                ->string()
                 ->description('The ULID of the client to create the author for')
                 ->required(),
-            'name' => $schema->string()
+            'name' => $schema
+                ->string()
                 ->description('Author display name')
                 ->required(),
+            'short_bio' => $schema
+                ->string()
+                ->nullable()
+                ->max(255)
+                ->description('Author short bio, plain text format'),
+            'bio' => $schema
+                ->string()
+                ->nullable()
+                ->max(65535)
+                ->description('Author bio in HTML format'),
         ];
     }
 }

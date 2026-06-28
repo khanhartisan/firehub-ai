@@ -168,16 +168,20 @@ class ListAuthorsToolTest extends TestCase
     {
         $user = User::factory()->create();
         $client = $this->attachClient($user, 'Acme Corp');
-        $this->createAuthor($user, $client, 'Editorial Lead');
+        $shortBio = 'Writes about product strategy.';
+        $bio = '<p>Seasoned editor with a decade of experience.</p>';
+        $this->createAuthor($user, $client, 'Editorial Lead', $shortBio, $bio);
 
         $response = AppServer::actingAs($user)->tool(ListAuthorsTool::class);
 
         $response
             ->assertOk()
-            ->assertStructuredContent(function ($json) use ($client): void {
+            ->assertStructuredContent(function ($json) use ($client, $shortBio, $bio): void {
                 $json->has('authors', 1)
                     ->where('authors.0.name', 'Editorial Lead')
                     ->where('authors.0.client_id', $client->id)
+                    ->where('authors.0.short_bio', $shortBio)
+                    ->where('authors.0.bio', $bio)
                     ->has('authors.0.created_at')
                     ->has('authors.0.updated_at')
                     ->etc();
@@ -202,11 +206,18 @@ class ListAuthorsToolTest extends TestCase
         return $client;
     }
 
-    private function createAuthor(User $user, Client $client, string $name): void
-    {
+    private function createAuthor(
+        User $user,
+        Client $client,
+        string $name,
+        ?string $shortBio = null,
+        ?string $bio = null,
+    ): void {
         $response = AppServer::actingAs($user)->tool(CreateAuthorTool::class, [
             'client_id' => $client->id,
             'name' => $name,
+            'short_bio' => $shortBio,
+            'bio' => $bio,
         ]);
 
         $response->assertOk();

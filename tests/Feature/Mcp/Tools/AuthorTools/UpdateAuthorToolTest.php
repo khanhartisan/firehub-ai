@@ -86,6 +86,68 @@ class UpdateAuthorToolTest extends TestCase
         $this->assertSame($secondClient->id, $author->client_id);
     }
 
+    public function test_updates_author_short_bio_and_bio(): void
+    {
+        $user = User::factory()->create();
+        $client = $this->attachClient($user, 'Acme Corp');
+        $author = $this->createAuthor($user, $client, 'Editorial Lead');
+        $shortBio = 'Writes about product strategy.';
+        $bio = '<p>Seasoned editor with a decade of experience.</p>';
+
+        $response = AppServer::actingAs($user)->tool(UpdateAuthorTool::class, [
+            'author_id' => $author->id,
+            'short_bio' => $shortBio,
+            'bio' => $bio,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertStructuredContent(function ($json) use ($shortBio, $bio): void {
+                $json->where('short_bio', $shortBio)
+                    ->where('bio', $bio)
+                    ->etc();
+            });
+
+        $this->assertDatabaseHas('authors', [
+            'id' => $author->id,
+            'short_bio' => $shortBio,
+            'bio' => $bio,
+        ]);
+    }
+
+    public function test_clears_author_bio_fields(): void
+    {
+        $user = User::factory()->create();
+        $client = $this->attachClient($user, 'Acme Corp');
+        $author = $this->createAuthor($user, $client, 'Editorial Lead');
+
+        AppServer::actingAs($user)->tool(UpdateAuthorTool::class, [
+            'author_id' => $author->id,
+            'short_bio' => 'Writes about product strategy.',
+            'bio' => '<p>Seasoned editor.</p>',
+        ])->assertOk();
+
+        $response = AppServer::actingAs($user)->tool(UpdateAuthorTool::class, [
+            'author_id' => $author->id,
+            'short_bio' => null,
+            'bio' => null,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertStructuredContent(function ($json): void {
+                $json->where('short_bio', null)
+                    ->where('bio', null)
+                    ->etc();
+            });
+
+        $this->assertDatabaseHas('authors', [
+            'id' => $author->id,
+            'short_bio' => null,
+            'bio' => null,
+        ]);
+    }
+
     public function test_does_not_modify_context(): void
     {
         $user = User::factory()->create();
@@ -135,7 +197,7 @@ class UpdateAuthorToolTest extends TestCase
             'author_id' => $author->id,
         ]);
 
-        $response->assertHasErrors(['Provide at least one field to update (name or client_id).']);
+        $response->assertHasErrors(['Provide at least one field to update (name, client_id, short_bio, or bio).']);
     }
 
     public function test_validation_fails_when_name_is_blank(): void

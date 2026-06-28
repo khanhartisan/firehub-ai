@@ -785,6 +785,15 @@ PROMPT;
         array $payload,
         array $allowedReferences,
     ): RectifiedArticle {
+
+        // TODO: Debug
+        \App\Models\Meta::query()->create([
+            'metable_type' => 'debugging-writer-rectify-article',
+            'metable_id' => \App\Utils\Str::ulid(),
+            'key' => 'payload',
+            'value' => json_encode($payload)
+        ]);
+
         $rectified = Article::fromArray($article->toArray());
         $allowedLookup = array_fill_keys($allowedReferences, true);
         $appliedReferences = [];
@@ -807,14 +816,6 @@ PROMPT;
         if ($appliedReferences === []) {
             throw new RuntimeException('Failed to rectify article with OpenAI: no targeted fixes were applied.');
         }
-
-        // TODO: Debug
-        \App\Models\Meta::query()->create([
-            'metable_type' => 'debugging-writer-rectify-article',
-            'metable_id' => \App\Utils\Str::ulid(),
-            'key' => 'payload',
-            'value' => json_encode($payload)
-        ]);
 
         return (new RectifiedArticle)
             ->setArticle($rectified)

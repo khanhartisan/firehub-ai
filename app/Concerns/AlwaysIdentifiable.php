@@ -5,7 +5,7 @@ namespace App\Concerns;
 use App\Utils\Str;
 
 /**
- * Can define protected property int $maxIdentifierLength
+ * Can define protected properties: int $defaultIdentifierLength and int $maxIdentifierLength
  */
 trait AlwaysIdentifiable
 {
@@ -17,7 +17,7 @@ trait AlwaysIdentifiable
             return $this->identifier;
         }
 
-        return $this->setIdentifier(strtolower(Str::random($this->maxIdentifierLength ?? 40)))->getIdentifier();
+        return $this->setIdentifier(strtolower(Str::random($this->defaultIdentifierLength ?? 10)))->getIdentifier();
     }
 
     public function setIdentifier(?string $identifier): static

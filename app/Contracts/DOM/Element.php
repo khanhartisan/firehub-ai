@@ -17,7 +17,7 @@ class Element implements Serializable, Identifiable
     use AlwaysIdentifiable;
     use SerializableTrait;
 
-    protected int $maxIdentifierLength = 4;
+    protected int $defaultIdentifierLength = 4;
 
     protected ?ElementType $type = null;
 

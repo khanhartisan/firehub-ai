@@ -37,6 +37,9 @@ trait ManagesPseudoFlyCmsStore
     /** @var array<string, array<string, mixed>> */
     protected static array $meta = [];
 
+    /** @var array<string, array<string, mixed>> */
+    protected static array $authors = [];
+
     public function __construct()
     {
         self::ensureSeeded();
@@ -55,6 +58,7 @@ trait ManagesPseudoFlyCmsStore
         self::$files = [];
         self::$themes = [];
         self::$meta = [];
+        self::$authors = [];
 
         self::ensureSeeded();
     }
@@ -78,5 +82,6 @@ trait ManagesPseudoFlyCmsStore
         $instance->seedSampleRoles();
         $instance->seedSampleUsers();
         $instance->seedSampleFiles();
+        $instance->seedSampleAuthors();
     }
 }

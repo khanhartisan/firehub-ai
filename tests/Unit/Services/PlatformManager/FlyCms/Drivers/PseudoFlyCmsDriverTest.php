@@ -12,6 +12,7 @@ use App\Contracts\PlatformManager\FlyCms\Filters\TagFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\ThemeFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\WebsiteFilter;
+use App\Contracts\PlatformManager\FlyCms\MutationData\AuthorMutationData\PutAuthorData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\CreateFileData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\FileMutationData\UpdateFileData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
@@ -711,6 +712,126 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_list_tags_returns_empty_for_unknown_website(): void
     {
         $this->assertSame([], $this->driver->listTags('unknown-website-id'));
+    }
+
+    public function test_it_seeds_sample_authors(): void
+    {
+        $authors = $this->driver->listAuthors('01J00000000000000000000001');
+
+        $this->assertCount(2, $authors);
+        $this->assertSame('Alex Editor', $authors[0]->getData()['display_name']);
+        $this->assertSame('01J00000000000000000000071', $authors[0]->getData()['thumbnail_file_id']);
+        $this->assertSame('hero-banner', $authors[0]->getData()['thumbnailFile']['code']);
+        $this->assertSame('Sam Manager', $authors[1]->getData()['display_name']);
+        $this->assertNull($authors[1]->getData()['thumbnail_file_id']);
+        $this->assertNull($authors[1]->getData()['thumbnailFile']);
+        $this->assertCount(1, $this->driver->listAuthors('01J00000000000000000000002'));
+    }
+
+    public function test_show_author_returns_matching_resource(): void
+    {
+        $author = $this->driver->showAuthor('01J00000000000000000000031');
+
+        $this->assertNotNull($author);
+        $this->assertSame('01J00000000000000000000001', $author->getData()['website_id']);
+        $this->assertSame('Alex Editor', $author->getData()['display_name']);
+        $this->assertSame('Technology writer and editor.', $author->getData()['short_bio']);
+        $this->assertSame(8, $author->getData()['public_posts_count']);
+        $this->assertSame('01J00000000000000000000071', $author->getData()['thumbnail_file_id']);
+        $this->assertSame('hero-banner', $author->getData()['thumbnailFile']['code']);
+        $this->assertSame('uploads/hero-banner.jpg', $author->getData()['thumbnailFile']['key']);
+        $this->assertArrayNotHasKey('email', $author->getData());
+    }
+
+    public function test_show_author_returns_null_for_unknown_id(): void
+    {
+        $this->assertNull($this->driver->showAuthor('unknown-id'));
+    }
+
+    public function test_put_author_creates_new_author(): void
+    {
+        $websiteId = '01J00000000000000000000001';
+
+        $putAuthorData = (new PutAuthorData)->setData([
+            'email' => 'new@example.com',
+            'display_name' => 'New Author',
+            'short_bio' => 'A new writer.',
+            'bio' => '<p>Fresh voice on the blog.</p>',
+            'thumbnail_file_id' => '01J00000000000000000000072',
+        ]);
+
+        $created = $this->driver->putAuthor($websiteId, $putAuthorData);
+        $data = $created->getData();
+
+        $this->assertSame('New Author', $data['display_name']);
+        $this->assertSame('A new writer.', $data['short_bio']);
+        $this->assertSame('<p>Fresh voice on the blog.</p>', $data['bio']);
+        $this->assertSame($websiteId, $data['website_id']);
+        $this->assertSame('01J00000000000000000000072', $data['thumbnail_file_id']);
+        $this->assertSame('uploads/weekend-ideas.webp', $data['thumbnailFile']['key']);
+        $this->assertSame(0, $data['public_posts_count']);
+        $this->assertNotEmpty($data['id']);
+        $this->assertArrayNotHasKey('email', $data);
+        $this->assertNotNull($this->driver->showAuthor($data['id']));
+        $this->assertCount(3, $this->driver->listAuthors($websiteId));
+    }
+
+    public function test_put_author_upserts_existing_author_by_email(): void
+    {
+        $websiteId = '01J00000000000000000000001';
+
+        $putAuthorData = (new PutAuthorData)->setData([
+            'email' => 'alex@example.com',
+            'display_name' => 'Alex Updated',
+            'short_bio' => 'Updated short bio.',
+            'bio' => '<p>Updated bio.</p>',
+            'seo_title' => 'Alex Updated | Sample Blog',
+        ]);
+
+        $updated = $this->driver->putAuthor($websiteId, $putAuthorData);
+        $data = $updated->getData();
+
+        $this->assertSame('01J00000000000000000000031', $data['id']);
+        $this->assertSame('Alex Updated', $data['display_name']);
+        $this->assertSame('Updated short bio.', $data['short_bio']);
+        $this->assertSame('<p>Updated bio.</p>', $data['bio']);
+        $this->assertSame('Alex Updated | Sample Blog', $data['seo_title']);
+        $this->assertSame(8, $data['public_posts_count']);
+        $this->assertSame('01J00000000000000000000071', $data['thumbnail_file_id']);
+        $this->assertCount(2, $this->driver->listAuthors($websiteId));
+        $this->assertSame('Alex Updated', $this->driver->showAuthor('01J00000000000000000000031')?->getData()['display_name']);
+    }
+
+    public function test_put_author_throws_for_unknown_website(): void
+    {
+        $putAuthorData = (new PutAuthorData)->setData([
+            'email' => 'author@example.com',
+            'display_name' => 'Missing Website Author',
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Website [unknown-website-id] not found.');
+
+        $this->driver->putAuthor('unknown-website-id', $putAuthorData);
+    }
+
+    public function test_delete_author_removes_record(): void
+    {
+        $websiteId = '01J00000000000000000000001';
+
+        $this->assertTrue($this->driver->deleteAuthor('01J00000000000000000000031'));
+        $this->assertNull($this->driver->showAuthor('01J00000000000000000000031'));
+        $this->assertCount(1, $this->driver->listAuthors($websiteId));
+    }
+
+    public function test_delete_author_returns_false_for_unknown_id(): void
+    {
+        $this->assertFalse($this->driver->deleteAuthor('missing-id'));
+    }
+
+    public function test_list_authors_returns_empty_for_unknown_website(): void
+    {
+        $this->assertSame([], $this->driver->listAuthors('unknown-website-id'));
     }
 
     public function test_it_seeds_sample_pages(): void

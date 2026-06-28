@@ -64,6 +64,8 @@ trait InteractsWithArticles
         $isUpdate = is_string($publication->reference) && $publication->reference !== '';
 
         try {
+            $this->ensureFlyCmsAuthor($article);
+
             $payload = $this->postPayloadFromPublication(
                 $publication,
                 $article,
@@ -94,6 +96,15 @@ trait InteractsWithArticles
         } catch (FlyCmsException $exception) {
             return new PublishingResult(PublicationStatus::ERROR, null, $exception->getMessage());
         }
+    }
+
+    protected function ensureFlyCmsAuthor(Article $article): void
+    {
+        if (!$article->author) {
+            return;
+        }
+
+        // TODO: Sync author profile to flycms
     }
 
     /**

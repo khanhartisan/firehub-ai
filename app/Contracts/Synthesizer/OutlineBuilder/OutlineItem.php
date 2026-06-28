@@ -16,6 +16,8 @@ final class OutlineItem implements Identifiable, Serializable
     use AlwaysIdentifiable;
     use SerializableTrait;
 
+    protected int $maxIdentifierLength = 4;
+
     protected RelevantPoint $point;
 
     /** @var OutlineItem[] */

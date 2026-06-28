@@ -14,6 +14,8 @@ use App\Contracts\PlatformManager\FlyCms\Resources\FileResource;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
 use App\Contracts\Synthesizer\Writer\IllustrationAnchor;
 use App\Models\Article;
+use App\Models\File;
+use App\Utils\Str;
 use Illuminate\Support\Facades\Storage;
 
 trait InteractsWithFlyCmsArticleFiles
@@ -185,7 +187,7 @@ trait InteractsWithFlyCmsArticleFiles
             (new CreateFileData)->setData([
                 'ext' => $extension ?? $this->resolveImageExtFromPath($storagePath),
                 'code' => $code,
-                'filename' => 'file-'.$code,
+                'filename' => $this->resolveFilenameFromPath($storagePath) ?? 'file-'.$code,
             ]),
         );
     }
@@ -228,6 +230,25 @@ trait InteractsWithFlyCmsArticleFiles
         }
 
         return implode(', ', $parts);
+    }
+
+    protected function resolveFilenameFromPath(string $path): ?string
+    {
+        if (!$file = File::query()->where('path', $path)->first()) {
+            return null;
+        }
+
+        $description = Str::limit($file->description, 100);
+        $description = Str::slug($description);
+
+        $ext = explode('.', $path);
+        $ext = end($ext);
+
+        if (!$description) {
+            return null;
+        }
+
+        return $description.'.'.$ext;
     }
 
     protected function resolveImageExtFromPath(string $path): string

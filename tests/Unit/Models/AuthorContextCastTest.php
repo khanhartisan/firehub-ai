@@ -5,13 +5,13 @@ namespace Tests\Unit\Models;
 use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Model\Author\AuthorContexts\CognitiveContext;
 use App\Models\Author;
-use App\Utils\Str;
 use Tests\TestCase;
 
 class AuthorContextCastTest extends TestCase
 {
     public function test_it_dehydrates_and_hydrates_context_perfectly(): void
     {
+        $authorId = '01JZKQ8N4W2M5X7Y9ABCDEFGH';
         $context = (new AuthorContext)
             ->setCognitiveContext(
                 (new CognitiveContext)
@@ -21,22 +21,33 @@ class AuthorContextCastTest extends TestCase
             );
 
         $author = new Author;
+        $author->setAttribute('id', $authorId);
         $author->context = $context;
 
-        $this->assertIsString($author->getAttributes()['context']);
-        $this->assertSame($context->toArray(), json_decode($author->getAttributes()['context'], true));
+        $stored = $author->getAttributes()['context'];
+        $this->assertIsString($stored);
+
+        $storedPayload = json_decode($stored, true);
+        $this->assertSame('author-ctx-' . $authorId, $storedPayload['identifier'] ?? null);
+        $this->assertSame(
+            array_merge($context->toArray(), ['identifier' => 'author-ctx-' . $authorId]),
+            $storedPayload
+        );
 
         $rehydrated = new Author;
         $rehydrated->setRawAttributes([
-            'context' => $author->getAttributes()['context'],
+            'id' => $authorId,
+            'context' => $stored,
         ], true);
 
         $this->assertInstanceOf(AuthorContext::class, $rehydrated->context);
-        $this->assertSame($context->toArray(), $rehydrated->context->toArray());
+        $this->assertSame('author-ctx-' . $authorId, $rehydrated->context->getIdentifier());
+        $this->assertSame($storedPayload, $rehydrated->context->toArray());
     }
 
     public function test_it_accepts_array_payload_and_casts_to_context(): void
     {
+        $authorId = '01JZKQ8N4W2M5X7Y9ABCDEFGH';
         $payload = [
             'cognitive_context' => [
                 'description' => 'Defines the core belief system and logical processing of the author. This prevents the content from falling into the "neutrality trap".',
@@ -50,39 +61,98 @@ class AuthorContextCastTest extends TestCase
         ];
 
         $author = new Author;
+        $author->setAttribute('id', $authorId);
         $author->context = $payload;
 
         $this->assertInstanceOf(AuthorContext::class, $author->context);
+        $this->assertSame('author-ctx-' . $authorId, $author->context->getIdentifier());
+
         $contextArray = $author->context->toArray();
-        $this->assertIsString($contextArray['identifier'] ?? null);
         $this->assertSame(
             array_merge($payload['cognitive_context'], ['weight' => null]),
             $contextArray['cognitive_context'] ?? null
         );
     }
 
-    public function test_it_keeps_context_identifier_after_dehydrate_and_hydrate(): void
+    public function test_it_sets_author_context_identifier_from_author_id_when_setting_context_instance(): void
     {
+        $authorId = '01JZKQ8N4W2M5X7Y9ABCDEFGH';
         $context = (new AuthorContext)
             ->setCognitiveContext(
                 (new CognitiveContext)->setWorldview('Long-term consistency beats short-term novelty.')
             );
-        $identifier = $context->getIdentifier();
-        $this->assertNotNull($identifier);
 
         $author = new Author;
+        $author->setAttribute('id', $authorId);
         $author->context = $context;
 
-        $stored = $author->getAttributes()['context'];
-        $this->assertIsString($stored);
-        $this->assertSame($identifier, json_decode($stored, true)['identifier'] ?? null);
+        $this->assertSame('author-ctx-' . $authorId, $author->context->getIdentifier());
+        $this->assertSame(
+            'author-ctx-' . $authorId,
+            json_decode($author->getAttributes()['context'], true)['identifier'] ?? null
+        );
+    }
 
-        $rehydrated = new Author;
-        $rehydrated->setRawAttributes([
+    public function test_it_overrides_stored_context_identifier_on_hydrate(): void
+    {
+        $authorId = '01JZKQ8N4W2M5X7Y9ABCDEFGH';
+        $stored = json_encode([
+            'identifier' => 'legacy-random-identifier',
+            'cognitive_context' => [
+                'description' => 'Defines the core belief system and logical processing of the author. This prevents the content from falling into the "neutrality trap".',
+                'value' => [
+                    'worldview' => [
+                        'description' => 'A dense, 2-3 sentence statement defining the author\'s fundamental lens on reality.',
+                        'value' => 'Consistency compounds.',
+                    ],
+                ],
+            ],
+        ]);
+
+        $author = new Author;
+        $author->setRawAttributes([
+            'id' => $authorId,
             'context' => $stored,
         ], true);
 
-        $this->assertInstanceOf(AuthorContext::class, $rehydrated->context);
-        $this->assertSame($identifier, $rehydrated->context->getIdentifier());
+        $this->assertInstanceOf(AuthorContext::class, $author->context);
+        $this->assertSame('author-ctx-' . $authorId, $author->context->getIdentifier());
+    }
+
+    public function test_it_sets_author_context_identifier_for_empty_context(): void
+    {
+        $authorId = '01JZKQ8N4W2M5X7Y9ABCDEFGH';
+
+        $author = new Author;
+        $author->setAttribute('id', $authorId);
+        $author->context = null;
+
+        $this->assertInstanceOf(AuthorContext::class, $author->context);
+        $this->assertSame('author-ctx-' . $authorId, $author->context->getIdentifier());
+    }
+
+    public function test_it_sets_author_context_identifier_when_hydrating_from_json_string(): void
+    {
+        $authorId = '01JZKQ8N4W2M5X7Y9ABCDEFGH';
+        $stored = json_encode([
+            'identifier' => 'should-be-replaced',
+            'cognitive_context' => [
+                'description' => 'Defines the core belief system and logical processing of the author. This prevents the content from falling into the "neutrality trap".',
+                'value' => [
+                    'worldview' => [
+                        'description' => 'A dense, 2-3 sentence statement defining the author\'s fundamental lens on reality.',
+                        'value' => 'Ship small, learn fast.',
+                    ],
+                ],
+            ],
+        ]);
+
+        $author = new Author;
+        $author->setRawAttributes([
+            'id' => $authorId,
+            'context' => $stored,
+        ], true);
+
+        $this->assertSame('author-ctx-' . $authorId, $author->context->getIdentifier());
     }
 }

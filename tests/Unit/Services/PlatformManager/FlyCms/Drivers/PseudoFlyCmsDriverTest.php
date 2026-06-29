@@ -730,10 +730,11 @@ class PseudoFlyCmsDriverTest extends TestCase
 
     public function test_show_author_returns_matching_resource(): void
     {
-        $author = $this->driver->showAuthor('01J00000000000000000000031');
+        $websiteId = '01J00000000000000000000001';
+        $author = $this->driver->showAuthor($websiteId, 'alex@example.com');
 
         $this->assertNotNull($author);
-        $this->assertSame('01J00000000000000000000001', $author->getData()['website_id']);
+        $this->assertSame($websiteId, $author->getData()['website_id']);
         $this->assertSame('Alex Editor', $author->getData()['display_name']);
         $this->assertSame('Technology writer and editor.', $author->getData()['short_bio']);
         $this->assertSame(8, $author->getData()['public_posts_count']);
@@ -743,9 +744,9 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertArrayNotHasKey('email', $author->getData());
     }
 
-    public function test_show_author_returns_null_for_unknown_id(): void
+    public function test_show_author_returns_null_for_unknown_email(): void
     {
-        $this->assertNull($this->driver->showAuthor('unknown-id'));
+        $this->assertNull($this->driver->showAuthor('01J00000000000000000000001', 'unknown@example.com'));
     }
 
     public function test_put_author_creates_new_author(): void
@@ -772,7 +773,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame(0, $data['public_posts_count']);
         $this->assertNotEmpty($data['id']);
         $this->assertArrayNotHasKey('email', $data);
-        $this->assertNotNull($this->driver->showAuthor($data['id']));
+        $this->assertNotNull($this->driver->showAuthor($websiteId, 'new@example.com'));
         $this->assertCount(3, $this->driver->listAuthors($websiteId));
     }
 
@@ -799,7 +800,7 @@ class PseudoFlyCmsDriverTest extends TestCase
         $this->assertSame(8, $data['public_posts_count']);
         $this->assertSame('01J00000000000000000000071', $data['thumbnail_file_id']);
         $this->assertCount(2, $this->driver->listAuthors($websiteId));
-        $this->assertSame('Alex Updated', $this->driver->showAuthor('01J00000000000000000000031')?->getData()['display_name']);
+        $this->assertSame('Alex Updated', $this->driver->showAuthor($websiteId, 'alex@example.com')?->getData()['display_name']);
     }
 
     public function test_put_author_throws_for_unknown_website(): void
@@ -819,14 +820,14 @@ class PseudoFlyCmsDriverTest extends TestCase
     {
         $websiteId = '01J00000000000000000000001';
 
-        $this->assertTrue($this->driver->deleteAuthor('01J00000000000000000000031'));
-        $this->assertNull($this->driver->showAuthor('01J00000000000000000000031'));
+        $this->assertTrue($this->driver->deleteAuthor($websiteId, 'alex@example.com'));
+        $this->assertNull($this->driver->showAuthor($websiteId, 'alex@example.com'));
         $this->assertCount(1, $this->driver->listAuthors($websiteId));
     }
 
-    public function test_delete_author_returns_false_for_unknown_id(): void
+    public function test_delete_author_returns_false_for_unknown_email(): void
     {
-        $this->assertFalse($this->driver->deleteAuthor('missing-id'));
+        $this->assertFalse($this->driver->deleteAuthor('01J00000000000000000000001', 'missing@example.com'));
     }
 
     public function test_list_authors_returns_empty_for_unknown_website(): void

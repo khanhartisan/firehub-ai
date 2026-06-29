@@ -7,7 +7,7 @@ use App\Contracts\PlatformManager\FlyCms\Resources\AuthorResource;
 
 interface AuthorManager
 {
-    public function showAuthor(string $authorId);
+    public function showAuthor(string $websiteId, string $email): ?AuthorResource;
 
     public function putAuthor(string $websiteId,
                               PutAuthorData $putAuthorData): AuthorResource;
@@ -18,5 +18,5 @@ interface AuthorManager
      */
     public function listAuthors(string $websiteId): array;
 
-    public function deleteAuthor(string $authorId): bool;
+    public function deleteAuthor(string $websiteId, string $email): bool;
 }

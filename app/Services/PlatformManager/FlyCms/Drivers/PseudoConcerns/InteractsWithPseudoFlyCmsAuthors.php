@@ -9,15 +9,15 @@ use InvalidArgumentException;
 
 trait InteractsWithPseudoFlyCmsAuthors
 {
-    public function showAuthor(string $authorId): ?AuthorResource
+    public function showAuthor(string $websiteId, string $email): ?AuthorResource
     {
-        $author = self::$authors[$authorId] ?? null;
+        $authorId = $this->findPseudoAuthorIdByEmail($websiteId, $email);
 
-        if ($author === null) {
+        if ($authorId === null) {
             return null;
         }
 
-        return $this->toAuthorResource($author);
+        return $this->toAuthorResource(self::$authors[$authorId]);
     }
 
     public function putAuthor(string $websiteId, PutAuthorData $putAuthorData): AuthorResource
@@ -83,9 +83,11 @@ trait InteractsWithPseudoFlyCmsAuthors
         );
     }
 
-    public function deleteAuthor(string $authorId): bool
+    public function deleteAuthor(string $websiteId, string $email): bool
     {
-        if (! isset(self::$authors[$authorId])) {
+        $authorId = $this->findPseudoAuthorIdByEmail($websiteId, $email);
+
+        if ($authorId === null) {
             return false;
         }
 

@@ -54,6 +54,7 @@ class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpRes
             new CascadeDetails($this->hasMany(ArticleIntent::class)),
             new CascadeDetails($this->hasMany(ArticleTag::class)),
             new CascadeDetails($this->publications()),
+            new CascadeDetails($this->fileables()),
         ];
     }
 

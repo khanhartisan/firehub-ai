@@ -84,7 +84,7 @@ class FlyCmsDriver extends FlyCmsService
 
                 throw new FlyCmsException(
                     ($apiMessage = Json::decode($responseContents)?->message)
-                        ? 'Platform API Error: '.$apiMessage
+                        ? 'Platform API Error: '.$method.' '.$uri.': '.$apiMessage
                         : 'Unknown api error'
                 );
             }

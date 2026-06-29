@@ -59,7 +59,7 @@ trait InteractsWithAuthors
 
             $attachResponse = $this->sendApiRequest(
                 'POST',
-                WebsiteResource::resourceNamespace().':add_user',
+                WebsiteResource::resourceNamespace().'/'.$websiteId.':add_user',
                 [
                     'json' => [
                         'user_id' => $userResource->get('id')
@@ -116,7 +116,7 @@ trait InteractsWithAuthors
 
         $this->sendApiRequest(
             'POST',
-            WebsiteResource::resourceNamespace().':remove_user',
+            WebsiteResource::resourceNamespace().'/'.$websiteId.':remove_user',
             [
                 'json' => [
                     'user_id' => $userResource->get('id')

@@ -4,12 +4,15 @@ namespace App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
 use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
+use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
+use App\Contracts\PlatformManager\FlyCms\MutationData\AuthorMutationData\PutAuthorData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
 use App\Contracts\PlatformManager\PublishingResult;
 use App\Enums\ArticleStatus;
 use App\Enums\PublicationStatus;
 use App\Models\Article;
+use App\Models\Author;
 use App\Models\File;
 use App\Models\Publication;
 use App\Utils\Str;
@@ -64,7 +67,6 @@ trait InteractsWithArticles
         $isUpdate = is_string($publication->reference) && $publication->reference !== '';
 
         try {
-            $this->ensureFlyCmsAuthor($article);
 
             $payload = $this->postPayloadFromPublication(
                 $publication,
@@ -72,6 +74,15 @@ trait InteractsWithArticles
                 $contentHtml,
                 $isUpdate,
             );
+
+            /** @var Author $author */
+            if ($author = $article->author
+                and $authorEmail = $this->ensureFlyCmsAuthor($websiteId, $author)
+                and $userResource = $this->listUsers(1, 1, new UserFilter()->set('email', $authorEmail))[0] ?? null
+                and $userId = $userResource->get('id')
+            ) {
+                $payload['user_id'] = $userId;
+            }
 
             $post = $isUpdate
                 ? $this->updatePost((new UpdatePostData)->setData([
@@ -98,13 +109,20 @@ trait InteractsWithArticles
         }
     }
 
-    protected function ensureFlyCmsAuthor(Article $article): void
+    /**
+     * @throws FlyCmsException
+     */
+    protected function ensureFlyCmsAuthor(string $websiteId, Author $author): string
     {
-        if (!$article->author) {
-            return;
-        }
+        $authorEmail = 'author.'.$author->id.'@example.com';
+        $this->putAuthor($websiteId, new PutAuthorData()->setData([
+            'email' => $authorEmail,
+            'display_name' => $author->name,
+            'short_bio' => $author->short_bio,
+            'bio' => $author->bio
+        ]));
 
-        // TODO: Sync author profile to flycms
+        return $authorEmail;
     }
 
     /**

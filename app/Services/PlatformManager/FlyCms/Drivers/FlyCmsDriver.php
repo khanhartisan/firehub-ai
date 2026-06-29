@@ -78,16 +78,16 @@ class FlyCmsDriver extends FlyCmsService
                 $response = $exception->getResponse();
                 $responseContents = $response->getBody()->getContents();
 
-                $fullLogs = [$method, $uri, $guzzleConfig, $responseContents];
+                $fullLogs = [$method, $uri, $guzzleConfig, $responseContents, $exception->getTraceAsString()];
                 if (env('APP_DEBUG')) {
                     \Log::info($fullLogs);
                 }
 
                 throw new FlyCmsException(
                     ($apiMessage = Json::decode($responseContents)?->message)
-                        ? 'Platform API Error: '.$method.' '.$uri.': '.$apiMessage
+                        ? 'Platform API Error: '.$apiMessage
                         : 'Unknown api error'
-                )->setFullApiLogs(Json::encode($fullLogs));
+                )->setFullLogs(Json::encode($fullLogs));
             }
 
             throw new FlyCmsException('Unknown api request error', $exception->getCode(), $exception);

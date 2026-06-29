@@ -4,16 +4,16 @@ namespace App\Contracts\PlatformManager\FlyCms\Exceptions;
 
 class FlyCmsException extends \Exception
 {
-    protected ?string $fullApiLogs = null;
+    protected ?string $fullLogs = null;
 
-    public function getFullApiLogs(): ?string
+    public function getFullLogs(): ?string
     {
-        return $this->fullApiLogs;
+        return $this->fullLogs;
     }
 
-    public function setFullApiLogs(?string $fullApiLogs): static
+    public function setFullLogs(?string $fullLogs): static
     {
-        $this->fullApiLogs = $fullApiLogs;
+        $this->fullLogs = $fullLogs;
         return $this;
     }
 }

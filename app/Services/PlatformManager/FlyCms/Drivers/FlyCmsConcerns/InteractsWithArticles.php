@@ -105,7 +105,7 @@ trait InteractsWithArticles
 
             return new PublishingResult(PublicationStatus::PUBLISHED, $postId);
         } catch (FlyCmsException $exception) {
-            return new PublishingResult(PublicationStatus::ERROR, null, $exception->getMessage());
+            return new PublishingResult(PublicationStatus::ERROR, null, $exception->getFullLogs());
         }
     }
 

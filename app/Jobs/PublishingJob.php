@@ -140,7 +140,9 @@ class PublishingJob implements ShouldQueue, ShouldBeUnique
         $publication = $this->publication;
         $publication->attempts++;
         $publication->status = $publishingResult->getStatus();
-        $publication->reference = $publishingResult->getReference();
+        $publication->reference = $publishingResult->getStatus() === PublicationStatus::PUBLISHED
+            ? $publishingResult->getReference()
+            : $publication->reference;
         $publication->error_logs = Str::appendLimit(
             $publication->error_logs ?? '',
             "\n---\n".$publishingResult->getErrorLogs(),

@@ -146,7 +146,7 @@ class PublishingJob implements ShouldQueue, ShouldBeUnique
         $publication->error_logs = Str::appendLimit(
             $publication->error_logs ?? '',
             "\n---\n".$publishingResult->getErrorLogs(),
-            10000
+            20000
         );
 
         if (in_array($publication->status, [

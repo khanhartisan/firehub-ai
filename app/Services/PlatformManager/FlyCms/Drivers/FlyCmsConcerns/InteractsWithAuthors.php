@@ -3,6 +3,7 @@
 namespace App\Services\PlatformManager\FlyCms\Drivers\FlyCmsConcerns;
 
 use App\Contracts\PlatformManager\FlyCms\Exceptions\FlyCmsException;
+use App\Contracts\PlatformManager\FlyCms\Filters\AuthorFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\AuthorMutationData\PutAuthorData;
 use App\Contracts\PlatformManager\FlyCms\Resources\AuthorResource;
 
@@ -13,8 +14,15 @@ trait InteractsWithAuthors
      */
     public function showAuthor(string $websiteId, string $email): ?AuthorResource
     {
-        // TODO: Implement showAuthor via FlyCMS API
-        throw new FlyCmsException('Not implemented');
+        return $this->listAuthors(
+            $websiteId,
+            1,
+            1,
+            new AuthorFilter()
+                ->setFilterData([
+                    'email' => $email,
+                ])
+        )[0] ?? null;
     }
 
     /**
@@ -31,7 +39,10 @@ trait InteractsWithAuthors
      *
      * @throws FlyCmsException
      */
-    public function listAuthors(string $websiteId): array
+    public function listAuthors(string $websiteId,
+                                int $page = 1,
+                                int $perPage = 100,
+                                ?AuthorFilter $authorFilter = null): array
     {
         // TODO: Implement listAuthors via FlyCMS API
         throw new FlyCmsException('Not implemented');

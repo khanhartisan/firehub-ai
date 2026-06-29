@@ -2,6 +2,7 @@
 
 namespace App\Services\PlatformManager\FlyCms\Drivers\PseudoConcerns;
 
+use App\Contracts\PlatformManager\FlyCms\Filters\AuthorFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\AuthorMutationData\PutAuthorData;
 use App\Contracts\PlatformManager\FlyCms\Resources\AuthorResource;
 use Illuminate\Support\Str;
@@ -11,13 +12,12 @@ trait InteractsWithPseudoFlyCmsAuthors
 {
     public function showAuthor(string $websiteId, string $email): ?AuthorResource
     {
-        $authorId = $this->findPseudoAuthorIdByEmail($websiteId, $email);
-
-        if ($authorId === null) {
-            return null;
-        }
-
-        return $this->toAuthorResource(self::$authors[$authorId]);
+        return $this->listAuthors(
+            $websiteId,
+            1,
+            1,
+            (new AuthorFilter)->setFilterData(['email' => $email])
+        )[0] ?? null;
     }
 
     public function putAuthor(string $websiteId, PutAuthorData $putAuthorData): AuthorResource
@@ -70,12 +70,22 @@ trait InteractsWithPseudoFlyCmsAuthors
     /**
      * @return AuthorResource[]
      */
-    public function listAuthors(string $websiteId): array
+    public function listAuthors(string $websiteId,
+                                int $page = 1,
+                                int $perPage = 100,
+                                ?AuthorFilter $authorFilter = null): array
     {
         $authors = array_values(array_filter(
             self::$authors,
             static fn (array $author): bool => ($author['website_id'] ?? null) === $websiteId
         ));
+
+        if ($authorFilter !== null) {
+            $authors = $this->applyAuthorFilter($authors, $authorFilter);
+        }
+
+        $offset = max(0, ($page - 1) * $perPage);
+        $authors = array_slice($authors, $offset, $perPage);
 
         return array_map(
             fn (array $author): AuthorResource => $this->toAuthorResource($author),
@@ -192,5 +202,24 @@ trait InteractsWithPseudoFlyCmsAuthors
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $authors
+     * @return array<int, array<string, mixed>>
+     */
+    protected function applyAuthorFilter(array $authors, AuthorFilter $authorFilter): array
+    {
+        $filterData = $authorFilter->getFilterData();
+        $email = $filterData['email'] ?? null;
+
+        if (! is_string($email) || $email === '') {
+            return $authors;
+        }
+
+        return array_values(array_filter(
+            $authors,
+            static fn (array $author): bool => ($author['email'] ?? null) === $email
+        ));
     }
 }

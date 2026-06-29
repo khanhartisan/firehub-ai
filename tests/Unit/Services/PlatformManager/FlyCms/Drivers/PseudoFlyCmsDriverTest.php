@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\PlatformManager\FlyCms\Drivers;
 
 use App\Contracts\PlatformManager\FlyCms\Config;
+use App\Contracts\PlatformManager\FlyCms\Filters\AuthorFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\DomainFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\FileFilter;
 use App\Contracts\PlatformManager\FlyCms\Filters\MetaFilter;
@@ -828,6 +829,33 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_delete_author_returns_false_for_unknown_email(): void
     {
         $this->assertFalse($this->driver->deleteAuthor('01J00000000000000000000001', 'missing@example.com'));
+    }
+
+    public function test_list_authors_filters_by_email(): void
+    {
+        $websiteId = '01J00000000000000000000001';
+        $filter = (new AuthorFilter)->setFilterData([
+            'email' => 'sam@example.com',
+        ]);
+
+        $authors = $this->driver->listAuthors($websiteId, authorFilter: $filter);
+
+        $this->assertCount(1, $authors);
+        $this->assertSame('Sam Manager', $authors[0]->getData()['display_name']);
+    }
+
+    public function test_list_authors_supports_pagination(): void
+    {
+        $websiteId = '01J00000000000000000000001';
+        $pageOne = $this->driver->listAuthors($websiteId, page: 1, perPage: 1);
+        $pageTwo = $this->driver->listAuthors($websiteId, page: 2, perPage: 1);
+
+        $this->assertCount(1, $pageOne);
+        $this->assertCount(1, $pageTwo);
+        $this->assertNotSame(
+            $pageOne[0]->getData()['id'],
+            $pageTwo[0]->getData()['id']
+        );
     }
 
     public function test_list_authors_returns_empty_for_unknown_website(): void

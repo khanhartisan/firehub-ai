@@ -182,7 +182,7 @@ class FlyCmsDriver extends FlyCmsService
                                    MutationData $data): Resource
     {
         $response = $this->sendApiRequest('POST', $resourceClass::resourceNamespace(), [
-            'json' => $data->toArray()['data']
+            'json' => $data->getData()
         ]);
 
         if (!$data = $this->parseResponseData($response)) {
@@ -206,7 +206,7 @@ class FlyCmsDriver extends FlyCmsService
                                    MutationData $data): Resource
     {
         $response = $this->sendApiRequest('PATCH', $resourceClass::resourceNamespace().'/'.$resourceId, [
-            'json' => $data->toArray()['data']
+            'json' => $data->getData()
         ]);
 
         if (!$data = $this->parseResponseData($response)) {

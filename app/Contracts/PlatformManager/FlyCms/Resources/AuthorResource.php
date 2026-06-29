@@ -45,4 +45,15 @@ class AuthorResource extends Resource
                 ->nullable()
         ];
     }
+
+    public static function fromArray(array $data): static
+    {
+        $authorResource = parent::fromArray($data);
+
+        if (isset($data['user']['email'])) {
+            $authorResource->set('email', $data['user']['email']);
+        }
+
+        return $authorResource;
+    }
 }

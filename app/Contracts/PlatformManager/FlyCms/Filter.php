@@ -30,6 +30,18 @@ abstract class Filter implements ProvidesJsonSchema, Serializable
         return $this;
     }
 
+    public function set(string $key, mixed $value): static
+    {
+        $this->filterData[$key] = $value;
+        $this->setFilterData($this->getFilterData());
+        return $this;
+    }
+
+    public function get(string $key, mixed $default = null): mixed
+    {
+        return $this->filterData[$key] ?? $default;
+    }
+
     public function toArray(): array
     {
         return $this->getFilterData();

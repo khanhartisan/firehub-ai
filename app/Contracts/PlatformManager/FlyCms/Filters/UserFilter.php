@@ -14,6 +14,10 @@ class UserFilter extends Filter
                 ->string()
                 ->nullable()
                 ->description('List of user IDs separated by commas'),
+            'email' => $schema
+                ->string()
+                ->nullable()
+                ->description('Find user by email'),
             'search' => $schema
                 ->string()
                 ->nullable()

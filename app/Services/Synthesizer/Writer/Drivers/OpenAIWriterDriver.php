@@ -388,7 +388,7 @@ Given a brief, outline, and optional author and general context, produce a publi
 - Keep title and excerpt concise, specific, and publish-ready.
 - Return the article body as Markdown (not HTML or JSON DOM). Use h2 and below for section headings; do not include h1 because the CMS handles the page title.
 - Use standard Markdown for paragraphs, lists, links, emphasis, and code blocks as appropriate.
-- Keep tone and voice aligned with the brief.
+- Keep tone and voice aligned with the provided context.
 
 Input JSON:
 {$json}

@@ -567,7 +567,7 @@ PROMPT;
         $input = ResponseInput::text($prompt);
         $options = ResponseOptions::create()
             ->model($this->getModel())
-            ->temperature($this->getTemperature())
+            // ->temperature($this->getTemperature())
             ->responseFormat([
                 'type' => 'json_schema',
                 'name' => $schemaName,

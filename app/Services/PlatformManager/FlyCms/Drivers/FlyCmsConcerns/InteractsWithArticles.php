@@ -85,7 +85,7 @@ trait InteractsWithArticles
 
                 // Ensure the author is in the branch
                 $this->sendApiRequest('POST', 'branches/'.$branchId.':add_user', [
-                    'json ' => [
+                    'json' => [
                         'user_id' => $userId
                     ]
                 ]);

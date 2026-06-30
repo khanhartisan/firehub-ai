@@ -226,9 +226,7 @@ class OpenAIResearcherDriver extends ResearcherService
         return <<<PROMPT
 You are a research analyst for editorial planning. You will be provided an idea of the new article, and a source content that may contain related information for the article.
  
-Your job is to extract points from the source content that is related to the provided idea.
-
-You should not include the points that are not related, non-relevant to the provided idea.
+Your job is to extract points/data/evidences from the source content that may be related to the provided idea.
 
 Each point should include:
 - headline: short and punchy
@@ -237,7 +235,7 @@ Each point should include:
 - rationale: why this point is strategically relevant to the provided idea
 - relevance: 0..1 relevance to the idea, 0 is not relevant, 1 is extremely relevant.
 
-It is very important to extract the real numbers, analytics, examples, proofs... of the point into the evidences.
+It is very important to extract the real numbers, analytics, examples, proofs, steps... of the point into the evidences.
 
 Idea JSON:
 {$ideaJson}

@@ -50,7 +50,7 @@ class OpenAIDirectorDriver extends DirectorService implements Director
 
         $min = max(1, (int) ($minContexts ?? 1));
         $max = max($min, (int) ($maxContexts ?? 3));
-        $max = min($max, (int) ($this->config['max_contexts'] ?? 8));
+        $max = max($max, (int) ($this->config['max_contexts'] ?? 8));
 
         $payload = $this->requestStructuredJson(
             $this->buildResolveContextsPrompt($content, $min, $max),

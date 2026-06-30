@@ -63,7 +63,7 @@ final class SynthesizerDriverProfiles
                 CriticProfileEntry::entry('openai', 'evidence', 3),
                 CriticProfileEntry::entry('openai', 'concision', 4),
                 CriticProfileEntry::entry('openai', 'fingerprint', 5),
-                CriticProfileEntry::entry('openai', 'structure', 6),
+                CriticProfileEntry::entry('openai', 'structure', 6, ['max_rectification_rounds' => 5]),
             ],
             'writer' => 'openai',
             'tagger' => 'openai',

@@ -137,6 +137,9 @@ Given an article idea and semantic context, produce a full brief payload:
 - For audience_contexts, follow the schema exactly. Do not output unknown keys.
 - Keep all fields grounded in provided context and do not invent unsupported facts.
 
+Your job is to review the initial idea, and the researched data, then give the final finest brief that will be possible to base on the researched data to build the final article.
+That means if the initial data isn't fit with the provided researched data, you may slightly change the title/description and even other guidelines, to fit the best with the researched data.
+
 Input JSON:
 {$json}
 PROMPT;

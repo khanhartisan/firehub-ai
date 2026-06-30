@@ -195,12 +195,12 @@ return [
             'openai' => [
                 'model' => env('SYNTHESIZER_OPENAI_CRITIC_MODEL', 'gpt-5.4-mini'),
                 'temperature' => 0.2,
-                'max_criticisms_per_critic' => 10,
+                'max_criticisms_per_critic' => 20,
             ],
             'openai_compatible' => array_merge($openaiCompatibleConnection, [
                 'model' => env('SYNTHESIZER_OPENAI_COMPATIBLE_CRITIC_MODEL', env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')),
                 'temperature' => 0.2,
-                'max_criticisms_per_critic' => 10,
+                'max_criticisms_per_critic' => 20,
             ]),
         ],
     ],

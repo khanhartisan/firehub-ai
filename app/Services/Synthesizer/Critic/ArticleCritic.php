@@ -53,7 +53,6 @@ abstract class ArticleCritic implements Describable
     {
         return <<<'TEXT'
 - Return only actionable criticisms tied to a valid element "identifier" from the article JSON.
-- Do not criticize sections already addressed in last_rectifications unless the draft still clearly fails the stated adjustments.
 - Set confidence (0–1): how sure you are the issue is real.
 - Set importance (0–1): how strongly the author should fix it before publish.
 - Omit nitpicks; return an empty criticisms array when the draft passes your lens.

@@ -495,18 +495,17 @@ Choose the DOM operation that best addresses each criticism.
 Rules:
 - fixes[].reference must identify a DOM node that exists when that fix runs. Fixes execute sequentially; later fixes may target nodes introduced by earlier fixes in the sequence, not only element_references from the initial article.
 - fixes[].operation must be one of: remove, replace, insert_before, insert_after.
-- remove: delete the node at reference from the article (omit elements).
-- replace: remove the node at reference and insert fixes[].elements in its place (1+ sibling nodes). When using one element, its identifier must equal reference. When splitting into multiple nodes, the first element should reuse reference; give additional siblings new unique identifiers not used elsewhere in the article.
-- insert_before: keep the node at reference; insert fixes[].elements immediately before it (new identifiers required).
-- insert_after: keep the node at reference; insert fixes[].elements immediately after it (new identifiers required).
-- Preserve element types when reasonable; you may change children and props as needed to address the criticisms.
+- remove: delete the node (and all of its children) at reference from the article (omit elements).
+- replace: remove the node (and all of its children) at reference and insert fixes[].elements in its place.
+- insert_before: keep the node at reference; insert fixes[].elements immediately before it.
+- insert_after: keep the node at reference; insert fixes[].elements immediately after it.
 - rectifications[].reference must match a fix you applied (including removals).
 - rectifications[].confidence is how confident you are the fix fully addresses the related criticisms (0.00–1.00).
 - adjustments must be short, specific strings describing applied fixes (e.g. "Removed redundant section").
 
 Instructions:
 - The fixes will be executed sequentially.
-- In case you want to make a complex modification, for example: replacing multiple nodes by multiple nodes -> You can do that by: Create a "fix" to remove all the current nodes by their references, then create another fix to "insert after" the corresponding node.
+- In case you want to make a complex modification, for example: replacing multiple nodes by multiple nodes -> You can do that by: Insert the elements before/after an element, then create a "fix" to remove all the old nodes by their references.
 
 Input JSON:
 {$json}
@@ -636,7 +635,6 @@ PROMPT;
                 'adjustments' => [
                     'type' => 'array',
                     'minItems' => 1,
-                    'maxItems' => 8,
                     'items' => ['type' => 'string'],
                 ],
             ],

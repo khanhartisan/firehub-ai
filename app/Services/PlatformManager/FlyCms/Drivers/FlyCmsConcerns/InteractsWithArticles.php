@@ -8,6 +8,7 @@ use App\Contracts\PlatformManager\FlyCms\Filters\UserFilter;
 use App\Contracts\PlatformManager\FlyCms\MutationData\AuthorMutationData\PutAuthorData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\CreatePostData;
 use App\Contracts\PlatformManager\FlyCms\MutationData\PostMutationData\UpdatePostData;
+use App\Contracts\PlatformManager\FlyCms\Resources\AuthorResource;
 use App\Contracts\PlatformManager\PublishingResult;
 use App\Enums\ArticleStatus;
 use App\Enums\PublicationStatus;
@@ -77,11 +78,17 @@ trait InteractsWithArticles
 
             /** @var Author $author */
             if ($author = $article->author
-                and $authorEmail = $this->ensureFlyCmsAuthor($websiteId, $author)
-                and $userResource = $this->listUsers(1, 1, new UserFilter()->set('email', $authorEmail))[0] ?? null
-                and $userId = $userResource->get('id')
+                and $authorResource = $this->ensureFlyCmsAuthor($websiteId, $author)
+                and $userId = $authorResource->get('user_id')
             ) {
                 $payload['user_id'] = $userId;
+
+                // Ensure the author is in the branch
+                $this->sendApiRequest('POST', 'branches/'.$branchId.':add_user', [
+                    'json ' => [
+                        'user_id' => $userId
+                    ]
+                ]);
             }
 
             $post = $isUpdate
@@ -112,17 +119,17 @@ trait InteractsWithArticles
     /**
      * @throws FlyCmsException
      */
-    protected function ensureFlyCmsAuthor(string $websiteId, Author $author): string
+    protected function ensureFlyCmsAuthor(string $websiteId, Author $author): AuthorResource
     {
         $authorEmail = 'author.'.$author->id.'@example.com';
-        $this->putAuthor($websiteId, new PutAuthorData()->setData([
+
+        /** @var AuthorResource */
+        return $this->putAuthor($websiteId, new PutAuthorData()->setData([
             'email' => $authorEmail,
             'display_name' => $author->name,
             'short_bio' => $author->short_bio,
             'bio' => $author->bio
         ]));
-
-        return $authorEmail;
     }
 
     /**

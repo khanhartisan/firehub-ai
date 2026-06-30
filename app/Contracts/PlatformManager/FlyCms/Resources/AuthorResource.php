@@ -16,6 +16,7 @@ class AuthorResource extends Resource
     {
         return [
             'id' => $schema->string()->description('Author unique ID'),
+            'user_id' => $schema->string()->nullable()->description('FlyCMS user id representing the author on the website'),
             'website_id' => $schema
                 ->string()
                 ->description('Website ID'),

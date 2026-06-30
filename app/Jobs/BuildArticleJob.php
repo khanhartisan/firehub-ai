@@ -14,6 +14,7 @@ use App\Jobs\BuildArticleJobConcerns\HandleOutlineStage;
 use App\Jobs\BuildArticleJobConcerns\HandleRectificationStage;
 use App\Jobs\BuildArticleJobConcerns\HandleTaggingStage;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStage;
+use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleBuildFiles;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSemanticContext;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSynthesizer;
@@ -51,6 +52,7 @@ use Illuminate\Support\Facades\Cache;
 class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Queueable;
+    use InteractsWithArticleBuildFiles;
     use InteractsWithArticleStageData;
     use InteractsWithSemanticContext;
     use InteractsWithSynthesizer;

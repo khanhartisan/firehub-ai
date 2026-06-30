@@ -23,6 +23,12 @@ final class IllustrationStageData implements Serializable
     /** @var IllustrationAnchor[] */
     protected array $illustrationAnchors = [];
 
+    protected ?IllustrationContext $thumbnailContext = null;
+
+    protected ?IllustrationDirection $thumbnailDirection = null;
+
+    protected ?IllustrationResult $thumbnailResult = null;
+
     /**
      * @return IllustrationTask[]
      */
@@ -219,13 +225,57 @@ final class IllustrationStageData implements Serializable
         return $this;
     }
 
+    public function getThumbnailContext(): ?IllustrationContext
+    {
+        return $this->thumbnailContext;
+    }
+
+    public function setThumbnailContext(IllustrationContext $thumbnailContext): static
+    {
+        $this->thumbnailContext = $thumbnailContext;
+
+        return $this;
+    }
+
+    public function getThumbnailDirection(): ?IllustrationDirection
+    {
+        return $this->thumbnailDirection;
+    }
+
+    public function setThumbnailDirection(IllustrationDirection $thumbnailDirection): static
+    {
+        $this->thumbnailDirection = $thumbnailDirection;
+
+        return $this;
+    }
+
+    public function getThumbnailResult(): ?IllustrationResult
+    {
+        return $this->thumbnailResult;
+    }
+
+    public function setThumbnailResult(IllustrationResult $thumbnailResult): static
+    {
+        $this->thumbnailResult = $thumbnailResult;
+
+        return $this;
+    }
+
+    public function hasThumbnailResult(): bool
+    {
+        return $this->thumbnailResult instanceof IllustrationResult;
+    }
+
     public function toArray(): array
     {
-        return [
+        return array_filter([
             'illustration_tasks' => array_map(static fn (IllustrationTask $t) => $t->toArray(), $this->illustrationTasks),
             'illustration_results' => array_map(static fn (IllustrationResult $r) => $r->toArray(), $this->illustrationResults),
             'illustration_anchors' => array_map(static fn (IllustrationAnchor $a) => $a->toArray(), $this->illustrationAnchors),
-        ];
+            'thumbnail_context' => $this->thumbnailContext?->toArray(),
+            'thumbnail_direction' => $this->thumbnailDirection?->toArray(),
+            'thumbnail_result' => $this->thumbnailResult?->toArray(),
+        ], static fn ($value): bool => $value !== null && $value !== []);
     }
 
     public static function fromArray(array $data): static
@@ -260,6 +310,18 @@ final class IllustrationStageData implements Serializable
                 }
             }
             $obj->setIllustrationAnchors($illustrationAnchors);
+        }
+
+        if (isset($data['thumbnail_context']) && is_array($data['thumbnail_context'])) {
+            $obj->setThumbnailContext(IllustrationContext::fromArray($data['thumbnail_context']));
+        }
+
+        if (isset($data['thumbnail_direction']) && is_array($data['thumbnail_direction'])) {
+            $obj->setThumbnailDirection(IllustrationDirection::fromArray($data['thumbnail_direction']));
+        }
+
+        if (isset($data['thumbnail_result']) && is_array($data['thumbnail_result'])) {
+            $obj->setThumbnailResult(IllustrationResult::fromArray($data['thumbnail_result']));
         }
 
         return $obj;

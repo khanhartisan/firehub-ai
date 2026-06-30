@@ -295,7 +295,7 @@ class BuildArticleJobIllustrationStageTest extends TestCase
             ]);
         }
 
-        $this->assertSame(count($paths), $article->files()->count());
+        $this->assertSame(count($paths) + 1, $article->files()->count());
 
         foreach ($article->files as $file) {
             $this->assertInstanceOf(File::class, $file);
@@ -306,10 +306,10 @@ class BuildArticleJobIllustrationStageTest extends TestCase
             ]);
         }
 
-        $firstPath = $paths[0];
         $thumbnailFile = File::query()->find($article->thumbnail_file_id);
         $this->assertInstanceOf(File::class, $thumbnailFile);
-        $this->assertSame($firstPath, $thumbnailFile->path);
+        $this->assertStringStartsWith('illustrations/generated/', $thumbnailFile->path);
+        $this->assertNotContains($thumbnailFile->path, $paths);
     }
 
     public function test_illustration_file_records_are_idempotent_on_rerun(): void
@@ -333,6 +333,23 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $this->assertSame($thumbnailFileId, $article->thumbnail_file_id);
     }
 
+    public function test_thumbnail_generation_checkpoints_after_anchors_are_resolved(): void
+    {
+        [$article, $job] = $this->makeArticleAndJobAtIllustrationStage($this->makeDraftWithContentDom());
+
+        $this->runUntilAnchorPhase($job, $article);
+        $article->refresh();
+
+        $result = $job->runIllustrationStage();
+        $article->refresh();
+
+        $this->assertNull($result);
+        $illustrationData = $article->stage_data->getIllustrationStageData();
+        $this->assertNotNull($illustrationData->getThumbnailContext());
+        $this->assertNotNull($illustrationData->getThumbnailDirection());
+        $this->assertFalse($illustrationData->hasThumbnailResult());
+    }
+
     public function test_dummy_png_files_exist_in_storage_after_stage(): void
     {
         [$article, $job] = $this->makeArticleAndJobAtIllustrationStage($this->makeDraftWithContentDom());
@@ -344,6 +361,12 @@ class BuildArticleJobIllustrationStageTest extends TestCase
             foreach ($result->getFiles() as $file) {
                 Storage::assertExists($file->getPath());
             }
+        }
+
+        $thumbnailResult = $article->stage_data->getIllustrationStageData()->getThumbnailResult();
+        $this->assertNotNull($thumbnailResult);
+        foreach ($thumbnailResult->getFiles() as $file) {
+            Storage::assertExists($file->getPath());
         }
     }
 
@@ -382,6 +405,11 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $this->assertNotNull($article->illustration);
         $this->assertInstanceOf(DOMArticle::class, $article->illustrated_article);
         $this->assertStringContainsString('<img', $article->illustrated_article->toHtml());
+
+        $this->assertNotNull($article->thumbnail_file_id);
+        $thumbnailFile = File::query()->find($article->thumbnail_file_id);
+        $this->assertInstanceOf(File::class, $thumbnailFile);
+        $this->assertStringStartsWith('illustrations/generated/', $thumbnailFile->path);
     }
 
     // -------------------------------------------------------------------------
@@ -469,7 +497,7 @@ class BuildArticleJobIllustrationStageTest extends TestCase
     protected function runToCompletion(BuildArticleJob $job, Article $article): ?bool
     {
         $result = null;
-        for ($i = 0; $i < 30; $i++) {
+        for ($i = 0; $i < 40; $i++) {
             $result = $job->runIllustrationStage();
             $article->refresh();
             if ($result !== null) {

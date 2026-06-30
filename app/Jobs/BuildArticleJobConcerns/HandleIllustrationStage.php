@@ -5,15 +5,15 @@ namespace App\Jobs\BuildArticleJobConcerns;
 use App\Contracts\DOM\Article as DOMArticle;
 use App\Contracts\Filesystem\File as FilesystemFile;
 use App\Contracts\Model\Article\IllustrationData;
+use App\Contracts\Synthesizer\Illustration\IllustrationContext;
 use App\Contracts\Synthesizer\Illustration\IllustrationResult;
-use App\Enums\ScrapingStatus;
+use App\Contracts\Synthesizer\Writer\Draft;
+use App\Enums\AspectRatio;
 use App\Models\Article;
-use App\Models\File;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * ILLUSTRATION stage: resolves illustration contexts → generates one image per job run →
- * resolves anchors → persists illustration metadata on the article.
+ * resolves anchors → generates a dedicated thumbnail → persists illustration metadata on the article.
  *
  * Each sub-step that calls an external service checkpoints (returns null) so the queue
  * can slice the work across multiple job ticks, matching the pattern used by IDEA and RESEARCH.
@@ -59,12 +59,21 @@ trait HandleIllustrationStage
             return $anchorProgress;
         }
 
-        // 4. Persist resolved illustration payload on the article.
+        // 4. Generate a dedicated thumbnail (not the first in-body illustration).
+        $thumbnailProgress = $this->processThumbnailGeneration($draft);
+        if ($thumbnailProgress !== true) {
+            return $thumbnailProgress;
+        }
+
+        // 5. Persist resolved illustration payload and thumbnail on the article.
         $stageData = $this->getStageData()->getIllustrationStageData();
+        if (! $article->thumbnail_file_id && $stageData->hasThumbnailResult()) {
+            $this->persistThumbnailFile($stageData->getThumbnailResult());
+        }
+
         $article->illustration = (new IllustrationData)
             ->setIllustrationResults($stageData->getIllustrationResults())
             ->setIllustrationAnchors($stageData->getIllustrationAnchors());
-        $this->assignThumbnailFromIllustrationResults($stageData->getIllustrationResults());
         $this->touchArticleQuietly();
 
         return true;
@@ -158,6 +167,106 @@ trait HandleIllustrationStage
         return null;
     }
 
+    protected function processThumbnailGeneration(Draft $draft): ?bool
+    {
+        $article = $this->article;
+        if (! $article instanceof Article || $article->thumbnail_file_id) {
+            return true;
+        }
+
+        $stageData = $this->getStageData()->getIllustrationStageData();
+
+        if (! $stageData->getThumbnailContext()) {
+            $stageData->setThumbnailContext($this->buildThumbnailContext($draft));
+            $this->touchArticleQuietly();
+        }
+
+        $context = $stageData->getThumbnailContext();
+        if (! $context instanceof IllustrationContext) {
+            return false;
+        }
+
+        if (! $stageData->getThumbnailDirection()) {
+            $direction = $this->synthesizer()->getIllustrationDirector()->direct($context);
+            if (! $direction) {
+                return false;
+            }
+
+            $stageData->setThumbnailDirection($direction);
+            $this->touchArticleQuietly();
+
+            return null;
+        }
+
+        if (! $stageData->hasThumbnailResult()) {
+            $director = $this->synthesizer()->getIllustrationDirector();
+            $illustrator = $director->determineIllustrator(
+                $context,
+                $stageData->getThumbnailDirection(),
+                $this->synthesizer()->getIllustrators(),
+            );
+
+            if (! $illustrator) {
+                return false;
+            }
+
+            $result = $illustrator->generate($context, $stageData->getThumbnailDirection());
+            if (! $result) {
+                return false;
+            }
+
+            $stageData->setThumbnailResult($result);
+            $this->touchArticleQuietly();
+
+            return null;
+        }
+
+        return true;
+    }
+
+    protected function buildThumbnailContext(Draft $draft): IllustrationContext
+    {
+        $title = trim((string) ($draft->getTitle() ?? ''));
+        $excerpt = trim((string) ($draft->getExcerpt() ?? ''));
+
+        if ($title === '') {
+            $title = 'Article thumbnail';
+        }
+
+        return (new IllustrationContext)
+            ->setSubject($title)
+            ->setGoal('Create a compelling article thumbnail that represents the topic and entices readers to click.')
+            ->setMacroContext($excerpt !== '' ? $excerpt : $title)
+            ->setAspectRatio(AspectRatio::LANDSCAPE_WIDE);
+    }
+
+    protected function persistThumbnailFile(IllustrationResult $result): void
+    {
+        $article = $this->article;
+        if (! $article instanceof Article || $article->thumbnail_file_id) {
+            return;
+        }
+
+        $description = $result->getIllustrationContext()?->getSubjectValue();
+
+        foreach ($result->getFiles() as $filesystemFile) {
+            if (! $filesystemFile instanceof FilesystemFile) {
+                continue;
+            }
+
+            $path = trim($filesystemFile->getPath());
+            if ($path === '') {
+                continue;
+            }
+
+            $file = $this->resolveOrCreateFileFromStoragePath($path, $description);
+            $article->thumbnail_file_id = $file->id;
+            $article->attachFile($file);
+
+            return;
+        }
+    }
+
     /**
      * Maps generated illustration storage paths to {@see File} records and attaches them to the article.
      */
@@ -182,76 +291,6 @@ trait HandleIllustrationStage
 
             $file = $this->resolveOrCreateFileFromStoragePath($path, $description);
             $article->attachFile($file);
-        }
-    }
-
-    protected function resolveOrCreateFileFromStoragePath(string $path, ?string $description = null): File
-    {
-        if ($file = File::query()->where('path', $path)->first()) {
-            return $file;
-        }
-
-        $url = 'storage://'.$path;
-        $urlHash = File::getUrlHash($url);
-
-        if ($file = File::query()->where('url_hash', $urlHash)->first()) {
-            if (! is_string($file->path) || $file->path === '') {
-                $file->path = $path;
-                $file->saveQuietly();
-            }
-
-            return $file;
-        }
-
-        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION)) ?: null;
-        $mimeType = Storage::exists($path) ? (Storage::mimeType($path) ?: null) : null;
-
-        return File::query()->create([
-            'url' => $url,
-            'path' => $path,
-            'extension' => $extension,
-            'mime_type' => $mimeType,
-            'size' => Storage::exists($path) ? Storage::size($path) : null,
-            'scraping_status' => ScrapingStatus::SUCCESS,
-            'scraped_at' => now(),
-            'description' => $description,
-        ]);
-    }
-
-    /**
-     * Sets {@see Article::$thumbnail_file_id} from the first generated illustration file when unset.
-     *
-     * @param  IllustrationResult[]  $results
-     */
-    protected function assignThumbnailFromIllustrationResults(array $results): void
-    {
-        $article = $this->article;
-        if (! $article instanceof Article || $article->thumbnail_file_id) {
-            return;
-        }
-
-        foreach ($results as $result) {
-            if (! $result instanceof IllustrationResult) {
-                continue;
-            }
-
-            foreach ($result->getFiles() as $filesystemFile) {
-                if (! $filesystemFile instanceof FilesystemFile) {
-                    continue;
-                }
-
-                $path = trim($filesystemFile->getPath());
-                if ($path === '') {
-                    continue;
-                }
-
-                $file = File::query()->where('path', $path)->first();
-                if ($file instanceof File) {
-                    $article->thumbnail_file_id = $file->id;
-
-                    return;
-                }
-            }
         }
     }
 

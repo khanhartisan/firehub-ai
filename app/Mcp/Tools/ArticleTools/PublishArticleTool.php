@@ -43,7 +43,13 @@ class PublishArticleTool extends Tool
         ));
 
         $channels = collect($channelIds)
-            ->map(fn (string $channelId) => McpAccess::channel($user, $channelId));
+            ->map(function (string $channelId) use ($user) {
+                $channel = McpAccess::channel($user, $channelId);
+                if (!$channel->reference) {
+                    throw new McpToolException('Channel '.$channelId.' is not ready for publishing (missing reference)');
+                }
+                return $channel;
+            });
 
         $this->assertChannelsBelongToClient($channels, $clientId);
 

@@ -4,6 +4,7 @@ namespace App\Utils;
 
 use League\CommonMark\CommonMarkConverter;
 use League\CommonMark\Exception\CommonMarkException;
+use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\MarkdownConverter;
 use League\HTMLToMarkdown\Converter\TableConverter;
 use League\HTMLToMarkdown\HtmlConverter;
@@ -41,9 +42,14 @@ class Markdown
 
     protected static function getMarkdownConverter(): MarkdownConverter
     {
-        return static::$markdownConverter ??= new CommonMarkConverter([
-            'html_input' => 'strip',
-            'allow_unsafe_links' => false,
-        ]);
+        return static::$markdownConverter ??= (function () {
+            $converter = new CommonMarkConverter([
+                'html_input' => 'strip',
+                'allow_unsafe_links' => false,
+            ]);
+            $converter->getEnvironment()->addExtension(new TableExtension());
+
+            return $converter;
+        })();
     }
 }

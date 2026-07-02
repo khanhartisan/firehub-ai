@@ -28,6 +28,19 @@ class MarkdownTest extends TestCase
         $this->assertStringContainsString('| Alice | 30 |', $result);
     }
 
+    public function test_markdown_to_html_converts_markdown_tables(): void
+    {
+        $markdown = "| Name | Age |\n|---|---|\n| Alice | 30 |";
+
+        $result = Markdown::markdownToHtml($markdown);
+
+        $this->assertStringContainsString('<table>', $result);
+        $this->assertStringContainsString('<th>Name</th>', $result);
+        $this->assertStringContainsString('<th>Age</th>', $result);
+        $this->assertStringContainsString('<td>Alice</td>', $result);
+        $this->assertStringContainsString('<td>30</td>', $result);
+    }
+
     public function test_markdown_to_html_strips_raw_html_input(): void
     {
         $markdown = "# Title\n\n<script>alert('xss')</script>\n\nParagraph";

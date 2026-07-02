@@ -18,6 +18,12 @@ enum ElementType: string
     case UL = 'ul';
     case OL = 'ol';
     case LI = 'li';
+    case TABLE = 'table';
+    case THEAD = 'thead';
+    case TBODY = 'tbody';
+    case TR = 'tr';
+    case TH = 'th';
+    case TD = 'td';
     case IMG = 'img';
     case FIGURE = 'figure';
     case FIGCAPTION = 'figcaption';

@@ -141,6 +141,22 @@ MD;
         );
     }
 
+    public function test_it_parses_markdown_tables_and_renders_html_table_structure(): void
+    {
+        $markdown = <<<'MD'
+| Name | Age |
+| --- | --- |
+| Alice | 30 |
+MD;
+
+        $article = Article::fromMarkdown($markdown);
+        $rendered = $article->toHtml();
+        $expected = '<article><table><thead><tr><th>Name</th><th>Age</th></tr></thead><tbody><tr><td>Alice</td><td>30</td></tr></tbody></table></article>';
+
+        $this->assertSame(ElementType::ARTICLE, $article->getType());
+        $this->assertSame($this->normalizeHtml($expected), $this->normalizeHtml($rendered));
+    }
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -161,5 +177,10 @@ MD;
         );
 
         return $data;
+    }
+
+    private function normalizeHtml(string $html): string
+    {
+        return (string) preg_replace('/>\s+</', '><', trim($html));
     }
 }

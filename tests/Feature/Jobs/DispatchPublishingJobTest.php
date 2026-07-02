@@ -144,6 +144,7 @@ class DispatchPublishingJobTest extends TestCase
         $channel = new Channel;
         $channel->client()->associate($client);
         $channel->platform()->associate($platform);
+        $channel->reference = sha1(uniqid());
         $channel->name = 'Blog';
         $channel->save();
 

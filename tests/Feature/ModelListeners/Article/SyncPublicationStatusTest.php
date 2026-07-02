@@ -123,6 +123,7 @@ class SyncPublicationStatusTest extends TestCase
         $channel->client()->associate($client);
         $channel->platform()->associate($platform);
         $channel->name = 'Blog';
+        $channel->reference = uniqid();
         $channel->save();
 
         $publication = new Publication;

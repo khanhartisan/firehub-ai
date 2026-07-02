@@ -292,6 +292,7 @@ class PublishArticleToolTest extends TestCase
         $channel->client()->associate($client);
         $channel->platform()->associate($platform);
         $channel->name = $name;
+        $channel->reference = uniqid();
         $channel->save();
 
         return $channel;

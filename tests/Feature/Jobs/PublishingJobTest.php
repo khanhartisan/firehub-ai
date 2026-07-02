@@ -214,6 +214,7 @@ class PublishingJobTest extends TestCase
         $channel->client()->associate($client);
         $channel->platform_id = $platformId;
         $channel->name = 'Blog';
+        $channel->reference = uniqid();
         $channel->save();
 
         return $channel;

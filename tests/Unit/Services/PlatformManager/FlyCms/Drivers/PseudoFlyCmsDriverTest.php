@@ -1613,7 +1613,7 @@ class PseudoFlyCmsDriverTest extends TestCase
     public function test_publish_article_returns_awaiting_when_article_is_not_ready(): void
     {
         $result = $this->driver->publishArticle($this->makePublication(
-            articleStatus: ArticleStatus::UNREADY,
+            articleStatus: ArticleStatus::PROCESSING,
         ));
 
         $this->assertSame(PublicationStatus::AWAITING, $result->getStatus());

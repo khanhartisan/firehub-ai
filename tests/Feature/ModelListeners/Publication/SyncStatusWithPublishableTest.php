@@ -32,7 +32,7 @@ class SyncStatusWithPublishableTest extends TestCase
 
     public function test_sets_publication_to_awaiting_when_article_is_not_completed_and_publication_is_not_awaiting(): void
     {
-        $article = $this->createArticle(ArticleStatus::UNREADY);
+        $article = $this->createArticle(ArticleStatus::PROCESSING);
         $publication = $this->createPublication($article, PublicationStatus::PENDING);
 
         $publication->refresh();
@@ -54,7 +54,7 @@ class SyncStatusWithPublishableTest extends TestCase
 
     public function test_leaves_publication_unchanged_when_article_is_not_completed_and_publication_is_awaiting(): void
     {
-        $article = $this->createArticle(ArticleStatus::UNREADY);
+        $article = $this->createArticle(ArticleStatus::PROCESSING);
         $publication = $this->createPublication($article, PublicationStatus::AWAITING);
 
         $publication->title = 'Updated title';

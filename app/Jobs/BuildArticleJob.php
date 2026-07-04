@@ -107,7 +107,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
         }
 
         // Do not rebuild articles that already finished or were stopped elsewhere.
-        if ($article->status !== ArticleStatus::UNREADY) {
+        if ($article->status !== ArticleStatus::PROCESSING) {
             return;
         }
 
@@ -170,7 +170,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
             }
 
             // Leave article buildable and retry later.
-            $article->status = ArticleStatus::UNREADY;
+            $article->status = ArticleStatus::PROCESSING;
             $article->stage_status = ArticleStageStatus::PENDING;
             $article->save();
 

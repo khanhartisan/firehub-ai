@@ -225,7 +225,7 @@ class BuildArticleJobResearchStageTest extends TestCase
         $article = new Article;
         $article->client()->associate($client);
         $article->context = (new ArticleContext)->setMeta(['raw_text' => 'Article context']);
-        $article->status = ArticleStatus::UNREADY;
+        $article->status = ArticleStatus::PROCESSING;
         $article->stage = ArticleStage::RESEARCH;
         $article->stage_status = ArticleStageStatus::PROCESSING;
 

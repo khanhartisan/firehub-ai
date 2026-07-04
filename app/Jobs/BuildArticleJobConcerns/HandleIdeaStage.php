@@ -48,17 +48,17 @@ trait HandleIdeaStage
         }
 
         // Check if we have a previous article is brainstorming
-        if ($unreadyArticles = $this->client
+        if ($processingArticles = $this->client
             ->articles()
-            ->where('status', ArticleStatus::UNREADY)
+            ->where('status', ArticleStatus::PROCESSING)
             ->where('id', '<', $this->article->id)
-            ->get() and $unreadyArticles->count()
-            and $unreadyArticles->filter(function (Article $unreadyArticle) {
-                if ($unreadyArticle->title) {
+            ->get() and $processingArticles->count()
+            and $processingArticles->filter(function (Article $processingArticle) {
+                if ($processingArticle->title) {
                     return false;
                 }
 
-                $ideaTitle = $unreadyArticle
+                $ideaTitle = $processingArticle
                     ->stage_data
                     ?->getIdeaStageData()
                     ?->getPickedIdeaAuditReport()
@@ -77,7 +77,7 @@ trait HandleIdeaStage
         if ($latestArticles = $this->client
             ->articles()
             ->whereIn('status', [
-                ArticleStatus::UNREADY,
+                ArticleStatus::PROCESSING,
                 ArticleStatus::READY,
                 ArticleStatus::PUBLISHED,
             ])

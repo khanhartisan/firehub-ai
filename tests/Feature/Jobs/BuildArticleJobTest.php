@@ -312,7 +312,7 @@ class BuildArticleJobTest extends TestCase
         (new BuildArticleJob($client, $article->id))->handle();
 
         $article->refresh();
-        $this->assertSame(ArticleStatus::UNREADY, $article->status);
+        $this->assertSame(ArticleStatus::PROCESSING, $article->status);
         $this->assertSame(ArticleStage::IDEA, $article->stage);
         $this->assertSame(ArticleStageStatus::PROCESSING, $article->stage_status);
 
@@ -402,7 +402,7 @@ class BuildArticleJobTest extends TestCase
         $job->handle();
 
         $article->refresh();
-        $this->assertSame(ArticleStatus::UNREADY, $article->status);
+        $this->assertSame(ArticleStatus::PROCESSING, $article->status);
         $this->assertSame(ArticleStageStatus::PENDING, $article->stage_status);
         $this->assertSame(1, $article->attempts);
         $this->assertNotNull($article->error_logs);
@@ -456,7 +456,7 @@ class BuildArticleJobTest extends TestCase
         $article = new Article;
         $article->client()->associate($client);
         $article->context = (new ArticleContext)->setMeta(['raw_text' => $context]);
-        $article->status = ArticleStatus::UNREADY;
+        $article->status = ArticleStatus::PROCESSING;
         $article->stage = ArticleStage::IDEA;
         $article->stage_status = ArticleStageStatus::PENDING;
         $article->save();

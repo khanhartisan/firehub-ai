@@ -20,7 +20,7 @@ class SyncPublicationStatusTest extends TestCase
 
     public function test_sets_awaiting_publications_to_pending_when_article_becomes_completed(): void
     {
-        $article = $this->createArticle(ArticleStatus::UNREADY);
+        $article = $this->createArticle(ArticleStatus::PROCESSING);
         $awaitingPublication = $this->createPublication($article, PublicationStatus::AWAITING);
         $alreadyPendingPublication = $this->createPublication($article, PublicationStatus::PENDING);
 
@@ -40,7 +40,7 @@ class SyncPublicationStatusTest extends TestCase
         $pendingPublication = $this->createPublication($article, PublicationStatus::PENDING);
         $awaitingPublication = $this->createPublication($article, PublicationStatus::AWAITING);
 
-        $article->status = ArticleStatus::UNREADY;
+        $article->status = ArticleStatus::PROCESSING;
         $article->save();
 
         $pendingPublication->refresh();
@@ -52,7 +52,7 @@ class SyncPublicationStatusTest extends TestCase
 
     public function test_does_not_sync_publications_when_article_status_is_unchanged(): void
     {
-        $article = $this->createArticle(ArticleStatus::UNREADY);
+        $article = $this->createArticle(ArticleStatus::PROCESSING);
         $publication = $this->createPublication($article, PublicationStatus::AWAITING);
 
         $article->title = 'Updated title';
@@ -65,7 +65,7 @@ class SyncPublicationStatusTest extends TestCase
 
     public function test_only_updates_awaiting_publications_when_article_is_completed(): void
     {
-        $article = $this->createArticle(ArticleStatus::UNREADY);
+        $article = $this->createArticle(ArticleStatus::PROCESSING);
         $awaitingPublication = $this->createPublication($article, PublicationStatus::AWAITING);
         $publishedPublication = $this->createPublication($article, PublicationStatus::PUBLISHED);
 

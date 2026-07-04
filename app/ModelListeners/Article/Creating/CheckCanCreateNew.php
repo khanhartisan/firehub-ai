@@ -54,6 +54,7 @@ class CheckCanCreateNew extends ModelListener implements ModelListenerInterface
             ->where('client_id', $article->client_id)
             ->whereIn('status', [
                 ArticleStatus::UNREADY,
+                ArticleStatus::PROCESSING,
             ])
             ->count();
 

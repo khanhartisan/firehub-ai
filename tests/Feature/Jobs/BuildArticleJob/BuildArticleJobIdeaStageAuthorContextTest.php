@@ -198,7 +198,7 @@ class BuildArticleJobIdeaStageAuthorContextTest extends TestCase
         $article = new Article;
         $article->client()->associate($client);
         $article->context = (new ArticleContext)->setMeta(['raw_text' => 'Article context']);
-        $article->status = ArticleStatus::UNREADY;
+        $article->status = ArticleStatus::PROCESSING;
         $article->stage = ArticleStage::IDEA;
         $article->stage_status = ArticleStageStatus::PENDING;
         $article->save();

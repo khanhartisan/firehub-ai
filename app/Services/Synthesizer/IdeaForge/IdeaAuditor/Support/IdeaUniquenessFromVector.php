@@ -38,7 +38,7 @@ final class IdeaUniquenessFromVector
      *
      * @return list<array{article: Article, score: float}>
      */
-    public static function candidateArticlesWithSimilarityScores(string $clientId, string $text, int $limit): array
+    public static function candidateArticlesWithSimilarityScores(string $text, int $limit): array
     {
         $text = trim($text);
         if ($text === '') {
@@ -51,11 +51,7 @@ final class IdeaUniquenessFromVector
         $searchResults = VectorDB::search(
             $model->getVectorIndex(),
             TextEmbedding::embed($text),
-            new SearchOptions(
-                $limit,
-                ['client_id' => $clientId],
-                null,
-            )
+            new SearchOptions($limit)
         );
 
         if ($searchResults === []) {
@@ -74,7 +70,6 @@ final class IdeaUniquenessFromVector
         }
 
         $rows = Article::query()
-            ->where('client_id', $clientId)
             ->whereIn(
                 $model->getQualifiedKeyName(),
                 array_map(static fn (SearchResult $sr) => (string) $sr->record->id, $orderedUniqueResults)

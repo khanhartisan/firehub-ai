@@ -54,7 +54,7 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
         }
 
         $limit = max(1, min(100, (int) (config('synthesizer.idea_auditor.uniqueness.vector_search_limit') ?? 20)));
-        $matches = IdeaUniquenessFromVector::candidateArticlesWithSimilarityScores($clientId, $text, $limit);
+        $matches = IdeaUniquenessFromVector::candidateArticlesWithSimilarityScores($text, $limit);
 
         if ($matches === []) {
             return (new IdeaUniquenessReport)
@@ -91,7 +91,7 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
         );
 
         $similarity = isset($data['similarity']) ? max(0.0, min(1.0, (float) $data['similarity'])) : 0.0;
-        $isUnique = isset($data['is_unique']) ? (bool) $data['is_unique'] : true;
+        $isUnique = !isset($data['is_unique']) || (bool) $data['is_unique'];
 
         $allowedIds = [];
         foreach ($candidates as $c) {

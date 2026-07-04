@@ -2,9 +2,11 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
+use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
+use App\Enums\ArticleStatus;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageBrainstorm;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageContext;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageIntentMerging;
@@ -49,9 +51,34 @@ trait HandleIdeaStage
         $ideaBrainstormContext = clone $context;
         if ($latestArticles = $this->client
             ->articles()
-            ->take(1000)
+            ->whereIn('status', [
+                ArticleStatus::UNREADY,
+                ArticleStatus::READY,
+                ArticleStatus::PUBLISHED,
+            ])
+            ->take(100)
+            ->orderBy('status')
             ->orderByDesc('id')
             ->get()
+            ->map(function (Article $article) {
+                if (!$article->title) {
+
+                    /** @var StageData $stageData */
+                    $stageData = $article->stage_data;
+                    $pickedIdeaAuditReport = $stageData
+                        ?->getIdeaStageData()
+                        ?->getPickedIdeaAuditReport();
+                    $ideaTitle = $pickedIdeaAuditReport
+                        ?->getIdea()
+                        ?->getIntent()
+                        ?->getTitle();
+
+                    if ($ideaTitle) {
+                        $article->title = $ideaTitle;
+                    }
+                }
+                return $article;
+            })
             ->filter(function (Article $article) {
                 return !! $article->title;
             })

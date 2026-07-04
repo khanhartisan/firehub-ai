@@ -47,6 +47,31 @@ trait HandleIdeaStage
             return false;
         }
 
+        // Check if we have a previous article is brainstorming
+        if ($unreadyArticles = $this->client
+            ->articles()
+            ->where('status', ArticleStatus::UNREADY)
+            ->where('id', '<', $this->article->id)
+            ->get() and $unreadyArticles->count()
+            and $unreadyArticles->filter(function (Article $unreadyArticle) {
+                if ($unreadyArticle->title) {
+                    return false;
+                }
+
+                $ideaTitle = $unreadyArticle
+                    ->stage_data
+                    ?->getIdeaStageData()
+                    ?->getPickedIdeaAuditReport()
+                    ?->getIdea()
+                    ?->getIntent()
+                    ?->getTitle();
+
+                return !$ideaTitle;
+            })->count()
+        ) {
+            return null;
+        }
+
         // Idea brainstorm context, appending the latest articles
         $ideaBrainstormContext = clone $context;
         if ($latestArticles = $this->client
@@ -65,10 +90,9 @@ trait HandleIdeaStage
 
                     /** @var StageData $stageData */
                     $stageData = $article->stage_data;
-                    $pickedIdeaAuditReport = $stageData
+                    $ideaTitle = $stageData
                         ?->getIdeaStageData()
-                        ?->getPickedIdeaAuditReport();
-                    $ideaTitle = $pickedIdeaAuditReport
+                        ?->getPickedIdeaAuditReport()
                         ?->getIdea()
                         ?->getIntent()
                         ?->getTitle();

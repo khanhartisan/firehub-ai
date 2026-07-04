@@ -15,17 +15,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // We shard the "articles" table by the client_id column
-        // because we want to be able to perform the vector queries
-        // against a client_id with the best performance
-
-        DB::statement('CREATE TABLE articles (
-            id char(26) NOT NULL,
-            client_id varchar(255) NOT NULL,
-            primary key(client_id, id)
-        ) PARTITION BY HASH (client_id)');
-
-        Schema::table('articles', function (Blueprint $table) {
+        Schema::create('articles', function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->ulid('client_id');
             $table->ulid('author_id')->nullable();
             $table->string('language')->nullable();
             $table->string('temporal')->nullable();
@@ -57,6 +49,7 @@ return new class extends Migration
 
             $table
                 ->vector('vector', config('vectordb.drivers.pgvector.default_dimension'))
+                ->index()
                 ->nullable();
             $table->boolean('is_embeddable')->default(false);
             $table->boolean('is_embedded')->default(false);
@@ -66,21 +59,12 @@ return new class extends Migration
             $table->dateTime('intent_resolved_at')->nullable();
             $table->index(['is_embedded', 'intent_resolved_at', 'updated_at'], 'is_embedded_intent_resolved_at_index');
 
+            $table->index(['client_id', 'id']);
             $table->index(['status', 'updated_at']);
             $table->index(['status', 'processing_at']);
             $table->index(['status', 'id']);
             $table->index(['author_id', 'id']);
         });
-
-        for ($i = 0; $i < 128; $i++) {
-            $pName = "articles_p{$i}";
-
-            // Create the partition table
-            DB::statement("CREATE TABLE {$pName} PARTITION OF articles FOR VALUES WITH (MODULUS 128, REMAINDER {$i})");
-
-            // Add vector index
-            DB::statement("CREATE INDEX {$pName}_vector_hnsw_idx ON {$pName} USING hnsw (vector vector_cosine_ops);");
-        }
     }
 
     /**

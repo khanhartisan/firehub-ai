@@ -3,18 +3,21 @@
 namespace App\Jobs;
 
 use App\Contracts\PlatformManager\PublishingResult;
+use App\Enums\ArticleStatus;
 use App\Enums\PlatformType;
 use App\Enums\PublicationStatus;
 use App\Enums\Queue;
 use App\Facades\Platforms\FlyCms;
 use App\Models\Article;
 use App\Models\Channel;
+use App\Models\Concerns\Publishable;
 use App\Models\Platform;
 use App\Models\Publication;
 use App\Utils\Str;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 
 class PublishingJob implements ShouldQueue, ShouldBeUnique
 {
@@ -98,13 +101,25 @@ class PublishingJob implements ShouldQueue, ShouldBeUnique
                 $flycms->setConfig($platformConfig);
             }
 
+            if (!$article = $publication->publishable
+                or !$article instanceof Article
+            ) {
+                $this->markAsError('Missing or invalid article.');
+                return;
+            }
+
             $this->saveWithPublishingResult(
                 $flycms->publishArticle($publication)
             );
 
             if ($publication->status === PublicationStatus::PUBLISHED) {
-                $publication->attempts = 0;
-                $publication->saveQuietly();
+                DB::transaction(function () use ($article, $publication) {
+                    $article->status = ArticleStatus::PUBLISHED;
+                    $article->save();
+
+                    $publication->attempts = 0;
+                    $publication->saveQuietly();
+                });
             }
         });
     }

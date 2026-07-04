@@ -47,6 +47,7 @@ return new class extends Migration
             $table->ulid('thumbnail_file_id')->nullable();
 
             $table->timestamps();
+            $table->dateTime('processing_at')->nullable();
             $table->index(['stage', 'stage_status', 'updated_at'], 'stage_index');
             $table->index(['temporal', 'updated_at'], 'temporal_index');
 
@@ -65,6 +66,7 @@ return new class extends Migration
             $table->dateTime('intent_resolved_at')->nullable();
             $table->index(['is_embedded', 'intent_resolved_at', 'updated_at'], 'is_embedded_intent_resolved_at_index');
 
+            $table->index(['status', 'processing_at']);
             $table->index(['status', 'id']);
             $table->index(['author_id', 'id']);
         });

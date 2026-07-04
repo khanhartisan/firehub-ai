@@ -51,7 +51,7 @@ trait HandleIdeaStage
         if ($processingArticles = $this->client
             ->articles()
             ->where('status', ArticleStatus::PROCESSING)
-            ->where('id', '<', $this->article->id)
+            ->where('processing_at', '<', $this->article->processing_at)
             ->get() and $processingArticles->count()
             and $processingArticles->filter(function (Article $processingArticle) {
                 if ($processingArticle->title) {

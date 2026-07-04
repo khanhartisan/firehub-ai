@@ -33,6 +33,7 @@ class Article extends EmbeddableModel implements ShouldCascade, StructuredMcpRes
         'article' => ArticleArticleCast::class,
         'context' => ArticleContextCast::class,
         'status' => ArticleStatus::class,
+        'processing_at' => 'datetime',
         'language' => Language::class,
         'temporal' => Temporal::class,
         'stage' => ArticleStage::class,

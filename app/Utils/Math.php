@@ -69,4 +69,35 @@ class Math
 
         return round(1 / (1 + pow($distance, 2)), 8);
     }
+
+    /**
+     * @param  list<float|int>  $weights
+     */
+    public static function pickWeightedIndex(array $weights): ?int
+    {
+        if ($weights === []) {
+            return null;
+        }
+
+        $totalWeight = 0.0;
+        foreach ($weights as $weight) {
+            $totalWeight += max(0.0, (float) $weight);
+        }
+
+        if ($totalWeight <= 0.0) {
+            return array_rand($weights);
+        }
+
+        $threshold = (mt_rand() / mt_getrandmax()) * $totalWeight;
+        $cumulative = 0.0;
+
+        foreach ($weights as $index => $weight) {
+            $cumulative += max(0.0, (float) $weight);
+            if ($cumulative >= $threshold) {
+                return $index;
+            }
+        }
+
+        return array_key_last($weights);
+    }
 }

@@ -198,18 +198,24 @@ class BuildArticleJobTest extends TestCase
 
         $this->assertCount(2, $selectedTemporals);
         $this->assertCount(2, $selectedIntentTypes);
-        $this->assertSame(Temporal::TOPICAL, $selectedTemporals[0]->getTemporal());
-        $this->assertSame(Temporal::EVERGREEN, $selectedTemporals[1]->getTemporal());
-        $this->assertSame(IntentType::INFORMATIONAL, $selectedIntentTypes[0]->getIntentType());
-        $this->assertSame(IntentType::COMMERCIAL, $selectedIntentTypes[1]->getIntentType());
-        $this->assertEqualsWithDelta(0.375, $selectedTemporals[0]->getConfidence(), 0.0001);
-        $this->assertEqualsWithDelta(0.175, $selectedTemporals[1]->getConfidence(), 0.0001);
-        $this->assertEqualsWithDelta(0.125, $selectedIntentTypes[0]->getConfidence(), 0.0001);
-        $this->assertEqualsWithDelta(0.0875, $selectedIntentTypes[1]->getConfidence(), 0.0001);
-        $this->assertSame('alpha-topical', $selectedTemporals[0]->getReason());
-        $this->assertSame('beta-evergreen', $selectedTemporals[1]->getReason());
-        $this->assertSame('beta-informational', $selectedIntentTypes[0]->getReason());
-        $this->assertSame('beta-commercial', $selectedIntentTypes[1]->getReason());
+
+        $temporalsByType = [];
+        foreach ($selectedTemporals as $suggestion) {
+            $temporalsByType[$suggestion->getTemporal()->value] = $suggestion;
+        }
+        $intentTypesByType = [];
+        foreach ($selectedIntentTypes as $suggestion) {
+            $intentTypesByType[$suggestion->getIntentType()->value] = $suggestion;
+        }
+
+        $this->assertEqualsWithDelta(0.375, $temporalsByType[Temporal::TOPICAL->value]->getConfidence(), 0.0001);
+        $this->assertEqualsWithDelta(0.175, $temporalsByType[Temporal::EVERGREEN->value]->getConfidence(), 0.0001);
+        $this->assertEqualsWithDelta(0.125, $intentTypesByType[IntentType::INFORMATIONAL->value]->getConfidence(), 0.0001);
+        $this->assertEqualsWithDelta(0.0875, $intentTypesByType[IntentType::COMMERCIAL->value]->getConfidence(), 0.0001);
+        $this->assertSame('alpha-topical', $temporalsByType[Temporal::TOPICAL->value]->getReason());
+        $this->assertSame('beta-evergreen', $temporalsByType[Temporal::EVERGREEN->value]->getReason());
+        $this->assertSame('beta-informational', $intentTypesByType[IntentType::INFORMATIONAL->value]->getReason());
+        $this->assertSame('beta-commercial', $intentTypesByType[IntentType::COMMERCIAL->value]->getReason());
     }
 
     public function test_process_intent_merging_with_always_merge_strategy(): void

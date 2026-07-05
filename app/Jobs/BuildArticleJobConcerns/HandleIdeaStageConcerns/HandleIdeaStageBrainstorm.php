@@ -6,6 +6,7 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor;
 use App\Contracts\Synthesizer\IdeaForge\IntentTypeSuggestion;
 use App\Contracts\Synthesizer\IdeaForge\TemporalSuggestion;
+use App\Utils\Math;
 
 /**
  * Aggregates weighted temporal + intent suggestion lists, then brainstorms per advisor.
@@ -69,7 +70,7 @@ trait HandleIdeaStageBrainstorm
 
     /**
      * For each advisor, score suggestions as (confidence × advisor weight), then persist full lists
-     * sorted by weighted score descending for temporal and intent independently.
+     * ordered by weighted random selection for temporal and intent independently.
      */
     protected function selectTopSuggestions(): bool
     {
@@ -167,22 +168,13 @@ trait HandleIdeaStageBrainstorm
             array_values($weightedIntentTypeBuckets)
         );
 
-        usort(
-            $weightedTemporals,
-            static fn (array $left, array $right): int => $right['weighted'] <=> $left['weighted']
-        );
-        usort(
-            $weightedIntentTypes,
-            static fn (array $left, array $right): int => $right['weighted'] <=> $left['weighted']
-        );
-
         $ideaData->setSelectedTemporalSuggestions(array_map(
             static fn (array $item): TemporalSuggestion => $item['suggestion'],
-            $weightedTemporals
+            $this->orderSuggestionsByWeightedRandom($weightedTemporals)
         ));
         $ideaData->setSelectedIntentTypeSuggestions(array_map(
             static fn (array $item): IntentTypeSuggestion => $item['suggestion'],
-            $weightedIntentTypes
+            $this->orderSuggestionsByWeightedRandom($weightedIntentTypes)
         ));
         $this->touchArticleQuietly();
 
@@ -197,5 +189,23 @@ trait HandleIdeaStageBrainstorm
     protected function normalizeConfidence(float $confidence): float
     {
         return max(0.0, min(1.0, $confidence));
+    }
+
+    /**
+     * @param  list<array{weighted: float, suggestion: TemporalSuggestion|IntentTypeSuggestion}>  $weightedItems
+     * @return list<array{weighted: float, suggestion: TemporalSuggestion|IntentTypeSuggestion}>
+     */
+    protected function orderSuggestionsByWeightedRandom(array $weightedItems): array
+    {
+        $remaining = $weightedItems;
+        $ordered = [];
+
+        while ($remaining !== []) {
+            $index = Math::pickWeightedIndex(array_column($remaining, 'weighted')) ?? 0;
+            $ordered[] = $remaining[$index];
+            array_splice($remaining, $index, 1);
+        }
+
+        return $ordered;
     }
 }

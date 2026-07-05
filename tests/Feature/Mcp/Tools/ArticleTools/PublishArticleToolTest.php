@@ -44,7 +44,7 @@ class PublishArticleToolTest extends TestCase
             ->assertOk()
             ->assertSee('Successfully created publications')
             ->assertName('publish-article-tool')
-            ->assertDescription('Publish an article to one or more channels by creating publications.')
+            ->assertDescription('Publish an article to one or more channels by creating publications. This tool can be executed even if the article is not yet ready, system will automatically publish the article once it is ready afterward.')
             ->assertStructuredContent(function ($json) use ($firstChannel, $secondChannel, $article): void {
                 $json->has('publications', 2)
                     ->where('publications.0.channel_id', $firstChannel->id)

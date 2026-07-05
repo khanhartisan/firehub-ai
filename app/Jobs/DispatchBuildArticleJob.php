@@ -50,8 +50,7 @@ class DispatchBuildArticleJob implements ShouldQueue, ShouldBeUnique
             }
 
             $article->touchQuietly();
-
-            // TODO: Continue
+            BuildArticleJob::dispatch($article);
         }
     }
 }

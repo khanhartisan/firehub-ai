@@ -51,6 +51,9 @@ Schedule::job(new \App\Jobs\ResolveIntentJob())->everyMinute();
 Schedule::job(new CascadeDelete)->everyMinute();
 Schedule::job(new CascadeRestore)->everyMinute();
 
+// Article building jobs
+Schedule::job(new \App\Jobs\DispatchBuildArticleJob())->everyMinute();
+
 // Publishing jobs
 Schedule::job(new \App\Jobs\DispatchPublishingJob())->everyMinute();
 

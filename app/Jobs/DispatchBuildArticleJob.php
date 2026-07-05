@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\ArticleStatus;
 use App\Enums\Queue;
 use App\Models\Article;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -39,11 +40,18 @@ class DispatchBuildArticleJob implements ShouldQueue, ShouldBeUnique
                 return;
             }
 
-            if (!$article = Article::query()->first()) {
+            if (!$article = Article::query()
+                ->where('status', ArticleStatus::PROCESSING)
+                ->where('updated_at', '<', now()->subminutes(5))
+                ->orderBy('updated_at')
+                ->first()
+            ) {
                 return;
             }
 
-            // TODO: Continue implementing this
+            $article->touchQuietly();
+
+            // TODO: Continue
         }
     }
 }

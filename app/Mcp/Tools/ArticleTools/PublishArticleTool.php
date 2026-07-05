@@ -17,7 +17,7 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 
-#[Description('Publish an article to one or more channels by creating publications.')]
+#[Description('Publish an article to one or more channels by creating publications. This tool can be executed even if the article is not yet ready, system will automatically publish the article once it is ready afterward.')]
 class PublishArticleTool extends Tool
 {
     /**

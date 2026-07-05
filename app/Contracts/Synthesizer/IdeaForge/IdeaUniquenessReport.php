@@ -130,7 +130,6 @@ final class IdeaUniquenessReport implements Serializable
 
             if ($articleIds !== []) {
                 $articles = Article::query()
-                    ->where('client_id', $data['client_id'])
                     ->whereIn('id', $articleIds)
                     ->get()
                     ->toArray();

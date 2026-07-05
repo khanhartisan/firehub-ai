@@ -114,7 +114,6 @@ class OpenAIIdeaAuditorDriver extends IdeaAuditorService
         $similarArticles = $similarIds === []
             ? []
             : Article::query()
-                ->where('client_id', $clientId)
                 ->whereIn('id', $similarIds)
                 ->get()
                 ->all();

@@ -77,7 +77,7 @@ class BuildArticleJobIdeaStageAuthorContextTest extends TestCase
 
         $this->assertTrue($article->stage_data->getIdeaStageData()->hasSelectedAuthorContext());
 
-        $job = $this->makeJob($article->client, $article);
+        $job = $this->makeJob($article);
         $this->assertTrue($job->runAuthorContextSelection());
         $article->refresh();
 
@@ -92,7 +92,7 @@ class BuildArticleJobIdeaStageAuthorContextTest extends TestCase
     {
         $client = $this->makeClient();
         $article = $this->makeArticle($client);
-        $job = $this->makeJob($client, $article);
+        $job = $this->makeJob($article);
 
         $this->assertFalse($job->runAuthorContextSelection());
     }
@@ -106,7 +106,7 @@ class BuildArticleJobIdeaStageAuthorContextTest extends TestCase
         $article = $this->makeArticle($client);
         $this->seedPickedIdea($article);
 
-        return [$article, $this->makeJob($client, $article)];
+        return [$article, $this->makeJob($article)];
     }
 
     /**
@@ -126,20 +126,19 @@ class BuildArticleJobIdeaStageAuthorContextTest extends TestCase
         return [$article, $job, $secondContext, $firstContext];
     }
 
-    protected function makeJob(Client $client, Article $article): BuildArticleJob
+    protected function makeJob(Article $article): BuildArticleJob
     {
         $editor = new TrackingEditor;
         $synthesizer = Synthesizer::driver('basic')->setEditor($editor);
 
-        return new class($client, $article->id, $editor, $synthesizer) extends BuildArticleJob
+        return new class($article, $editor, $synthesizer) extends BuildArticleJob
         {
             public function __construct(
-                Client $client,
-                string $articleId,
+                Article $article,
                 private TrackingEditor $editor,
                 private SynthesizerContract $testSynthesizer,
             ) {
-                parent::__construct($client, $articleId);
+                parent::__construct($article);
             }
 
             protected function synthesizer(): SynthesizerContract

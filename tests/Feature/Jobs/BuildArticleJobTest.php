@@ -45,7 +45,7 @@ class BuildArticleJobTest extends TestCase
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
         for ($i = 0; $i < 500; $i++) {
-            (new BuildArticleJob($client, $article->id))->handle();
+            new BuildArticleJob($article)->handle();
             $article->refresh();
             if ($article->status === ArticleStatus::READY) {
                 break;
@@ -88,7 +88,7 @@ class BuildArticleJobTest extends TestCase
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
         for ($i = 0; $i < 500; $i++) {
-            (new BuildArticleJob($client, $article->id))->handle();
+            (new BuildArticleJob($article))->handle();
             $article->refresh();
             if ($article->status === ArticleStatus::READY) {
                 break;
@@ -114,7 +114,7 @@ class BuildArticleJobTest extends TestCase
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
         for ($i = 0; $i < 500; $i++) {
-            (new BuildArticleJob($client, $article->id))->handle();
+            (new BuildArticleJob($article))->handle();
             $article->refresh();
             if ($article->status === ArticleStatus::READY) {
                 break;
@@ -168,14 +168,14 @@ class BuildArticleJobTest extends TestCase
 
         // Topical avg=(0.9*1 + 0.2*3) / (1+3)=0.375, Evergreen avg=(0.1*1 + 0.2*3)/4=0.175.
         // Commercial avg=(0.05*1 + 0.1*3)/4=0.0875, Informational avg=(0.2*1 + 0.1*3)/4=0.125.
-        $job = new class($client, $article->id, [$alpha, $beta]) extends BuildArticleJob
+        $job = new class($article, [$alpha, $beta]) extends BuildArticleJob
         {
             /**
              * @param  \App\Contracts\Synthesizer\IdeaForge\IdeaAdvisor[]  $stubAdvisors
              */
-            public function __construct(Client $client, string $articleId, private array $stubAdvisors)
+            public function __construct(Article $article, private array $stubAdvisors)
             {
-                parent::__construct($client, $articleId);
+                parent::__construct($article);
             }
 
             protected function getIdeaAdvisors(): array
@@ -275,7 +275,7 @@ class BuildArticleJobTest extends TestCase
         $client = $this->makeClient('');
         $article = $this->makeArticle($client, '');
 
-        (new BuildArticleJob($client, $article->id))->handle();
+        (new BuildArticleJob($article))->handle();
 
         $article->refresh();
 
@@ -295,7 +295,7 @@ class BuildArticleJobTest extends TestCase
         $article->status = ArticleStatus::READY;
         $article->save();
 
-        (new BuildArticleJob($client, $article->id))->handle();
+        (new BuildArticleJob($article))->handle();
 
         $article->refresh();
 
@@ -315,7 +315,7 @@ class BuildArticleJobTest extends TestCase
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
-        (new BuildArticleJob($client, $article->id))->handle();
+        (new BuildArticleJob($article))->handle();
 
         $article->refresh();
         $this->assertSame(ArticleStatus::PROCESSING, $article->status);
@@ -339,7 +339,7 @@ class BuildArticleJobTest extends TestCase
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
-        (new BuildArticleJob($client, $article->id))->handle();
+        (new BuildArticleJob($article))->handle();
 
         $article->refresh();
         $this->assertInstanceOf(StageData::class, $article->stage_data);
@@ -362,7 +362,7 @@ class BuildArticleJobTest extends TestCase
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
         for ($i = 0; $i < 25; $i++) {
-            (new BuildArticleJob($client, $article->id))->handle();
+            (new BuildArticleJob($article))->handle();
             $article->refresh();
 
             $this->assertInstanceOf(StageData::class, $article->stage_data);
@@ -396,7 +396,7 @@ class BuildArticleJobTest extends TestCase
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
-        $job = new class($client, $article->id) extends BuildArticleJob
+        $job = new class($article) extends BuildArticleJob
         {
             protected function runCurrentStage(): ?bool
             {
@@ -426,7 +426,7 @@ class BuildArticleJobTest extends TestCase
         $client = $this->makeClient('Client context');
         $article = $this->makeArticle($client, 'Build me an article from this context.');
 
-        $job = new class($client, $article->id) extends BuildArticleJob
+        $job = new class($article) extends BuildArticleJob
         {
             protected function runCurrentStage(): ?bool
             {
@@ -503,7 +503,7 @@ class BuildArticleJobTest extends TestCase
         $article->save();
         $article->refresh();
 
-        $job = new class($client, $article->id) extends BuildArticleJob
+        $job = new class($article) extends BuildArticleJob
         {
             public function runMergeOnce(): ?bool
             {

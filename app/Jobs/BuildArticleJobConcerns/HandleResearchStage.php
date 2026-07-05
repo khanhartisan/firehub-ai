@@ -23,7 +23,7 @@ trait HandleResearchStage
 
     protected function handleResearchStage(): ?bool
     {
-        Debugger::devConsoleDump('Article: '.$this->articleId.'. Handling research stage');
+        Debugger::devConsoleDump('Article: '.$this->article->id.'. Handling research stage');
 
         $pickedIdea = $this->getStageData()->getPickedIdea();
         if ($pickedIdea === null) {

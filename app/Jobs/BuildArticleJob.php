@@ -81,19 +81,19 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     /**
      * Create a new job instance.
      */
-    public function __construct(Client $client, protected string $articleId)
+    public function __construct(Article $article)
     {
-        $this->client = $client;
+        $this->article = $article->withoutRelations();
+        $client = $article->client;
 
-        /** @var ?Article $article */
-        $this->article = $client->articles()->find($articleId);
+        $this->client = $client;
 
         $this->onQueue(Queue::ARTICLE_BUILDING->value);
     }
 
     public function uniqueId(): string
     {
-        return static::class.'@'.$this->articleId;
+        return static::class.'@'.$this->article->getKey();
     }
 
     /**
@@ -290,6 +290,6 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     protected function reDispatch(): void
     {
         $this->getManualLock()->release();
-        static::dispatch($this->client, $this->articleId)->delay($this->reDispatchDelay);
+        static::dispatch($this->article)->delay($this->reDispatchDelay);
     }
 }

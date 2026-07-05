@@ -383,7 +383,7 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $article = $this->makeArticle($client, 'Build me an article about AI writing tools.');
 
         for ($i = 0; $i < 500; $i++) {
-            (new BuildArticleJob($client, $article->id))->handle();
+            (new BuildArticleJob($article))->handle();
             $article->refresh();
             if ($article->status === ArticleStatus::READY) {
                 break;
@@ -438,7 +438,7 @@ class BuildArticleJobIllustrationStageTest extends TestCase
         $article->save();
         $article->refresh();
 
-        $job = new class($client, $article->id) extends BuildArticleJob
+        $job = new class($article) extends BuildArticleJob
         {
             public function runIllustrationStage(): ?bool
             {

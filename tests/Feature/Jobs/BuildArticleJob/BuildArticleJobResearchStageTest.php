@@ -89,7 +89,7 @@ class BuildArticleJobResearchStageTest extends TestCase
             ]);
         $article->save();
         $article->refresh();
-        $job = new class($article->client, $article->id) extends BuildArticleJob
+        $job = new class($article) extends BuildArticleJob
         {
             public function runResearchStage(): ?bool
             {
@@ -138,7 +138,7 @@ class BuildArticleJobResearchStageTest extends TestCase
             ]);
         $article->save();
         $article->refresh();
-        $job = new class($article->client, $article->id) extends BuildArticleJob
+        $job = new class($article) extends BuildArticleJob
         {
             public function runResearchStage(): ?bool
             {
@@ -188,7 +188,7 @@ class BuildArticleJobResearchStageTest extends TestCase
             ]);
         $article->save();
         $article->refresh();
-        $job = new class($article->client, $article->id) extends BuildArticleJob
+        $job = new class($article) extends BuildArticleJob
         {
             public function runResearchStage(): ?bool
             {
@@ -246,7 +246,7 @@ class BuildArticleJobResearchStageTest extends TestCase
         $article->save();
         $article->refresh();
 
-        $job = new class($client, $article->id) extends BuildArticleJob
+        $job = new class($article) extends BuildArticleJob
         {
             public function runResearchStage(): ?bool
             {

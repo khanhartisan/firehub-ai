@@ -2,7 +2,9 @@
 
 namespace App\Mcp\Servers;
 
+use App\Mcp\Resources\ContentCoreOverviewResource;
 use App\Mcp\Resources\OverviewResource;
+use App\Mcp\Resources\PublishingChannelsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FileGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\MenuGuidelinesResource;
@@ -78,6 +80,8 @@ class AppServer extends Server
 
     protected array $resources = [
         OverviewResource::class,
+        ContentCoreOverviewResource::class,
+        PublishingChannelsOverviewResource::class,
     ];
 
     protected array $prompts = [

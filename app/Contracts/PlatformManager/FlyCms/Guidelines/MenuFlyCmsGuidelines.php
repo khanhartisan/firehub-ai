@@ -41,7 +41,7 @@ class MenuFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
             'Use with %s when creating or updating FlyCMS menus.',
             McpToolName::quotedFromMap($relatedTools, 'create', 'update'),
         )."\n\n"
-        .'Navigation groups — e.g. header `main`, footer `footer`. Provision the website first — see `file://resources/website-guidelines-resource`.'."\n\n"
+        .'Navigation groups — e.g. header `main`, footer `footer`. Provision the website first — see `platform-manager://flycms/website-guidelines`.'."\n\n"
         .'Create pages and tags before linking them — see page and tag guideline resources.'."\n\n"
         .'`website_id` comes from `channel.reference`; do not pass a different website ID.'."\n\n"
         .'Schema tables below are generated from FlyCMS contracts. Item shape and link formats are documented below.';
@@ -152,7 +152,7 @@ MARKDOWN,
 
 ### 1. Relative path
 
-On-site paths from website routes in `file://resources/website-guidelines-resource`.
+On-site paths from website routes in `platform-manager://flycms/website-guidelines`.
 
 | Target | Example `page_route` | Example link |
 |--------|----------------------|--------------|

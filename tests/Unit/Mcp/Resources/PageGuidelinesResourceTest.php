@@ -4,7 +4,7 @@ namespace Tests\Unit\Mcp\Resources;
 
 use App\Contracts\PlatformManager\FlyCms\Guidelines\PageFlyCmsGuidelines;
 use App\Mcp\Resources\OverviewResource;
-use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\PageGuidelinesResource;
 use App\Mcp\Support\McpToolName;
 use App\Mcp\Support\PlatformManager\FlyCms\FlyCmsGuidelinesRenderer;
@@ -40,7 +40,7 @@ class PageGuidelinesResourceTest extends TestCase
         $resource = new PageGuidelinesResource;
         $response = $resource->handle(new \Laravel\Mcp\Request);
 
-        $this->assertStringContainsString('file://resources/page-guidelines-resource', $response->content());
+        $this->assertStringContainsString('platform-manager://flycms/page-guidelines', $response->content());
         $this->assertStringContainsString((new CreatePageTool)->name(), $response->content());
         $this->assertStringContainsString((new ShowPageTool)->name(), $response->content());
     }

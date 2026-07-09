@@ -5,7 +5,7 @@ namespace Tests\Unit\Mcp\Resources;
 use App\Contracts\PlatformManager\FlyCms\Guidelines\FileFlyCmsGuidelines;
 use App\Mcp\Resources\OverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FileGuidelinesResource;
-use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
 use App\Mcp\Support\McpToolName;
 use App\Mcp\Support\PlatformManager\FlyCms\FlyCmsGuidelinesRenderer;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\CreateFileTool;
@@ -38,7 +38,7 @@ class FileGuidelinesResourceTest extends TestCase
         $resource = new FileGuidelinesResource;
         $response = $resource->handle(new \Laravel\Mcp\Request);
 
-        $this->assertStringContainsString('file://resources/file-guidelines-resource', $response->content());
+        $this->assertStringContainsString('platform-manager://flycms/file-guidelines', $response->content());
         $this->assertStringContainsString((new CreateFileTool)->name(), $response->content());
         $this->assertStringContainsString((new ShowFileTool)->name(), $response->content());
     }

@@ -2,7 +2,8 @@
 
 namespace App\Mcp\Resources;
 
-use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
+use App\Mcp\Support\Guidelines\GuidelinesBreadcrumb;
 use App\Mcp\Support\Guidelines\McpResourceReference;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -28,7 +29,11 @@ class OverviewResource extends Resource
         $publishingUri = McpResourceReference::fromResourceClass(PublishingChannelsOverviewResource::class)['uri'];
         $flyCmsOverviewUri = McpResourceReference::fromResourceClass(FlyCmsOverviewResource::class)['uri'];
 
+        $breadcrumb = GuidelinesBreadcrumb::render([], self::class);
+
         return <<<MARKDOWN
+{$breadcrumb}
+
 # MCP Server Overview
 
 Start here. This is the map of the application and points to the deeper guides.

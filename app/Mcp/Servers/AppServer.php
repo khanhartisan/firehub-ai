@@ -5,7 +5,7 @@ namespace App\Mcp\Servers;
 use App\Mcp\Resources\ContentCoreOverviewResource;
 use App\Mcp\Resources\OverviewResource;
 use App\Mcp\Resources\PublishingChannelsOverviewResource;
-use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FileGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\MenuGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\PageGuidelinesResource;

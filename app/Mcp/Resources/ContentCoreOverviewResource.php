@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Resources;
 
+use App\Mcp\Support\Guidelines\GuidelinesBreadcrumb;
 use App\Mcp\Support\Guidelines\McpResourceReference;
 use App\Mcp\Support\McpToolName;
 use App\Mcp\Tools\ArticleTools\CreateArticleTool;
@@ -76,7 +77,14 @@ class ContentCoreOverviewResource extends Resource
         $overviewUri = McpResourceReference::fromResourceClass(OverviewResource::class)['uri'];
         $publishingUri = McpResourceReference::fromResourceClass(PublishingChannelsOverviewResource::class)['uri'];
 
+        $breadcrumb = GuidelinesBreadcrumb::render(
+            [OverviewResource::class],
+            self::class,
+        );
+
         return <<<MARKDOWN
+{$breadcrumb}
+
 # Content Core Overview
 
 The **internal layer** of the hub. It hosts editorial tenants and all content, and it is where the system collects inputs, synthesizes, and produces content. Most work starts here. For the big picture see `{$overviewUri}`; to send content out, see `{$publishingUri}`.

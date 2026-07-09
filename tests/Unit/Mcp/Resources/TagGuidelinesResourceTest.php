@@ -4,7 +4,7 @@ namespace Tests\Unit\Mcp\Resources;
 
 use App\Contracts\PlatformManager\FlyCms\Guidelines\TagFlyCmsGuidelines;
 use App\Mcp\Resources\OverviewResource;
-use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\TagGuidelinesResource;
 use App\Mcp\Support\PlatformManager\FlyCms\FlyCmsGuidelinesRenderer;
 use App\Mcp\Support\McpToolName;

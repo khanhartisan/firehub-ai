@@ -2,7 +2,8 @@
 
 namespace App\Mcp\Resources;
 
-use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
+use App\Mcp\Support\Guidelines\GuidelinesBreadcrumb;
 use App\Mcp\Support\Guidelines\McpResourceReference;
 use App\Mcp\Support\McpToolName;
 use App\Mcp\Tools\ArticleTools\PublishArticleTool;
@@ -69,7 +70,14 @@ class PublishingChannelsOverviewResource extends Resource
         $contentCoreUri = McpResourceReference::fromResourceClass(ContentCoreOverviewResource::class)['uri'];
         $flyCmsOverviewUri = McpResourceReference::fromResourceClass(FlyCmsOverviewResource::class)['uri'];
 
+        $breadcrumb = GuidelinesBreadcrumb::render(
+            [OverviewResource::class],
+            self::class,
+        );
+
         return <<<MARKDOWN
+{$breadcrumb}
+
 # Publishing Channels Overview
 
 The **remote layer** of the hub. It dispatches produced content to external destinations and manages the connections that make that possible. For the big picture see `{$overviewUri}`; for the content that gets dispatched, see `{$contentCoreUri}`.

@@ -4,7 +4,7 @@ namespace Tests\Unit\Mcp\Resources;
 
 use App\Contracts\PlatformManager\FlyCms\Guidelines\MenuFlyCmsGuidelines;
 use App\Mcp\Resources\OverviewResource;
-use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FlyCmsOverviewResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\MenuGuidelinesResource;
 use App\Mcp\Support\McpToolName;
 use App\Mcp\Support\PlatformManager\FlyCms\FlyCmsGuidelinesRenderer;
@@ -39,7 +39,7 @@ class MenuGuidelinesResourceTest extends TestCase
         $resource = new MenuGuidelinesResource;
         $response = $resource->handle(new \Laravel\Mcp\Request);
 
-        $this->assertStringContainsString('file://resources/menu-guidelines-resource', $response->content());
+        $this->assertStringContainsString('platform-manager://flycms/menu-guidelines', $response->content());
         $this->assertStringContainsString((new CreateMenuTool)->name(), $response->content());
         $this->assertStringContainsString((new ShowMenuTool)->name(), $response->content());
     }

@@ -39,7 +39,7 @@ class PageFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
             'Use with %s when creating or updating FlyCMS pages.',
             McpToolName::quotedFromMap($relatedTools, 'create', 'update'),
         )."\n\n"
-        .'Static CMS pages served at `page_route` (e.g. `/page/{page}`). Provision the website first — see `file://resources/website-guidelines-resource`.'."\n\n"
+        .'Static CMS pages served at `page_route` (e.g. `/page/{page}`). Provision the website first — see `platform-manager://flycms/website-guidelines`.'."\n\n"
         .'`website_id` comes from `channel.reference`; do not pass a different website ID.'."\n\n"
         .'Schema tables below are generated from FlyCMS contracts.';
     }

@@ -3,7 +3,8 @@
 namespace App\Mcp\Resources\PlatformManagerResources\FlyCmsResources;
 
 use App\Contracts\PlatformManager\FlyCms\Guidelines\MenuFlyCmsGuidelines;
-use App\Mcp\Resources\OverviewResource;
+use App\Mcp\Resources\OverviewResource as AppOverviewResource;
+use App\Mcp\Resources\PublishingChannelsOverviewResource;
 use App\Mcp\Support\PlatformManager\FlyCms\FlyCmsGuidelinesRenderer;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -14,7 +15,7 @@ use Laravel\Mcp\Server\Attributes\Uri;
 
 #[Title('FlyCMS Menu Guidelines')]
 #[Description('Editorial and formatting rules for FlyCMS menus: keys, nested items, and link formats.')]
-#[Uri('file://resources/menu-guidelines-resource')]
+#[Uri('platform-manager://flycms/menu-guidelines')]
 #[MimeType('text/markdown')]
 class MenuGuidelinesResource extends FlyCmsResource
 {
@@ -24,8 +25,9 @@ class MenuGuidelinesResource extends FlyCmsResource
     protected static function breadcrumbParents(): array
     {
         return [
+            AppOverviewResource::class,
+            PublishingChannelsOverviewResource::class,
             OverviewResource::class,
-            FlyCmsOverviewResource::class,
         ];
     }
 

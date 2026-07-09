@@ -7,6 +7,8 @@ use App\Contracts\PlatformManager\FlyCms\MutationData\WebsiteMutationData\Update
 use App\Contracts\PlatformManager\FlyCms\ProvidesFlyCmsGuidelines;
 use App\Contracts\PlatformManager\FlyCms\Resources\WebsiteResource;
 use App\Mcp\Support\McpToolName;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ListDomainsTool;
+use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ShowDomainTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\DeleteMetaTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\ListMetaTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\MetaTools\PutMetaTool;
@@ -34,6 +36,8 @@ class WebsiteFlyCmsGuidelines implements ProvidesFlyCmsGuidelines
             'delete_meta' => DeleteMetaTool::class,
             'list_themes' => ListThemesTool::class,
             'show_theme' => ShowThemeTool::class,
+            'list_domains' => ListDomainsTool::class,
+            'show_domain' => ShowDomainTool::class,
         ];
     }
 
@@ -186,6 +190,53 @@ Set defaults here; override per entity only when needed.
 MARKDOWN,
             ],
             [
+                'title' => 'Managing meta with meta tools',
+                'content' => sprintf(
+                    <<<'MARKDOWN'
+Website `meta` can be set in two ways:
+
+1. **During website create/update** — pass `meta` inside `create_website_data` or `update_website_data` when provisioning or changing several keys at once.
+2. **With dedicated meta tools** — use %s, %s, and %s to read or change individual meta entries on the provisioned website.
+
+When to use meta tools:
+
+- **After provisioning** — add or update SEO defaults without a full website update.
+- **Incremental changes** — change one or a few keys (e.g. `site-name`, `post-seo-title`) safely.
+- **Inspection** — %s lists current website meta before editing.
+
+Typical flow:
+
+1. %s — see existing keys and values.
+2. %s — upsert one or more meta entries (`put_meta_data`).
+3. %s — remove a key you no longer need.
+
+Prefer website create/update for initial SEO defaults at provisioning time; use meta tools for later tweaks.
+MARKDOWN,
+                    McpToolName::quoted($relatedTools['list_meta']),
+                    McpToolName::quoted($relatedTools['put_meta']),
+                    McpToolName::quoted($relatedTools['delete_meta']),
+                    McpToolName::quoted($relatedTools['list_meta']),
+                    McpToolName::quoted($relatedTools['list_meta']),
+                    McpToolName::quoted($relatedTools['put_meta']),
+                    McpToolName::quoted($relatedTools['delete_meta']),
+                ),
+            ],
+            [
+                'title' => 'Domains',
+                'content' => sprintf(
+                    <<<'MARKDOWN'
+**Domains** are the hostnames attached to a provisioned website (e.g. `blog.example.com`). They are **read-only** via MCP — list and inspect only; domain creation happens outside these tools.
+
+- %s — list domains for the channel's website (optional `domain_filter`).
+- %s — inspect one domain by `domain_id`.
+
+Use domains to verify which hostnames are live on a site, check DNS/status fields, or confirm the public URL before publishing. All domain tools require `channel_id` and a provisioned `channel.reference`.
+MARKDOWN,
+                    McpToolName::quoted($relatedTools['list_domains']),
+                    McpToolName::quoted($relatedTools['show_domain']),
+                ),
+            ],
+            [
                 'title' => 'Complete examples',
                 'content' => <<<'MARKDOWN'
 ### Minimal website
@@ -227,11 +278,15 @@ MARKDOWN,
                     "1. **Provision first** — website before tags, pages, menus, or publishing.\n"
                     ."2. **Verify** — %s confirms `channel.reference`, routes, and meta.\n"
                     ."3. **Theme early** — %s and %s before menus.\n"
-                    ."4. **SEO defaults** — set `tag-seo-*`, `page-seo-*`, `post-seo-*` in meta first.\n"
-                    .'5. **`status`** — use `inactive` only when the site should not be public.',
+                    ."4. **SEO defaults** — set `tag-seo-*`, `page-seo-*`, `post-seo-*` in meta first; use %s / %s for later tweaks.\n"
+                    ."5. **Domains** — %s to confirm live hostnames before go-live.\n"
+                    .'6. **`status`** — use `inactive` only when the site should not be public.',
                     McpToolName::quoted($relatedTools['show']),
                     McpToolName::quoted($relatedTools['list_themes']),
                     McpToolName::quoted($relatedTools['show_theme']),
+                    McpToolName::quoted($relatedTools['list_meta']),
+                    McpToolName::quoted($relatedTools['put_meta']),
+                    McpToolName::quoted($relatedTools['list_domains']),
                 ),
             ],
         ];

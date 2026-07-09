@@ -192,7 +192,7 @@ MARKDOWN,
                     "1. **Tags before publishing** — %s publishes posts to the website.\n"
                     ."2. **Reuse SEO defaults** — leave `seo_title` / `seo_description` null when possible.\n"
                     ."3. **`is_featured` sparingly** — reserve for homepage/navigation highlights.\n"
-                    .'4. **Thumbnails first** — see `file://resources/file-guidelines-resource`, then %s or %s; pass `thumbnail_file_id`.'."\n"
+                    .'4. **Thumbnails first** — see `platform-manager://flycms/file-guidelines`, then %s or %s; pass `thumbnail_file_id`.'."\n"
                     .'5. **Verify** — %s after create/update.',
                     McpToolName::quoted($relatedTools['publish_article']),
                     McpToolName::quoted($relatedTools['create_file']),

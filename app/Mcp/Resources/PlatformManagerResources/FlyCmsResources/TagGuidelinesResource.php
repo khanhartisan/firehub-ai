@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Resources\PlatformManagerResources\FlyCmsResources;
 
+use App\Mcp\Resources\GuidelineResource;
 use App\Contracts\PlatformManager\FlyCms\Guidelines\TagFlyCmsGuidelines;
 use App\Mcp\Resources\OverviewResource as AppOverviewResource;
 use App\Mcp\Resources\PublishingChannelsOverviewResource;
@@ -17,7 +18,7 @@ use Laravel\Mcp\Server\Attributes\Uri;
 #[Description('Editorial and formatting rules for FlyCMS tag fields: identity, SEO liquid templates, and liquid content.')]
 #[Uri('platform-manager://flycms/tag-guidelines')]
 #[MimeType('text/markdown')]
-class TagGuidelinesResource extends FlyCmsResource
+class TagGuidelinesResource extends FlyCmsResource implements GuidelineResource
 {
     /**
      * @return list<class-string<\App\Mcp\Resources\Resource>>

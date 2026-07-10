@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Resources;
 
+use App\Mcp\Resources\GuidelineResource;
 use App\Mcp\Support\Guidelines\GuidelinesBreadcrumb;
 use App\Mcp\Support\Guidelines\McpResourceReference;
 use App\Mcp\Support\McpToolName;
@@ -30,7 +31,7 @@ use Laravel\Mcp\Server\Attributes\Uri;
 #[Description('Guide to the content core: editorial tenants (clients, authors) and AI-produced articles — the internal layer that collects, synthesizes, and produces content.')]
 #[Uri('app://content-core/overview')]
 #[MimeType('text/markdown')]
-class ContentCoreOverviewResource extends Resource
+class ContentCoreOverviewResource extends Resource implements GuidelineResource
 {
     public function handle(Request $request): Response
     {

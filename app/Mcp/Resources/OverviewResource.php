@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Resources;
 
+use App\Mcp\Resources\GuidelineResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
 use App\Mcp\Support\Guidelines\GuidelinesBreadcrumb;
 use App\Mcp\Support\Guidelines\McpResourceReference;
@@ -16,7 +17,7 @@ use Laravel\Mcp\Server\Attributes\Uri;
 #[Description('High-level guide to this MCP server: what the application is, its two main parts, and where to go next.')]
 #[Uri('app://overview')]
 #[MimeType('text/markdown')]
-class OverviewResource extends Resource
+class OverviewResource extends Resource implements GuidelineResource
 {
     public function handle(Request $request): Response
     {

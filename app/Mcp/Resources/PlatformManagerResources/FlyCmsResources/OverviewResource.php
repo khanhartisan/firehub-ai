@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Resources\PlatformManagerResources\FlyCmsResources;
 
+use App\Mcp\Resources\GuidelineResource;
 use App\Mcp\Resources\OverviewResource as AppOverviewResource;
 use App\Mcp\Resources\PublishingChannelsOverviewResource;
 use App\Mcp\Support\Guidelines\GuidelinesBreadcrumb;
@@ -17,7 +18,7 @@ use Laravel\Mcp\Server\Attributes\Uri;
 #[Description('Guide to FlyCMS publishing via MCP: channel setup, website provisioning, CMS concepts, and access rules.')]
 #[Uri('platform-manager://flycms/overview')]
 #[MimeType('text/markdown')]
-class OverviewResource extends FlyCmsResource
+class OverviewResource extends FlyCmsResource implements GuidelineResource
 {
     public function handle(Request $request): Response
     {

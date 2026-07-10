@@ -32,6 +32,8 @@ use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\ShowClientTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
+use App\Mcp\Tools\GuidelineTools\GetGuidelineTool;
+use App\Mcp\Tools\GuidelineTools\ListGuidelinesTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ListDomainsTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\DomainTools\ShowDomainTool;
 use App\Mcp\Tools\PlatformManagerTools\FlyCmsTools\FileTools\CreateFileTool;
@@ -104,6 +106,7 @@ class AppServer extends Server
         $this->registerAuthorTools();
         $this->registerChannelTools();
         $this->registerClientTools();
+        $this->registerGuidelineTools();
         $this->registerPlatformTools();
         $this->registerPlatformManagerFlyCmsTools();
     }
@@ -161,6 +164,14 @@ class AppServer extends Server
             ShowClientTool::class,
             UpdateClientTool::class,
             UpdateClientContextTool::class,
+        ]);
+    }
+
+    protected function registerGuidelineTools(): void
+    {
+        $this->tools = array_merge($this->tools, [
+            ListGuidelinesTool::class,
+            GetGuidelineTool::class,
         ]);
     }
 

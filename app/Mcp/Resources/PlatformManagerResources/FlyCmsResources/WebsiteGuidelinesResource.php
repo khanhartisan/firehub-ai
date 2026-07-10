@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Resources\PlatformManagerResources\FlyCmsResources;
 
+use App\Mcp\Resources\GuidelineResource;
 use App\Contracts\PlatformManager\FlyCms\Guidelines\WebsiteFlyCmsGuidelines;
 use App\Mcp\Resources\OverviewResource as AppOverviewResource;
 use App\Mcp\Resources\PublishingChannelsOverviewResource;
@@ -17,7 +18,7 @@ use Laravel\Mcp\Server\Attributes\Uri;
 #[Description('Editorial and formatting rules for FlyCMS website provisioning: routes, themes, meta defaults, and site-wide settings.')]
 #[Uri('platform-manager://flycms/website-guidelines')]
 #[MimeType('text/markdown')]
-class WebsiteGuidelinesResource extends FlyCmsResource
+class WebsiteGuidelinesResource extends FlyCmsResource implements GuidelineResource
 {
     /**
      * @return list<class-string<\App\Mcp\Resources\Resource>>

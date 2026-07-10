@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Resources\PlatformManagerResources\FlyCmsResources;
 
+use App\Mcp\Resources\GuidelineResource;
 use App\Contracts\PlatformManager\FlyCms\Guidelines\FileFlyCmsGuidelines;
 use App\Mcp\Resources\OverviewResource as AppOverviewResource;
 use App\Mcp\Resources\PublishingChannelsOverviewResource;
@@ -17,7 +18,7 @@ use Laravel\Mcp\Server\Attributes\Uri;
 #[Description('Editorial and formatting rules for FlyCMS file uploads: extensions, base64 payloads, metadata, and reuse.')]
 #[Uri('platform-manager://flycms/file-guidelines')]
 #[MimeType('text/markdown')]
-class FileGuidelinesResource extends FlyCmsResource
+class FileGuidelinesResource extends FlyCmsResource implements GuidelineResource
 {
     /**
      * @return list<class-string<\App\Mcp\Resources\Resource>>

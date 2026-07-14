@@ -4,19 +4,20 @@ namespace App\Mcp\Servers;
 
 use App\Mcp\Resources\ContentCoreOverviewResource;
 use App\Mcp\Resources\OverviewResource;
-use App\Mcp\Resources\PublishingChannelsOverviewResource;
-use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\FileGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\MenuGuidelinesResource;
+use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\OverviewResource as FlyCmsOverviewResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\PageGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\TagGuidelinesResource;
 use App\Mcp\Resources\PlatformManagerResources\FlyCmsResources\WebsiteGuidelinesResource;
+use App\Mcp\Resources\PublishingChannelsOverviewResource;
 use App\Mcp\Server\Methods\AppCallTool;
 use App\Mcp\Tools\ArticleTools\CreateArticleTool;
 use App\Mcp\Tools\ArticleTools\ListArticlesTool;
 use App\Mcp\Tools\ArticleTools\PublishArticleTool;
 use App\Mcp\Tools\ArticleTools\ShowArticleTool;
 use App\Mcp\Tools\ArticleTools\UpdateArticleContextTool;
+use App\Mcp\Tools\ArticleTools\UpdateArticleTool;
 use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
 use App\Mcp\Tools\AuthorTools\ListAuthorsTool;
 use App\Mcp\Tools\AuthorTools\ShowAuthorTool;
@@ -131,6 +132,7 @@ class AppServer extends Server
             PublishArticleTool::class,
             ShowArticleTool::class,
             UpdateArticleContextTool::class,
+            UpdateArticleTool::class,
         ]);
     }
 

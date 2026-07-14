@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum ArticleStatus: int
+use App\Contracts\DescribableEnum;
+
+enum ArticleStatus: int implements DescribableEnum
 {
     case UNREADY = 0;
     case PROCESSING = 1;
@@ -16,19 +18,31 @@ enum ArticleStatus: int
     /**
      * The article is completed with the production process
      * just whether published
-     *
-     * @return array
      */
     public static function completedStatuses(): array
     {
         return [
-            static::READY,
-            static::PUBLISHED,
+            self::READY,
+            self::PUBLISHED,
         ];
     }
 
     public function isCompleted(): bool
     {
-        return in_array($this, static::completedStatuses());
+        return in_array($this, self::completedStatuses());
+    }
+
+    public static function describe(DescribableEnum $enum): string
+    {
+        return match ($enum) {
+            self::UNREADY => 'Under configuration - Not yet ready',
+            self::PROCESSING => 'In the article production process',
+            self::READY => 'Production complete, ready to publish',
+            self::PUBLISHED => 'Published successfully',
+            self::REJECTED => 'Rejected and will not be published',
+            self::FAILED => 'Stopped intentionally during production',
+            self::ERROR => 'Stopped by an unhandled error during production',
+            default => 'Unknown',
+        };
     }
 }

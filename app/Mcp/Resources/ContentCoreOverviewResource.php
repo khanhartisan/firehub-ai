@@ -2,7 +2,6 @@
 
 namespace App\Mcp\Resources;
 
-use App\Mcp\Resources\GuidelineResource;
 use App\Mcp\Support\Guidelines\GuidelinesBreadcrumb;
 use App\Mcp\Support\Guidelines\McpResourceReference;
 use App\Mcp\Support\McpToolName;
@@ -10,6 +9,7 @@ use App\Mcp\Tools\ArticleTools\CreateArticleTool;
 use App\Mcp\Tools\ArticleTools\ListArticlesTool;
 use App\Mcp\Tools\ArticleTools\ShowArticleTool;
 use App\Mcp\Tools\ArticleTools\UpdateArticleContextTool;
+use App\Mcp\Tools\ArticleTools\UpdateArticleTool;
 use App\Mcp\Tools\AuthorTools\CreateAuthorTool;
 use App\Mcp\Tools\AuthorTools\ListAuthorsTool;
 use App\Mcp\Tools\AuthorTools\ShowAuthorTool;
@@ -20,6 +20,7 @@ use App\Mcp\Tools\ClientTools\ListClientsTool;
 use App\Mcp\Tools\ClientTools\ShowClientTool;
 use App\Mcp\Tools\ClientTools\UpdateClientContextTool;
 use App\Mcp\Tools\ClientTools\UpdateClientTool;
+use App\Mcp\Tools\Tool;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -39,7 +40,7 @@ class ContentCoreOverviewResource extends Resource implements GuidelineResource
     }
 
     /**
-     * @return array<string, class-string<\App\Mcp\Tools\Tool>>
+     * @return array<string, class-string<Tool>>
      */
     public static function relatedTools(): array
     {
@@ -57,6 +58,7 @@ class ContentCoreOverviewResource extends Resource implements GuidelineResource
             'list_articles' => ListArticlesTool::class,
             'show_article' => ShowArticleTool::class,
             'create_article' => CreateArticleTool::class,
+            'update_article' => UpdateArticleTool::class,
             'update_article_context' => UpdateArticleContextTool::class,
         ];
     }
@@ -69,11 +71,12 @@ class ContentCoreOverviewResource extends Resource implements GuidelineResource
         $createAuthor = self::quotedTool('create_author');
         $updateAuthorContext = self::quotedTool('update_author_context');
         $createArticle = self::quotedTool('create_article');
+        $updateArticle = self::quotedTool('update_article');
         $updateArticleContext = self::quotedTool('update_article_context');
         $showArticle = self::quotedTool('show_article');
         $clientTools = self::quotedToolGroup('list_clients', 'show_client', 'create_client', 'update_client', 'update_client_context');
         $authorTools = self::quotedToolGroup('list_authors', 'show_author', 'create_author', 'update_author', 'update_author_context');
-        $articleTools = self::quotedToolGroup('list_articles', 'show_article', 'create_article', 'update_article_context');
+        $articleTools = self::quotedToolGroup('list_articles', 'show_article', 'create_article', 'update_article', 'update_article_context');
 
         $overviewUri = McpResourceReference::fromResourceClass(OverviewResource::class)['uri'];
         $publishingUri = McpResourceReference::fromResourceClass(PublishingChannelsOverviewResource::class)['uri'];
@@ -110,7 +113,8 @@ Users ←──many-to-many──→ Client (brand / editorial tenant)
 
 Articles are produced by a background pipeline that collects source material and synthesizes the final content. This pipeline is **not** exposed via MCP — you create an article, then poll it until it is ready.
 
-- {$createArticle} kicks off production for a `client_id`.
+- {$createArticle} creates an article in `UNREADY` for a `client_id`.
+- Configure it with {$updateArticle} / {$updateArticleContext}, then set `status` to `PROCESSING` via {$updateArticle} to start production.
 - {$showArticle} reports `status`; poll until `READY` (or handle `FAILED` / `ERROR`).
 - Client and author context feed the pipeline, so set them early for better output.
 
@@ -126,9 +130,10 @@ Articles are produced by a background pipeline that collects source material and
 ### 2. Produce an article
 
 1. {$createArticle} with `client_id`.
-2. Optionally {$updateArticleContext} for article-specific guidance.
-3. {$showArticle} — poll until `status` is `READY` (or handle `FAILED` / `ERROR`).
-4. Hand the structured content to a publishing channel (see `{$publishingUri}`).
+2. Optionally {$updateArticle} (language, temporal) and {$updateArticleContext} for article-specific guidance.
+3. {$updateArticle} with `status` = `PROCESSING` to start the pipeline.
+4. {$showArticle} — poll until `status` is `READY` (or handle `FAILED` / `ERROR`).
+5. Hand the structured content to a publishing channel (see `{$publishingUri}`).
 
 ## Tool groups
 

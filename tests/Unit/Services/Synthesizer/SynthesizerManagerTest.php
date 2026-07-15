@@ -73,7 +73,7 @@ class SynthesizerManagerTest extends TestCase
         $this->assertInstanceOf(BasicEditorDriver::class, $driver->getEditor());
         $this->assertNotEmpty($driver->getCritics());
         $this->assertContainsOnlyInstancesOf(BasicCriticDriver::class, $driver->getCritics());
-        $this->assertSame(['voice', 'structure', 'clarity', 'concision', 'fingerprint', 'evidence', 'general'], array_map(
+        $this->assertSame(['voice', 'structure', 'clarity', 'concision', 'fingerprint', 'evidence', 'hallucination', 'general'], array_map(
             static fn ($critic) => $critic->getPurpose(),
             $driver->getCritics()
         ));
@@ -202,7 +202,8 @@ class SynthesizerManagerTest extends TestCase
                 \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'evidence', 3),
                 \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'concision', 4),
                 \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'fingerprint', 5),
-                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'structure', 6),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'hallucination', 6),
+                \App\Services\Synthesizer\Support\CriticProfileEntry::entry('openai_compatible', 'structure', 7),
             ],
             $profile['critics']
         );

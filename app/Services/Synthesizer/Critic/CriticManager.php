@@ -10,6 +10,7 @@ use App\Services\Synthesizer\Critic\ArticleCritics\ConcisionArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\EvidenceArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\FingerprintArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\GeneralArticleCritic;
+use App\Services\Synthesizer\Critic\ArticleCritics\HallucinationArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\StructureArticleCritic;
 use App\Services\Synthesizer\Critic\ArticleCritics\VoiceArticleCritic;
 use App\Services\Synthesizer\Critic\Drivers\BasicCriticDriver;
@@ -30,6 +31,7 @@ class CriticManager extends SubserviceManager
         'concision' => ConcisionArticleCritic::class,
         'fingerprint' => FingerprintArticleCritic::class,
         'evidence' => EvidenceArticleCritic::class,
+        'hallucination' => HallucinationArticleCritic::class,
         'general' => GeneralArticleCritic::class,
     ];
 

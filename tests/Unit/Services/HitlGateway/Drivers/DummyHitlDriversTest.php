@@ -7,16 +7,17 @@ use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
 use App\Contracts\HitlGateway\TaskOutput;
 use App\Contracts\HitlGateway\TaskStatus;
-use App\Services\HitlGateway\Drivers\Dummy\DummyHitlGatewayDriver;
+use App\Services\HitlGateway\HitlPlatformManagerDrivers\DummyHitlPlatformManager;
+use App\Services\HitlGateway\TaskAgentDrivers\DummyTaskAgent;
 use Tests\TestCase;
 
-class DummyHitlGatewayDriverTest extends TestCase
+class DummyHitlDriversTest extends TestCase
 {
     public function test_task_agent_plans_task_from_payload(): void
     {
-        $driver = new DummyHitlGatewayDriver;
+        $agent = new DummyTaskAgent;
 
-        $task = $driver->getTaskAgent()->planTask("Review draft\nPlease check the outline.");
+        $task = $agent->planTask("Review draft\nPlease check the outline.");
 
         $this->assertSame('Review draft', $task->getTitle());
         $this->assertSame("Review draft\nPlease check the outline.", $task->getDescription());
@@ -25,9 +26,9 @@ class DummyHitlGatewayDriverTest extends TestCase
 
     public function test_task_agent_returns_doing_action_for_pending_task(): void
     {
-        $driver = new DummyHitlGatewayDriver(['auto_action' => true]);
+        $agent = new DummyTaskAgent(['auto_action' => true]);
 
-        $action = $driver->getTaskAgent()->action((new Task)->setStatus(TaskStatus::PENDING));
+        $action = $agent->action((new Task)->setStatus(TaskStatus::PENDING));
 
         $this->assertInstanceOf(TaskAction::class, $action);
         $this->assertSame(TaskStatus::DOING, $action->getStatus());
@@ -35,8 +36,7 @@ class DummyHitlGatewayDriverTest extends TestCase
 
     public function test_platform_manager_creates_fetches_and_updates_tasks_in_memory(): void
     {
-        $driver = new DummyHitlGatewayDriver;
-        $platform = $driver->getHitlPlatformManager();
+        $platform = new DummyHitlPlatformManager;
 
         $task = (new Task)
             ->setTitle('Review')
@@ -68,8 +68,7 @@ class DummyHitlGatewayDriverTest extends TestCase
 
     public function test_platform_manager_rejects_duplicate_reference_on_create(): void
     {
-        $driver = new DummyHitlGatewayDriver;
-        $platform = $driver->getHitlPlatformManager();
+        $platform = new DummyHitlPlatformManager;
 
         $first = (new Task)->setReference('task-1')->setTitle('First');
         $second = (new Task)->setReference('task-1')->setTitle('Second');

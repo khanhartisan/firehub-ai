@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\HitlGateway\Drivers\Dummy;
+namespace App\Services\HitlGateway\HitlPlatformManagerDrivers;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\HitlPlatformManager;

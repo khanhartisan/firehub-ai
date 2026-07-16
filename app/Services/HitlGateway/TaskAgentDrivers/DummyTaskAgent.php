@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\HitlGateway\Drivers\Dummy;
+namespace App\Services\HitlGateway\TaskAgentDrivers;
 
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;

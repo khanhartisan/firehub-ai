@@ -4,18 +4,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default HitlGateway Driver
+    | Hitl Platform Manager
     |--------------------------------------------------------------------------
-    |
-    | This option controls the default HitlGateway driver used by the application.
-    |
     */
 
-    'default' => env('HITL_GATEWAY_DRIVER', 'dummy'),
+    'platform_manager' => env('HITL_PLATFORM_MANAGER_DRIVER', 'dummy'),
 
     /*
     |--------------------------------------------------------------------------
-    | HitlGateway Drivers
+    | Hitl Task Agent
+    |--------------------------------------------------------------------------
+    */
+
+    'task_agent' => env('HITL_TASK_AGENT_DRIVER', 'dummy'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Driver Config
     |--------------------------------------------------------------------------
     |
     | Supported drivers: "dummy"

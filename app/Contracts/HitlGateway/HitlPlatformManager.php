@@ -2,6 +2,8 @@
 
 namespace App\Contracts\HitlGateway;
 
+use App\Contracts\CommonData\SemanticContext;
+
 interface HitlPlatformManager
 {
     /**
@@ -16,16 +18,18 @@ interface HitlPlatformManager
      * This method will mutate the Task if created successfully
      *
      * @param Task $task
+     * @param SemanticContext|null $hitlPlatformContext
      * @return bool
      */
-    public function createTask(Task $task): bool;
+    public function createTask(Task $task, ?SemanticContext $hitlPlatformContext = null): bool;
 
     /**
      * This method will mutate the task if updated successfully
      *
      * @param Task $task
      * @param TaskAction $action
+     * @param SemanticContext|null $hitlPlatformContext
      * @return bool
      */
-    public function updateTask(Task $task, TaskAction $action): bool;
+    public function updateTask(Task $task, TaskAction $action, ?SemanticContext $hitlPlatformContext = null): bool;
 }

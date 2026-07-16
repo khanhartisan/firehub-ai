@@ -89,7 +89,7 @@ class Human implements Serializable
             throw new \InvalidArgumentException('Human "role" is invalid.');
         }
 
-        $human = new static($role);
+        $human = (new static)->setRole($role);
 
         if (array_key_exists('email', $data)) {
             $human->setEmail($data['email'] !== null ? (string) $data['email'] : null);

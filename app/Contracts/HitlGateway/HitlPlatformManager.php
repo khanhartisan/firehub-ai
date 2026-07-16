@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Contracts\HitlGateway;
+
+interface HitlPlatformManager
+{
+    /**
+     * Fetch task data from the platform by reference
+     *
+     * @param string $reference
+     * @return Task|null
+     */
+    public function fetchTask(string $reference): ?Task;
+
+    /**
+     * This method will mutate the Task if created successfully
+     *
+     * @param Task $task
+     * @return bool
+     */
+    public function createTask(Task $task): bool;
+
+    /**
+     * This method will mutate the task if updated successfully
+     *
+     * @param Task $task
+     * @param TaskAction $action
+     * @return bool
+     */
+    public function updateTask(Task $task, TaskAction $action): bool;
+}

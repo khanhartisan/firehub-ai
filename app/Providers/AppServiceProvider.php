@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\FactChecker\FactChecker as FactCheckerContract;
 use App\Contracts\FileVision\FileVision;
+use App\Contracts\HitlGateway\HitlGateway;
 use App\Contracts\IntentResolver\IntentResolver;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\PageClassifier\Classifier;
@@ -46,6 +47,7 @@ use App\Models\User;
 use App\Models\Vertical;
 use App\Services\FactChecker\FactCheckerManager;
 use App\Services\FileVision\FileVisionManager;
+use App\Services\HitlGateway\HitlGatewayManager;
 use App\Services\IntentResolver\IntentResolverManager;
 use App\Services\OpenAI\OpenAIManager;
 use App\Services\PageClassifier\PageClassifierManager;
@@ -100,6 +102,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('synthesizer.manager', SynthesizerManager::class);
         $this->app->singleton('semantic_context_builder.manager', SemanticContextBuilderManager::class);
         $this->app->singleton('flycms.manager', FlyCmsManager::class);
+        $this->app->singleton('hitl_gateway.manager', HitlGatewayManager::class);
 
         // Register synthesizer subservice managers
         $this->registerSynthesizerSubserviceManagers();
@@ -120,6 +123,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SynthesizerContract::class, fn ($app) => $app['synthesizer.manager']->driver());
         $this->app->singleton(ConversationalSemanticContextBuilder::class, fn ($app) => $app['semantic_context_builder.manager']->driver());
         $this->app->singleton(FlyCms::class, fn ($app) => $app['flycms.manager']->driver());
+        $this->app->singleton(HitlGateway::class, fn ($app) => $app['hitl_gateway.manager']->driver());
     }
 
     /**

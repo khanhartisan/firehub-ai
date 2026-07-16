@@ -1,0 +1,80 @@
+<?php
+
+namespace Tests\Unit\Services\HitlGateway\Drivers;
+
+use App\Contracts\HitlGateway\Message;
+use App\Contracts\HitlGateway\Task;
+use App\Contracts\HitlGateway\TaskAction;
+use App\Contracts\HitlGateway\TaskOutput;
+use App\Contracts\HitlGateway\TaskStatus;
+use App\Services\HitlGateway\Drivers\Dummy\DummyHitlGatewayDriver;
+use Tests\TestCase;
+
+class DummyHitlGatewayDriverTest extends TestCase
+{
+    public function test_task_agent_plans_task_from_payload(): void
+    {
+        $driver = new DummyHitlGatewayDriver;
+
+        $task = $driver->getTaskAgent()->planTask("Review draft\nPlease check the outline.");
+
+        $this->assertSame('Review draft', $task->getTitle());
+        $this->assertSame("Review draft\nPlease check the outline.", $task->getDescription());
+        $this->assertSame(TaskStatus::PENDING, $task->getStatus());
+    }
+
+    public function test_task_agent_returns_doing_action_for_pending_task(): void
+    {
+        $driver = new DummyHitlGatewayDriver(['auto_action' => true]);
+
+        $action = $driver->getTaskAgent()->action((new Task)->setStatus(TaskStatus::PENDING));
+
+        $this->assertInstanceOf(TaskAction::class, $action);
+        $this->assertSame(TaskStatus::DOING, $action->getStatus());
+    }
+
+    public function test_platform_manager_creates_fetches_and_updates_tasks_in_memory(): void
+    {
+        $driver = new DummyHitlGatewayDriver;
+        $platform = $driver->getHitlPlatformManager();
+
+        $task = (new Task)
+            ->setTitle('Review')
+            ->setDescription('Please review')
+            ->setStatus(TaskStatus::PENDING);
+
+        $this->assertTrue($platform->createTask($task));
+        $this->assertNotNull($task->getReference());
+        $this->assertStringStartsWith('dummy-', $task->getReference());
+
+        $fetched = $platform->fetchTask($task->getReference());
+        $this->assertNotNull($fetched);
+        $this->assertSame('Review', $fetched->getTitle());
+
+        $action = (new TaskAction)
+            ->setStatus(TaskStatus::APPROVED)
+            ->setMessage((new Message)->setMessage('Looks good'))
+            ->setOutput((new TaskOutput)->setContent('Approved output'));
+
+        $this->assertTrue($platform->updateTask($task, $action));
+        $this->assertSame(TaskStatus::APPROVED, $task->getStatus());
+        $this->assertCount(1, $task->getMessages());
+        $this->assertSame('Approved output', $task->getOutput()->getContent());
+
+        $updated = $platform->fetchTask($task->getReference());
+        $this->assertSame(TaskStatus::APPROVED, $updated->getStatus());
+        $this->assertSame('Looks good', $updated->getMessages()[0]->getMessage());
+    }
+
+    public function test_platform_manager_rejects_duplicate_reference_on_create(): void
+    {
+        $driver = new DummyHitlGatewayDriver;
+        $platform = $driver->getHitlPlatformManager();
+
+        $first = (new Task)->setReference('task-1')->setTitle('First');
+        $second = (new Task)->setReference('task-1')->setTitle('Second');
+
+        $this->assertTrue($platform->createTask($first));
+        $this->assertFalse($platform->createTask($second));
+    }
+}

@@ -2,6 +2,7 @@
 
 namespace App\Services\HitlGateway\TaskAgentDrivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
 use App\Contracts\HitlGateway\TaskAgent;
@@ -14,7 +15,7 @@ class DummyTaskAgent implements TaskAgent
     {
     }
 
-    public function planTask(string $payload, array $files = []): Task
+    public function planTask(string $payload, array $files = [], ?SemanticContext $context = null): Task
     {
         $payload = trim($payload);
         $lines = preg_split('/\R+/', $payload) ?: [];
@@ -26,7 +27,8 @@ class DummyTaskAgent implements TaskAgent
         $task = (new Task)
             ->setTitle($title)
             ->setDescription($payload !== '' ? $payload : null)
-            ->setStatus(TaskStatus::PENDING);
+            ->setStatus(TaskStatus::PENDING)
+            ->setContext($context);
 
         if ($files !== []) {
             $task->setFiles(array_values(array_filter(

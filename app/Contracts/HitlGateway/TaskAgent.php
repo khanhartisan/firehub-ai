@@ -2,6 +2,7 @@
 
 namespace App\Contracts\HitlGateway;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Models\File;
 
 interface TaskAgent
@@ -13,7 +14,7 @@ interface TaskAgent
      * @param File[] $files
      * @return Task
      */
-    public function planTask(string $payload, array $files = []): Task;
+    public function planTask(string $payload, array $files = [], ?SemanticContext $context = null): Task;
 
     /**
      * Plan a task action if needed

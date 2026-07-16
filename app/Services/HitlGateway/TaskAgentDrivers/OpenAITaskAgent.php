@@ -2,6 +2,7 @@
 
 namespace App\Services\HitlGateway\TaskAgentDrivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Role;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
@@ -27,14 +28,14 @@ class OpenAITaskAgent implements TaskAgent
         $this->config = $config;
     }
 
-    public function planTask(string $payload, array $files = []): Task
+    public function planTask(string $payload, array $files = [], ?SemanticContext $context = null): Task
     {
         $payload = trim($payload);
         if ($payload === '') {
             throw new RuntimeException('Task payload cannot be empty.');
         }
 
-        $prompt = $this->buildPlanTaskPrompt($payload, $files);
+        $prompt = $this->buildPlanTaskPrompt($payload, $files, $context);
         $data = $this->requestStructuredJson(
             $prompt,
             'hitl_plan_task',
@@ -64,6 +65,7 @@ class OpenAITaskAgent implements TaskAgent
         }
 
         $task->setStatus(TaskStatus::PENDING);
+        $task->setContext($context);
         $task->setFiles(array_values(array_filter(
             $files,
             static fn ($file): bool => $file instanceof File
@@ -114,7 +116,7 @@ class OpenAITaskAgent implements TaskAgent
     /**
      * @param  File[]  $files
      */
-    protected function buildPlanTaskPrompt(string $payload, array $files): string
+    protected function buildPlanTaskPrompt(string $payload, array $files, ?SemanticContext $context = null): string
     {
         $fileContext = array_map(static function (File $file): array {
             return [
@@ -133,6 +135,7 @@ class OpenAITaskAgent implements TaskAgent
         $inputJson = Json::encode([
             'payload' => $payload,
             'files' => $fileContext,
+            'context' => $context?->toArray(),
         ]);
 
         $statusValues = implode(', ', array_map(
@@ -150,6 +153,7 @@ You are a Human-in-the-Loop task planner.
 Turn the free-form request into a structured HITL task for a human worker.
 Infer a concise title and a clear description.
 The description must be written in Markdown (headings, lists, emphasis, and links when useful).
+Use the provided semantic context when available to ground the task.
 Only set assignee/advisor/owner/followers when the request clearly identifies people.
 Do not invent file IDs. Attached files are provided for context only.
 The planned task will always start as pending.

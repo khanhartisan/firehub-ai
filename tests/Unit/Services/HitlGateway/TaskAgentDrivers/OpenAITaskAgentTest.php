@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\HitlGateway\TaskAgentDrivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Role;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
@@ -46,13 +47,16 @@ class OpenAITaskAgentTest extends TestCase
         $file->forceFill(['id' => 'file_1', 'url' => 'https://example.com/a.png']);
         $file->exists = true;
 
+        $context = (new SemanticContext)->set('topic', 'Topic', 'AI');
+
         $driver = new OpenAITaskAgent($client, ['model' => 'gpt-4o-mini']);
-        $task = $driver->planTask("Review draft\nPlease review the outline.", [$file]);
+        $task = $driver->planTask("Review draft\nPlease review the outline.", [$file], $context);
 
         $this->assertSame('Review draft', $task->getTitle());
         $this->assertSame('Please review the outline.', $task->getDescription());
         $this->assertSame(TaskStatus::PENDING, $task->getStatus());
         $this->assertSame('Ada', $task->getAssignee()?->getName());
+        $this->assertSame($context, $task->getContext());
         $this->assertCount(1, $task->getFiles());
         $this->assertSame('file_1', $task->getFiles()[0]->getKey());
     }

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\HitlGateway\Drivers;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Message;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
@@ -16,12 +17,14 @@ class DummyHitlDriversTest extends TestCase
     public function test_task_agent_plans_task_from_payload(): void
     {
         $agent = new DummyTaskAgent;
+        $context = (new SemanticContext)->set('topic', 'Topic', 'AI');
 
-        $task = $agent->planTask("Review draft\nPlease check the outline.");
+        $task = $agent->planTask("Review draft\nPlease check the outline.", [], $context);
 
         $this->assertSame('Review draft', $task->getTitle());
         $this->assertSame("Review draft\nPlease check the outline.", $task->getDescription());
         $this->assertSame(TaskStatus::PENDING, $task->getStatus());
+        $this->assertSame($context, $task->getContext());
     }
 
     public function test_task_agent_returns_doing_action_for_pending_task(): void

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static TaskAgentContract driver(string|null $driver = null)
- * @method static Task planTask(string $payload, array $files = [], ?SemanticContext $context = null)
+ * @method static Task planTask(SemanticContext $context, array $files = [])
  * @method static TaskAction|null action(Task $task)
  *
  * @see \App\Services\HitlGateway\TaskAgentManager

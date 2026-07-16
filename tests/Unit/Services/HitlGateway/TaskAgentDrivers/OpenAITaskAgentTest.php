@@ -25,7 +25,7 @@ class OpenAITaskAgentTest extends TestCase
 
     public function test_plan_task_hydrates_structured_response_and_attaches_input_files(): void
     {
-        $payload = json_encode([
+        $responsePayload = json_encode([
             'title' => 'Review draft',
             'description' => 'Please review the outline.',
             'assignee' => [
@@ -41,16 +41,18 @@ class OpenAITaskAgentTest extends TestCase
         ], JSON_THROW_ON_ERROR);
 
         $client = Mockery::mock(OpenAIClient::class);
-        $client->shouldReceive('createResponse')->once()->andReturn($this->completedResponse($payload));
+        $client->shouldReceive('createResponse')->once()->andReturn($this->completedResponse($responsePayload));
 
         $file = new File;
         $file->forceFill(['id' => 'file_1', 'url' => 'https://example.com/a.png']);
         $file->exists = true;
 
-        $context = (new SemanticContext)->set('topic', 'Topic', 'AI');
+        $context = (new SemanticContext)
+            ->set('title', 'Task title', 'Review draft')
+            ->set('topic', 'Topic', 'AI');
 
         $driver = new OpenAITaskAgent($client, ['model' => 'gpt-4o-mini']);
-        $task = $driver->planTask("Review draft\nPlease review the outline.", [$file], $context);
+        $task = $driver->planTask($context, [$file]);
 
         $this->assertSame('Review draft', $task->getTitle());
         $this->assertSame('Please review the outline.', $task->getDescription());
@@ -61,7 +63,7 @@ class OpenAITaskAgentTest extends TestCase
         $this->assertSame('file_1', $task->getFiles()[0]->getKey());
     }
 
-    public function test_plan_task_rejects_empty_payload(): void
+    public function test_plan_task_rejects_empty_context(): void
     {
         $client = Mockery::mock(OpenAIClient::class);
         $client->shouldNotReceive('createResponse');
@@ -69,7 +71,8 @@ class OpenAITaskAgentTest extends TestCase
         $driver = new OpenAITaskAgent($client);
 
         $this->expectException(RuntimeException::class);
-        $driver->planTask('   ');
+        $this->expectExceptionMessage('Task context cannot be empty.');
+        $driver->planTask(new SemanticContext);
     }
 
     public function test_action_returns_null_when_should_act_is_false(): void
@@ -162,7 +165,7 @@ class OpenAITaskAgentTest extends TestCase
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('OpenAI refused the request');
-        $driver->planTask('Do something unsafe');
+        $driver->planTask((new SemanticContext)->set('request', 'Request', 'Do something unsafe'));
     }
 
     protected function completedResponse(string $text): Response

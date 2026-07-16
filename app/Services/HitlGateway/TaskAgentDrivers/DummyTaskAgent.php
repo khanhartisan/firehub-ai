@@ -15,18 +15,21 @@ class DummyTaskAgent implements TaskAgent
     {
     }
 
-    public function planTask(string $payload, array $files = [], ?SemanticContext $context = null): Task
+    public function planTask(SemanticContext $context, array $files = []): Task
     {
-        $payload = trim($payload);
-        $lines = preg_split('/\R+/', $payload) ?: [];
-        $title = trim($lines[0] ?? '');
-        if ($title === '') {
+        $title = $this->stringValue($context, ['title', 'name', 'subject']);
+        if ($title === null) {
             $title = (string) ($this->config['default_title'] ?? 'Untitled task');
+        }
+
+        $description = $this->stringValue($context, ['description', 'request', 'payload', 'body']);
+        if ($description === null) {
+            $description = $this->contextToMarkdown($context);
         }
 
         $task = (new Task)
             ->setTitle($title)
-            ->setDescription($payload !== '' ? $payload : null)
+            ->setDescription($description !== '' ? $description : null)
             ->setStatus(TaskStatus::PENDING)
             ->setContext($context);
 
@@ -50,5 +53,55 @@ class DummyTaskAgent implements TaskAgent
             TaskStatus::PENDING => (new TaskAction)->setStatus(TaskStatus::DOING),
             default => null,
         };
+    }
+
+    /**
+     * @param  list<string>  $keys
+     */
+    protected function stringValue(SemanticContext $context, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            if (! $context->has($key)) {
+                continue;
+            }
+
+            $value = $context->getValue($key);
+            if (is_string($value)) {
+                $value = trim($value);
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected function contextToMarkdown(SemanticContext $context): string
+    {
+        $lines = [];
+
+        foreach ($context->toArray() as $key => $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $label = is_string($entry['description'] ?? null) && trim($entry['description']) !== ''
+                ? trim($entry['description'])
+                : (string) $key;
+            $value = $entry['value'] ?? null;
+
+            if (is_array($value)) {
+                $value = implode(', ', array_map(static fn ($item) => (string) $item, $value));
+            } elseif ($value === null) {
+                $value = '';
+            } else {
+                $value = (string) $value;
+            }
+
+            $lines[] = '- **'.$label.'**: '.$value;
+        }
+
+        return implode("\n", $lines);
     }
 }

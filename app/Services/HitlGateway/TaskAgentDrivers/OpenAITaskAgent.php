@@ -28,14 +28,13 @@ class OpenAITaskAgent implements TaskAgent
         $this->config = $config;
     }
 
-    public function planTask(string $payload, array $files = [], ?SemanticContext $context = null): Task
+    public function planTask(SemanticContext $context, array $files = []): Task
     {
-        $payload = trim($payload);
-        if ($payload === '') {
-            throw new RuntimeException('Task payload cannot be empty.');
+        if ($context->toArray() === []) {
+            throw new RuntimeException('Task context cannot be empty.');
         }
 
-        $prompt = $this->buildPlanTaskPrompt($payload, $files, $context);
+        $prompt = $this->buildPlanTaskPrompt($context, $files);
         $data = $this->requestStructuredJson(
             $prompt,
             'hitl_plan_task',
@@ -116,7 +115,7 @@ class OpenAITaskAgent implements TaskAgent
     /**
      * @param  File[]  $files
      */
-    protected function buildPlanTaskPrompt(string $payload, array $files, ?SemanticContext $context = null): string
+    protected function buildPlanTaskPrompt(SemanticContext $context, array $files): string
     {
         $fileContext = array_map(static function (File $file): array {
             return [
@@ -133,9 +132,8 @@ class OpenAITaskAgent implements TaskAgent
         )));
 
         $inputJson = Json::encode([
-            'payload' => $payload,
+            'context' => $context->toArray(),
             'files' => $fileContext,
-            'context' => $context?->toArray(),
         ]);
 
         $statusValues = implode(', ', array_map(
@@ -150,11 +148,10 @@ class OpenAITaskAgent implements TaskAgent
         return <<<PROMPT
 You are a Human-in-the-Loop task planner.
 
-Turn the free-form request into a structured HITL task for a human worker.
-Infer a concise title and a clear description.
+Turn the provided semantic context into a structured HITL task for a human worker.
+Infer a concise title and a clear description from the context fields.
 The description must be written in Markdown (headings, lists, emphasis, and links when useful).
-Use the provided semantic context when available to ground the task.
-Only set assignee/advisor/owner/followers when the request clearly identifies people.
+Only set assignee/advisor/owner/followers when the context clearly identifies people.
 Do not invent file IDs. Attached files are provided for context only.
 The planned task will always start as pending.
 

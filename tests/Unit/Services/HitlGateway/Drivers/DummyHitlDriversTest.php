@@ -14,12 +14,14 @@ use Tests\TestCase;
 
 class DummyHitlDriversTest extends TestCase
 {
-    public function test_task_agent_plans_task_from_payload(): void
+    public function test_task_agent_plans_task_from_context(): void
     {
         $agent = new DummyTaskAgent;
-        $context = (new SemanticContext)->set('topic', 'Topic', 'AI');
+        $context = (new SemanticContext)
+            ->set('title', 'Task title', 'Review draft')
+            ->set('description', 'Task description', "Review draft\nPlease check the outline.");
 
-        $task = $agent->planTask("Review draft\nPlease check the outline.", [], $context);
+        $task = $agent->planTask($context);
 
         $this->assertSame('Review draft', $task->getTitle());
         $this->assertSame("Review draft\nPlease check the outline.", $task->getDescription());

@@ -10,11 +10,11 @@ interface TaskAgent
     /**
      * Planning a task
      *
-     * @param string $payload
+     * @param SemanticContext $context
      * @param File[] $files
      * @return Task
      */
-    public function planTask(string $payload, array $files = [], ?SemanticContext $context = null): Task;
+    public function planTask(SemanticContext $context, array $files = []): Task;
 
     /**
      * Plan a task action if needed

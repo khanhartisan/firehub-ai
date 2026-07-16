@@ -23,7 +23,8 @@ return [
     | Driver Config
     |--------------------------------------------------------------------------
     |
-    | Supported drivers: "dummy"
+    | Supported platform_manager drivers: "dummy"
+    | Supported task_agent drivers: "dummy", "openai", "openai_compatible"
     |
     */
 
@@ -33,6 +34,23 @@ return [
             'reference_prefix' => env('HITL_GATEWAY_DUMMY_REFERENCE_PREFIX', 'dummy'),
             'default_title' => env('HITL_GATEWAY_DUMMY_DEFAULT_TITLE', 'Untitled task'),
             'auto_action' => (bool) env('HITL_GATEWAY_DUMMY_AUTO_ACTION', true),
+        ],
+
+        'openai' => [
+            'model' => env('HITL_TASK_AGENT_OPENAI_MODEL', 'gpt-4o-mini'),
+            'temperature' => (float) env('HITL_TASK_AGENT_OPENAI_TEMPERATURE', 0.2),
+            'default_title' => env('HITL_TASK_AGENT_OPENAI_DEFAULT_TITLE', 'Untitled task'),
+            'auto_action' => (bool) env('HITL_TASK_AGENT_OPENAI_AUTO_ACTION', true),
+        ],
+
+        'openai_compatible' => [
+            'model' => env(
+                'HITL_TASK_AGENT_OPENAI_COMPATIBLE_MODEL',
+                env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')
+            ),
+            'temperature' => (float) env('HITL_TASK_AGENT_OPENAI_COMPATIBLE_TEMPERATURE', 0.2),
+            'default_title' => env('HITL_TASK_AGENT_OPENAI_COMPATIBLE_DEFAULT_TITLE', 'Untitled task'),
+            'auto_action' => (bool) env('HITL_TASK_AGENT_OPENAI_COMPATIBLE_AUTO_ACTION', true),
         ],
 
     ],

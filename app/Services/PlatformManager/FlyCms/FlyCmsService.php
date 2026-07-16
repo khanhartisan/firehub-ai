@@ -2,7 +2,7 @@
 
 namespace App\Services\PlatformManager\FlyCms;
 
-use App\Contracts\PlatformManager\Config;
+use App\Contracts\Config;
 use App\Contracts\PlatformManager\FlyCms\FlyCms;
 use App\Services\PlatformManager\PlatformManager;
 

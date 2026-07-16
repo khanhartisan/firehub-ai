@@ -2,7 +2,7 @@
 
 namespace App\Casts;
 
-use App\Contracts\PlatformManager\Config;
+use App\Contracts\Config;
 use App\Models\Platform;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;

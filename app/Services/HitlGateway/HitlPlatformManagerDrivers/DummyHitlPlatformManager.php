@@ -8,7 +8,7 @@ use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
 use Illuminate\Support\Str;
 
-class DummyHitlPlatformManager implements HitlPlatformManager
+class DummyHitlPlatformManager extends AbstractHitlPlatformManager implements HitlPlatformManager
 {
     /** @var array<string, array<string, mixed>> */
     protected array $tasks = [];

@@ -2,8 +2,7 @@
 
 namespace App\Services\PlatformManager;
 
-use App\Contracts\Clonable;
-use App\Contracts\PlatformManager\Config;
+use App\Contracts\Config;
 
 abstract class PlatformManager implements \App\Contracts\PlatformManager\PlatformManager
 {

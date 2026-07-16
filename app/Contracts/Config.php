@@ -1,10 +1,7 @@
 <?php
 
-namespace App\Contracts\PlatformManager;
+namespace App\Contracts;
 
-use App\Contracts\Clonable;
-use App\Contracts\ProvidesJsonSchema;
-use App\Contracts\Serializable;
 use App\Utils\StructuredDataFromSchema;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 

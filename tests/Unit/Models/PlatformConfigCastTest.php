@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Models;
 
-use App\Contracts\PlatformManager\Config;
+use App\Contracts\Config;
 use App\Contracts\PlatformManager\PlatformManager as PlatformManagerContract;
 use App\Enums\PlatformType;
 use App\Models\Platform;

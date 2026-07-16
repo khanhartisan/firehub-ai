@@ -4,7 +4,7 @@ namespace App\Contracts\PlatformManager\FlyCms;
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 
-class Config extends \App\Contracts\PlatformManager\Config
+class Config extends \App\Contracts\Config
 {
     public function getBaseUrl(): ?string
     {

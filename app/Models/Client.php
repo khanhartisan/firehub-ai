@@ -7,6 +7,7 @@ use App\Contracts\Mcp\StructuredMcpResource;
 use App\Contracts\Model\Client\Context;
 use App\Enums\Language;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
@@ -35,6 +36,11 @@ class Client extends Model implements ShouldCascade, StructuredMcpResource
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool
     {
         return true;
+    }
+
+    public function hitlPlatform(): BelongsTo
+    {
+        return $this->belongsTo(HitlPlatform::class);
     }
 
     public function users(): BelongsToMany

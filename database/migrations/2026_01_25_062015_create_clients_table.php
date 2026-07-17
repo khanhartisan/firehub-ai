@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->ulid('id')->primary();
+            $table->ulid('hitl_platform_id')->nullable();
             $table->string('language')->nullable();
             $table->string('name')->nullable()->unique();
             $table->jsonb('context')->nullable();

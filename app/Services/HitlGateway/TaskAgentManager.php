@@ -15,14 +15,14 @@ class TaskAgentManager extends Manager
 
     protected function createDummyDriver(): TaskAgent
     {
-        $config = $this->config->get('hitlgateway.drivers.dummy', []);
+        $config = $this->config->get('hitlgateway.task_agent_drivers.dummy', []);
 
         return new TaskAgentDrivers\DummyTaskAgent($config);
     }
 
     protected function createOpenaiDriver(): TaskAgent
     {
-        $config = $this->config->get('hitlgateway.drivers.openai', []);
+        $config = $this->config->get('hitlgateway.task_agent_drivers.openai', []);
 
         return new TaskAgentDrivers\OpenAITaskAgent(
             $this->container->make(OpenAIClient::class),
@@ -32,7 +32,7 @@ class TaskAgentManager extends Manager
 
     protected function createOpenaiCompatibleDriver(): TaskAgent
     {
-        $config = $this->config->get('hitlgateway.drivers.openai_compatible', []);
+        $config = $this->config->get('hitlgateway.task_agent_drivers.openai_compatible', []);
 
         return new TaskAgentDrivers\OpenAICompatibleTaskAgent(
             $this->container->make('openai.manager'),

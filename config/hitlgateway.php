@@ -20,20 +20,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Driver Config
+    | Platform Manager Drivers
     |--------------------------------------------------------------------------
     |
-    | Supported platform_manager drivers: "dummy"
-    | Supported task_agent drivers: "dummy", "openai", "openai_compatible"
+    | Supported: "dummy"
     |
     */
 
-    'drivers' => [
+    'platform_manager_drivers' => [
 
         'dummy' => [
-            'reference_prefix' => env('HITL_GATEWAY_DUMMY_REFERENCE_PREFIX', 'dummy'),
-            'default_title' => env('HITL_GATEWAY_DUMMY_DEFAULT_TITLE', 'Untitled task'),
-            'auto_action' => (bool) env('HITL_GATEWAY_DUMMY_AUTO_ACTION', true),
+            'reference_prefix' => env('HITL_PLATFORM_MANAGER_DUMMY_REFERENCE_PREFIX', 'dummy'),
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Task Agent Drivers
+    |--------------------------------------------------------------------------
+    |
+    | Supported: "dummy", "openai", "openai_compatible"
+    |
+    */
+
+    'task_agent_drivers' => [
+
+        'dummy' => [
+            'default_title' => env('HITL_TASK_AGENT_DUMMY_DEFAULT_TITLE', 'Untitled task'),
+            'auto_action' => (bool) env('HITL_TASK_AGENT_DUMMY_AUTO_ACTION', true),
         ],
 
         'openai' => [

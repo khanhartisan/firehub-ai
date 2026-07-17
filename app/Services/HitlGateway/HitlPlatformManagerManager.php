@@ -14,7 +14,7 @@ class HitlPlatformManagerManager extends Manager
 
     protected function createDummyDriver(): HitlPlatformManager
     {
-        $config = $this->config->get('hitlgateway.drivers.dummy', []);
+        $config = $this->config->get('hitlgateway.platform_manager_drivers.dummy', []);
 
         return new HitlPlatformManagerDrivers\DummyHitlPlatformManager($config);
     }

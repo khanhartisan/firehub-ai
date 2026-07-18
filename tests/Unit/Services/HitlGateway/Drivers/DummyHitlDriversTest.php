@@ -6,6 +6,7 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Message;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
+use App\Contracts\HitlGateway\TaskConclusion;
 use App\Contracts\HitlGateway\TaskOutput;
 use App\Contracts\HitlGateway\TaskStatus;
 use App\Services\HitlGateway\HitlPlatformManagerDrivers\DummyHitlPlatformManager;
@@ -37,6 +38,23 @@ class DummyHitlDriversTest extends TestCase
 
         $this->assertInstanceOf(TaskAction::class, $action);
         $this->assertSame(TaskStatus::DOING, $action->getStatus());
+    }
+
+    public function test_task_agent_concludes_from_output_or_status(): void
+    {
+        $agent = new DummyTaskAgent;
+
+        $withOutput = $agent->conclude(
+            (new Task)
+                ->setStatus(TaskStatus::APPROVED)
+                ->setOutput((new TaskOutput)->setContent('Approved with edits.'))
+        );
+
+        $this->assertInstanceOf(TaskConclusion::class, $withOutput);
+        $this->assertSame('Approved with edits.', $withOutput->getConclusion());
+
+        $fromStatus = $agent->conclude((new Task)->setStatus(TaskStatus::PENDING));
+        $this->assertSame('Task is pending.', $fromStatus->getConclusion());
     }
 
     public function test_platform_manager_creates_fetches_and_updates_tasks_in_memory(): void

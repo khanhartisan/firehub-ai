@@ -8,6 +8,7 @@ use App\Contracts\HitlGateway\Message;
 use App\Contracts\HitlGateway\Role;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
+use App\Contracts\HitlGateway\TaskConclusion;
 use App\Contracts\HitlGateway\TaskOutput;
 use App\Contracts\HitlGateway\TaskStatus;
 use App\Facades\HitlGateway\HitlPlatformManager;
@@ -21,7 +22,7 @@ class TestHitlGatewayService extends Command
     protected $signature = 'live-test:test-hitl-gateway-service
                             {--task-agent= : TaskAgent driver (dummy, openai, openai_compatible)}
                             {--platform-manager= : HitlPlatformManager driver (dummy)}
-                            {--operation= : Operation: planTask|action|createTask|fetchTask|updateTask|full_flow}
+                            {--operation= : Operation: planTask|action|conclude|createTask|fetchTask|updateTask|full_flow}
                             {--context=* : Context key=value entries (repeat option for multiple)}
                             {--reference= : Task reference for fetchTask / updateTask}';
 
@@ -31,6 +32,7 @@ class TestHitlGatewayService extends Command
     private const OPERATIONS = [
         'planTask',
         'action',
+        'conclude',
         'createTask',
         'fetchTask',
         'updateTask',
@@ -67,6 +69,7 @@ class TestHitlGatewayService extends Command
             return match ($operation) {
                 'planTask' => $this->runPlanTask($taskAgent),
                 'action' => $this->runAction($taskAgent),
+                'conclude' => $this->runConclude($taskAgent),
                 'createTask' => $this->runCreateTask($taskAgent, $platform),
                 'fetchTask' => $this->runFetchTask($taskAgent, $platform),
                 'updateTask' => $this->runUpdateTask($taskAgent, $platform),
@@ -156,7 +159,7 @@ class TestHitlGatewayService extends Command
 
         if ($operation === '') {
             if ($this->input->isInteractive()) {
-                return $this->choice('Select operation to test', $operations, 5);
+                return $this->choice('Select operation to test', $operations, 6);
             }
 
             return 'full_flow';
@@ -183,6 +186,17 @@ class TestHitlGatewayService extends Command
 
         $action = $this->timedCall('action', fn () => $taskAgent->action($task));
         $this->displayAction($action);
+
+        return self::SUCCESS;
+    }
+
+    private function runConclude(mixed $taskAgent): int
+    {
+        $task = $this->resolveTaskForAction($taskAgent);
+        $this->displayTask($task, 'Input task');
+
+        $conclusion = $this->timedCall('conclude', fn () => $taskAgent->conclude($task));
+        $this->displayConclusion($conclusion);
 
         return self::SUCCESS;
     }
@@ -625,6 +639,19 @@ class TestHitlGatewayService extends Command
                 ['message_human', $this->formatHuman($action->getMessage()?->getHuman())],
                 ['output', Str::limit((string) ($action->getOutput()?->getContent() ?? ''), 100) ?: '—'],
                 ['output_files', (string) count($action->getOutput()?->getFiles() ?? [])],
+            ]
+        );
+        $this->line('-----');
+    }
+
+    private function displayConclusion(TaskConclusion $conclusion, string $label = 'TaskConclusion'): void
+    {
+        $this->info($label);
+        $this->table(
+            ['Field', 'Value'],
+            [
+                ['conclusion', Str::limit((string) ($conclusion->getConclusion() ?? ''), 200) ?: '—'],
+                ['files', (string) count($conclusion->getFiles())],
             ]
         );
         $this->line('-----');

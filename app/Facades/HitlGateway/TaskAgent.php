@@ -6,12 +6,14 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
 use App\Contracts\HitlGateway\TaskAgent as TaskAgentContract;
+use App\Contracts\HitlGateway\TaskConclusion;
 use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static TaskAgentContract driver(string|null $driver = null)
  * @method static Task planTask(SemanticContext $context, array $files = [])
  * @method static TaskAction|null action(Task $task)
+ * @method static TaskConclusion conclude(Task $task)
  *
  * @see \App\Services\HitlGateway\TaskAgentManager
  */

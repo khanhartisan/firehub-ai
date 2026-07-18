@@ -6,6 +6,8 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Role;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
+use App\Contracts\HitlGateway\TaskConclusion;
+use App\Contracts\HitlGateway\TaskOutput;
 use App\Contracts\HitlGateway\TaskStatus;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
@@ -136,6 +138,34 @@ class OpenAITaskAgentTest extends TestCase
         $driver = new OpenAITaskAgent($client, ['auto_action' => false]);
 
         $this->assertNull($driver->action((new Task)->setStatus(TaskStatus::PENDING)));
+    }
+
+    public function test_conclude_keeps_known_task_files_and_strips_invented_ids(): void
+    {
+        $payload = json_encode([
+            'conclusion' => 'Approved after review.',
+            'files' => ['output_file_1', 'invented-file-id'],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($this->completedResponse($payload));
+
+        $outputFile = new File;
+        $outputFile->forceFill(['id' => 'output_file_1', 'url' => 'https://example.com/result.pdf']);
+        $outputFile->exists = true;
+
+        $driver = new OpenAITaskAgent($client);
+        $conclusion = $driver->conclude(
+            (new Task)
+                ->setStatus(TaskStatus::APPROVED)
+                ->setTitle('Review')
+                ->setOutput((new TaskOutput)->setContent('Done')->setFiles([$outputFile]))
+        );
+
+        $this->assertInstanceOf(TaskConclusion::class, $conclusion);
+        $this->assertSame('Approved after review.', $conclusion->getConclusion());
+        $this->assertCount(1, $conclusion->getFiles());
+        $this->assertSame('output_file_1', $conclusion->getFiles()[0]->getKey());
     }
 
     public function test_refusal_throws_runtime_exception(): void

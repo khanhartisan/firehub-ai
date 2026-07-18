@@ -23,4 +23,12 @@ interface TaskAgent
      * @return TaskAction|null
      */
     public function action(Task $task): ?TaskAction;
+
+    /**
+     * Read the given task data and generate its current conclusion
+     *
+     * @param Task $task
+     * @return TaskConclusion
+     */
+    public function conclude(Task $task): TaskConclusion;
 }

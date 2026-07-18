@@ -6,6 +6,7 @@ use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
 use App\Contracts\HitlGateway\TaskAgent;
+use App\Contracts\HitlGateway\TaskConclusion;
 use App\Contracts\HitlGateway\TaskStatus;
 use App\Models\File;
 
@@ -53,6 +54,28 @@ class DummyTaskAgent implements TaskAgent
             TaskStatus::PENDING => (new TaskAction)->setStatus(TaskStatus::DOING),
             default => null,
         };
+    }
+
+    public function conclude(Task $task): TaskConclusion
+    {
+        $text = $task->getOutput()?->getContent();
+        if ($text === null || trim($text) === '') {
+            $text = match ($task->getStatus()) {
+                TaskStatus::APPROVED => 'Task approved.',
+                TaskStatus::REJECTED => 'Task rejected.',
+                TaskStatus::DOING => 'Task is in progress.',
+                TaskStatus::PENDING => 'Task is pending.',
+            };
+        }
+
+        $conclusion = (new TaskConclusion)->setConclusion($text);
+
+        $files = $task->getOutput()?->getFiles() ?? [];
+        if ($files !== []) {
+            $conclusion->setFiles($files);
+        }
+
+        return $conclusion;
     }
 
     /**

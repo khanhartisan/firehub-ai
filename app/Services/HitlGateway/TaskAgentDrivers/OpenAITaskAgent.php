@@ -7,6 +7,7 @@ use App\Contracts\HitlGateway\Role;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
 use App\Contracts\HitlGateway\TaskAgent;
+use App\Contracts\HitlGateway\TaskConclusion;
 use App\Contracts\HitlGateway\TaskStatus;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\Response;
@@ -112,6 +113,26 @@ class OpenAITaskAgent implements TaskAgent
         }
     }
 
+    public function conclude(Task $task): TaskConclusion
+    {
+        $prompt = $this->buildConcludePrompt($task);
+        $data = $this->requestStructuredJson(
+            $prompt,
+            'hitl_task_conclusion',
+            $this->buildConcludeJsonSchema(),
+            'Failed to conclude HITL task with OpenAI'
+        );
+
+        $conclusionText = array_key_exists('conclusion', $data) && $data['conclusion'] !== null
+            ? (string) $data['conclusion']
+            : null;
+
+        // Model must not invent file IDs; keep only File instances already present on the task.
+        return (new TaskConclusion)
+            ->setConclusion($conclusionText)
+            ->setFiles($this->resolveKnownTaskFiles($task, $data['files'] ?? []));
+    }
+
     /**
      * @param  File[]  $files
      */
@@ -184,6 +205,33 @@ Guidance:
 - Do not invent file IDs in output.files; leave files empty.
 
 Allowed status values: {$statusValues}
+
+Current task:
+{$taskJson}
+PROMPT;
+    }
+
+    protected function buildConcludePrompt(Task $task): string
+    {
+        $taskJson = Json::encode($task->toArray());
+        $knownFileIds = $this->knownTaskFileIds($task);
+        $knownFileIdsJson = Json::encode($knownFileIds);
+        $statusValues = implode(', ', array_map(
+            static fn (TaskStatus $status): string => $status->value,
+            TaskStatus::cases()
+        ));
+
+        return <<<PROMPT
+You are a Human-in-the-Loop task agent.
+
+Read the given task data and generate its current conclusion.
+Summarize the outcome, key decisions, and any remaining open points based on status, messages, and output.
+Write the conclusion in Markdown when useful.
+If result files from the task (especially output.files) are relevant to the conclusion, include those file IDs in files.
+Do not invent file IDs. Only use IDs from the known file ID list below.
+
+Allowed status values (for interpreting the task): {$statusValues}
+Known file IDs: {$knownFileIdsJson}
 
 Current task:
 {$taskJson}
@@ -316,6 +364,91 @@ PROMPT;
             'required' => ['should_act', 'action'],
             'additionalProperties' => false,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function buildConcludeJsonSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'conclusion' => [
+                    'type' => ['string', 'null'],
+                    'description' => 'Markdown summary of the task\'s current conclusion',
+                ],
+                'files' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string'],
+                    'description' => 'Relevant file IDs from the task/output; do not invent IDs',
+                ],
+            ],
+            'required' => ['conclusion', 'files'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, File>
+     */
+    protected function knownTaskFilesById(Task $task): array
+    {
+        $byId = [];
+
+        foreach ([$task->getFiles(), $task->getOutput()?->getFiles() ?? []] as $files) {
+            foreach ($files as $file) {
+                if (! $file instanceof File) {
+                    continue;
+                }
+
+                $id = $file->getKey();
+                if ($id !== null && $id !== '') {
+                    $byId[(string) $id] = $file;
+                }
+            }
+        }
+
+        return $byId;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function knownTaskFileIds(Task $task): array
+    {
+        return array_keys($this->knownTaskFilesById($task));
+    }
+
+    /**
+     * @param  mixed  $candidateIds
+     * @return File[]
+     */
+    protected function resolveKnownTaskFiles(Task $task, mixed $candidateIds): array
+    {
+        if (! is_array($candidateIds)) {
+            return [];
+        }
+
+        $known = $this->knownTaskFilesById($task);
+        $files = [];
+        $seen = [];
+
+        foreach ($candidateIds as $id) {
+            if (! is_string($id) && ! is_int($id)) {
+                continue;
+            }
+
+            $id = (string) $id;
+            if ($id === '' || isset($seen[$id]) || ! isset($known[$id])) {
+                continue;
+            }
+
+            $seen[$id] = true;
+            $files[] = $known[$id];
+        }
+
+        return $files;
     }
 
     /**

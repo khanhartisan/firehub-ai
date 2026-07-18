@@ -2,12 +2,13 @@
 
 namespace App\Services\SemanticContextBuilder\Drivers;
 
+use App\Concerns\Contextable;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\SemanticContextBuilder\ConversationalSemanticContextBuilder;
 
 class DummyConversationalSemanticContextBuilderDriver implements ConversationalSemanticContextBuilder
 {
-    protected SemanticContext $context;
+    use Contextable;
 
     /** @var array<int, array{role: string, text: string}> */
     protected array $conversation = [];
@@ -15,19 +16,6 @@ class DummyConversationalSemanticContextBuilderDriver implements ConversationalS
     public function __construct(?SemanticContext $context = null)
     {
         $this->setContext($context ?? new SemanticContext());
-    }
-
-    public function setContext(SemanticContext $context): static
-    {
-        // Expand known setter-defined fields so we can track completion status.
-        $this->context = $context->withEmptyFields(false);
-
-        return $this;
-    }
-
-    public function getContext(): SemanticContext
-    {
-        return $this->context;
     }
 
     public function start(string $seedMessage): static

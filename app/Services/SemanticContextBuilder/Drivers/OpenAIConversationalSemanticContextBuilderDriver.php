@@ -2,6 +2,7 @@
 
 namespace App\Services\SemanticContextBuilder\Drivers;
 
+use App\Concerns\Contextable;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\OpenAI\OpenAIClient;
 use App\Contracts\OpenAI\ResponseInput;
@@ -12,7 +13,7 @@ use RuntimeException;
 
 class OpenAIConversationalSemanticContextBuilderDriver implements ConversationalSemanticContextBuilder
 {
-    protected SemanticContext $context;
+    use Contextable;
 
     /** @var array<int, array{role: string, text: string}> */
     protected array $conversation = [];
@@ -33,18 +34,13 @@ class OpenAIConversationalSemanticContextBuilderDriver implements Conversational
         $this->setContext(new SemanticContext());
     }
 
-    public function setContext(SemanticContext $context): static
+    public function setContext(?SemanticContext $context): static
     {
         $this->context = $context->withEmptyFields(true);
         $this->isFulfilled = false;
         $this->pendingQuestions = [];
 
         return $this;
-    }
-
-    public function getContext(): SemanticContext
-    {
-        return $this->context;
     }
 
     public function start(string $seedMessage): static

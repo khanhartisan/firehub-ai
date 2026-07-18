@@ -3,23 +3,14 @@
 namespace App\Contracts\SemanticContextBuilder;
 
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\Contextable;
 
 /**
  * Service contract for progressively fulfilling a semantic context
  * through multi-turn conversation with a user.
  */
-interface ConversationalSemanticContextBuilder
+interface ConversationalSemanticContextBuilder extends Contextable
 {
-    /**
-     * Set or replace the target semantic context being fulfilled.
-     */
-    public function setContext(SemanticContext $context): static;
-
-    /**
-     * Get the latest context snapshot.
-     */
-    public function getContext(): SemanticContext;
-
     /**
      * Handle an initial user seed message and start the conversation.
      */

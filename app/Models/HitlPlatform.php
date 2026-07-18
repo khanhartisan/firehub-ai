@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\SemanticContextCast;
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\HitlPlatformConfig;
 use App\Contracts\HitlGateway\HitlPlatformManager;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -38,6 +39,10 @@ class HitlPlatform extends Model implements ShouldCascade
 
         if ($this->config and $config = HitlPlatformConfig::fromArray($this->config)) {
             $hitlPlatformManager->setConfig($config);
+        }
+
+        if ($context = $this->context and $context instanceof SemanticContext) {
+            $hitlPlatformManager->setContext($context);
         }
 
         return $hitlPlatformManager;

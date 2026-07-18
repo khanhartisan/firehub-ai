@@ -2,12 +2,15 @@
 
 namespace App\Services\HitlGateway\HitlPlatformManagerDrivers;
 
+use App\Concerns\Contextable;
 use App\Contracts\Config;
 use App\Contracts\HitlGateway\HitlPlatformConfig;
 use App\Contracts\HitlGateway\HitlPlatformManager;
 
 abstract class AbstractHitlPlatformManager implements HitlPlatformManager
 {
+    use Contextable;
+
     protected HitlPlatformConfig $platformConfig;
 
     public function setConfig(Config $config): static

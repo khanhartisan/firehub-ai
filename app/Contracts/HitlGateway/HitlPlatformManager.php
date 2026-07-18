@@ -4,8 +4,9 @@ namespace App\Contracts\HitlGateway;
 
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Configurable;
+use App\Contracts\Contextable;
 
-interface HitlPlatformManager extends Configurable
+interface HitlPlatformManager extends Configurable, Contextable
 {
     /**
      * Fetch task data from the platform by reference

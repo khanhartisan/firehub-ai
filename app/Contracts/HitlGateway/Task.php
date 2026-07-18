@@ -3,16 +3,16 @@
 namespace App\Contracts\HitlGateway;
 
 use App\Contracts\CommonData\SemanticContext;
+use App\Contracts\Contextable;
 use App\Contracts\HitlGateway\Concerns\ResolvesFilesFromIds;
 use App\Contracts\Serializable;
 use App\Models\File;
 
-class Task implements Serializable
+class Task implements Contextable, Serializable
 {
     use \App\Concerns\Serializable;
+    use \App\Concerns\Contextable;
     use ResolvesFilesFromIds;
-
-    protected ?SemanticContext $context = null;
 
     protected ?string $reference = null;
 
@@ -38,18 +38,6 @@ class Task implements Serializable
     protected array $messages = [];
 
     protected ?TaskOutput $output = null;
-
-    public function getContext(): ?SemanticContext
-    {
-        return $this->context;
-    }
-
-    public function setContext(?SemanticContext $context): static
-    {
-        $this->context = $context;
-
-        return $this;
-    }
 
     public function getReference(): ?string
     {

@@ -20,8 +20,10 @@ return new class extends Migration
             $table->string('title')->nullable();
             $table->string('description')->nullable();
             $table->jsonb('data')->nullable();
+            $table->jsonb('conclusion')->nullable();
             $table->timestamps();
 
+            $table->unique(['hitl_platform_id', 'internal_reference']);
             $table->index(['hitl_platform_id', 'status', 'created_at']);
         });
     }

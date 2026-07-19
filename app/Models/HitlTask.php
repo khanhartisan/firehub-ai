@@ -10,6 +10,7 @@ class HitlTask extends Model
     protected $casts = [
         'status' => TaskStatus::class,
         'data' => 'array',
+        'conclusion' => 'array',
     ];
 
     public function hitlPlatform(): BelongsTo

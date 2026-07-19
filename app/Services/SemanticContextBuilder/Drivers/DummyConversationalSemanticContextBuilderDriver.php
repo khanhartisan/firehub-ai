@@ -18,6 +18,13 @@ class DummyConversationalSemanticContextBuilderDriver implements ConversationalS
         $this->setContext($context ?? new SemanticContext());
     }
 
+    public function setContext(?SemanticContext $context): static
+    {
+        $this->context = ($context ?? new SemanticContext())->withEmptyFields(true);
+
+        return $this;
+    }
+
     public function start(string $seedMessage): static
     {
         $this->conversation = [];

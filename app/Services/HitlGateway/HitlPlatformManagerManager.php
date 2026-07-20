@@ -3,6 +3,7 @@
 namespace App\Services\HitlGateway;
 
 use App\Contracts\HitlGateway\HitlPlatformManager;
+use App\Services\HitlGateway\HitlPlatformManagerDrivers\FiretasksPlatformManager;
 use Illuminate\Support\Manager;
 
 class HitlPlatformManagerManager extends Manager
@@ -17,5 +18,10 @@ class HitlPlatformManagerManager extends Manager
         $config = $this->config->get('hitlgateway.platform_manager_drivers.dummy', []);
 
         return new HitlPlatformManagerDrivers\DummyHitlPlatformManager($config);
+    }
+
+    protected function createFiretasksDriver(): HitlPlatformManager
+    {
+        return new FiretasksPlatformManager();
     }
 }

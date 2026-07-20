@@ -33,6 +33,7 @@ return [
             'reference_prefix' => env('HITL_PLATFORM_MANAGER_DUMMY_REFERENCE_PREFIX', 'dummy'),
         ],
 
+        'firetasks' => [],
     ],
 
     /*

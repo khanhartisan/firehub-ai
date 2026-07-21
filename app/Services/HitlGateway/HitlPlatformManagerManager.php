@@ -22,6 +22,8 @@ class HitlPlatformManagerManager extends Manager
 
     protected function createFiretasksDriver(): HitlPlatformManager
     {
-        return new FiretasksPlatformManager();
+        $config = $this->config->get('hitlgateway.platform_manager_drivers.firetasks', []);
+
+        return new FiretasksPlatformManager()->setConfig($config);
     }
 }

@@ -369,6 +369,8 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
 
             // TODO: Implement this
         }
+
+        return $apiFiles;
     }
 
     /**

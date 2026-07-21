@@ -61,7 +61,7 @@ class DummyTaskAgent implements TaskAgent
         $text = $task->getOutput()?->getContent();
         if ($text === null || trim($text) === '') {
             $text = match ($task->getStatus()) {
-                TaskStatus::APPROVED => 'Task approved.',
+                TaskStatus::COMPLETED => 'Task completed.',
                 TaskStatus::REJECTED => 'Task rejected.',
                 TaskStatus::DOING => 'Task is in progress.',
                 TaskStatus::PENDING => 'Task is pending.',

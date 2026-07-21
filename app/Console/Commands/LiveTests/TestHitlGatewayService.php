@@ -542,7 +542,7 @@ class TestHitlGatewayService extends Command
     private function buildFixtureAction(): TaskAction
     {
         return (new TaskAction)
-            ->setStatus(TaskStatus::APPROVED)
+            ->setStatus(TaskStatus::COMPLETED)
             ->setMessage(
                 (new Message)
                     ->setMessage('Looks good — approved.')

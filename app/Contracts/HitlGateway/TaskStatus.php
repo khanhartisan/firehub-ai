@@ -6,6 +6,6 @@ enum TaskStatus: string
 {
     case PENDING = 'pending';
     case DOING = 'doing';
-    case APPROVED = 'approved';
+    case COMPLETED = 'completed';
     case REJECTED = 'rejected';
 }

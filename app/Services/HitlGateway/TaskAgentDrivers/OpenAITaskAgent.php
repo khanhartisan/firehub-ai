@@ -80,7 +80,7 @@ class OpenAITaskAgent implements TaskAgent
             return null;
         }
 
-        if (in_array($task->getStatus(), [TaskStatus::APPROVED, TaskStatus::REJECTED], true)) {
+        if (in_array($task->getStatus(), [TaskStatus::COMPLETED, TaskStatus::REJECTED], true)) {
             return null;
         }
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ScrapingStage;
 use App\Enums\ScrapingStatus;
+use App\Models\Concerns\HasMeta;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
@@ -12,10 +13,14 @@ use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 class File extends EmbeddableModel implements ShouldCascade
 {
     use Cascades;
+    use HasMeta;
 
     public function getCascadeDetails(): CascadeDetails|array
     {
-        return new CascadeDetails($this->fileables());
+        return [
+            new CascadeDetails($this->fileables()),
+            new CascadeDetails($this->meta()),
+        ];
     }
 
     public function autoForceDeleteWhenAllRelationsAreDeleted(): bool

@@ -4,6 +4,7 @@ namespace App\Contracts;
 
 use App\Utils\StructuredDataFromSchema;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
+use Illuminate\Support\Arr;
 
 abstract class Config implements Clonable, ProvidesJsonSchema, Serializable
 {
@@ -14,6 +15,11 @@ abstract class Config implements Clonable, ProvidesJsonSchema, Serializable
     public function __construct(array $config = [])
     {
         $this->setConfig($config);
+    }
+
+    public function get(string $path): mixed
+    {
+        return Arr::get($this->getConfig(), $path);
     }
 
     public function getConfig(): array

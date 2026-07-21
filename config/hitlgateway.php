@@ -33,7 +33,13 @@ return [
             'reference_prefix' => env('HITL_PLATFORM_MANAGER_DUMMY_REFERENCE_PREFIX', 'dummy'),
         ],
 
-        'firetasks' => [],
+        'firetasks' => [
+            'base_url' => env('HITL_PLATFORM_MANAGER_FIRETASKS_BASE_URL'),
+            'api_key' => env('HITL_PLATFORM_MANAGER_FIRETASKS_API_KEY'),
+            'folder_id' => env('HITL_PLATFORM_MANAGER_FIRETASKS_FOLDER_ID'),
+            'default_responsible_user_id' => env('HITL_PLATFORM_MANAGER_FIRETASKS_DEFAULT_RESPONSIBLE_USER_ID'),
+            'note' => env('HITL_PLATFORM_MANAGER_FIRETASKS_NOTE'),
+        ],
     ],
 
     /*

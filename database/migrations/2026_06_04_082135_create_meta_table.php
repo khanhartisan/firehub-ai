@@ -20,6 +20,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['metable_type', 'metable_id', 'key'], 'meta_unique_idx');
+            $table->index(['metable_type', 'key']);
         });
     }
 

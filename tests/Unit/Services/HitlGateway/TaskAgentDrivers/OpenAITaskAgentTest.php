@@ -126,7 +126,7 @@ class OpenAITaskAgentTest extends TestCase
 
         $driver = new OpenAITaskAgent($client);
 
-        $this->assertNull($driver->action((new Task)->setStatus(TaskStatus::APPROVED)));
+        $this->assertNull($driver->action((new Task)->setStatus(TaskStatus::COMPLETED)));
         $this->assertNull($driver->action((new Task)->setStatus(TaskStatus::REJECTED)));
     }
 
@@ -157,7 +157,7 @@ class OpenAITaskAgentTest extends TestCase
         $driver = new OpenAITaskAgent($client);
         $conclusion = $driver->conclude(
             (new Task)
-                ->setStatus(TaskStatus::APPROVED)
+                ->setStatus(TaskStatus::COMPLETED)
                 ->setTitle('Review')
                 ->setOutput((new TaskOutput)->setContent('Done')->setFiles([$outputFile]))
         );

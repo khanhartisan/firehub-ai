@@ -127,13 +127,13 @@ class HitlGatewayTest extends TestCase
         $planned = (new Task)
             ->setTitle('Approved task')
             ->setDescription('Looks good')
-            ->setStatus(TaskStatus::APPROVED)
+            ->setStatus(TaskStatus::COMPLETED)
             ->setOutput((new TaskOutput)->setContent('Ship it'));
 
         $agent->shouldReceive('planTask')->once()->andReturn($planned);
         $agent->shouldReceive('conclude')
             ->once()
-            ->with(Mockery::on(fn (Task $task) => $task->getStatus() === TaskStatus::APPROVED))
+            ->with(Mockery::on(fn (Task $task) => $task->getStatus() === TaskStatus::COMPLETED))
             ->andReturn((new TaskConclusion)->setConclusion('Approved by human'));
 
         $result = HitlGateway::askHuman(
@@ -147,7 +147,7 @@ class HitlGatewayTest extends TestCase
         $this->assertSame('Approved by human', $result->getConclusion());
 
         $hitlTask = HitlTask::query()->sole();
-        $this->assertSame(TaskStatus::APPROVED, $hitlTask->status);
+        $this->assertSame(TaskStatus::COMPLETED, $hitlTask->status);
         $this->assertSame('Approved by human', $hitlTask->conclusion['conclusion'] ?? null);
         $this->assertSame([], $hitlTask->conclusion['files'] ?? null);
     }
@@ -181,7 +181,7 @@ class HitlGatewayTest extends TestCase
         $this->assertTrue($manager->updateTask(
             $platformTask,
             (new TaskAction)
-                ->setStatus(TaskStatus::APPROVED)
+                ->setStatus(TaskStatus::COMPLETED)
                 ->setOutput((new TaskOutput)->setContent('Final answer'))
         ));
 
@@ -199,7 +199,7 @@ class HitlGatewayTest extends TestCase
 
         $this->assertSame('Final answer', $result?->getConclusion());
         $this->assertSame(1, HitlTask::query()->count());
-        $this->assertSame(TaskStatus::APPROVED, $hitlTask->fresh()->status);
+        $this->assertSame(TaskStatus::COMPLETED, $hitlTask->fresh()->status);
     }
 
     public function test_ask_human_recreates_when_platform_task_is_missing(): void

@@ -79,7 +79,7 @@ class HitlGateway
         }
 
         // Approved, make conclusion
-        if ($task->getStatus() === TaskStatus::APPROVED) {
+        if ($task->getStatus() === TaskStatus::COMPLETED) {
             $taskConclusion = $taskAgent->conclude($task);
 
             $hitlTask->conclusion = $taskConclusion->toArray();

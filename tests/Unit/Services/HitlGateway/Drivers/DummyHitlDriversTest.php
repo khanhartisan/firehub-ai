@@ -46,7 +46,7 @@ class DummyHitlDriversTest extends TestCase
 
         $withOutput = $agent->conclude(
             (new Task)
-                ->setStatus(TaskStatus::APPROVED)
+                ->setStatus(TaskStatus::COMPLETED)
                 ->setOutput((new TaskOutput)->setContent('Approved with edits.'))
         );
 
@@ -75,17 +75,17 @@ class DummyHitlDriversTest extends TestCase
         $this->assertSame('Review', $fetched->getTitle());
 
         $action = (new TaskAction)
-            ->setStatus(TaskStatus::APPROVED)
+            ->setStatus(TaskStatus::COMPLETED)
             ->setMessage((new Message)->setMessage('Looks good'))
             ->setOutput((new TaskOutput)->setContent('Approved output'));
 
         $this->assertTrue($platform->updateTask($task, $action));
-        $this->assertSame(TaskStatus::APPROVED, $task->getStatus());
+        $this->assertSame(TaskStatus::COMPLETED, $task->getStatus());
         $this->assertCount(1, $task->getMessages());
         $this->assertSame('Approved output', $task->getOutput()->getContent());
 
         $updated = $platform->fetchTask($task->getReference());
-        $this->assertSame(TaskStatus::APPROVED, $updated->getStatus());
+        $this->assertSame(TaskStatus::COMPLETED, $updated->getStatus());
         $this->assertSame('Looks good', $updated->getMessages()[0]->getMessage());
     }
 

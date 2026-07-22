@@ -13,6 +13,7 @@ use App\Contracts\HitlGateway\TaskOutput;
 use App\Contracts\HitlGateway\TaskStatus;
 use App\Models\File;
 use App\Models\Meta;
+use App\Services\HitlGateway\HitlPlatformManagerDrivers\FiretasksPlatformManager\TaskStatus as FiretasksTaskStatus;
 use App\Utils\Json;
 use App\Utils\Markdown;
 use App\Utils\Str;
@@ -76,7 +77,15 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             'json' => $this->mapTaskToMutationData($task)
         ]);
 
-        return $createResponse->getStatusCode() === 201;
+        if ($createResponse->getStatusCode() !== 201) {
+            return false;
+        }
+
+        $taskData = Json::decode($createResponse->getBody()->getContents(), true)['data'];
+
+        $this->mapApiDataToTask($taskData, $task);
+
+        return true;
     }
 
     /**
@@ -143,6 +152,8 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             'base_uri' => $config->get('base_url'),
             'headers' => [
                 'Authorization' => 'Bearer ' . $config->get('api_key'),
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
             ],
         ]);
     }
@@ -150,9 +161,9 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
     /**
      * @throws GuzzleException
      */
-    protected function mapApiDataToTask(array $data): Task
+    protected function mapApiDataToTask(array $data, ?Task $task = null): Task
     {
-        return new Task()
+        return ($task ?? new Task())
             ->setReference($data['id'])
             ->setTitle($data['title'])
             ->setDescription($data['description'])
@@ -169,8 +180,8 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
                 $this->mapUserIdToHuman($data['owner_id'])
                     ?->setRole(Role::OWNER)
             )
-            ->setFiles($this->mapApiFilesToFiles($data['attachments']))
-            ->setOutput($this->mapApiOutputToTaskOutput($data['output'], $data['output_attachments']));
+            ->setFiles($this->mapApiFilesToFiles($data['attachments'] ?? []))
+            ->setOutput($this->mapApiOutputToTaskOutput($data['output'], $data['output_attachments'] ?? []));
     }
 
     /**
@@ -182,6 +193,12 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             'folder_id' => $this->getConfig()->get('folder_id'),
             'title' => $task->getTitle(),
             'description' => Markdown::markdownToHtml($task->getDescription()),
+            'auto_start' => true,
+            'pass_input_to_subtasks' => true,
+            'can_see_parent_input' => true,
+            'pass_output' => true,
+            'can_see_previous_outputs' => true,
+            'included_in_parent_output' => true,
         ];
 
         if ($assignee = $task->getAssignee()) {
@@ -196,9 +213,8 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             $data['owner_id'] = $this->mapHumanToUserId($owner);
         }
 
-        if (!isset($data['owner_id'])) {
-            $this->getConfig()->get('default_responsible_user_id');
-        }
+        $data['owner_id'] = $data['owner_id'] ?? $this->getConfig()->get('default_responsible_user_id');
+        $data['assignee_id'] = $data['assignee_id'] ?? $this->getConfig()->get('default_responsible_user_id');
 
         if ($files = $task->getFiles()) {
             $data['attachments'] = $this->mapFilesToApiFiles($files);
@@ -207,12 +223,16 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
         return $data;
     }
 
-    protected function mapApiStatusToTaskStatus(string $firetasksStatus): TaskStatus
+    protected function mapApiStatusToTaskStatus(mixed $firetasksStatus): TaskStatus
     {
-        return match ($firetasksStatus) {
-            'doing', 'awaiting_subtasks', 'awaiting_advice', 'awaiting_approval', 'awaiting_revision' => TaskStatus::DOING,
-            'completed' => TaskStatus::COMPLETED,
-            'rejected' => TaskStatus::REJECTED,
+        return match (FiretasksTaskStatus::tryFrom($firetasksStatus)) {
+            FiretasksTaskStatus::DOING,
+            FiretasksTaskStatus::AWAITING_SUBTASKS,
+            FiretasksTaskStatus::AWAITING_ADVICE,
+            FiretasksTaskStatus::AWAITING_APPROVAL,
+            FiretasksTaskStatus::AWAITING_REVISION => TaskStatus::DOING,
+            FiretasksTaskStatus::COMPLETED => TaskStatus::COMPLETED,
+            FiretasksTaskStatus::REJECTED => TaskStatus::REJECTED,
             default => TaskStatus::PENDING,
         };
     }

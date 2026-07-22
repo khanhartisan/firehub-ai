@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('hitl_platform_reference')->nullable();
             $table->string('internal_reference')->nullable();
             $table->string('title')->nullable();
-            $table->string('description')->nullable();
+            $table->longText('description')->nullable();
             $table->jsonb('data')->nullable();
             $table->jsonb('conclusion')->nullable();
             $table->timestamps();

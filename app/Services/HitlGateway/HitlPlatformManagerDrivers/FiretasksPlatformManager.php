@@ -56,6 +56,10 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             if ($e->hasResponse() and $e->getResponse()->getStatusCode() === 404) {
                 return null;
             }
+
+            if (env('APP_DEBUG')) {
+                dump($e);
+            }
         }
 
         return null;
@@ -268,7 +272,7 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
         $resolver = function () use ($userId) {
             try {
                 $userResponse = $this->getApiClient()->get('/api/users/' . $userId);
-                if (!$userData = Json::decode($userResponse->getBody()->getContents())['data'] ?? null) {
+                if (!$userData = Json::decode($userResponse->getBody()->getContents(), true)['data'] ?? null) {
                     return null;
                 }
                 return new Human()
@@ -279,6 +283,11 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
                 if ($e->hasResponse() and $e->getResponse()->getStatusCode() === 404) {
                     return null;
                 }
+
+                if (env('APP_DEBUG')) {
+                    dump($e);
+                }
+
                 throw $e;
             }
         };
@@ -334,8 +343,8 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             ]);
             $downloadData = Json::decode($downloadResponse->getBody()->getContents(), true);
             foreach ($downloadData as $data) {
-                $filePath = 'hilt-platform-attachments/'.$this->getConfig()->get('base_url').'/'.$data['attachment'];
-                Storage::put(file_get_contents($data['download_url']), $filePath);
+                $filePath = 'hilt-platform-attachments/'.parse_url($this->getConfig()->get('base_url'), PHP_URL_HOST).'/'.$data['attachment'];
+                Storage::put($filePath, file_get_contents($data['download_url']));
 
                 $file = new File();
                 $file->url = $data['download_url'];

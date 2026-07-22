@@ -25,7 +25,7 @@ abstract class AbstractHitlPlatformManager implements HitlPlatformManager
 
     public function getConfig(): ?Config
     {
-        return $this->platformConfig;
+        return $this->platformConfig ?? null;
     }
 
     public function makeConfig(): ?Config

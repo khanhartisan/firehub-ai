@@ -2,9 +2,10 @@
 
 namespace App\Services\HitlGateway\HitlPlatformManagerDrivers\FiretasksPlatformManager;
 
+use App\Contracts\HitlGateway\HitlPlatformConfig;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 
-class Config extends \App\Contracts\Config
+class Config extends HitlPlatformConfig
 {
     public function toJsonSchema(JsonSchema $schema): array
     {

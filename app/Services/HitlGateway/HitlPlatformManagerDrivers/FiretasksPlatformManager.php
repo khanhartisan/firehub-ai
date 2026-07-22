@@ -347,7 +347,7 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             ]);
             $downloadData = Json::decode($downloadResponse->getBody()->getContents(), true);
             foreach ($downloadData as $data) {
-                $filePath = 'hilt-platform-attachments/'.parse_url($this->getConfig()->get('base_url'), PHP_URL_HOST).'/'.$data['attachment'];
+                $filePath = 'hitl-platform-attachments/'.parse_url($this->getConfig()->get('base_url'), PHP_URL_HOST).'/'.$data['attachment'];
                 Storage::put($filePath, file_get_contents($data['download_url']));
 
                 $file = new File();

@@ -414,23 +414,27 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             ]);
             $uploadData = Json::decode($uploadResponse->getBody()->getContents(), true);
             foreach ($uploadData as $data) {
-                $fileReadStream = Storage::readStream($attachmentMap[$data['attachment']]->path);
+                $file = $attachmentMap[$data['attachment']];
+                $fileReadStream = Storage::readStream($file->path);
 
-                try {
-                    $s3Response = (new Client())->put($data['upload_url'], [
-                        'body' => $fileReadStream,
-                    ]);
+                // Upload attachment if not exists
+                if (!$data['exists']) {
+                    try {
+                        $s3Response = (new Client())->put($data['upload_url'], [
+                            'body' => $fileReadStream,
+                        ]);
 
-                    if ($s3Response->getStatusCode() < 200 || $s3Response->getStatusCode() >= 300) {
-                        throw new Exception('Failed to upload attachment to S3: ' . $data['attachment']);
-                    }
-                } finally {
-                    if (is_resource($fileReadStream)) {
-                        fclose($fileReadStream);
+                        if ($s3Response->getStatusCode() < 200 || $s3Response->getStatusCode() >= 300) {
+                            throw new Exception('Failed to upload attachment to S3: ' . $data['attachment']);
+                        }
+                    } finally {
+                        if (is_resource($fileReadStream)) {
+                            fclose($fileReadStream);
+                        }
                     }
                 }
 
-                $apiFiles[] = $data['attachment'];
+                $apiFiles[$file->id] = $data['attachment'];
             }
         }
 

@@ -420,7 +420,7 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
                 // Upload attachment if not exists
                 if (!$data['exists']) {
                     try {
-                        $s3Response = (new Client())->put($data['upload_url'], [
+                        $s3Response = new Client()->put($data['upload_url'], [
                             'body' => $fileReadStream,
                         ]);
 

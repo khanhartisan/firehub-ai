@@ -119,15 +119,45 @@ class OpenAITaskAgentTest extends TestCase
         $this->assertSame('Starting work', $action->getMessage()?->getMessage());
     }
 
-    public function test_action_skips_openai_for_terminal_statuses(): void
+    public function test_action_can_call_openai_for_completed_status(): void
     {
+        $payload = json_encode([
+            'should_act' => true,
+            'action' => [
+                'status' => TaskStatus::DOING->value,
+                'message' => [
+                    'human' => null,
+                    'message' => 'Please clarify the remaining open points.',
+                    'datetime' => null,
+                ],
+                'output' => null,
+            ],
+        ], JSON_THROW_ON_ERROR);
+
         $client = Mockery::mock(OpenAIClient::class);
-        $client->shouldNotReceive('createResponse');
+        $client->shouldReceive('createResponse')->once()->andReturn($this->completedResponse($payload));
+
+        $driver = new OpenAITaskAgent($client);
+        $action = $driver->action((new Task)->setStatus(TaskStatus::COMPLETED)->setTitle('Review'));
+
+        $this->assertInstanceOf(TaskAction::class, $action);
+        $this->assertSame(TaskStatus::DOING, $action->getStatus());
+        $this->assertSame('Please clarify the remaining open points.', $action->getMessage()?->getMessage());
+    }
+
+    public function test_action_returns_null_when_completed_needs_no_revision(): void
+    {
+        $payload = json_encode([
+            'should_act' => false,
+            'action' => null,
+        ], JSON_THROW_ON_ERROR);
+
+        $client = Mockery::mock(OpenAIClient::class);
+        $client->shouldReceive('createResponse')->once()->andReturn($this->completedResponse($payload));
 
         $driver = new OpenAITaskAgent($client);
 
         $this->assertNull($driver->action((new Task)->setStatus(TaskStatus::COMPLETED)));
-        $this->assertNull($driver->action((new Task)->setStatus(TaskStatus::REJECTED)));
     }
 
     public function test_action_respects_auto_action_config(): void

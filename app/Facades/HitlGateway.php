@@ -84,6 +84,29 @@ class HitlGateway
         if ($task->getStatus() === TaskStatus::COMPLETED) {
             $taskConclusion = $taskAgent->conclude($task);
 
+            // Missing information? Request revision
+            if (!$taskConclusion->isResolved()) {
+                $taskContext = $task->getContext() ?? new SemanticContext();
+                $taskContext->set(
+                    'revision',
+                    'Revision information to fix or ask for more information',
+                    'Although human marked the task as completed, but the AI agent believes that the critical information was missing or just partially answered. Let\'s consider if any action needed and spot the missing parts and ask human to revise.'
+                );
+                $task->setContext($taskContext);
+
+                // Revision needed
+                if ($action = $taskAgent->action($task)) {
+                    $action->setStatus(TaskStatus::PENDING);
+                    $hitlPlatformManager->updateTask($task->getReference(), $action);
+                    return null;
+                }
+                // No revision needed, mark as resolved
+                else {
+                    $taskContext->remove('revision');
+                    $taskConclusion->setResolved(true);
+                }
+            }
+
             $hitlTask->conclusion = $taskConclusion->toArray();
             $hitlTask->save();
 

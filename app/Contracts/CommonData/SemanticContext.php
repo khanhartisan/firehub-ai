@@ -111,6 +111,12 @@ class SemanticContext implements Clonable, ProvidesJsonSchema, Serializable
         return $this;
     }
 
+    public function remove(string $key): static
+    {
+        unset($this->data[$key]);
+        return $this;
+    }
+
     public function getWeight(string $key): ?float
     {
         if (! $this->has($key)) {

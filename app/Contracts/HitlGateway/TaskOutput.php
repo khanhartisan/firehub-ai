@@ -39,7 +39,7 @@ class TaskOutput implements Serializable
     /**
      * @param  File[]  $files
      */
-    public function setFiles(array $files): static
+    public function setFiles(iterable $files): static
     {
         $this->files = [];
 

@@ -146,6 +146,9 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
         ]);
     }
 
+    /**
+     * @throws GuzzleException
+     */
     protected function mapApiDataToTask(array $data): Task
     {
         return new Task()
@@ -354,6 +357,8 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
                 $file->url = $data['download_url'];
                 $file->path = $filePath;
                 $file->size = Storage::size($filePath);
+                $file->extension = pathinfo($filePath, PATHINFO_EXTENSION);
+                $file->mime_type = Storage::mimeType($filePath);
                 $file->save();
 
                 $meta = new Meta();
@@ -446,6 +451,9 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             ->setFiles($this->mapApiFilesToFiles($apiOutputFiles));
     }
 
+    /**
+     * @throws GuzzleException
+     */
     protected function mapTaskOutputToApiOutput(TaskOutput $taskOutput): array
     {
         return [

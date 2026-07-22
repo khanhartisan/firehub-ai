@@ -11,7 +11,7 @@ use App\Contracts\Serializable;
  * Build via ResponseInput::text(), ResponseInput::withImage(), or addText()/addImage()
  * and newMessage() for multi-turn. toArray() returns the messages array for the API.
  */
-final class ResponseInput implements Serializable
+class ResponseInput implements Serializable
 {
     use SerializableTrait;
 

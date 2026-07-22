@@ -2,16 +2,19 @@
 
 namespace App\Console\Commands;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\Message;
 use App\Contracts\HitlGateway\TaskAction;
 use App\Contracts\HitlGateway\TaskOutput;
 use App\Contracts\IntentResolver\Intentable;
+use App\Facades\HitlGateway;
 use App\Facades\HitlGateway\HitlPlatformManager;
+use App\Facades\HitlGateway\TaskAgent;
 use App\Facades\IntentResolver;
 use App\Facades\Platforms\FlyCms;
 use App\Facades\TextEmbedding;
 use App\Models\File;
-use App\Models\Platform;
+use App\Models\HitlPlatform;
 use App\Utils\Math;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -27,19 +30,24 @@ class TestCode extends Command
      */
     public function handle()
     {
-        $firetasks = HitlPlatformManager::driver('firetasks');
+        $agent = TaskAgent::driver('openai');
 
-        $task = $firetasks->updateTask(
-            11627,
-            new TaskAction()
-                ->setMessage(new Message()->setMessage('test upload file to task output'))
-                ->setOutput(
-                    new TaskOutput()
-                        ->setContent('sample output')
-                        ->setFiles(File::query()->where('id', '01ky48r8bpkhw5386rax86f90z')->get())
-                )
+        /** @var HitlPlatform $platform */
+        $platform = HitlPlatform::query()->firstOrCreate([
+            'is_active' => true,
+            'driver' => 'firetasks',
+            'name' => 'test-firetasks'
+        ]);
+
+        $conclusion = HitlGateway::askHuman(
+            'test-a-dummy-question-3',
+            $platform,
+            $agent,
+            new SemanticContext()
+                ->set('context', 'Bối cảnh của vấn đề', 'Công ty đang tổ chức party và cần đặt bàn')
+                ->set('needed_information', 'Thông tin cần được giải quyết', 'Cần biết có tổng bao nhiêu người, bao nhiêu nam, bao nhiêu nữ, bao nhiêu trẻ em')
         );
 
-        dump($task);
+        dump($conclusion?->toArray() ?? 'Awaiting human...');
     }
 }

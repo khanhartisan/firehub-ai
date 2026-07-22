@@ -240,10 +240,10 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
     protected function mapTaskStatusToApiStatus(TaskStatus $taskStatus): string
     {
         return match ($taskStatus) {
-            TaskStatus::DOING => 'doing',
-            TaskStatus::PENDING => 'pending',
-            TaskStatus::REJECTED => 'rejected',
-            TaskStatus::COMPLETED => 'completed',
+            TaskStatus::DOING => FiretasksTaskStatus::DOING->value,
+            TaskStatus::PENDING => FiretasksTaskStatus::PENDING->value,
+            TaskStatus::REJECTED => FiretasksTaskStatus::REJECTED->value,
+            TaskStatus::COMPLETED => FiretasksTaskStatus::COMPLETED->value,
         };
     }
 
@@ -494,10 +494,17 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
      */
     protected function mapTaskOutputToApiOutput(TaskOutput $taskOutput): array
     {
-        return [
-            'output' => $taskOutput->getContent(),
-            'output_attachments' => $this->mapFilesToApiFiles($taskOutput->getFiles()),
-        ];
+        $data = [];
+
+        if (!is_null($taskOutput->getContent())) {
+            $data['output'] = $taskOutput->getContent();
+        }
+
+        if (!is_null($taskOutput->getFiles())) {
+            $data['output_attachments'] = $this->mapFilesToApiFiles($taskOutput->getFiles());
+        }
+
+        return $data;
     }
 
     /**

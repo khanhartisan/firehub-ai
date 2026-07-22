@@ -80,10 +80,6 @@ class OpenAITaskAgent implements TaskAgent
             return null;
         }
 
-        if (in_array($task->getStatus(), [TaskStatus::COMPLETED, TaskStatus::REJECTED], true)) {
-            return null;
-        }
-
         $prompt = $this->buildActionPrompt($task);
         $data = $this->requestStructuredJson(
             $prompt,
@@ -196,13 +192,14 @@ PROMPT;
         return <<<PROMPT
 You are a Human-in-the-Loop task agent.
 
-Given the current task state, decide whether an automated action is needed now.
+Given the current task state, decide whether an action is needed now.
 Return should_act=false when the task should wait for a human or is already complete.
+Return should_act=true when the task needs human revision even if it is marked as completed, UNLESS there is a clear confirmation from the human that insists the problem was solved.
 
 Guidance:
+- Send message if need to ask human anything.
 - If status is pending, usually move to doing and optionally leave a short kickoff message.
 - If status is doing, only act when there is enough information to approve/reject or provide output; otherwise should_act=false.
-- If status is approved or rejected, should_act must be false.
 - Do not invent file IDs in output.files; leave files empty.
 
 Allowed status values: {$statusValues}
@@ -232,10 +229,12 @@ If result files from the task (especially output.files) are relevant to the conc
 Do not invent file IDs. Only use IDs from the known file ID list below.
 
 Set resolved based on whether the human settled the task concern:
-- resolved=false when the human's response is missing information or only partially answers the concern.
+- resolved=false when the human's response is missing information or only partially answers the concern regardless task status (even if task status is completed), DO NOT decide if the missing information is not important and mark as resolved=true by yourself, UNLESS there is a confirmation from the human told you so.
 - resolved=true when the human fully answered the concern.
-- resolved=true when there is a clear signal that the human insists the problem was answered (even if the answer seems incomplete).
-- resolved=true when the human indicates they do not know how to answer or cannot provide the requested information.
+- resolved=true when there is a clear confirmation from the human to your confirmation question that the human insists the problem was answered (even if the answer seems incomplete).
+- resolved=true when the human indicates and confirmed your confirmation question that they do not know how to answer or cannot provide the requested information.
+
+If the information is missing or just partially answered, and there's no confirmation question/answer to insist that the problem was solved, then you MUST mark resolved=false, even if a partial critical information was answered, regardless task status.
 
 Allowed status values (for interpreting the task): {$statusValues}
 Known file IDs: {$knownFileIdsJson}

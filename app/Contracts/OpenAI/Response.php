@@ -12,7 +12,7 @@ use App\Enums\OpenAI\ResponseStatus;
  * Built from API JSON; use getOutputText() or getFirstOutputText() to get
  * extracted text from message/output_text content for parsing.
  */
-final class Response implements Serializable
+class Response implements Serializable
 {
     use SerializableTrait;
 

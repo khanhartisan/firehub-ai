@@ -59,7 +59,7 @@ return [
         ],
 
         'openai' => [
-            'model' => env('HITL_TASK_AGENT_OPENAI_MODEL', 'gpt-4o-mini'),
+            'model' => env('HITL_TASK_AGENT_OPENAI_MODEL', 'gpt-5.4-mini'),
             'temperature' => (float) env('HITL_TASK_AGENT_OPENAI_TEMPERATURE', 0.2),
             'default_title' => env('HITL_TASK_AGENT_OPENAI_DEFAULT_TITLE', 'Untitled task'),
             'auto_action' => (bool) env('HITL_TASK_AGENT_OPENAI_AUTO_ACTION', true),
@@ -68,7 +68,7 @@ return [
         'openai_compatible' => [
             'model' => env(
                 'HITL_TASK_AGENT_OPENAI_COMPATIBLE_MODEL',
-                env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-4o-mini')
+                env('OPENAI_COMPATIBLE_DEFAULT_MODEL', 'gpt-5.4-mini')
             ),
             'temperature' => (float) env('HITL_TASK_AGENT_OPENAI_COMPATIBLE_TEMPERATURE', 0.2),
             'default_title' => env('HITL_TASK_AGENT_OPENAI_COMPATIBLE_DEFAULT_TITLE', 'Untitled task'),

@@ -11,7 +11,7 @@ use App\Contracts\Serializable;
  * Built via fluent setters or fromArray(); toArray() produces the payload for the API.
  * Used when calling OpenAIClient::createResponse().
  */
-final class ResponseOptions implements Serializable
+class ResponseOptions implements Serializable
 {
     use SerializableTrait;
 

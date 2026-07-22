@@ -360,6 +360,8 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
     /**
      * @param File[] $files
      * @return array Assoc array of fileId -> apiFilePath
+     * @throws GuzzleException
+     * @throws Exception
      */
     protected function mapFilesToApiFiles(array $files): array
     {
@@ -394,14 +396,21 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             ]);
             $uploadData = Json::decode($uploadResponse->getBody()->getContents(), true);
             foreach ($uploadData as $data) {
-
-                // S3 pre-signed upload url
-                $uploadUrl = $data['upload_url'];
-
-                // Local file read stream
                 $fileReadStream = Storage::readStream($attachmentMap[$data['attachment']]->path);
 
-                // TODO: Upload file to S3 presigned-url
+                try {
+                    $s3Response = (new Client())->put($data['upload_url'], [
+                        'body' => $fileReadStream,
+                    ]);
+
+                    if ($s3Response->getStatusCode() < 200 || $s3Response->getStatusCode() >= 300) {
+                        throw new Exception('Failed to upload attachment to S3: ' . $data['attachment']);
+                    }
+                } finally {
+                    if (is_resource($fileReadStream)) {
+                        fclose($fileReadStream);
+                    }
+                }
 
                 $apiFiles[] = $data['attachment'];
             }

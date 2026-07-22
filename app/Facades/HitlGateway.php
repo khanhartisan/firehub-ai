@@ -73,9 +73,11 @@ class HitlGateway
             return null;
         }
 
-        // Rejected means the human was unable to answer
+        // Rejected means the human was unable to answer — treat as resolved.
         if ($task->getStatus() === TaskStatus::REJECTED) {
-            return new TaskConclusion()->setConclusion('Human was unable to answer');
+            return (new TaskConclusion)
+                ->setResolved(true)
+                ->setConclusion('Human was unable to answer');
         }
 
         // Approved, make conclusion

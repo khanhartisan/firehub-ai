@@ -112,6 +112,7 @@ class HitlGatewayTest extends TestCase
         );
 
         $this->assertInstanceOf(TaskConclusion::class, $result);
+        $this->assertTrue($result->isResolved());
         $this->assertSame('Human was unable to answer', $result->getConclusion());
 
         $hitlTask = HitlTask::query()->sole();
@@ -134,7 +135,7 @@ class HitlGatewayTest extends TestCase
         $agent->shouldReceive('conclude')
             ->once()
             ->with(Mockery::on(fn (Task $task) => $task->getStatus() === TaskStatus::COMPLETED))
-            ->andReturn((new TaskConclusion)->setConclusion('Approved by human'));
+            ->andReturn((new TaskConclusion)->setResolved(true)->setConclusion('Approved by human'));
 
         $result = HitlGateway::askHuman(
             'internal-approved',
@@ -144,10 +145,12 @@ class HitlGatewayTest extends TestCase
         );
 
         $this->assertInstanceOf(TaskConclusion::class, $result);
+        $this->assertTrue($result->isResolved());
         $this->assertSame('Approved by human', $result->getConclusion());
 
         $hitlTask = HitlTask::query()->sole();
         $this->assertSame(TaskStatus::COMPLETED, $hitlTask->status);
+        $this->assertTrue($hitlTask->conclusion['resolved'] ?? false);
         $this->assertSame('Approved by human', $hitlTask->conclusion['conclusion'] ?? null);
         $this->assertSame([], $hitlTask->conclusion['files'] ?? null);
     }
@@ -188,7 +191,7 @@ class HitlGatewayTest extends TestCase
         $agent->shouldReceive('planTask')->never();
         $agent->shouldReceive('conclude')
             ->once()
-            ->andReturn((new TaskConclusion)->setConclusion('Final answer'));
+            ->andReturn((new TaskConclusion)->setResolved(true)->setConclusion('Final answer'));
 
         $result = HitlGateway::askHuman(
             'internal-reuse',
@@ -197,6 +200,7 @@ class HitlGatewayTest extends TestCase
             new SemanticContext
         );
 
+        $this->assertTrue($result?->isResolved());
         $this->assertSame('Final answer', $result?->getConclusion());
         $this->assertSame(1, HitlTask::query()->count());
         $this->assertSame(TaskStatus::COMPLETED, $hitlTask->fresh()->status);

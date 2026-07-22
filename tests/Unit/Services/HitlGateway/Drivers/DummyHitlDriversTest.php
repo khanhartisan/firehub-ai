@@ -51,9 +51,11 @@ class DummyHitlDriversTest extends TestCase
         );
 
         $this->assertInstanceOf(TaskConclusion::class, $withOutput);
+        $this->assertTrue($withOutput->isResolved());
         $this->assertSame('Approved with edits.', $withOutput->getConclusion());
 
         $fromStatus = $agent->conclude((new Task)->setStatus(TaskStatus::PENDING));
+        $this->assertFalse($fromStatus->isResolved());
         $this->assertSame('Task is pending.', $fromStatus->getConclusion());
     }
 

@@ -129,6 +129,7 @@ class OpenAITaskAgent implements TaskAgent
 
         // Model must not invent file IDs; keep only File instances already present on the task.
         return (new TaskConclusion)
+            ->setResolved((bool) ($data['resolved'] ?? false))
             ->setConclusion($conclusionText)
             ->setFiles($this->resolveKnownTaskFiles($task, $data['files'] ?? []));
     }
@@ -229,6 +230,12 @@ Summarize the outcome, key decisions, and any remaining open points based on sta
 Write the conclusion in Markdown when useful.
 If result files from the task (especially output.files) are relevant to the conclusion, include those file IDs in files.
 Do not invent file IDs. Only use IDs from the known file ID list below.
+
+Set resolved based on whether the human settled the task concern:
+- resolved=false when the human's response is missing information or only partially answers the concern.
+- resolved=true when the human fully answered the concern.
+- resolved=true when there is a clear signal that the human insists the problem was answered (even if the answer seems incomplete).
+- resolved=true when the human indicates they do not know how to answer or cannot provide the requested information.
 
 Allowed status values (for interpreting the task): {$statusValues}
 Known file IDs: {$knownFileIdsJson}
@@ -374,6 +381,10 @@ PROMPT;
         return [
             'type' => 'object',
             'properties' => [
+                'resolved' => [
+                    'type' => 'boolean',
+                    'description' => 'True when the human fully settled the concern (complete answer, insisted it was answered, or cannot answer); false when information is missing or only partial',
+                ],
                 'conclusion' => [
                     'type' => ['string', 'null'],
                     'description' => 'Markdown summary of the task\'s current conclusion',
@@ -384,7 +395,7 @@ PROMPT;
                     'description' => 'Relevant file IDs from the task/output; do not invent IDs',
                 ],
             ],
-            'required' => ['conclusion', 'files'],
+            'required' => ['resolved', 'conclusion', 'files'],
             'additionalProperties' => false,
         ];
     }

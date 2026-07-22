@@ -651,6 +651,7 @@ class TestHitlGatewayService extends Command
         $this->table(
             ['Field', 'Value'],
             [
+                ['resolved', $conclusion->isResolved() ? 'true' : 'false'],
                 ['conclusion', Str::limit((string) ($conclusion->getConclusion() ?? ''), 200) ?: '—'],
                 ['files', (string) count($conclusion->getFiles())],
             ]

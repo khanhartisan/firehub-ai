@@ -143,6 +143,7 @@ class OpenAITaskAgentTest extends TestCase
     public function test_conclude_keeps_known_task_files_and_strips_invented_ids(): void
     {
         $payload = json_encode([
+            'resolved' => true,
             'conclusion' => 'Approved after review.',
             'files' => ['output_file_1', 'invented-file-id'],
         ], JSON_THROW_ON_ERROR);
@@ -163,6 +164,7 @@ class OpenAITaskAgentTest extends TestCase
         );
 
         $this->assertInstanceOf(TaskConclusion::class, $conclusion);
+        $this->assertTrue($conclusion->isResolved());
         $this->assertSame('Approved after review.', $conclusion->getConclusion());
         $this->assertCount(1, $conclusion->getFiles());
         $this->assertSame('output_file_1', $conclusion->getFiles()[0]->getKey());

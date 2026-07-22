@@ -68,7 +68,14 @@ class DummyTaskAgent implements TaskAgent
             };
         }
 
-        $conclusion = (new TaskConclusion)->setConclusion($text);
+        $resolved = in_array($task->getStatus(), [
+            TaskStatus::COMPLETED,
+            TaskStatus::REJECTED,
+        ], true);
+
+        $conclusion = (new TaskConclusion)
+            ->setResolved($resolved)
+            ->setConclusion($text);
 
         $files = $task->getOutput()?->getFiles() ?? [];
         if ($files !== []) {

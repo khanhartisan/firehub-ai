@@ -2,10 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Contracts\HitlGateway\Message;
+use App\Contracts\HitlGateway\TaskAction;
+use App\Contracts\HitlGateway\TaskOutput;
 use App\Contracts\IntentResolver\Intentable;
+use App\Facades\HitlGateway\HitlPlatformManager;
 use App\Facades\IntentResolver;
 use App\Facades\Platforms\FlyCms;
 use App\Facades\TextEmbedding;
+use App\Models\File;
 use App\Models\Platform;
 use App\Utils\Math;
 use Illuminate\Console\Attributes\Description;
@@ -22,12 +27,19 @@ class TestCode extends Command
      */
     public function handle()
     {
-        $platform = Platform::query()->firstOrFail();
-        $flycms = FlyCms::driver();
-        $flycms->setConfig($platform->config);
+        $firetasks = HitlPlatformManager::driver('firetasks');
 
-        $websiteId = '01kvygs0jdsmkp82p282p4m0v4';
+        $task = $firetasks->updateTask(
+            11627,
+            new TaskAction()
+                ->setMessage(new Message()->setMessage('test upload file to task output'))
+                ->setOutput(
+                    new TaskOutput()
+                        ->setContent('sample output')
+                        ->setFiles(File::query()->where('id', '01ky48r8bpkhw5386rax86f90z')->get())
+                )
+        );
 
-        dump($flycms->listAuthors($websiteId));
+        dump($task);
     }
 }

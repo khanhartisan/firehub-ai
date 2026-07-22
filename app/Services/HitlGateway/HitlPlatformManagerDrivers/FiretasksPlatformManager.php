@@ -2,7 +2,6 @@
 
 namespace App\Services\HitlGateway\HitlPlatformManagerDrivers;
 
-use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Config;
 use App\Contracts\HitlGateway\HitlPlatformManager;
 use App\Contracts\HitlGateway\Human;
@@ -70,7 +69,7 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
      * @throws Exception
      * @throws CommonMarkException
      */
-    public function createTask(Task $task, ?SemanticContext $hitlPlatformContext = null): bool
+    public function createTask(Task $task): bool
     {
         $createResponse = $this->getApiClient()->post('/api/tasks', [
             'json' => $this->mapTaskToMutationData($task)
@@ -84,7 +83,7 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
      * @throws Exception
      * @throws CommonMarkException
      */
-    public function updateTask(Task $task, TaskAction $action, ?SemanticContext $hitlPlatformContext = null): bool
+    public function updateTask(Task $task, TaskAction $action): bool
     {
         $mutationData = $this->mapTaskToMutationData($task);
 

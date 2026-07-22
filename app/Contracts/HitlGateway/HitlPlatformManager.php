@@ -2,7 +2,6 @@
 
 namespace App\Contracts\HitlGateway;
 
-use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Configurable;
 use App\Contracts\Contextable;
 
@@ -20,18 +19,16 @@ interface HitlPlatformManager extends Configurable, Contextable
      * This method will mutate the Task if created successfully
      *
      * @param Task $task
-     * @param SemanticContext|null $hitlPlatformContext
      * @return bool
      */
-    public function createTask(Task $task, ?SemanticContext $hitlPlatformContext = null): bool;
+    public function createTask(Task $task): bool;
 
     /**
      * This method will mutate the task if updated successfully
      *
      * @param Task $task
      * @param TaskAction $action
-     * @param SemanticContext|null $hitlPlatformContext
      * @return bool
      */
-    public function updateTask(Task $task, TaskAction $action, ?SemanticContext $hitlPlatformContext = null): bool;
+    public function updateTask(Task $task, TaskAction $action): bool;
 }

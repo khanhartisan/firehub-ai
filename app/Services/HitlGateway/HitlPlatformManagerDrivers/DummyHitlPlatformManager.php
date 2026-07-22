@@ -2,7 +2,6 @@
 
 namespace App\Services\HitlGateway\HitlPlatformManagerDrivers;
 
-use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\HitlPlatformManager;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
@@ -26,10 +25,10 @@ class DummyHitlPlatformManager extends AbstractHitlPlatformManager implements Hi
         return Task::fromArray($this->tasks[$reference]);
     }
 
-    public function createTask(Task $task, ?SemanticContext $hitlPlatformContext = null): bool
+    public function createTask(Task $task): bool
     {
-        if ($hitlPlatformContext !== null) {
-            $task->setContext($hitlPlatformContext);
+        if ($context = $this->getContext()) {
+            $task->setContext($context);
         }
 
         $reference = trim((string) $task->getReference());
@@ -48,7 +47,7 @@ class DummyHitlPlatformManager extends AbstractHitlPlatformManager implements Hi
         return true;
     }
 
-    public function updateTask(Task $task, TaskAction $action, ?SemanticContext $hitlPlatformContext = null): bool
+    public function updateTask(Task $task, TaskAction $action): bool
     {
         $reference = trim((string) $task->getReference());
         if ($reference === '' || ! isset($this->tasks[$reference])) {
@@ -57,9 +56,9 @@ class DummyHitlPlatformManager extends AbstractHitlPlatformManager implements Hi
 
         $stored = Task::fromArray($this->tasks[$reference]);
 
-        if ($hitlPlatformContext !== null) {
-            $stored->setContext($hitlPlatformContext);
-            $task->setContext($hitlPlatformContext);
+        if ($context = $this->getContext()) {
+            $stored->setContext($context);
+            $task->setContext($context);
         }
 
         if ($action->getStatus() !== null) {

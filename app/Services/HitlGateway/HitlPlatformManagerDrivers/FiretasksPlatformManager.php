@@ -15,6 +15,7 @@ use App\Models\File;
 use App\Models\Meta;
 use App\Utils\Json;
 use App\Utils\Markdown;
+use App\Utils\Str;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -303,7 +304,7 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
 
         $apiFiles = array_values(array_unique(array_filter($apiFiles)));
 
-        $metaKeyGenerator = fn (string $apiFilePath) => $this->getConfig()->get('base_url').':file:'.$apiFilePath;
+        $metaKeyGenerator = fn (string $apiFilePath) => $this->getConfig()->get('base_url').':file:'.sha1($apiFilePath);
 
         // Collect existing file models
         $files = array_values(array_filter(array_map(function ($apiFilePath) use ($fileMorphClass, $metaKeyGenerator, &$apiFiles) {
@@ -346,6 +347,7 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
                 $meta->metable_type = $fileMorphClass;
                 $meta->metable_id = $file->id;
                 $meta->key = $metaKeyGenerator($data['attachment']);
+                $meta->value = $data['attachment'];
                 $meta->save();
 
                 $files[] = $file;
@@ -357,17 +359,52 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
 
     /**
      * @param File[] $files
-     * @return array
+     * @return array Assoc array of fileId -> apiFilePath
      */
     protected function mapFilesToApiFiles(array $files): array
     {
         $apiFiles = [];
-        foreach ($files as $file) {
+        foreach ($files as $key => $file) {
             if (!$file instanceof File) {
                 continue;
             }
 
-            // TODO: Implement this
+            if (!$meta = $file
+                ->meta()
+                ->where('key', 'like', $this->getConfig()->get('base_url').':file:%')
+                ->first()
+            ) {
+                continue;
+            }
+
+            unset($files[$key]);
+            $apiFiles[$file->id] = $meta->value;
+        }
+
+        if (count($files)) {
+            $attachmentMap = [];
+            $uploadResponse = $this->getApiClient()->post('/api/attachments:upload', [
+                'json' => [
+                    'attachments' => array_map(function (File $file) use (&$attachmentMap) {
+                        $attachment = Str::slug(env('APP_NAME')).'/'.date('Y/m').'/'.$file->id.'.'.($file->extension ?? 'unknown');
+                        $attachmentMap[$attachment] = $file;
+                        return $attachment;
+                    }, array_values($files)),
+                ]
+            ]);
+            $uploadData = Json::decode($uploadResponse->getBody()->getContents(), true);
+            foreach ($uploadData as $data) {
+
+                // S3 pre-signed upload url
+                $uploadUrl = $data['upload_url'];
+
+                // Local file read stream
+                $fileReadStream = Storage::readStream($attachmentMap[$data['attachment']]->path);
+
+                // TODO: Upload file to S3 presigned-url
+
+                $apiFiles[] = $data['attachment'];
+            }
         }
 
         return $apiFiles;

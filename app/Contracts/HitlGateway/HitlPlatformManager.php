@@ -26,9 +26,9 @@ interface HitlPlatformManager extends Configurable, Contextable
     /**
      * This method will mutate the task if updated successfully
      *
-     * @param Task $task
+     * @param string $reference
      * @param TaskAction $action
-     * @return bool
+     * @return ?Task $task
      */
-    public function updateTask(Task $task, TaskAction $action): bool;
+    public function updateTask(string $reference, TaskAction $action): ?Task;
 }

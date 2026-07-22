@@ -47,37 +47,33 @@ class DummyHitlPlatformManager extends AbstractHitlPlatformManager implements Hi
         return true;
     }
 
-    public function updateTask(Task $task, TaskAction $action): bool
+    public function updateTask(string $reference, TaskAction $action): ?Task
     {
-        $reference = trim((string) $task->getReference());
+        $reference = trim($reference);
         if ($reference === '' || ! isset($this->tasks[$reference])) {
-            return false;
+            return null;
         }
 
         $stored = Task::fromArray($this->tasks[$reference]);
 
         if ($context = $this->getContext()) {
             $stored->setContext($context);
-            $task->setContext($context);
         }
 
         if ($action->getStatus() !== null) {
             $stored->setStatus($action->getStatus());
-            $task->setStatus($action->getStatus());
         }
 
         if ($action->getMessage() !== null) {
             $stored->addMessage($action->getMessage());
-            $task->addMessage($action->getMessage());
         }
 
         if ($action->getOutput() !== null) {
             $stored->setOutput($action->getOutput());
-            $task->setOutput($action->getOutput());
         }
 
         $this->tasks[$reference] = $stored->toArray();
 
-        return true;
+        return $stored;
     }
 }

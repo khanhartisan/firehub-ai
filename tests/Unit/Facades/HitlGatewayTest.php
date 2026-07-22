@@ -178,8 +178,8 @@ class HitlGatewayTest extends TestCase
         $platformTask = $manager->fetchTask($hitlTask->hitl_platform_reference);
         $this->assertNotNull($platformTask);
 
-        $this->assertTrue($manager->updateTask(
-            $platformTask,
+        $this->assertNotNull($manager->updateTask(
+            $platformTask->getReference(),
             (new TaskAction)
                 ->setStatus(TaskStatus::COMPLETED)
                 ->setOutput((new TaskOutput)->setContent('Final answer'))

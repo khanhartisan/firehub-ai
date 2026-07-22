@@ -256,11 +256,11 @@ class TestHitlGatewayService extends Command
 
         $updated = $this->timedCall(
             'updateTask',
-            fn () => $platform->updateTask($task, $action)
+            fn () => $platform->updateTask($task->getReference(), $action)
         );
 
-        $this->info('updateTask() => '.($updated ? 'true' : 'false'));
-        $this->displayTask($task, 'Task after update');
+        $this->info('updateTask() => '.($updated ? 'task returned' : 'null'));
+        $this->displayTask($updated ?? $task, 'Task after update');
 
         return $updated ? self::SUCCESS : self::FAILURE;
     }
@@ -286,12 +286,13 @@ class TestHitlGatewayService extends Command
         if ($action !== null) {
             $updated = $this->timedCall(
                 'updateTask',
-                fn () => $platform->updateTask($task, $action)
+                fn () => $platform->updateTask($task->getReference(), $action)
             );
-            $this->info('4. updateTask() => '.($updated ? 'true' : 'false'));
+            $this->info('4. updateTask() => '.($updated ? 'task returned' : 'null'));
             if (! $updated) {
                 return self::FAILURE;
             }
+            $task = $updated;
             $this->displayTask($task, 'Task after update');
         } else {
             $this->warn('4. Skipped updateTask (agent returned no action).');

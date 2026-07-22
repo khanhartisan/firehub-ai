@@ -79,14 +79,15 @@ class DummyHitlDriversTest extends TestCase
             ->setMessage((new Message)->setMessage('Looks good'))
             ->setOutput((new TaskOutput)->setContent('Approved output'));
 
-        $this->assertTrue($platform->updateTask($task, $action));
-        $this->assertSame(TaskStatus::COMPLETED, $task->getStatus());
-        $this->assertCount(1, $task->getMessages());
-        $this->assertSame('Approved output', $task->getOutput()->getContent());
-
-        $updated = $platform->fetchTask($task->getReference());
+        $updated = $platform->updateTask($task->getReference(), $action);
+        $this->assertNotNull($updated);
         $this->assertSame(TaskStatus::COMPLETED, $updated->getStatus());
-        $this->assertSame('Looks good', $updated->getMessages()[0]->getMessage());
+        $this->assertCount(1, $updated->getMessages());
+        $this->assertSame('Approved output', $updated->getOutput()->getContent());
+
+        $fetched = $platform->fetchTask($task->getReference());
+        $this->assertSame(TaskStatus::COMPLETED, $fetched->getStatus());
+        $this->assertSame('Looks good', $fetched->getMessages()[0]->getMessage());
     }
 
     public function test_platform_manager_rejects_duplicate_reference_on_create(): void

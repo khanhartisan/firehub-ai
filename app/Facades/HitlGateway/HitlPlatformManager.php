@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static HitlPlatformManagerContract driver(string|null $driver = null)
  * @method static Task|null fetchTask(string $reference)
  * @method static bool createTask(Task $task)
- * @method static bool updateTask(Task $task, TaskAction $action)
+ * @method static Task|null updateTask(string $reference, TaskAction $action)
  *
  * @see \App\Services\HitlGateway\HitlPlatformManagerManager
  */

@@ -81,45 +81,50 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
     /**
      * @throws GuzzleException
      * @throws Exception
-     * @throws CommonMarkException
      */
-    public function updateTask(Task $task, TaskAction $action): bool
+    public function updateTask(string $reference, TaskAction $action): ?Task
     {
-        $mutationData = $this->mapTaskToMutationData($task);
+        $mutationData = [];
 
         // Set a new status
-        if ($action->getStatus() and $newStatus = $this->mapTaskStatusToApiStatus($task, $action->getStatus())) {
+        if ($action->getStatus() and $newStatus = $this->mapTaskStatusToApiStatus($action->getStatus())) {
             $mutationData['status'] = $newStatus;
         }
 
         // Set a new task output
         if ($output = $action->getOutput()) {
-            $apiOutput = $this->mapTaskOutputToApiOutput($output);
-            $mutationData = array_merge($mutationData, $apiOutput);
+            $mutationData = array_merge($mutationData, $this->mapTaskOutputToApiOutput($output));
         }
 
         // Send update request
-        $updateResponse = $this
-            ->getApiClient()
-            ->patch('/api/tasks/' . $task->getReference(), [
-                'json' => $mutationData
-            ]);
+        if ($mutationData) {
+            $updateResponse = $this
+                ->getApiClient()
+                ->patch('/api/tasks/' . $reference, [
+                    'json' => $mutationData
+                ]);
+
+            if ($updateResponse->getStatusCode() !== 200) {
+                return null;
+            }
+        }
 
         // Post message
         if ($message = $action->getMessage()) {
             $messageResponse = $this->getApiClient()->post('/api/messages', [
                 'json' => [
                     'resource_type' => 'task',
-                    'resource_id' => $task->getReference(),
+                    'resource_id' => $reference,
                     'content' => $message->getMessage(),
                 ]
             ]);
+
+            if ($messageResponse->getStatusCode() !== 201) {
+                return null;
+            }
         }
 
-        return $updateResponse->getStatusCode() === 200
-            and (!isset($messageResponse)
-                or $messageResponse->getStatusCode() === 201
-            );
+        return $this->fetchTask($reference);
     }
 
     public function makeConfig(): ?Config
@@ -195,7 +200,7 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
         };
     }
 
-    protected function mapTaskStatusToApiStatus(Task $task, TaskStatus $taskStatus): string
+    protected function mapTaskStatusToApiStatus(TaskStatus $taskStatus): string
     {
         return match ($taskStatus) {
             TaskStatus::DOING => 'doing',

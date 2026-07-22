@@ -6,6 +6,7 @@ use App\Contracts\Config;
 use App\Contracts\HitlGateway\HitlPlatformManager;
 use App\Contracts\HitlGateway\Human;
 use App\Contracts\HitlGateway\Message;
+use App\Contracts\HitlGateway\Role;
 use App\Contracts\HitlGateway\Task;
 use App\Contracts\HitlGateway\TaskAction;
 use App\Contracts\HitlGateway\TaskOutput;
@@ -156,15 +157,24 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
             ->setTitle($data['title'])
             ->setDescription($data['description'])
             ->setStatus($this->mapApiStatusToTaskStatus($data['status']))
-            ->setAssignee($this->mapUserIdToHuman($data['assignee_id']))
-            ->setAdvisor($this->mapUserIdToHuman($data['advisor_id']))
-            ->setOwner($this->mapUserIdToHuman($data['owner_id']))
+            ->setAssignee(
+                $this->mapUserIdToHuman($data['assignee_id'])
+                    ?->setRole(Role::ASSIGNEE)
+            )
+            ->setAdvisor(
+                $this->mapUserIdToHuman($data['advisor_id'])
+                    ?->setRole(Role::ADVISOR)
+            )
+            ->setOwner(
+                $this->mapUserIdToHuman($data['owner_id'])
+                    ?->setRole(Role::OWNER)
+            )
             ->setFiles($this->mapApiFilesToFiles($data['attachments']))
             ->setOutput($this->mapApiOutputToTaskOutput($data['output'], $data['output_attachments']));
     }
 
     /**
-     * @throws CommonMarkException
+     * @throws CommonMarkException|GuzzleException
      */
     protected function mapTaskToMutationData(Task $task): array
     {
@@ -184,6 +194,10 @@ class FiretasksPlatformManager extends AbstractHitlPlatformManager implements Hi
 
         if ($owner = $task->getOwner()) {
             $data['owner_id'] = $this->mapHumanToUserId($owner);
+        }
+
+        if (!isset($data['owner_id'])) {
+            $this->getConfig()->get('default_responsible_user_id');
         }
 
         if ($files = $task->getFiles()) {

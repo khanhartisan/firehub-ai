@@ -16,6 +16,7 @@ use App\Jobs\BuildArticleJobConcerns\HandleTaggingStage;
 use App\Jobs\BuildArticleJobConcerns\HandleResearchStage;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleBuildFiles;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithArticleStageData;
+use App\Jobs\BuildArticleJobConcerns\InteractsWithHitlPlatform;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSemanticContext;
 use App\Jobs\BuildArticleJobConcerns\InteractsWithSynthesizer;
 use App\Jobs\Concerns\HasManualLock;
@@ -56,6 +57,7 @@ class BuildArticleJob implements ShouldQueue, ShouldBeUniqueUntilProcessing
     use InteractsWithArticleStageData;
     use InteractsWithSemanticContext;
     use InteractsWithSynthesizer;
+    use InteractsWithHitlPlatform;
     use HasManualLock;
     use HandleIdeaStage;
     use HandleResearchStage;

@@ -7,6 +7,8 @@ use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
 use App\Contracts\Synthesizer\IdeaForge\IdeaAuditReport;
 use App\Enums\ArticleStatus;
+use App\Enums\HitlHook;
+use App\Facades\HitlGateway;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageBrainstorm;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageContext;
 use App\Jobs\BuildArticleJobConcerns\HandleIdeaStageConcerns\HandleIdeaStageIntentMerging;
@@ -166,6 +168,36 @@ trait HandleIdeaStage
 
         // 7) Pick one winning idea if not picked (limit 1).
         if (! $ideaData->getPickedIdeaAuditReport() instanceof IdeaAuditReport) {
+
+            // Human in the loop
+            if ($this->hasHitlHook(HitlHook::BUILD_ARTICLE__IDEA__PICK)) {
+
+                // Ask the human
+                $taskConclusion = HitlGateway::askHuman(
+                    $this->article->id.'--idea-pick',
+                    $this->getHitlPlatform(),
+                    HitlGateway\TaskAgent::driver(),
+                    $ideaBrainstormContext
+                        ->clone()
+                        ->set(
+                            'task_requirement',
+                            'The task requirement for the human',
+                            'We need to ask the human to choose an idea from the suggested list, it is okay if the human choose not to pick anything to delegate the picking job to the AI agent in the next process.'
+                        )
+                );
+
+                // Awaiting human
+                if (!$taskConclusion) {
+                    return null;
+                }
+
+                $ideaBrainstormContext->set(
+                    'human_decision',
+                    'The human decision, if human decides to prefer an idea, the human decision will be prioritized, if human does not decide then you can pick on your opinion',
+                    $taskConclusion->getConclusion()
+                );
+            }
+
             $pickedList = $this->getIdeaForgeService()->getIdeaPicker()->pick($ideaAuditReports, $ideaBrainstormContext, 1) ?? [];
             $pickedReport = $pickedList[0] ?? null;
             if (! $pickedReport instanceof IdeaAuditReport) {

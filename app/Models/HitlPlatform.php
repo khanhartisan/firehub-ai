@@ -6,21 +6,30 @@ use App\Casts\SemanticContextCast;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\HitlPlatformConfig;
 use App\Contracts\HitlGateway\HitlPlatformManager;
+use App\Enums\HitlHook;
+use Illuminate\Database\Eloquent\Casts\AsEnumCollection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use KhanhArtisan\LaravelBackbone\RelationCascade\CascadeDetails;
 use KhanhArtisan\LaravelBackbone\RelationCascade\Cascades;
 use KhanhArtisan\LaravelBackbone\RelationCascade\ShouldCascade;
 
+/**
+ * @property Collection<int, HitlHook>|null $hooks
+ */
 class HitlPlatform extends Model implements ShouldCascade
 {
     use Cascades;
 
-    protected $casts = [
-        'is_active' => 'boolean',
-        'config' => 'array',
-        'context' => SemanticContextCast::class,
-        'hooks' => 'array',
-    ];
+    protected function casts()
+    {
+        return [
+            'is_active' => 'boolean',
+            'config' => 'array',
+            'context' => SemanticContextCast::class,
+            'hooks' => AsEnumCollection::of(HitlHook::class),
+        ];
+    }
 
     public function getCascadeDetails(): CascadeDetails|array
     {

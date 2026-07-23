@@ -8,7 +8,6 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
@@ -22,7 +21,7 @@ use Illuminate\Validation\ValidationException;
  * Build Filament form UI for SemanticContext values, converting to/from the
  * stored {description, value, weight} envelope shape.
  *
- * Pre-defined schema fields expose a locked name/description and an editable
+ * Pre-defined schema fields show a fixed label + description with an editable
  * value. Extra custom fields can be added freely (schema-free).
  */
 final class SemanticContextForm
@@ -64,7 +63,8 @@ final class SemanticContextForm
      */
     public static function fields(SemanticContext $context, string $statePathPrefix = ''): array
     {
-        $schema = $context->toJsonSchema(new JsonSchemaTypeFactory);
+        $template = $context->withEmptyFields(recursive: true, clone: true);
+        $schema = $template->toJsonSchema(new JsonSchemaTypeFactory);
         $reservedKeys = array_map('strval', array_keys($schema));
         $fields = [];
 
@@ -75,7 +75,11 @@ final class SemanticContextForm
 
             $key = (string) $key;
             $path = $statePathPrefix === '' ? $key : $statePathPrefix.'.'.$key;
-            $fields[] = self::predefinedFieldset($key, $path, $type);
+            $description = $template->getDescription($key)
+                ?? self::descriptionFromType($type)
+                ?? Str::headline($key);
+
+            $fields[] = self::predefinedSection($key, $path, $type, $description);
         }
 
         $fields[] = self::customFieldsRepeater($reservedKeys, $statePathPrefix);
@@ -97,12 +101,6 @@ final class SemanticContextForm
             if ($envelope === [] && $state !== [] && ! self::looksLikeContextData($state)) {
                 // Already flat form state (e.g. livewire re-entry)
                 if (array_key_exists(self::CUSTOM_FIELDS_KEY, $state)) {
-                    $template = $template !== null ? self::resolveTemplate($template) : null;
-
-                    if ($template !== null && blank($state['__locked'] ?? null)) {
-                        $state['__locked'] = self::lockedMetaForTemplate($template);
-                    }
-
                     return $state;
                 }
             }
@@ -116,9 +114,7 @@ final class SemanticContextForm
             : [];
         $schemaKeys = array_map('strval', array_keys($schema));
 
-        $form = [
-            '__locked' => $template !== null ? self::lockedMetaForTemplate($template) : [],
-        ];
+        $form = [];
         $custom = [];
 
         foreach ($envelope as $key => $entry) {
@@ -151,32 +147,6 @@ final class SemanticContextForm
     }
 
     /**
-     * @return array<string, array{key: string, description: string}>
-     */
-    private static function lockedMetaForTemplate(SemanticContext $template): array
-    {
-        $template = $template->withEmptyFields(recursive: true, clone: true);
-        $schema = $template->toJsonSchema(new JsonSchemaTypeFactory);
-        $locked = [];
-
-        foreach ($schema as $key => $type) {
-            if (! $type instanceof Type) {
-                continue;
-            }
-
-            $key = (string) $key;
-            $locked[$key] = [
-                'key' => $key,
-                'description' => $template->getDescription($key)
-                    ?? self::descriptionFromType($type)
-                    ?? Str::headline($key),
-            ];
-        }
-
-        return $locked;
-    }
-
-    /**
      * Rebuild a SemanticContext::toArray() envelope from flat form values.
      *
      * @param  array<string, mixed>  $flat
@@ -188,8 +158,6 @@ final class SemanticContextForm
         $schema = $template->toJsonSchema(new JsonSchemaTypeFactory);
         $reservedKeys = array_map('strval', array_keys($schema));
         $envelope = [];
-
-        unset($flat['__locked']);
 
         foreach ($schema as $key => $type) {
             if (! $type instanceof Type || ! array_key_exists($key, $flat)) {
@@ -251,11 +219,12 @@ final class SemanticContextForm
         return $template::fromArray($envelope)->toArray();
     }
 
-    private static function predefinedFieldset(
+    private static function predefinedSection(
         string $key,
         string $path,
         Type $type,
-    ): Fieldset {
+        string $description,
+    ): Section {
         $valueComponents = SchemaFormFieldsFromJsonSchema::make(
             [$key => $type],
             self::parentPath($path, $key),
@@ -264,27 +233,17 @@ final class SemanticContextForm
         foreach ($valueComponents as $component) {
             if ($component instanceof Field) {
                 $component
-                    ->label('Value')
+                    ->hiddenLabel()
                     ->helperText(null);
             }
         }
 
-        return Fieldset::make($key)
-            ->label(Str::headline($key))
-            ->schema([
-                TextInput::make('__locked.'.$key.'.key')
-                    ->label('Field')
-                    ->disabled()
-                    ->dehydrated(false),
-                Textarea::make('__locked.'.$key.'.description')
-                    ->label('Description')
-                    ->rows(2)
-                    ->disabled()
-                    ->dehydrated(false),
-                ...$valueComponents,
-            ])
+        return Section::make(Str::headline($key))
+            ->description($description)
+            ->schema($valueComponents)
             ->columns(1)
-            ->columnSpanFull();
+            ->columnSpanFull()
+            ->compact();
     }
 
     /**

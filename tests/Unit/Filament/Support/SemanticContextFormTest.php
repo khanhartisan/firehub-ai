@@ -13,7 +13,6 @@ use App\Filament\Support\SemanticContextForm;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Tests\TestCase;
@@ -49,10 +48,6 @@ class SemanticContextFormTest extends TestCase
                 'value' => 'Prefer concise answers',
             ],
         ], $flat[SemanticContextForm::CUSTOM_FIELDS_KEY]);
-        $this->assertSame('name', $flat['__locked']['name']['key']);
-        $this->assertNotSame('', $flat['__locked']['name']['description']);
-        $this->assertSame('industry', $flat['__locked']['industry']['key']);
-        $this->assertNotSame('', $flat['__locked']['industry']['description']);
 
         $envelope = SemanticContextForm::fromFormState($flat, ClientContext::class);
         $hydrated = ClientContext::fromArray($envelope);
@@ -130,8 +125,8 @@ class SemanticContextFormTest extends TestCase
     {
         $fields = SemanticContextForm::fields(new HitlPlatformContext);
 
-        $fieldsets = collect($fields)->filter(fn ($field) => $field instanceof Fieldset);
-        $this->assertGreaterThanOrEqual(3, $fieldsets->count());
+        $sections = collect($fields)->filter(fn ($field) => $field instanceof Section);
+        $this->assertGreaterThanOrEqual(3, $sections->count());
 
         $custom = collect($fields)->first(fn ($field) => $field instanceof Repeater);
         $this->assertInstanceOf(Repeater::class, $custom);

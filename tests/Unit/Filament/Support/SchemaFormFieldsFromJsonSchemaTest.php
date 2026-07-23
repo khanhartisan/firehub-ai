@@ -7,6 +7,7 @@ use App\Services\HitlGateway\HitlPlatformManagerDrivers\FiretasksPlatformManager
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Fieldset;
@@ -24,7 +25,7 @@ class SchemaFormFieldsFromJsonSchemaTest extends TestCase
 
         $byName = collect($fields)->keyBy(fn ($field) => $field->getName());
 
-        $this->assertInstanceOf(TextInput::class, $byName['config.base_url']);
+        $this->assertInstanceOf(Textarea::class, $byName['config.base_url']);
         $this->assertTrue($byName['config.base_url']->isRequired());
 
         $this->assertInstanceOf(TextInput::class, $byName['config.api_key']);
@@ -36,7 +37,7 @@ class SchemaFormFieldsFromJsonSchemaTest extends TestCase
         $this->assertInstanceOf(TextInput::class, $byName['config.default_responsible_user_id']);
         $this->assertTrue($byName['config.default_responsible_user_id']->isRequired());
 
-        $this->assertInstanceOf(TextInput::class, $byName['config.note']);
+        $this->assertInstanceOf(Textarea::class, $byName['config.note']);
         $this->assertFalse($byName['config.note']->isRequired());
     }
 
@@ -54,6 +55,7 @@ class SchemaFormFieldsFromJsonSchemaTest extends TestCase
             'items' => $factory->array()->items($factory->object([
                 'label' => $factory->string()->required(),
             ])),
+            'secret' => $factory->string(),
         ], 'config');
 
         $this->assertInstanceOf(Toggle::class, $fields[0]);
@@ -62,17 +64,30 @@ class SchemaFormFieldsFromJsonSchemaTest extends TestCase
         $this->assertInstanceOf(Select::class, $fields[1]);
         $this->assertSame('config.mode', $fields[1]->getName());
 
-        $this->assertInstanceOf(TagsInput::class, $fields[2]);
+        $this->assertInstanceOf(Textarea::class, $fields[2]);
         $this->assertSame('config.tags', $fields[2]->getName());
 
         $this->assertInstanceOf(Fieldset::class, $fields[3]);
 
         $this->assertInstanceOf(Repeater::class, $fields[4]);
         $this->assertSame('config.items', $fields[4]->getName());
+
+        $this->assertInstanceOf(TextInput::class, $fields[5]);
+        $this->assertSame('config.secret', $fields[5]->getName());
     }
 
     public function test_returns_empty_array_for_empty_schema(): void
     {
         $this->assertSame([], SchemaFormFieldsFromJsonSchema::make([]));
+    }
+
+    public function test_numeric_arrays_still_use_tags_input(): void
+    {
+        $factory = new JsonSchemaTypeFactory;
+        $fields = SchemaFormFieldsFromJsonSchema::make([
+            'ids' => $factory->array()->items($factory->integer()),
+        ]);
+
+        $this->assertInstanceOf(TagsInput::class, $fields[0]);
     }
 }

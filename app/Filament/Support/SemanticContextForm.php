@@ -259,9 +259,6 @@ final class SemanticContextForm
         $valueComponents = SchemaFormFieldsFromJsonSchema::make(
             [$key => $type],
             self::parentPath($path, $key),
-            [
-                'stringsAsTextarea' => true,
-            ],
         );
 
         foreach ($valueComponents as $component) {

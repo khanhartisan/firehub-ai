@@ -13,7 +13,6 @@ use App\Filament\Support\SemanticContextForm;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
@@ -96,32 +95,24 @@ class SemanticContextFormTest extends TestCase
 
     public function test_predefined_fields_use_textarea_by_default_for_strings(): void
     {
-        $fields = SchemaFormFieldsFromJsonSchema::make(
-            [
-                'name' => (new JsonSchemaTypeFactory)->string(),
-            ],
-            '',
-            ['stringsAsTextarea' => true],
-        );
+        $fields = SchemaFormFieldsFromJsonSchema::make([
+            'name' => (new JsonSchemaTypeFactory)->string(),
+        ]);
 
         $this->assertInstanceOf(Textarea::class, $fields[0]);
     }
 
-    public function test_string_arrays_use_textarea_when_strings_as_textarea_option_enabled(): void
+    public function test_string_arrays_use_textarea_by_default(): void
     {
         $factory = new JsonSchemaTypeFactory;
-        $fields = SchemaFormFieldsFromJsonSchema::make(
-            [
-                'guidelines' => $factory->array()->items($factory->string()),
-            ],
-            '',
-            ['stringsAsTextarea' => true],
-        );
+        $fields = SchemaFormFieldsFromJsonSchema::make([
+            'guidelines' => $factory->array()->items($factory->string()),
+        ]);
 
         $this->assertInstanceOf(Textarea::class, $fields[0]);
     }
 
-    public function test_schema_fields_keep_specialized_inputs_without_textarea_option(): void
+    public function test_schema_fields_keep_specialized_inputs_for_enums(): void
     {
         $fields = SchemaFormFieldsFromJsonSchema::make(
             (new AudienceContext)->toJsonSchema(new JsonSchemaTypeFactory)
@@ -132,7 +123,7 @@ class SemanticContextFormTest extends TestCase
 
         $this->assertInstanceOf(Textarea::class, $byName['description']);
         $this->assertInstanceOf(Select::class, $byName['countries']);
-        $this->assertInstanceOf(TextInput::class, $byName['name']);
+        $this->assertInstanceOf(Textarea::class, $byName['name']);
     }
 
     public function test_hitl_platform_context_builds_locked_fields_and_custom_repeater(): void

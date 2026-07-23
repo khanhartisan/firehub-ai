@@ -22,15 +22,17 @@ use Illuminate\Support\Str;
 
 /**
  * Build Filament form components from a Laravel JSON Schema property map.
+ *
+ * Strings default to Textarea. Enums stay as Select, sensitive keys use a
+ * password TextInput, and string[] values use a one-item-per-line Textarea.
  */
 final class SchemaFormFieldsFromJsonSchema
 {
     /**
      * @param  array<string, Type>  $properties
-     * @param  array{stringsAsTextarea?: bool}  $options
      * @return array<int, Component|Field>
      */
-    public static function make(array $properties, string $statePathPrefix = '', array $options = []): array
+    public static function make(array $properties, string $statePathPrefix = ''): array
     {
         $fields = [];
 
@@ -40,37 +42,35 @@ final class SchemaFormFieldsFromJsonSchema
             }
 
             $path = $statePathPrefix === '' ? (string) $key : $statePathPrefix.'.'.$key;
-            $fields[] = self::fieldForType($type, $path, (string) $key, $options);
+            $fields[] = self::fieldForType($type, $path, (string) $key);
         }
 
         return $fields;
     }
 
     /**
-     * @param  array{stringsAsTextarea?: bool}  $options
      * @return Component|Field
      */
-    private static function fieldForType(Type $type, string $path, string $key, array $options = []): Component|Field
+    private static function fieldForType(Type $type, string $path, string $key): Component|Field
     {
         /** @var array<string, mixed> $attributes */
         $attributes = (fn (): array => get_object_vars($type))->call($type);
 
         return match ($type::class) {
-            StringType::class => self::stringField($path, $key, $attributes, $options),
+            StringType::class => self::stringField($path, $key, $attributes),
             IntegerType::class => self::integerField($path, $key, $attributes),
             NumberType::class => self::numberField($path, $key, $attributes),
             BooleanType::class => self::booleanField($path, $key, $attributes),
-            ObjectType::class => self::objectField($path, $key, $attributes, $options),
-            ArrayType::class => self::arrayField($path, $key, $attributes, $options),
+            ObjectType::class => self::objectField($path, $key, $attributes),
+            ArrayType::class => self::arrayField($path, $key, $attributes),
             default => self::jsonFallbackField($path, $key, $attributes),
         };
     }
 
     /**
      * @param  array<string, mixed>  $attributes
-     * @param  array{stringsAsTextarea?: bool}  $options
      */
-    private static function stringField(string $path, string $key, array $attributes, array $options = []): Field
+    private static function stringField(string $path, string $key, array $attributes): Field
     {
         if (isset($attributes['enum']) && is_array($attributes['enum']) && $attributes['enum'] !== []) {
             $field = Select::make($path)
@@ -81,21 +81,15 @@ final class SchemaFormFieldsFromJsonSchema
             return self::configureField($field, $key, $attributes);
         }
 
-        $stringsAsTextarea = (bool) ($options['stringsAsTextarea'] ?? false);
-
-        if ($stringsAsTextarea || self::looksMultiline($key, $attributes)) {
-            $field = Textarea::make($path)->rows(4);
+        if (self::looksSensitive($key)) {
+            $field = TextInput::make($path)->password()->revealable();
         } else {
-            $field = TextInput::make($path);
-
-            if (self::looksSensitive($key)) {
-                $field->password()->revealable();
-            }
+            $field = Textarea::make($path)->rows(4);
 
             if (isset($attributes['format'])) {
                 match ($attributes['format']) {
-                    'email' => $field->email(),
-                    'uri', 'url' => $field->url(),
+                    'email' => $field->rules(['email']),
+                    'uri', 'url' => $field->rules(['url']),
                     default => null,
                 };
             }
@@ -160,9 +154,8 @@ final class SchemaFormFieldsFromJsonSchema
 
     /**
      * @param  array<string, mixed>  $attributes
-     * @param  array{stringsAsTextarea?: bool}  $options
      */
-    private static function objectField(string $path, string $key, array $attributes, array $options = []): Component|Field
+    private static function objectField(string $path, string $key, array $attributes): Component|Field
     {
         $properties = $attributes['properties'] ?? [];
 
@@ -171,15 +164,14 @@ final class SchemaFormFieldsFromJsonSchema
         }
 
         return Fieldset::make(self::labelFor($key, $attributes))
-            ->schema(self::make($properties, $path, $options))
+            ->schema(self::make($properties, $path))
             ->columnSpanFull();
     }
 
     /**
      * @param  array<string, mixed>  $attributes
-     * @param  array{stringsAsTextarea?: bool}  $options
      */
-    private static function arrayField(string $path, string $key, array $attributes, array $options = []): Component|Field
+    private static function arrayField(string $path, string $key, array $attributes): Component|Field
     {
         $items = $attributes['items'] ?? null;
 
@@ -198,43 +190,39 @@ final class SchemaFormFieldsFromJsonSchema
                 return self::configureField($field, $key, $attributes);
             }
 
-            if ((bool) ($options['stringsAsTextarea'] ?? false)) {
-                $field = Textarea::make($path)
-                    ->rows(4)
-                    ->formatStateUsing(static function (mixed $state): string {
-                        if (is_string($state)) {
-                            return $state;
-                        }
+            $field = Textarea::make($path)
+                ->rows(4)
+                ->formatStateUsing(static function (mixed $state): string {
+                    if (is_string($state)) {
+                        return $state;
+                    }
 
-                        if (! is_array($state)) {
-                            return '';
-                        }
+                    if (! is_array($state)) {
+                        return '';
+                    }
 
-                        return implode("\n", array_map(
-                            static fn (mixed $item): string => (string) $item,
-                            $state,
-                        ));
-                    })
-                    ->dehydrateStateUsing(static function (?string $state): array {
-                        $lines = preg_split('/\r\n|\r|\n/', (string) $state) ?: [];
+                    return implode("\n", array_map(
+                        static fn (mixed $item): string => (string) $item,
+                        $state,
+                    ));
+                })
+                ->dehydrateStateUsing(static function (?string $state): array {
+                    $lines = preg_split('/\r\n|\r|\n/', (string) $state) ?: [];
 
-                        return array_values(array_filter(
-                            array_map(static fn (string $line): string => trim($line), $lines),
-                            static fn (string $line): bool => $line !== '',
-                        ));
-                    });
+                    return array_values(array_filter(
+                        array_map(static fn (string $line): string => trim($line), $lines),
+                        static fn (string $line): bool => $line !== '',
+                    ));
+                });
 
-                $configured = self::configureField($field, $key, $attributes);
-                $hint = 'One item per line (saved as a string array).';
-                $existingHelper = $attributes['description'] ?? null;
-                $configured->helperText(
-                    filled($existingHelper) ? trim((string) $existingHelper)."\n".$hint : $hint
-                );
+            $configured = self::configureField($field, $key, $attributes);
+            $hint = 'One item per line (saved as a string array).';
+            $existingHelper = $attributes['description'] ?? null;
+            $configured->helperText(
+                filled($existingHelper) ? trim((string) $existingHelper)."\n".$hint : $hint
+            );
 
-                return $configured;
-            }
-
-            return self::configureField(TagsInput::make($path), $key, $attributes);
+            return $configured;
         }
 
         if ($items instanceof IntegerType || $items instanceof NumberType) {
@@ -248,7 +236,7 @@ final class SchemaFormFieldsFromJsonSchema
 
             if (is_array($itemProperties) && $itemProperties !== []) {
                 $field = Repeater::make($path)
-                    ->schema(self::make($itemProperties, '', $options))
+                    ->schema(self::make($itemProperties))
                     ->columnSpanFull();
 
                 return self::configureField($field, $key, $attributes);
@@ -312,19 +300,5 @@ final class SchemaFormFieldsFromJsonSchema
     private static function looksSensitive(string $key): bool
     {
         return (bool) preg_match('/(?:api[_-]?key|password|secret|token|credential)/i', $key);
-    }
-
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
-    private static function looksMultiline(string $key, array $attributes): bool
-    {
-        if (preg_match('/(?:^|_)(?:description|mission|guidelines?|prompt|notes|bio|overview|content|summary)(?:$|_)/i', $key)) {
-            return true;
-        }
-
-        $description = $attributes['description'] ?? null;
-
-        return is_string($description) && strlen($description) > 120;
     }
 }

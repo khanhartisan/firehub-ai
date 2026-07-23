@@ -8,7 +8,8 @@ use App\Filament\Resources\Clients\Pages\ViewClient;
 use App\Filament\Resources\Clients\RelationManagers\ArticlesRelationManager;
 use App\Filament\Resources\Clients\RelationManagers\AuthorsRelationManager;
 use App\Filament\Resources\Clients\RelationManagers\ChannelsRelationManager;
-use App\Filament\Support\JsonField;
+use App\Filament\Support\SemanticContextForm;
+use App\Contracts\Model\Client\Context as ClientContext;
 use App\Models\Client;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -59,9 +60,13 @@ class ClientResource extends Resource
                             ->disabled()
                             ->dehydrated(false)
                             ->visibleOn('edit'),
-                        JsonField::make('context', 'Client brand context (JSON).'),
                     ])
                     ->columns(2),
+                ...SemanticContextForm::components(
+                    ClientContext::class,
+                    heading: 'Brand context',
+                    description: 'Client brand semantic context used across content generation.',
+                ),
             ]);
     }
 

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Casts\SemanticContextCast;
+use App\Casts\HitlPlatformContextCast;
 use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\HitlGateway\HitlPlatformConfig;
 use App\Contracts\HitlGateway\HitlPlatformManager;
@@ -26,7 +26,7 @@ class HitlPlatform extends Model implements ShouldCascade
         return [
             'is_active' => 'boolean',
             'config' => 'array',
-            'context' => SemanticContextCast::class,
+            'context' => HitlPlatformContextCast::class,
             'hooks' => AsEnumCollection::of(HitlHook::class),
         ];
     }

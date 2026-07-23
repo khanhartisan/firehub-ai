@@ -5,7 +5,8 @@ namespace App\Filament\Resources\Authors;
 use App\Filament\Resources\Authors\Pages\ManageAuthors;
 use App\Filament\Resources\Authors\Pages\ViewAuthor;
 use App\Filament\Resources\Authors\RelationManagers\ArticlesRelationManager;
-use App\Filament\Support\JsonField;
+use App\Filament\Support\SemanticContextForm;
+use App\Contracts\Model\Author\AuthorContext;
 use App\Models\Author;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -49,9 +50,13 @@ class AuthorResource extends Resource
                             ->required(),
                         TextInput::make('name')
                             ->maxLength(255),
-                        JsonField::make('context', 'Author persona context (JSON).', 12),
                     ])
                     ->columns(2),
+                ...SemanticContextForm::components(
+                    AuthorContext::class,
+                    heading: 'Author context',
+                    description: 'Persona semantic context used when generating content as this author.',
+                ),
             ]);
     }
 

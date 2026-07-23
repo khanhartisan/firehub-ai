@@ -11,6 +11,8 @@ use App\Filament\Resources\Articles\Pages\ManageArticles;
 use App\Filament\Resources\Articles\Pages\ViewArticle;
 use App\Filament\Resources\Articles\RelationManagers\PublicationsRelationManager;
 use App\Filament\Support\JsonField;
+use App\Filament\Support\SemanticContextForm;
+use App\Contracts\Model\Article\Context as ArticleContext;
 use App\Models\Article;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -104,11 +106,15 @@ class ArticleResource extends Resource
                         Textarea::make('excerpt')
                             ->rows(4)
                             ->columnSpanFull(),
-                        JsonField::make('context', 'Article context (JSON).'),
                         JsonField::make('article', 'JSON DOM payload for the article body.', 14),
                         JsonField::make('stage_data', 'Pipeline stage data (JSON).', 8),
                     ])
                     ->columns(2),
+                ...SemanticContextForm::components(
+                    ArticleContext::class,
+                    heading: 'Article context',
+                    description: 'Article-level semantic context for generation and HITL flows.',
+                ),
             ]);
     }
 

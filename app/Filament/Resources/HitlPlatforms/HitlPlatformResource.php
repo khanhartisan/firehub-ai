@@ -3,12 +3,13 @@
 namespace App\Filament\Resources\HitlPlatforms;
 
 use App\Enums\HitlHook;
+use App\Contracts\Model\HitlPlatform\Context as HitlPlatformContext;
 use App\Facades\HitlGateway\HitlPlatformManager;
 use App\Filament\Resources\HitlPlatforms\Pages\ManageHitlPlatforms;
 use App\Filament\Resources\HitlPlatforms\Pages\ViewHitlPlatform;
 use App\Filament\Resources\HitlPlatforms\RelationManagers\HitlTasksRelationManager;
-use App\Filament\Support\JsonField;
 use App\Filament\Support\SchemaFormFieldsFromJsonSchema;
+use App\Filament\Support\SemanticContextForm;
 use App\Models\HitlPlatform;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -82,7 +83,6 @@ class HitlPlatformResource extends Resource
                             )->all())
                             ->columns(1)
                             ->columnSpanFull(),
-                        JsonField::make('context', 'HITL platform semantic context (JSON).'),
                     ])
                     ->columns(2),
                 Section::make('Driver configuration')
@@ -94,6 +94,11 @@ class HitlPlatformResource extends Resource
                     ->visible(fn (Get $get): bool => self::configSchemaForDriver($get('driver')) !== [])
                     ->columns(2)
                     ->columnSpanFull(),
+                ...SemanticContextForm::components(
+                    HitlPlatformContext::class,
+                    heading: 'Semantic context',
+                    description: 'Optional platform context shared with HITL task agents.',
+                ),
             ]);
     }
 

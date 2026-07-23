@@ -34,11 +34,12 @@ class AdminPanelProvider extends PanelProvider
             ->brandName(config('app.name'))
             ->login()
             ->navigationGroups([
-                1 => 'Content',
-                2 => 'Remote',
-                3 => 'Distribution',
-                4 => 'HITL',
-                5 => 'Administration',
+                1 => 'Resources',
+                2 => 'Base',
+                3 => 'Tenants',
+                4 => 'Distribution',
+                5 => 'Human In The Loop',
+                6 => 'Administration',
             ])
             ->colors([
                 'primary' => Color::Amber,

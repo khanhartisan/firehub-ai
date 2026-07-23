@@ -38,7 +38,7 @@ class IntentResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Content';
+    protected static string|\UnitEnum|null $navigationGroup = 'Base';
 
     protected static ?int $navigationSort = 5;
 

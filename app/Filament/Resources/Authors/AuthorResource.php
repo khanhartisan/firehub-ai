@@ -32,7 +32,7 @@ class AuthorResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Distribution';
+    protected static string|\UnitEnum|null $navigationGroup = 'Tenants';
 
     protected static ?int $navigationSort = 200;
 

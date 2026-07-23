@@ -33,7 +33,7 @@ class PublishingScheduleResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'id';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Distribution';
+    protected static string|\UnitEnum|null $navigationGroup = 'Tenants';
 
     protected static ?int $navigationSort = 450;
 

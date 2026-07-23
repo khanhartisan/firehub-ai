@@ -29,7 +29,7 @@ class FileResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'url';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Remote';
+    protected static string|\UnitEnum|null $navigationGroup = 'Resources';
 
     protected static ?int $navigationSort = 7;
 

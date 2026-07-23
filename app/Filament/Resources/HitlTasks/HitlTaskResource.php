@@ -37,7 +37,7 @@ class HitlTaskResource extends Resource
 
     protected static ?string $pluralModelLabel = 'HITL Tasks';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'HITL';
+    protected static string|\UnitEnum|null $navigationGroup = 'Human In The Loop';
 
     protected static ?int $navigationSort = 20;
 

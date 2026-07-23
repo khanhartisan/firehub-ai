@@ -50,7 +50,7 @@ class HitlPlatformResource extends Resource
 
     protected static ?string $pluralModelLabel = 'HITL Platforms';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'HITL';
+    protected static string|\UnitEnum|null $navigationGroup = 'Human In The Loop';
 
     protected static ?int $navigationSort = 10;
 

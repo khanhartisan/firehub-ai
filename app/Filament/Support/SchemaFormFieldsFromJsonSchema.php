@@ -56,7 +56,7 @@ final class SchemaFormFieldsFromJsonSchema
         /** @var array<string, mixed> $attributes */
         $attributes = (fn (): array => get_object_vars($type))->call($type);
 
-        return match ($type::class) {
+        return (match ($type::class) {
             StringType::class => self::stringField($path, $key, $attributes),
             IntegerType::class => self::integerField($path, $key, $attributes),
             NumberType::class => self::numberField($path, $key, $attributes),
@@ -64,7 +64,7 @@ final class SchemaFormFieldsFromJsonSchema
             ObjectType::class => self::objectField($path, $key, $attributes),
             ArrayType::class => self::arrayField($path, $key, $attributes),
             default => self::jsonFallbackField($path, $key, $attributes),
-        };
+        })->columnSpanFull();
     }
 
     /**

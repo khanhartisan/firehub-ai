@@ -3,10 +3,12 @@
 namespace App\Filament\Resources\HitlPlatforms;
 
 use App\Enums\HitlHook;
+use App\Facades\HitlGateway\HitlPlatformManager;
 use App\Filament\Resources\HitlPlatforms\Pages\ManageHitlPlatforms;
 use App\Filament\Resources\HitlPlatforms\Pages\ViewHitlPlatform;
 use App\Filament\Resources\HitlPlatforms\RelationManagers\HitlTasksRelationManager;
 use App\Filament\Support\JsonField;
+use App\Filament\Support\SchemaFormFieldsFromJsonSchema;
 use App\Models\HitlPlatform;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -22,6 +24,8 @@ use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -29,6 +33,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\JsonSchema\JsonSchemaTypeFactory;
+use Illuminate\JsonSchema\Types\Type;
+use Throwable;
 
 class HitlPlatformResource extends Resource
 {
@@ -63,7 +70,9 @@ class HitlPlatformResource extends Resource
                                 ->mapWithKeys(fn (string $driver): array => [$driver => $driver])
                                 ->all())
                             ->searchable()
-                            ->nullable(),
+                            ->nullable()
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('config', [])),
                         Toggle::make('is_active')
                             ->label('Active')
                             ->default(false),
@@ -73,11 +82,47 @@ class HitlPlatformResource extends Resource
                             )->all())
                             ->columns(1)
                             ->columnSpanFull(),
-                        JsonField::make('config', 'HITL platform manager configuration (JSON).'),
                         JsonField::make('context', 'HITL platform semantic context (JSON).'),
                     ])
                     ->columns(2),
+                Section::make('Driver configuration')
+                    ->description('Fields are generated from the selected driver config schema.')
+                    ->schema(fn (Get $get): array => SchemaFormFieldsFromJsonSchema::make(
+                        self::configSchemaForDriver($get('driver')),
+                        'config',
+                    ))
+                    ->visible(fn (Get $get): bool => self::configSchemaForDriver($get('driver')) !== [])
+                    ->columns(2)
+                    ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * @return array<string, Type>
+     */
+    public static function configSchemaForDriver(?string $driver): array
+    {
+        $driver = trim((string) $driver);
+
+        if ($driver === '' || ! array_key_exists($driver, config('hitlgateway.platform_manager_drivers', []))) {
+            return [];
+        }
+
+        try {
+            $manager = HitlPlatformManager::driver($driver);
+            $config = $manager->makeConfig() ?? $manager->getConfig();
+        } catch (Throwable) {
+            return [];
+        }
+
+        if ($config === null) {
+            return [];
+        }
+
+        /** @var array<string, Type> $schema */
+        $schema = $config->toJsonSchema(new JsonSchemaTypeFactory);
+
+        return $schema;
     }
 
     public static function table(Table $table): Table

@@ -37,7 +37,8 @@ class AdminPanelProvider extends PanelProvider
                 1 => 'Content',
                 2 => 'Remote',
                 3 => 'Distribution',
-                4 => 'Administration',
+                4 => 'HITL',
+                5 => 'Administration',
             ])
             ->colors([
                 'primary' => Color::Amber,

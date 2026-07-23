@@ -19,7 +19,7 @@ class OpenAIVerticalResolverDriver implements VerticalResolver
         protected array $config = []
     ) {
         $this->config = array_merge([
-            'model' => 'gpt-4o-mini',
+            'model' => 'gpt-5.4-mini',
             'max_content_length' => 50000,
             'match_threshold' => 0.4,
         ], $config);
@@ -50,7 +50,7 @@ class OpenAIVerticalResolverDriver implements VerticalResolver
 
         $input = ResponseInput::text($prompt);
         $options = ResponseOptions::create()
-            ->model($this->config['model'] ?? 'gpt-4o-mini')
+            ->model($this->config['model'] ?? 'gpt-5.4-mini')
             ->responseFormat([
                 'type' => 'json_schema',
                 'name' => 'vertical_resolution',
@@ -94,7 +94,7 @@ class OpenAIVerticalResolverDriver implements VerticalResolver
 
         $input = ResponseInput::text($prompt);
         $options = ResponseOptions::create()
-            ->model($this->config['model'] ?? 'gpt-4o-mini')
+            ->model($this->config['model'] ?? 'gpt-5.4-mini')
             ->responseFormat([
                 'type' => 'json_schema',
                 'name' => 'vertical_proposals',

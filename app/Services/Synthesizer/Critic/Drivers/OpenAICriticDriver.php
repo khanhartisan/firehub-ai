@@ -175,7 +175,7 @@ class OpenAICriticDriver extends CriticService
 
     protected function getModel(): string
     {
-        return (string) ($this->config['model'] ?? 'gpt-4o-mini');
+        return (string) ($this->config['model'] ?? 'gpt-5.4-mini');
     }
 
     protected function getTemperature(): float

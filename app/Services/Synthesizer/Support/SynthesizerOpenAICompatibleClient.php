@@ -22,8 +22,8 @@ final class SynthesizerOpenAICompatibleClient
         return [
             'api_key' => $merged['api_key'] ?? $global['api_key'] ?? '',
             'base_url' => $merged['base_url'] ?? $global['base_url'] ?? 'https://api.openai.com/v1/',
-            'default_model' => $merged['model'] ?? $global['default_model'] ?? 'gpt-4o-mini',
-            'model' => $merged['model'] ?? $global['default_model'] ?? 'gpt-4o-mini',
+            'default_model' => $merged['model'] ?? $global['default_model'] ?? 'gpt-5.4-mini',
+            'model' => $merged['model'] ?? $global['default_model'] ?? 'gpt-5.4-mini',
             'timeout' => (int) ($merged['timeout'] ?? $global['timeout'] ?? 120),
             'beta_header' => $merged['beta_header'] ?? $global['beta_header'] ?? null,
         ];

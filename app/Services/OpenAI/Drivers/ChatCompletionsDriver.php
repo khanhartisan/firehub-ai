@@ -29,7 +29,7 @@ class ChatCompletionsDriver implements OpenAIClient
     {
         $apiKey = (string) ($config['api_key'] ?? '');
         $this->baseUrl = (string) ($config['base_url'] ?? 'https://api.openai.com/v1/');
-        $this->defaultModel = (string) ($config['default_model'] ?? $config['model'] ?? 'gpt-4o-mini');
+        $this->defaultModel = (string) ($config['default_model'] ?? $config['model'] ?? 'gpt-5.4-mini');
 
         $headers = [
             'Authorization' => "Bearer {$apiKey}",

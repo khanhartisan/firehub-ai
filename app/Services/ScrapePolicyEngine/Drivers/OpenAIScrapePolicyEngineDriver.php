@@ -22,7 +22,7 @@ class OpenAIScrapePolicyEngineDriver extends ScrapePolicyEngineService
         parent::__construct($config);
 
         $this->openAIClient = $openAIClient;
-        $this->defaultModel = $config['model'] ?? 'gpt-4o-mini';
+        $this->defaultModel = $config['model'] ?? 'gpt-5.4-mini';
     }
 
     /**

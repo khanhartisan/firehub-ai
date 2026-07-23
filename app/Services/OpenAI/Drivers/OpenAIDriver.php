@@ -28,7 +28,7 @@ class OpenAIDriver extends OpenAIService
     {
         $this->apiKey = $config['api_key'] ?? '';
         $this->baseUrl = $config['base_url'] ?? 'https://api.openai.com/v1/';
-        $this->defaultModel = $config['default_model'] ?? 'gpt-4o-mini';
+        $this->defaultModel = $config['default_model'] ?? 'gpt-5.4-mini';
 
         $headers = [
             'Authorization' => "Bearer {$this->apiKey}",

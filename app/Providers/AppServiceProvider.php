@@ -76,6 +76,12 @@ use App\Services\Synthesizer\Writer\WriterManager;
 use App\Services\TextEmbedding\TextEmbeddingManager;
 use App\Services\VectorDB\VectorDBManager;
 use App\Services\VerticalResolver\VerticalResolverManager;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Schemas\Components\Fieldset;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Support\Enums\Width;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -143,6 +149,27 @@ class AppServiceProvider extends ServiceProvider
         Model::unguard();
 
         $this->registerMorphMap();
+        $this->configureFilamentForms();
+    }
+
+    protected function configureFilamentForms(): void
+    {
+//        CreateAction::configureUsing(fn (CreateAction $action): CreateAction => $action
+//            ->modalWidth(Width::Full));
+//
+//        EditAction::configureUsing(fn (EditAction $action): EditAction => $action
+//            ->modalWidth(Width::Full));
+
+        // Filament v4 layout components only span 1 column of the default
+        // 2-column resource form grid; restore full-width sections/fieldsets.
+        Section::configureUsing(fn (Section $section): Section => $section
+            ->columnSpanFull());
+
+        Fieldset::configureUsing(fn (Fieldset $fieldset): Fieldset => $fieldset
+            ->columnSpanFull());
+
+        Grid::configureUsing(fn (Grid $grid): Grid => $grid
+            ->columnSpanFull());
     }
 
     protected function registerSynthesizerSubserviceManagers(): void

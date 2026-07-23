@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->jsonb('config')->nullable();
             $table->jsonb('context')->nullable();
+            $table->jsonb('hooks')->nullable();
             $table->timestamps();
 
             $table->softDeletes();

@@ -19,6 +19,7 @@ class HitlPlatform extends Model implements ShouldCascade
         'is_active' => 'boolean',
         'config' => 'array',
         'context' => SemanticContextCast::class,
+        'hooks' => 'array',
     ];
 
     public function getCascadeDetails(): CascadeDetails|array

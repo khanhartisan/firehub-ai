@@ -142,6 +142,7 @@ class ChannelResource extends Resource
                             ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state),
                         TextEntry::make('reference')->placeholder('—'),
                         TextEntry::make('publications_count')->label('Publications'),
+                        TextEntry::make('error_logs')->placeholder('—')->columnSpanFull(),
                         TextEntry::make('created_at')->dateTime(),
                         TextEntry::make('updated_at')->dateTime(),
                     ])

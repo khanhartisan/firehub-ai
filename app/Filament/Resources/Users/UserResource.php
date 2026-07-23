@@ -10,10 +10,13 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Hash;
@@ -52,6 +55,16 @@ class UserResource extends Resource
                     ->label('Email verified at')
                     ->seconds(false)
                     ->nullable(),
+                Toggle::make('is_super')
+                    ->label('Super user')
+                    ->helperText('Grants elevated admin / MCP write access.')
+                    ->default(false),
+                Select::make('clients')
+                    ->relationship('clients', 'name')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->label('Clients'),
             ]);
     }
 
@@ -61,6 +74,15 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('email')->searchable()->sortable(),
+                IconColumn::make('is_super')
+                    ->label('Super')
+                    ->boolean()
+                    ->sortable(),
+                TextColumn::make('clients.name')
+                    ->label('Clients')
+                    ->badge()
+                    ->separator(',')
+                    ->toggleable(),
                 TextColumn::make('email_verified_at')->dateTime()->sortable(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])

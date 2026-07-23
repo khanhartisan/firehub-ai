@@ -10,9 +10,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -107,9 +108,6 @@ class SnapshotResource extends Resource
                             ->minValue(0)
                             ->step(0.01)
                             ->maxValue(9.99),
-                        Textarea::make('error_logs')
-                            ->rows(6)
-                            ->columnSpanFull(),
                     ])
                     ->columns(2),
             ]);
@@ -157,6 +155,7 @@ class SnapshotResource extends Resource
                 //
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -164,6 +163,36 @@ class SnapshotResource extends Resource
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
+            ]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Snapshot')
+                    ->schema([
+                        TextEntry::make('page.url')->label('Page URL')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('version'),
+                        TextEntry::make('scraping_status')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state?->getLabel() ?? (string) $state),
+                        TextEntry::make('file_path')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('file_size')->placeholder('—'),
+                        TextEntry::make('file_mime_type')->placeholder('—'),
+                        TextEntry::make('file_extension')->placeholder('—'),
+                        TextEntry::make('content_length')->placeholder('—'),
+                        TextEntry::make('structured_data_count'),
+                        TextEntry::make('files_count'),
+                        TextEntry::make('links_count'),
+                        TextEntry::make('content_change_percentage')->placeholder('—'),
+                        TextEntry::make('fetch_duration_ms')->placeholder('—'),
+                        TextEntry::make('cost')->placeholder('—'),
+                        TextEntry::make('error_logs')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('created_at')->dateTime(),
+                        TextEntry::make('updated_at')->dateTime(),
+                    ])
+                    ->columns(2),
             ]);
     }
 

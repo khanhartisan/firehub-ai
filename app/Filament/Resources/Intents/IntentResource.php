@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Intents;
 
 use App\Enums\IntentType;
 use App\Enums\Language;
+use App\Enums\Temporal;
 use App\Filament\Resources\Intents\Pages\ManageIntents;
 use App\Filament\Resources\Intents\Pages\ViewIntent;
 use App\Filament\Resources\Intents\RelationManagers\ArticlesRelationManager;
@@ -20,11 +21,14 @@ use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -51,6 +55,9 @@ class IntentResource extends Resource
                                 fn (Language $language): array => [$language->value => $language->value]
                             )->all())
                             ->searchable(),
+                        Select::make('temporal')
+                            ->options(Temporal::class)
+                            ->nullable(),
                         TextInput::make('title')
                             ->maxLength(255),
                         Textarea::make('description')
@@ -62,6 +69,8 @@ class IntentResource extends Resource
                             )->all())
                             ->columns(2)
                             ->columnSpanFull(),
+                        Toggle::make('is_embeddable'),
+                        Toggle::make('is_embedded'),
                     ])
                     ->columns(2),
                 Section::make('Related counters')
@@ -92,6 +101,9 @@ class IntentResource extends Resource
                     ->searchable(),
                 TextColumn::make('language')
                     ->sortable(),
+                TextColumn::make('temporal')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('types')
                     ->formatStateUsing(fn ($state): string => collect($state ?? [])->map(fn (IntentType $type) => $type->name)->implode(', '))
                     ->wrap()
@@ -110,6 +122,9 @@ class IntentResource extends Resource
                         $intent->pages_count ?? 0,
                         $intent->articles_count ?? 0
                     )),
+                IconColumn::make('is_embedded')
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')->dateTime()->sortable(),
             ])
             ->filters([
@@ -135,11 +150,14 @@ class IntentResource extends Resource
                     ->schema([
                         TextEntry::make('title'),
                         TextEntry::make('language'),
+                        TextEntry::make('temporal')->placeholder('—'),
                         TextEntry::make('description')
                             ->placeholder('—')
                             ->columnSpanFull(),
                         TextEntry::make('types')
                             ->formatStateUsing(fn ($state): string => collect($state ?? [])->map(fn (IntentType $type) => $type->name)->implode(', ')),
+                        IconEntry::make('is_embeddable')->boolean(),
+                        IconEntry::make('is_embedded')->boolean(),
                         TextEntry::make('keywords_count')->label('Keywords'),
                         TextEntry::make('pages_count')->label('Pages'),
                         TextEntry::make('articles_count')->label('Articles'),

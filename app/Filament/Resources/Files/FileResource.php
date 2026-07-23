@@ -11,9 +11,11 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -87,9 +89,6 @@ class FileResource extends Resource
                         TextInput::make('fileables_count')
                             ->numeric()
                             ->minValue(0),
-                        Textarea::make('error_logs')
-                            ->rows(6)
-                            ->columnSpanFull(),
                     ])
                     ->columns(2),
             ]);
@@ -119,6 +118,7 @@ class FileResource extends Resource
                 //
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
@@ -126,6 +126,35 @@ class FileResource extends Resource
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
+            ]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('File')
+                    ->schema([
+                        TextEntry::make('url')->columnSpanFull(),
+                        TextEntry::make('url_hash'),
+                        TextEntry::make('scraping_status')
+                            ->badge()
+                            ->formatStateUsing(fn ($state) => $state?->getLabel() ?? (string) $state),
+                        TextEntry::make('scraping_stage')->placeholder('—'),
+                        TextEntry::make('description')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('path')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('mime_type')->placeholder('—'),
+                        TextEntry::make('extension')->placeholder('—'),
+                        TextEntry::make('size')->placeholder('—'),
+                        TextEntry::make('fetch_duration_ms')->placeholder('—'),
+                        TextEntry::make('attempts'),
+                        TextEntry::make('cost')->placeholder('—'),
+                        TextEntry::make('fileables_count'),
+                        TextEntry::make('error_logs')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('created_at')->dateTime(),
+                        TextEntry::make('updated_at')->dateTime(),
+                    ])
+                    ->columns(2),
             ]);
     }
 

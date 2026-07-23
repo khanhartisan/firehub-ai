@@ -15,6 +15,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -50,6 +51,13 @@ class AuthorResource extends Resource
                             ->required(),
                         TextInput::make('name')
                             ->maxLength(255),
+                        Textarea::make('short_bio')
+                            ->rows(2)
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+                        Textarea::make('bio')
+                            ->rows(6)
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
                 ...SemanticContextForm::components(
@@ -104,6 +112,8 @@ class AuthorResource extends Resource
                         TextEntry::make('id')->label('ID'),
                         TextEntry::make('name')->placeholder('—'),
                         TextEntry::make('client.name')->label('Client')->placeholder('—'),
+                        TextEntry::make('short_bio')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('bio')->placeholder('—')->columnSpanFull(),
                         TextEntry::make('created_at')->dateTime(),
                         TextEntry::make('updated_at')->dateTime(),
                     ])

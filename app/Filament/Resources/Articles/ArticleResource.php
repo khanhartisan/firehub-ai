@@ -90,8 +90,15 @@ class ArticleResource extends Resource
                         DateTimePicker::make('intent_resolved_at')
                             ->seconds(false)
                             ->nullable(),
-                        TextInput::make('thumbnail_file_id')
-                            ->maxLength(26),
+                        DateTimePicker::make('processing_at')
+                            ->seconds(false)
+                            ->nullable(),
+                        Select::make('thumbnail_file_id')
+                            ->label('Thumbnail file')
+                            ->relationship('thumbnailFile', 'url')
+                            ->searchable()
+                            ->preload()
+                            ->nullable(),
                         TextInput::make('intents_count')
                             ->numeric()
                             ->minValue(0),
@@ -107,6 +114,7 @@ class ArticleResource extends Resource
                             ->rows(4)
                             ->columnSpanFull(),
                         JsonField::make('article', 'JSON DOM payload for the article body.', 14),
+                        JsonField::make('illustration', 'Illustration payload (JSON).', 8),
                         JsonField::make('stage_data', 'Pipeline stage data (JSON).', 8),
                     ])
                     ->columns(2),
@@ -210,8 +218,11 @@ class ArticleResource extends Resource
                         TextEntry::make('intents_count')->label('Intents'),
                         TextEntry::make('attempts'),
                         TextEntry::make('intent_resolved_at')->dateTime()->placeholder('—'),
+                        TextEntry::make('processing_at')->dateTime()->placeholder('—'),
+                        TextEntry::make('thumbnailFile.url')->label('Thumbnail')->placeholder('—'),
                         TextEntry::make('is_embeddable')->boolean(),
                         TextEntry::make('is_embedded')->boolean(),
+                        TextEntry::make('error_logs')->placeholder('—')->columnSpanFull(),
                         TextEntry::make('updated_at')->dateTime(),
                     ])
                     ->columns(2),

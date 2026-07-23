@@ -54,6 +54,12 @@ class ClientResource extends Resource
                             )->all())
                             ->searchable()
                             ->nullable(),
+                        Select::make('hitl_platform_id')
+                            ->label('HITL Platform')
+                            ->relationship('hitlPlatform', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->nullable(),
                         TextInput::make('channels_count')
                             ->numeric()
                             ->minValue(0)
@@ -80,6 +86,10 @@ class ClientResource extends Resource
                     ->placeholder('—'),
                 TextColumn::make('language')
                     ->sortable()
+                    ->toggleable(),
+                TextColumn::make('hitlPlatform.name')
+                    ->label('HITL Platform')
+                    ->placeholder('—')
                     ->toggleable(),
                 TextColumn::make('channels_count')
                     ->label('Channels')
@@ -112,6 +122,7 @@ class ClientResource extends Resource
                         TextEntry::make('id')->label('ID'),
                         TextEntry::make('name')->placeholder('—'),
                         TextEntry::make('language')->placeholder('—'),
+                        TextEntry::make('hitlPlatform.name')->label('HITL Platform')->placeholder('—'),
                         TextEntry::make('channels_count')->label('Channels'),
                         TextEntry::make('created_at')->dateTime(),
                         TextEntry::make('updated_at')->dateTime(),

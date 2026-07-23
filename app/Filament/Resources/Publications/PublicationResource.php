@@ -5,7 +5,9 @@ namespace App\Filament\Resources\Publications;
 use App\Enums\PublicationStatus;
 use App\Filament\Resources\Publications\Pages\ManagePublications;
 use App\Filament\Resources\Publications\Pages\ViewPublication;
+use App\Filament\Support\JsonField;
 use App\Jobs\DispatchPublishingJob;
+use App\Models\Article;
 use App\Models\Publication;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -53,6 +55,9 @@ class PublicationResource extends Resource
                             ->required()
                             ->disabledOn('edit'),
                         TextInput::make('publishable_type')
+                            ->datalist([
+                                Article::class,
+                            ])
                             ->required()
                             ->disabledOn('edit'),
                         TextInput::make('publishable_id')
@@ -76,6 +81,7 @@ class PublicationResource extends Resource
                         DateTimePicker::make('published_at')
                             ->seconds(false)
                             ->nullable(),
+                        JsonField::make('meta', 'Publication metadata (JSON).'),
                     ])
                     ->columns(2),
             ]);
@@ -170,6 +176,7 @@ class PublicationResource extends Resource
                         TextEntry::make('reference')->placeholder('—'),
                         TextEntry::make('attempts'),
                         TextEntry::make('published_at')->dateTime()->placeholder('—'),
+                        TextEntry::make('error_logs')->placeholder('—')->columnSpanFull(),
                         TextEntry::make('created_at')->dateTime(),
                         TextEntry::make('updated_at')->dateTime(),
                     ])

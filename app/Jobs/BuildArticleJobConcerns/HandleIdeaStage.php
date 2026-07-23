@@ -2,6 +2,7 @@
 
 namespace App\Jobs\BuildArticleJobConcerns;
 
+use App\Contracts\CommonData\SemanticContext;
 use App\Contracts\Model\Article\StageData;
 use App\Contracts\Model\Author\AuthorContext;
 use App\Contracts\Synthesizer\IdeaForge\Idea;
@@ -27,16 +28,17 @@ use App\Utils\Str;
  */
 trait HandleIdeaStage
 {
-    use HandleIdeaStageContext;
-    use HandleIdeaStageSuggestionCollection;
     use HandleIdeaStageBrainstorm;
+    use HandleIdeaStageContext;
     use HandleIdeaStageIntentMerging;
+    use HandleIdeaStageSuggestionCollection;
     use HandleIdeaStageUniquenessAndAudit;
 
     /**
-     * @throws \Exception
      * @return ?true when the idea stage is complete and the job may advance to BRIEF; false on failure;
-     *         null while still in-flight (checkpoint — job will be run again on the same stage).
+     *               null while still in-flight (checkpoint — job will be run again on the same stage).
+     *
+     * @throws \Exception
      */
     protected function handleIdeaStage(): ?bool
     {
@@ -68,7 +70,7 @@ trait HandleIdeaStage
                     ?->getIntent()
                     ?->getTitle();
 
-                return !$ideaTitle;
+                return ! $ideaTitle;
             })->count()
         ) {
             return null;
@@ -88,7 +90,7 @@ trait HandleIdeaStage
             ->orderByDesc('id')
             ->get()
             ->map(function (Article $article) {
-                if (!$article->title) {
+                if (! $article->title) {
 
                     /** @var StageData $stageData */
                     $stageData = $article->stage_data;
@@ -103,10 +105,11 @@ trait HandleIdeaStage
                         $article->title = $ideaTitle;
                     }
                 }
+
                 return $article;
             })
             ->filter(function (Article $article) {
-                return !! $article->title;
+                return (bool) $article->title;
             })
             and $latestArticles->count()
         ) {
@@ -118,7 +121,7 @@ trait HandleIdeaStage
                         return [
                             'title' => Str::limit($article->title, 160),
                             'temporal' => $article->temporal?->value,
-                            'created_at' => (string) $article->created_at
+                            'created_at' => (string) $article->created_at,
                         ];
                     })->values()->toArray()
             );
@@ -163,56 +166,10 @@ trait HandleIdeaStage
             return $auditProgress;
         }
 
-        $ideaData = $this->getIdeaStageData();
-        $ideaAuditReports = $ideaData->getIdeaAuditReports();
-
         // 7) Pick one winning idea if not picked (limit 1).
-        if (! $ideaData->getPickedIdeaAuditReport() instanceof IdeaAuditReport) {
-
-            // Human in the loop
-            if ($this->hasHitlHook(HitlHook::BUILD_ARTICLE__IDEA__PICK)) {
-
-                // Ask the human
-                $taskConclusion = HitlGateway::askHuman(
-                    $this->article->id.'--idea-pick',
-                    $this->getHitlPlatform(),
-                    HitlGateway\TaskAgent::driver(),
-                    $ideaBrainstormContext
-                        ->clone()
-                        ->set(
-                            'task_requirement',
-                            'The task requirement for the human',
-                            'We need to ask the human to choose an idea from the suggested list, it is okay if the human choose not to pick anything to delegate the picking job to the AI agent in the next process.'
-                        )
-                );
-
-                // Awaiting human
-                if (!$taskConclusion) {
-                    return null;
-                }
-
-                $ideaBrainstormContext->set(
-                    'human_decision',
-                    'The human decision, if human decides to prefer an idea, the human decision will be prioritized, if human does not decide then you can pick on your opinion',
-                    $taskConclusion->getConclusion()
-                );
-            }
-
-            $pickedList = $this->getIdeaForgeService()->getIdeaPicker()->pick($ideaAuditReports, $ideaBrainstormContext, 1) ?? [];
-            $pickedReport = $pickedList[0] ?? null;
-            if (! $pickedReport instanceof IdeaAuditReport) {
-                return false;
-            }
-
-            $ideaData->setPickedIdeaAuditReport($pickedReport);
-
-            $this->article->temporal = $pickedReport
-                ->getIdea()
-                ->getIntent()
-                ->getTemporal();
-
-            $this->touchArticleQuietly();
-            return null;
+        $pickProgress = $this->processIdeaPick($ideaBrainstormContext);
+        if ($pickProgress !== true) {
+            return $pickProgress;
         }
 
         // 8) Pick author context for the winning idea when the client has authors.
@@ -222,6 +179,68 @@ trait HandleIdeaStage
         }
 
         return true;
+    }
+
+    /**
+     * Optionally asks a human (HITL) then picks one winning {@see IdeaAuditReport}.
+     *
+     * @return ?true when a pick already exists; false when the picker cannot choose;
+     *               null after persisting a new pick this tick, or while awaiting HITL.
+     */
+    protected function processIdeaPick(SemanticContext $ideaBrainstormContext): ?bool
+    {
+        $ideaData = $this->getIdeaStageData();
+
+        if ($ideaData->getPickedIdeaAuditReport() instanceof IdeaAuditReport) {
+            return true;
+        }
+
+        // Human in the loop
+        if ($this->hasHitlHook(HitlHook::BUILD_ARTICLE__IDEA__PICK)
+            and $hitlPlatform = $this->getHitlPlatform()
+        ) {
+            $taskConclusion = HitlGateway::askHuman(
+                $this->article->id.'--idea-pick',
+                $hitlPlatform,
+                HitlGateway\TaskAgent::driver(),
+                $ideaBrainstormContext
+                    ->clone()
+                    ->set(
+                        'task_requirement',
+                        'The task requirement for the human',
+                        'We need to ask the human to choose an idea from the suggested list, it is okay if the human choose not to pick anything to delegate the picking job to the AI agent in the next process.'
+                    )
+            );
+
+            // Awaiting human
+            if (! $taskConclusion) {
+                return null;
+            }
+
+            $ideaBrainstormContext->set(
+                'human_decision',
+                'The human decision, if human decides to prefer an idea, the human decision will be prioritized, if human does not decide then you can pick on your opinion',
+                $taskConclusion->getConclusion()
+            );
+        }
+
+        $ideaAuditReports = $ideaData->getIdeaAuditReports();
+        $pickedList = $this->getIdeaForgeService()->getIdeaPicker()->pick($ideaAuditReports, $ideaBrainstormContext, 1) ?? [];
+        $pickedReport = $pickedList[0] ?? null;
+        if (! $pickedReport instanceof IdeaAuditReport) {
+            return false;
+        }
+
+        $ideaData->setPickedIdeaAuditReport($pickedReport);
+
+        $this->article->temporal = $pickedReport
+            ->getIdea()
+            ->getIntent()
+            ->getTemporal();
+
+        $this->touchArticleQuietly();
+
+        return null;
     }
 
     /**
@@ -283,5 +302,4 @@ trait HandleIdeaStage
             ->values()
             ->all();
     }
-
 }

@@ -12,7 +12,7 @@ trait InteractsWithHitlPlatform
 
     protected function getHitlPlatform(): ?HitlPlatform
     {
-        return $this->hitlPlatform ??= $this->article?->client?->hitl_platform;
+        return $this->hitlPlatform ??= $this->article?->client?->hitlPlatform;
     }
 
     protected function getHitlPlatformManager(): ?HitlPlatformManager
@@ -22,9 +22,9 @@ trait InteractsWithHitlPlatform
 
     protected function hasHitlHook(HitlHook $hook): bool
     {
-        if (!$hitlPlatform = $this->getHitlPlatform()
-            or !$this->getHitlPlatformManager()
-            or !$hooks = $hitlPlatform->hooks
+        if (! $hitlPlatform = $this->getHitlPlatform()
+            or ! $this->getHitlPlatformManager()
+            or ! $hooks = $hitlPlatform->hooks
         ) {
             return false;
         }

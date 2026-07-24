@@ -27,6 +27,8 @@ use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -50,73 +52,80 @@ class ArticleResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Article')
-                    ->schema([
-                        Select::make('client_id')
-                            ->relationship('client', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->required(),
-                        Select::make('author_id')
-                            ->relationship('author', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->nullable(),
-                        Select::make('status')
-                            ->options(collect(ArticleStatus::cases())->mapWithKeys(
-                                fn (ArticleStatus $status): array => [$status->value => $status->name]
-                            )->all())
-                            ->required(),
-                        Select::make('language')
-                            ->options(collect(Language::cases())->mapWithKeys(
-                                fn (Language $language): array => [$language->value => $language->value]
-                            )->all())
-                            ->searchable()
-                            ->nullable(),
-                        Select::make('temporal')
-                            ->options(Temporal::class)
-                            ->nullable(),
-                        Select::make('stage')
-                            ->options(collect(ArticleStage::cases())->mapWithKeys(
-                                fn (ArticleStage $stage): array => [$stage->value => $stage->name]
-                            )->all())
-                            ->required(),
-                        Select::make('stage_status')
-                            ->options(collect(ArticleStageStatus::cases())->mapWithKeys(
-                                fn (ArticleStageStatus $status): array => [$status->value => $status->name]
-                            )->all())
-                            ->required(),
-                        DateTimePicker::make('intent_resolved_at')
-                            ->seconds(false)
-                            ->nullable(),
-                        DateTimePicker::make('processing_at')
-                            ->seconds(false)
-                            ->nullable(),
-                        Select::make('thumbnail_file_id')
-                            ->label('Thumbnail file')
-                            ->relationship('thumbnailFile', 'url')
-                            ->searchable()
-                            ->preload()
-                            ->nullable(),
-                        TextInput::make('intents_count')
-                            ->numeric()
-                            ->minValue(0),
-                        TextInput::make('attempts')
-                            ->numeric()
-                            ->minValue(0),
-                        Textarea::make('title')
-                            ->maxLength(255)
-                            ->columnSpanFull(),
-                        Textarea::make('excerpt')
-                            ->rows(4)
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2),
-                ...SemanticContextForm::components(
-                    ArticleContext::class,
-                    heading: 'Article context',
-                    description: 'Article-level semantic context for generation and HITL flows.',
-                ),
+                Tabs::make('Article')
+                    ->persistTabInQueryString('article-tab')
+                    ->columnSpanFull()
+                    ->tabs([
+                        Tab::make('Details')
+                            ->columns(2)
+                            ->schema([
+                                Select::make('client_id')
+                                    ->relationship('client', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(),
+                                Select::make('author_id')
+                                    ->relationship('author', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->nullable(),
+                                Select::make('status')
+                                    ->options(collect(ArticleStatus::cases())->mapWithKeys(
+                                        fn (ArticleStatus $status): array => [$status->value => $status->name]
+                                    )->all())
+                                    ->required(),
+                                Select::make('language')
+                                    ->options(collect(Language::cases())->mapWithKeys(
+                                        fn (Language $language): array => [$language->value => $language->value]
+                                    )->all())
+                                    ->searchable()
+                                    ->nullable(),
+                                Select::make('temporal')
+                                    ->options(Temporal::class)
+                                    ->nullable(),
+                                Select::make('stage')
+                                    ->options(collect(ArticleStage::cases())->mapWithKeys(
+                                        fn (ArticleStage $stage): array => [$stage->value => $stage->name]
+                                    )->all())
+                                    ->required(),
+                                Select::make('stage_status')
+                                    ->options(collect(ArticleStageStatus::cases())->mapWithKeys(
+                                        fn (ArticleStageStatus $status): array => [$status->value => $status->name]
+                                    )->all())
+                                    ->required(),
+                                DateTimePicker::make('intent_resolved_at')
+                                    ->seconds(false)
+                                    ->nullable(),
+                                DateTimePicker::make('processing_at')
+                                    ->seconds(false)
+                                    ->nullable(),
+                                Select::make('thumbnail_file_id')
+                                    ->label('Thumbnail file')
+                                    ->relationship('thumbnailFile', 'url')
+                                    ->searchable()
+                                    ->preload()
+                                    ->nullable(),
+                                TextInput::make('intents_count')
+                                    ->numeric()
+                                    ->minValue(0),
+                                TextInput::make('attempts')
+                                    ->numeric()
+                                    ->minValue(0),
+                                Textarea::make('title')
+                                    ->maxLength(255)
+                                    ->columnSpanFull(),
+                                Textarea::make('excerpt')
+                                    ->rows(4)
+                                    ->columnSpanFull(),
+                            ]),
+                        Tab::make('Context')
+                            ->schema([
+                                ...SemanticContextForm::components(
+                                    ArticleContext::class,
+                                    wrapped: false,
+                                ),
+                            ]),
+                    ]),
             ]);
     }
 

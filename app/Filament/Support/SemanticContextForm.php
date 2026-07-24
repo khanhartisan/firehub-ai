@@ -36,22 +36,29 @@ final class SemanticContextForm
         string $statePath = 'context',
         string $heading = 'Context',
         ?string $description = null,
+        bool $wrapped = true,
     ): array {
         $template = self::resolveTemplate($context);
+
+        $group = Group::make(self::fields($template))
+            ->statePath($statePath)
+            ->formatStateUsing(fn (mixed $state): array => self::toFormState($state, $template))
+            ->dehydrateStateUsing(fn (mixed $state): array => self::fromFormState(
+                is_array($state) ? $state : [],
+                $template,
+            ))
+            ->columns(1)
+            ->columnSpanFull();
+
+        if (! $wrapped) {
+            return [$group];
+        }
 
         return [
             Section::make($heading)
                 ->description($description ?? 'Pre-defined fields keep a fixed name and description. Add custom fields for anything else.')
                 ->schema([
-                    Group::make(self::fields($template))
-                        ->statePath($statePath)
-                        ->formatStateUsing(fn (mixed $state): array => self::toFormState($state, $template))
-                        ->dehydrateStateUsing(fn (mixed $state): array => self::fromFormState(
-                            is_array($state) ? $state : [],
-                            $template,
-                        ))
-                        ->columns(1)
-                        ->columnSpanFull(),
+                    $group,
                 ])
                 ->columns(1)
                 ->columnSpanFull(),

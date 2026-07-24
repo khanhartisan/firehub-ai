@@ -10,7 +10,6 @@ use App\Enums\Temporal;
 use App\Filament\Resources\Articles\Pages\ManageArticles;
 use App\Filament\Resources\Articles\Pages\ViewArticle;
 use App\Filament\Resources\Articles\RelationManagers\PublicationsRelationManager;
-use App\Filament\Support\JsonField;
 use App\Filament\Support\SemanticContextForm;
 use App\Contracts\Model\Article\Context as ArticleContext;
 use App\Models\Article;
@@ -24,7 +23,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -105,17 +104,12 @@ class ArticleResource extends Resource
                         TextInput::make('attempts')
                             ->numeric()
                             ->minValue(0),
-                        Toggle::make('is_embeddable'),
-                        Toggle::make('is_embedded'),
                         Textarea::make('title')
                             ->maxLength(255)
                             ->columnSpanFull(),
                         Textarea::make('excerpt')
                             ->rows(4)
                             ->columnSpanFull(),
-                        JsonField::make('article', 'JSON DOM payload for the article body.', 14),
-                        JsonField::make('illustration', 'Illustration payload (JSON).', 8),
-                        JsonField::make('stage_data', 'Pipeline stage data (JSON).', 8),
                     ])
                     ->columns(2),
                 ...SemanticContextForm::components(
@@ -204,6 +198,10 @@ class ArticleResource extends Resource
                         TextEntry::make('author.name')->label('Author')->placeholder('—'),
                         TextEntry::make('title')->placeholder('—')->columnSpanFull(),
                         TextEntry::make('excerpt')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('article')
+                            ->placeholder('—')
+                            ->columnSpanFull()
+                            ->formatStateUsing(fn ($state): string => self::formatJsonState($state)),
                         TextEntry::make('status')
                             ->badge()
                             ->formatStateUsing(fn ($state) => $state?->name ?? (string) $state),
@@ -220,13 +218,45 @@ class ArticleResource extends Resource
                         TextEntry::make('intent_resolved_at')->dateTime()->placeholder('—'),
                         TextEntry::make('processing_at')->dateTime()->placeholder('—'),
                         TextEntry::make('thumbnailFile.url')->label('Thumbnail')->placeholder('—'),
-                        TextEntry::make('is_embeddable')->boolean(),
-                        TextEntry::make('is_embedded')->boolean(),
+                        IconEntry::make('is_embeddable')->boolean(),
+                        IconEntry::make('is_embedded')->boolean(),
+                        TextEntry::make('illustration')
+                            ->placeholder('—')
+                            ->columnSpanFull()
+                            ->formatStateUsing(fn ($state): string => self::formatJsonState($state)),
+                        TextEntry::make('stage_data')
+                            ->placeholder('—')
+                            ->columnSpanFull()
+                            ->formatStateUsing(fn ($state): string => self::formatJsonState($state)),
                         TextEntry::make('error_logs')->placeholder('—')->columnSpanFull(),
                         TextEntry::make('updated_at')->dateTime(),
                     ])
                     ->columns(2),
             ]);
+    }
+
+    /**
+     * @param  mixed  $state
+     */
+    private static function formatJsonState($state): string
+    {
+        if ($state === null || $state === '') {
+            return '—';
+        }
+
+        if (is_string($state)) {
+            return $state;
+        }
+
+        if (is_array($state)) {
+            return (string) json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
+        if (is_object($state) && method_exists($state, 'toArray')) {
+            return (string) json_encode($state->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+
+        return (string) $state;
     }
 
     public static function getRelations(): array
